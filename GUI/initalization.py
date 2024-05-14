@@ -4,14 +4,14 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
-import GUI.FMR.FMR as fmr
-import GUI.Setting.Setting as Setting
-import GUI.QDesign.PPMS as ppms
-import GUI.QDesign.QD as qd
-import GUI.VSM.VSM as vsm
-import GUI.ETO.ETO as eto
-import GUI.SHG.SHG as shg
-import GUI.QDesign.Keithley2182nv as nv
+import Data_Processing_Suite.GUI.FMR.FMR as fmr
+import Data_Processing_Suite.GUI.Setting.Setting as Setting
+import Data_Processing_Suite.GUI.QDesign.PPMS as ppms
+import Data_Processing_Suite.GUI.QDesign.QD as qd
+import Data_Processing_Suite.GUI.VSM.VSM as vsm
+import Data_Processing_Suite.GUI.ETO.ETO as eto
+import Data_Processing_Suite.GUI.SHG.SHG as shg
+import Data_Processing_Suite.GUI.QDesign.Keithley2182nv as nv
 
 
 # Individual Frames
