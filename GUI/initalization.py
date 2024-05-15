@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
         self.currentindex = 0  # Index for menu bar; this tells which row of the menu bar has been selected (FMR, VSM, etc.)
         self.currentToolIndex = 0  # Index for help menu and setting menu selection
         self.whichSideBar = 0  # Index for which side bar on the left side has been selected; 1 means menu sidebar; 2 means tool menu bar
+        self.currentqdindex = 0
         self.initUI()
 
     def initUI(self):
@@ -303,6 +304,7 @@ class MainWindow(QMainWindow):
         if self.whichSideBar == 1:
             self.left_sidebar.setCurrentRow(self.currentindex)
             self.update_menu_bar(self.currentindex)
+            self.update_qd(self.currentqdindex)
         elif self.whichSideBar == 2:
             self.Tool_menu.setCurrentRow(self.currentToolIndex)
             self.update_tool_bar(self.currentToolIndex)
@@ -359,48 +361,49 @@ class MainWindow(QMainWindow):
     def update_qd(self, current_row):
         if current_row == 0:  # Home
             self.right_sidebar.setCurrentRow(0)
+            # Enter the corresponding function
             self.pages.setCurrentIndex(6)
-            self.currentindex = 0
+            self.currentqdindex = 0
             # self.left_sidebar.setEnabled(True)
 
         elif current_row == 1:  # Settings
 
             self.right_sidebar.setCurrentRow(1)
             self.pages.setCurrentIndex(7)
-            self.currentindex = 1
+            self.currentqdindex = 1
 
         elif current_row == 2:  # Profile
 
             self.right_sidebar.setCurrentRow(2)
             # self.pages.setCurrentIndex(2)
-            self.currentindex = 2
+            self.currentqdindex = 2
 
         elif current_row == 3:  # Profile
             self.right_sidebar.setCurrentRow(3)
             # self.pages.setCurrentIndex(3)
-            self.currentindex = 3
+            self.currentqdindex = 3
 
         elif current_row == 4:  # Profile
             self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
             # self.right_sidebar.setCurrentRow(4)
             self.pages.setCurrentIndex(4)
-            self.currentindex = 4
+            self.currentqdindex = 4
 
     def update_tool_bar(self, current_row):
         self.whichSideBar = 2
         self.right_sidebar.clear()
         self.left_sidebar.setCurrentRow(-1)  # Force clearing selection
         if current_row == 0:  # Home
-            self.right_sidebar.addItem(QListWidgetItem("Setting"))
-            self.right_sidebar.addItem(QListWidgetItem("News"))
-            self.right_sidebar.addItem(QListWidgetItem("Statistics"))
+            self.right_sidebar.addItem(QListWidgetItem("About this Software"))
+            self.right_sidebar.addItem(QListWidgetItem("About Us"))
+            self.right_sidebar.addItem(QListWidgetItem("Contact"))
             self.Tool_menu.setCurrentRow(0)
             self.pages.setCurrentIndex(5)
             self.currentToolIndex = 0
 
         elif current_row == 1:  # Settings
-            self.right_sidebar.addItem(QListWidgetItem("Tools"))
-            self.right_sidebar.addItem(QListWidgetItem("Security"))
+            self.right_sidebar.addItem(QListWidgetItem("Theme"))
+            self.right_sidebar.addItem(QListWidgetItem("Notification"))
             self.right_sidebar.addItem(QListWidgetItem("Privacy"))
             self.Tool_menu.setCurrentRow(1)
             self.pages.setCurrentIndex(5)

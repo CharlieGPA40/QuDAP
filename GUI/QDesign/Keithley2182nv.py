@@ -26,6 +26,7 @@ class NV(QWidget):
     def __init__(self):
         super().__init__()
         self.isConnect = False
+        self.isPlotting = False
         self.init_ui()
 
     def init_ui(self):
@@ -40,13 +41,18 @@ class NV(QWidget):
         #  ---------------------------- PART 1 --------------------------------
         self.current_intrument_label = QLabel("Keithley 2182 Nanovoltmeter")
         self.current_intrument_label.setFont(titlefont)
+        self.current_intrument_label.setStyleSheet("""
+                                            QLabel{
+                                                background-color: white;
+                                                }
+                                                """)
         #  ---------------------------- PART 2 --------------------------------
         # GPIB ComboBox
         self.gpib_combo = QComboBox()
         self.gpib_combo.setStyleSheet("""
                     QComboBox {
                         padding: 5px;
-                        background-color: #f5f5f5;
+                        background-color: white;
                         border: 2px solid #c0c0c0;
                         border-radius: 4px;
                         }
@@ -65,9 +71,9 @@ class NV(QWidget):
                         border-top-right-radius: 3px; /* same radius as the QComboBox */
                         border-bottom-right-radius: 3px;
                     }
-                    # QComboBox::down-arrow {
-                    #     image: url(/path/to/your/icon.png); /* Set your own icon for the arrow */
-                    # }
+                    QComboBox::down-arrow {
+                        image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                    }
                     QComboBox::down-arrow:on { /* When the combo box is open */
                         top: 1px;
                         left: 1px;
@@ -83,16 +89,18 @@ class NV(QWidget):
                                         }
                                         """)
 
-        self.refresh_gpib_list()  # Populate GPIB ports initially
+
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
+
         refresh_btn.clicked.connect(self.refresh_gpib_list)
         # Label to display current GPIB connection
 
         # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
-
-        connect_btn = QPushButton('Connect')
-        connect_btn.clicked.connect(self.connect_current_gpib)
+          # Populate GPIB ports initially
+        self.connect_btn = QPushButton('Connect')
+        self.connect_btn_clicked = False
+        self.connect_btn.clicked.connect(self.connect_current_gpib)
 
         # Layout for the combobox and refresh button
         combo_text_layout = QVBoxLayout()
@@ -105,7 +113,8 @@ class NV(QWidget):
         combo_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         combo_layout.addWidget(self.gpib_combo, 4)
         combo_layout.addWidget(refresh_btn, 1)
-        combo_layout.addWidget(connect_btn, 2)
+        self.refresh_gpib_list()
+        combo_layout.addWidget(self.connect_btn, 2)
         combo_layout.setContentsMargins(50,0,50,0)
         combo_text_layout.addLayout(combo_layout)
         combo_text_layout.addWidget(self.current_gpib_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -133,7 +142,7 @@ class NV(QWidget):
         self.channel2_Volt.setFont(font)
         # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
         self.voltage_timer = QTimer()
-        self.voltage_timer.setInterval(100)
+        self.voltage_timer.setInterval(1000)
         self.voltage_timer.timeout.connect(self.update_voltage)
         self.voltage_timer.start()
         channel1_read_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -152,6 +161,7 @@ class NV(QWidget):
         voltage_reading_group_box.setLayout(voltage_reading_layout)
 
         #  ---------------------------- PART 4 --------------------------------
+
         graphing_layout = QHBoxLayout()
         selection_Layout = QHBoxLayout()
         plotting_control_group_box = QGroupBox("Plotting Selection")
@@ -172,9 +182,12 @@ class NV(QWidget):
                                                             """)
         plot_btn = QPushButton('Plot')
         plot_btn.clicked.connect(self.plot_selection)
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.stop)
         rst_btn = QPushButton('Reset')
         rst_btn.clicked.connect(self.rst)
         selection_Layout.addWidget(plot_btn)
+        selection_Layout.addWidget(stop_btn)
         selection_Layout.addWidget(rst_btn)
 
         # Arrange radio buttons horizontally
@@ -206,6 +219,8 @@ class NV(QWidget):
         main_layout.addWidget(voltage_reading_group_box)
         main_layout.addLayout(graphing_layout)
         self.setLayout(main_layout)
+
+        #  ---------------------------- Style Sheet --------------------------------
         plot_btn.setStyleSheet("""
                    QPushButton {
                        background-color: #3498DB; /* Green background */
@@ -245,7 +260,7 @@ class NV(QWidget):
                                        background-color: #979A9A; /* Even darker green */
                                    }
                                """)
-        connect_btn.setStyleSheet("""
+        self.connect_btn.setStyleSheet("""
                                    QPushButton {
                                        background-color: #CAC9Cb; /* Green background */
                                        color: black; /* White text */
@@ -283,9 +298,27 @@ class NV(QWidget):
                                        background-color: #979A9A; /* Even darker green */
                                    }
                                """)
+
+        stop_btn.setStyleSheet("""
+                                           QPushButton {
+                                               background-color: #D98880; /* Green background */
+                                               color: white; /* White text */
+                                               border-style: solid;
+                                               border-color: #D98880;
+                                               border-width: 2px;
+                                               border-radius: 10px; /* Rounded corners */
+                                               padding: 5px;
+                                               min-height: 1px;
+                                               min-width: 50px;
+                                           }
+                                           QPushButton:hover {
+                                               background-color: #E74C3C; /* Slightly darker green */
+                                           }
+                                           QPushButton:pressed {
+                                               background-color: #FADBD8; /* Even darker green */
+                                           }
+                                       """)
         #  ---------------------------- Plotting --------------------------------
-
-
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
@@ -299,23 +332,52 @@ class NV(QWidget):
         self.gpib_combo.addItems(self.gpib_ports)
         self.gpib_combo.addItems(["GPIB:7"])
         self.gpib_combo.addItems(["GPIB:8"])
+        self.connect_btn.setText('Connect')
+        self.connect_btn_clicked = False
+        self.isConnect = False
+        self.isCheckedBox1 = False
+        self.isCheckedBox2 = False
+        self.counter = 0
+        self.counter_array = []
+        if self.isPlotting:
+            self.rst()
 
 
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
-        current_connection = self.gpib_combo.currentText()
-        if current_connection == 'None':
-            self.isConnect = False
-            print('Not Connecting')
+        print(self.connect_btn_clicked)
+        if self.connect_btn_clicked == False:
+            self.connect_btn.setText('Disonnect')
+            self.connect_btn_clicked = True
+        elif self.connect_btn_clicked == True:
+            if self.isPlotting:
+                self.rst()
+            self.connect_btn.setText('Connect')
+            self.connect_btn_clicked = False
+        self.current_connection = self.gpib_combo.currentText()
+        if self.current_connection == 'None':
             self.isConnect = False
         else:
-            self.isConnect = True
-        self.current_gpib_label.setText(f"Current GPIB Connection: {current_connection}")
+            if self.connect_btn_clicked == False:
+                self.isConnect = False
+            else:
+                self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
+                try:
+                    self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
+                    self.isConnect = True
+                    self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                except visa.errors.VisaIOError:
+                    self.isConnect = False
+                    self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")
+                # Comment it in real implementation
+                self.isConnect = True
+
         # self.keithley_2182A_NV=rm.open_resource(current_connection, timeout=10000)
 
 
     def update_voltage(self):
         if self.isConnect:
+            self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
             # This is for testing uncommand it to test GUI
             self.Chan_1_voltage = random.randint(0, 1000) / 1000
             self.Chan_2_voltage = random.randint(0, 1000) / 100
@@ -349,31 +411,40 @@ class NV(QWidget):
             self.isCheckedBox2 = False
 
         if len(status) > 0 and self.isConnect == True:
+            self.canvas.axes.cla()
+            self.channel1_Volt_Array = []
+            self.channel2_Volt_Array = []
             self.counter = 0
+            self.counter_array = []
+            self.counter_array.append(self.counter)
             self.update_plot()
             self.show()
 
             # Setup a timer to trigger the redraw by calling update_plot.
             self.timer = QTimer()
-            self.timer.setInterval(100)
+            self.timer.setInterval(1000)
             self.timer.timeout.connect(self.update_plot)
             self.timer.start()
 
     def update_plot(self):
         # self.canvas.axes.cla()  # Clear the canvas.
         if self.isCheckedBox1 == True:
-            print(self.Chan_1_voltage)
+            self.isPlotting = True
+            self.channel1_Volt_Array.append(self.Chan_1_voltage)
         # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter, self.Chan_1_voltage, 'r-')
+            self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
             self.canvas.draw()
-            self.show()
         if self.isCheckedBox2 == True:
+            self.isPlotting = True
+            self.channel2_Volt_Array.append(self.Chan_2_voltage)
         # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter, self.Chan_2_voltage, 'r-')
+            self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
             self.canvas.draw()
-            self.show()
         self.counter += 1
+        self.counter_array.append(self.counter)
 
+    def stop(self):
+        self.timer.stop()
 
     def rst(self):
         # This method updates the label based on the checkbox states
