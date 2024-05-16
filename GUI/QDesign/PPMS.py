@@ -16,23 +16,27 @@ import random
 import sys
 import Data_Processing_Suite.GUI.Icon as Icon
 
-class IntegerValidator(QDoubleValidator):
-    def __init__(self, minimum, maximum, decimal):
-        super().__init__(minimum, maximum, decimal)
-        self.minimum = minimum
-        self.maximum = maximum
-        self.decimal = decimal
-    def validate(self, input, pos):
-        if input == "":
-            return (QValidator.State.Intermediate, input, pos)
-        state, value, pos = super().validate(input, pos)
-        try:
-            if self.minimum <= float(input) <= self.maximum:
-                return (QValidator.State.Acceptable, input, pos)
-            else:
-                return (QValidator.State.Invalid, input, pos)
-        except ValueError:
-            return (QValidator.State.Invalid, input, pos)
+# class IntegerValidator(QDoubleValidator):
+#     def __init__(self, minimum, maximum, decimal):
+#         super().__init__(minimum, maximum, decimal)
+#         self.minimum = minimum
+#         self.maximum = maximum
+#         self.decimal = decimal
+
+    # def validate(self, input, pos):
+    #     if input == "":
+    #         return (QValidator.State.Intermediate, input, pos)
+    #     state, value, pos = super().validate(input, pos)
+    #     try:
+    #         if self.minimum <= int(input) <= self.maximum:
+    #             return (QValidator.State.Acceptable, input, pos)
+    #         else:
+    #             return (QValidator.State.Invalid, input, pos)
+    #     except ValueError:
+    #         return (QValidator.State.Invalid, input, pos)
+
+
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -199,8 +203,16 @@ class PPMS(QWidget):
         self.set_temp_Label = QLabel("Target Temperature:")
         self.set_temp_Label.setFont(font)
         self.cur_temp_entry_box = QLineEdit()
-        self.cur_temp_entry_box.setValidator(IntegerValidator(0.9, 400.0, 2))
-        self.cur_temp_entry_box.setPlaceholderText("Enter an temperature between 0 and 400")
+        # Create a QDoubleValidator with range 1.8 to 400.0 and precision of 2 decimal places
+        self.temp_validator = QDoubleValidator(1.8, 400.0, 2)
+        self.temp_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        #
+        # # Set the validator to the QLineEdit
+        # self.cur_temp_entry_box.setValidator(validator)
+        # Set the validator to the QLineEdit
+        self.cur_temp_entry_box.setValidator(self.temp_validator)
+        # self.cur_temp_entry_box.setValidator(IntegerValidator(1.8, 400.0, 1))
+        self.cur_temp_entry_box.setPlaceholderText("Enter an temperature between 1.8 and 400")
         self.set_temp_unit_Label = QLabel("K")
         self.set_temp_unit_Label.setFont(font)
         temp_value_setting_layout.addWidget(self.set_temp_Label)
@@ -211,7 +223,7 @@ class PPMS(QWidget):
         self.temp_rate_Label = QLabel("Rate:")
         self.temp_rate_Label.setFont(font)
         self.temp_rate_entry_box = QLineEdit()
-        self.temp_rate_entry_box.setValidator(IntegerValidator(0, 50, 1))
+        # self.temp_rate_entry_box.setValidator(IntegerValidator(0, 50,1))
         self.temp_rate_entry_box.setPlaceholderText("Enter an rate between 1 and 50")
         self.temp_rate_unit_Label = QLabel("K/s")
         self.temp_rate_unit_Label.setFont(font)
@@ -272,7 +284,7 @@ class PPMS(QWidget):
         self.set_field_Label = QLabel("Target Temperature:")
         self.set_field_Label.setFont(font)
         self.cur_field_entry_box = QLineEdit()
-        self.cur_field_entry_box.setValidator(IntegerValidator(-90000, 90000, 1))
+        # self.cur_field_entry_box.setValidator(IntegerValidator(-90000, 90000, 1))
         self.cur_field_entry_box.setPlaceholderText("Enter a field between -90000 and 90000")
         self.set_field_unit_Label = QLabel("Oe")
         self.set_field_unit_Label.setFont(font)
@@ -284,7 +296,7 @@ class PPMS(QWidget):
         self.field_rate_Label = QLabel("Rate:")
         self.field_rate_Label.setFont(font)
         self.field_rate_entry_box = QLineEdit()
-        self.field_rate_entry_box.setValidator(IntegerValidator(0, 220, 1))
+        # self.field_rate_entry_box.setValidator(IntegerValidator(0, 220, 1))
         self.field_rate_entry_box.setPlaceholderText("Enter an rate between 0 and 220")
         self.field_rate_unit_Label = QLabel("Oe/s")
         self.field_rate_unit_Label.setFont(font)
@@ -610,19 +622,21 @@ class PPMS(QWidget):
         self.set_temp = self.cur_temp_entry_box.displayText()
         self.set_temp_rate = self.temp_rate_entry_box.displayText()
         self.temp_rate_method = self.temp_rate_combo.currentIndex()
+        temperatureValidtor =self.check_validator(self.temp_validator, self.cur_temp_entry_box)
+        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0 and temperatureValidtor:
 
-        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0:
             self.set_temp_rate = float(self.set_temp_rate)
             self.set_temp = float(self.set_temp)
             print(self.set_temp, self.set_temp_rate, self.temp_rate_method)
-            if self.temp_rate_method == 1:
-                self.client.set_temperature(self.set_temp,
-                                       self.set_temp_rate,
-                                       self.client.temperature.approach_mode.fast_settle)
-            elif self.temp_rate_method == 2:
-                self.client.set_temperature(self.set_temp,
-                                            self.set_temp_rate,
-                                            self.client.temperature.approach_mode.no_overshoot)
+            self.check_validator(self.temp_validator, self.cur_temp_entry_box)
+            # if self.temp_rate_method == 1:
+            #     self.client.set_temperature(self.set_temp,
+            #                            self.set_temp_rate,
+            #                            self.client.temperature.approach_mode.fast_settle)
+            # elif self.temp_rate_method == 2:
+            #     self.client.set_temperature(self.set_temp,
+            #                                 self.set_temp_rate,
+            #                                 self.client.temperature.approach_mode.no_overshoot)
 
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
@@ -633,6 +647,7 @@ class PPMS(QWidget):
         self.set_field_rate = self.field_rate_entry_box.displayText()
         self.field_rate_method = self.field_rate_combo.currentIndex()
         if self.set_Field != '' and self.set_field_rate != '' and self.field_rate_method != 0:
+
             self.set_Field = float(self.set_Field)
             self.set_field_rate = float(self.set_field_rate)
             print(self.set_Field, self.set_field_rate, self.field_rate_method)
@@ -671,3 +686,15 @@ class PPMS(QWidget):
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
 
+
+    def check_validator(self, validator_model, entry):
+        print("validator")
+        try:
+            if float(entry.displayText()) <= validator_model.top() and float(entry.displayText()) >= validator_model.bottom():
+                return True
+            else:
+                QMessageBox.warning(self, "Error", "Input Out of range")
+                return False
+        except:
+            QMessageBox.warning(self, "Error", "Input Out of range")
+            return False
