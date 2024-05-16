@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
-from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer
 import sys
 import pyvisa as visa
 import matplotlib
+
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -13,6 +14,22 @@ from matplotlib.figure import Figure
 import random
 
 import Data_Processing_Suite.GUI.Icon as Icon
+class IntegerValidator(QIntValidator):
+    def __init__(self, minimum, maximum):
+        super().__init__(minimum, maximum)
+        self.minimum = minimum
+        self.maximum = maximum
+    def validate(self, input, pos):
+        if input == "":
+            return (QValidator.State.Intermediate, input, pos)
+        state, value, pos = super().validate(input, pos)
+        try:
+            if self.minimum <= int(input) <= self.maximum:
+                return (QValidator.State.Acceptable, input, pos)
+            else:
+                return (QValidator.State.Invalid, input, pos)
+        except ValueError:
+            return (QValidator.State.Invalid, input, pos)
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -21,7 +38,8 @@ class MplCanvas(FigureCanvas):
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
-class NV(QWidget):
+
+class CurrentSource6221(QWidget):
 
     def __init__(self):
         super().__init__()
@@ -30,7 +48,7 @@ class NV(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        titlefont = QFont("Arial",25)
+        titlefont = QFont("Arial", 25)
         font = QFont("Arial", 15)
         self.setStyleSheet("background-color: white;")
 
@@ -39,7 +57,7 @@ class NV(QWidget):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         #  ---------------------------- PART 1 --------------------------------
-        self.current_intrument_label = QLabel("Keithley 2182 Nanovoltmeter")
+        self.current_intrument_label = QLabel("Keithley 6221 DC and AC Current Source")
         self.current_intrument_label.setFont(titlefont)
         self.current_intrument_label.setStyleSheet("""
                                             QLabel{
@@ -60,7 +78,7 @@ class NV(QWidget):
                         background-color: #FFFFFF;  /* Background color for selected item */
                         color: #7CACEC
                     }
-                    
+
                     QComboBox::drop-down {
                         subcontrol-origin: padding;
                         subcontrol-position: top right;
@@ -89,7 +107,6 @@ class NV(QWidget):
                                         }
                                         """)
 
-
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
 
@@ -97,7 +114,7 @@ class NV(QWidget):
         # Label to display current GPIB connection
 
         # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
-          # Populate GPIB ports initially
+        # Populate GPIB ports initially
         self.connect_btn = QPushButton('Connect')
         self.connect_btn_clicked = False
         self.connect_btn.clicked.connect(self.connect_current_gpib)
@@ -115,18 +132,23 @@ class NV(QWidget):
         combo_layout.addWidget(refresh_btn, 1)
         self.refresh_gpib_list()
         combo_layout.addWidget(self.connect_btn, 2)
-        combo_layout.setContentsMargins(50,0,50,0)
+        combo_layout.setContentsMargins(50, 0, 50, 0)
         combo_text_layout.addLayout(combo_layout)
         combo_text_layout.addWidget(self.current_gpib_label, alignment=Qt.AlignmentFlag.AlignCenter)
         group_box.setLayout(combo_text_layout)
 
         #  ---------------------------- PART 3 --------------------------------
-        voltage_reading_group_box = QGroupBox("Voltage Reading")  # Container widget for the horizontal layout
+        voltage_reading_group_box = QGroupBox("DC Current")  # Container widget for the horizontal layout
         voltage_reading_layout = QVBoxLayout()
         # voltage_reading_widget.setStyleSheet("QWidget { border: 2px solid black; }")
         channel1_read_layout = QHBoxLayout()
-        self.channel1_Label = QLabel("Channel 1:")
+        self.channel1_Label = QLabel("Amplitude")
         self.channel1_Label.setFont(font)
+
+        self.cur_field_entry_box = QLineEdit()
+        self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
+        self.cur_field_entry_box.setPlaceholderText("Enter a field between -10000 and 10000")
+
         self.channel1_Volt = QLabel("N/A Volts")
         self.channel1_Volt.setFont(font)
         self.setStyleSheet("""
@@ -153,7 +175,6 @@ class NV(QWidget):
         channel2_read_layout.addWidget(self.channel2_Label, 1)
         channel2_read_layout.addWidget(self.channel2_Volt, 5)
         channel2_read_layout.setContentsMargins(50, 0, 250, 0)
-
 
         voltage_reading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         voltage_reading_layout.addLayout(channel1_read_layout, 1)
@@ -342,7 +363,6 @@ class NV(QWidget):
         if self.isPlotting:
             self.rst()
 
-
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
         print(self.connect_btn_clicked)
@@ -373,7 +393,6 @@ class NV(QWidget):
                 self.isConnect = True
 
         # self.keithley_2182A_NV=rm.open_resource(current_connection, timeout=10000)
-
 
     def update_voltage(self):
         if self.isConnect:
@@ -431,13 +450,13 @@ class NV(QWidget):
         if self.isCheckedBox1 == True:
             self.isPlotting = True
             self.channel1_Volt_Array.append(self.Chan_1_voltage)
-        # # Drop off the first y element, append a new one.
+            # # Drop off the first y element, append a new one.
             self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
             self.canvas.draw()
         if self.isCheckedBox2 == True:
             self.isPlotting = True
             self.channel2_Volt_Array.append(self.Chan_2_voltage)
-        # # Drop off the first y element, append a new one.
+            # # Drop off the first y element, append a new one.
             self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
             self.canvas.draw()
         self.counter += 1

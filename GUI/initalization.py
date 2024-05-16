@@ -12,6 +12,7 @@ import Data_Processing_Suite.GUI.VSM.VSM as vsm
 import Data_Processing_Suite.GUI.ETO.ETO as eto
 import Data_Processing_Suite.GUI.SHG.SHG as shg
 import Data_Processing_Suite.GUI.QDesign.Keithley2182nv as nv
+import Data_Processing_Suite.GUI.QDesign.Keithley6221 as cs
 
 
 # Individual Frames
@@ -55,6 +56,7 @@ class MainWindow(QMainWindow):
         self.left_sidebar.setStyleSheet("""
             QListWidget {
                 outline: none;  /* Removes focus outline */
+                
             }
             QListWidget::item {
                 border: none;
@@ -186,6 +188,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(Setting.Settings())  # 5
         self.pages.addWidget(ppms.PPMS())  # 6
         self.pages.addWidget(nv.NV())  # 7
+        self.pages.addWidget(cs.CurrentSource6221())  # 8
 
 
         # self.toggle_dark_mode()
@@ -305,6 +308,7 @@ class MainWindow(QMainWindow):
             self.left_sidebar.setCurrentRow(self.currentindex)
             self.update_menu_bar(self.currentindex)
             self.update_qd(self.currentqdindex)
+        #     place to add more page
         elif self.whichSideBar == 2:
             self.Tool_menu.setCurrentRow(self.currentToolIndex)
             self.update_tool_bar(self.currentToolIndex)
@@ -375,7 +379,7 @@ class MainWindow(QMainWindow):
         elif current_row == 2:  # Profile
 
             self.right_sidebar.setCurrentRow(2)
-            # self.pages.setCurrentIndex(2)
+            self.pages.setCurrentIndex(8)
             self.currentqdindex = 2
 
         elif current_row == 3:  # Profile

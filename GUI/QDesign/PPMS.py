@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
-from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator
+from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer
 import sys
 import pyvisa as visa
@@ -16,17 +16,18 @@ import random
 import sys
 import Data_Processing_Suite.GUI.Icon as Icon
 
-class IntegerValidator(QIntValidator):
-    def __init__(self, minimum, maximum):
-        super().__init__(minimum, maximum)
+class IntegerValidator(QDoubleValidator):
+    def __init__(self, minimum, maximum, decimal):
+        super().__init__(minimum, maximum, decimal)
         self.minimum = minimum
         self.maximum = maximum
+        self.decimal = decimal
     def validate(self, input, pos):
         if input == "":
             return (QValidator.State.Intermediate, input, pos)
         state, value, pos = super().validate(input, pos)
         try:
-            if self.minimum <= int(input) <= self.maximum:
+            if self.minimum <= float(input) <= self.maximum:
                 return (QValidator.State.Acceptable, input, pos)
             else:
                 return (QValidator.State.Invalid, input, pos)
@@ -198,7 +199,7 @@ class PPMS(QWidget):
         self.set_temp_Label = QLabel("Target Temperature:")
         self.set_temp_Label.setFont(font)
         self.cur_temp_entry_box = QLineEdit()
-        self.cur_temp_entry_box.setValidator(IntegerValidator(0, 400))
+        self.cur_temp_entry_box.setValidator(IntegerValidator(0.9, 400.0, 2))
         self.cur_temp_entry_box.setPlaceholderText("Enter an temperature between 0 and 400")
         self.set_temp_unit_Label = QLabel("K")
         self.set_temp_unit_Label.setFont(font)
@@ -210,7 +211,7 @@ class PPMS(QWidget):
         self.temp_rate_Label = QLabel("Rate:")
         self.temp_rate_Label.setFont(font)
         self.temp_rate_entry_box = QLineEdit()
-        self.temp_rate_entry_box.setValidator(IntegerValidator(0, 50))
+        self.temp_rate_entry_box.setValidator(IntegerValidator(0, 50, 1))
         self.temp_rate_entry_box.setPlaceholderText("Enter an rate between 1 and 50")
         self.temp_rate_unit_Label = QLabel("K/s")
         self.temp_rate_unit_Label.setFont(font)
@@ -271,8 +272,8 @@ class PPMS(QWidget):
         self.set_field_Label = QLabel("Target Temperature:")
         self.set_field_Label.setFont(font)
         self.cur_field_entry_box = QLineEdit()
-        self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
-        self.cur_field_entry_box.setPlaceholderText("Enter a field between -10000 and 10000")
+        self.cur_field_entry_box.setValidator(IntegerValidator(-90000, 90000, 1))
+        self.cur_field_entry_box.setPlaceholderText("Enter a field between -90000 and 90000")
         self.set_field_unit_Label = QLabel("Oe")
         self.set_field_unit_Label.setFont(font)
         field_value_setting_layout.addWidget(self.set_field_Label)
@@ -283,7 +284,7 @@ class PPMS(QWidget):
         self.field_rate_Label = QLabel("Rate:")
         self.field_rate_Label.setFont(font)
         self.field_rate_entry_box = QLineEdit()
-        self.field_rate_entry_box.setValidator(IntegerValidator(0, 220))
+        self.field_rate_entry_box.setValidator(IntegerValidator(0, 220, 1))
         self.field_rate_entry_box.setPlaceholderText("Enter an rate between 0 and 220")
         self.field_rate_unit_Label = QLabel("Oe/s")
         self.field_rate_unit_Label.setFont(font)
@@ -632,8 +633,8 @@ class PPMS(QWidget):
         self.set_field_rate = self.field_rate_entry_box.displayText()
         self.field_rate_method = self.field_rate_combo.currentIndex()
         if self.set_Field != '' and self.set_field_rate != '' and self.field_rate_method != 0:
-            self.set_Field = int(self.set_Field)
-            self.set_field_rate = int(self.set_field_rate)
+            self.set_Field = float(self.set_Field)
+            self.set_field_rate = float(self.set_field_rate)
             print(self.set_Field, self.set_field_rate, self.field_rate_method)
             if self.temp_rate_method == 1:
                 self.client.set_field(self.set_Field,

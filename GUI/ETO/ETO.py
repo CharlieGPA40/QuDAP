@@ -19,4 +19,9 @@ class ETO(QWidget):
         layout.addWidget(label)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-        # self.setStyleSheet("background-color: lightblue;")
+        # self.setStyleSheet("""
+        #                 background-image: url('Icon/background2.jpg');
+        #                 background-repeat: no-repeat;
+        #                 background-position: center;
+        #
+        #         """)
