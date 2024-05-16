@@ -623,7 +623,10 @@ class PPMS(QWidget):
         self.set_temp_rate = self.temp_rate_entry_box.displayText()
         self.temp_rate_method = self.temp_rate_combo.currentIndex()
         temperatureValidtor =self.check_validator(self.temp_validator, self.cur_temp_entry_box)
-        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0 and temperatureValidtor:
+        temperatureRateValidtor = self.check_validator(self.temp_validator, self.temp_rate_entry_box)
+        if not temperatureValidtor or not temperatureRateValidtor:
+            return
+        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0 and temperatureValidtor and temperatureRateValidtor:
 
             self.set_temp_rate = float(self.set_temp_rate)
             self.set_temp = float(self.set_temp)
