@@ -223,6 +223,9 @@ class PPMS(QWidget):
         self.temp_rate_Label = QLabel("Rate:")
         self.temp_rate_Label.setFont(font)
         self.temp_rate_entry_box = QLineEdit()
+        self.temp_rate_validator = QDoubleValidator(0, 50.0, 2)
+        self.temp_rate_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.temp_rate_entry_box.setValidator(self.temp_rate_validator)
         # self.temp_rate_entry_box.setValidator(IntegerValidator(0, 50,1))
         self.temp_rate_entry_box.setPlaceholderText("Enter an rate between 1 and 50")
         self.temp_rate_unit_Label = QLabel("K/s")
@@ -284,6 +287,9 @@ class PPMS(QWidget):
         self.set_field_Label = QLabel("Target Temperature:")
         self.set_field_Label.setFont(font)
         self.cur_field_entry_box = QLineEdit()
+        self.field_validator = QDoubleValidator(-90000.00, 90000.0, 2)
+        self.field_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.cur_field_entry_box.setValidator(self.field_validator)
         # self.cur_field_entry_box.setValidator(IntegerValidator(-90000, 90000, 1))
         self.cur_field_entry_box.setPlaceholderText("Enter a field between -90000 and 90000")
         self.set_field_unit_Label = QLabel("Oe")
@@ -296,6 +302,9 @@ class PPMS(QWidget):
         self.field_rate_Label = QLabel("Rate:")
         self.field_rate_Label.setFont(font)
         self.field_rate_entry_box = QLineEdit()
+        self.field_rate_validator = QDoubleValidator(0, 220.0, 2)
+        self.field_rate_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.field_rate_entry_box.setValidator(self.field_rate_validator)
         # self.field_rate_entry_box.setValidator(IntegerValidator(0, 220, 1))
         self.field_rate_entry_box.setPlaceholderText("Enter an rate between 0 and 220")
         self.field_rate_unit_Label = QLabel("Oe/s")
@@ -531,6 +540,7 @@ class PPMS(QWidget):
 
     def start_server(self):
         # self.server()
+        # self.client = mpv.Client(host=self.host_entry_box.displayText())
         if self.server_btn_clicked == False:
             # self.s.open()  # Uncommented it on the sever computer
             self.server_btn.setText('Stop Server')
@@ -548,17 +558,10 @@ class PPMS(QWidget):
     #     if flags == '':
     #         user_flags = sys.argv[1:]
     #     else:
-    #         msg = 'No flags detected; using hard-coded IP address'
-    #         msg += 'for remote access.'
-    #         print(msg)
+    #         user_flags = flags.split(' ')
     #
-    #         # This value comes from the server PC's self-identified IPV4
-    #         # address and needs to be manually input
-    #         self.host = self.host_entry_box.displayText()
-    #         user_flags = [f'-ip={self.host}']
-    #
-    #     # Opens the server connection
     #     self.s = mpv.Server(user_flags, keep_server_open=True)
+    #     self.s.open()
 
     def connect_client(self):
         self.reading_timer = QTimer()
@@ -568,6 +571,10 @@ class PPMS(QWidget):
             self.server_btn.setEnabled(False)
             # Uncommented it on the client computer
             # with mpv.Client(self.host, self.port) as self.client:
+
+            self.client.open()
+
+            #     time.sleep(5)
             #     self.reading_timer = QTimer()
             #     self.reading_timer.setInterval(1000)
             #     self.reading_timer.timeout.connect(self.ppms_reading)
@@ -583,6 +590,7 @@ class PPMS(QWidget):
 
 
         elif self.connect_btn_clicked == True:
+            # self.client.close_client()
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
             self.server_btn.setEnabled(True)
@@ -623,23 +631,22 @@ class PPMS(QWidget):
         self.set_temp_rate = self.temp_rate_entry_box.displayText()
         self.temp_rate_method = self.temp_rate_combo.currentIndex()
         temperatureValidtor =self.check_validator(self.temp_validator, self.cur_temp_entry_box)
-        temperatureRateValidtor = self.check_validator(self.temp_validator, self.temp_rate_entry_box)
+        temperatureRateValidtor = self.check_validator(self.temp_rate_validator, self.temp_rate_entry_box)
         if not temperatureValidtor or not temperatureRateValidtor:
             return
-        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0 and temperatureValidtor and temperatureRateValidtor:
+        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0:
 
             self.set_temp_rate = float(self.set_temp_rate)
             self.set_temp = float(self.set_temp)
-            print(self.set_temp, self.set_temp_rate, self.temp_rate_method)
             self.check_validator(self.temp_validator, self.cur_temp_entry_box)
-            # if self.temp_rate_method == 1:
-            #     self.client.set_temperature(self.set_temp,
-            #                            self.set_temp_rate,
-            #                            self.client.temperature.approach_mode.fast_settle)
-            # elif self.temp_rate_method == 2:
-            #     self.client.set_temperature(self.set_temp,
-            #                                 self.set_temp_rate,
-            #                                 self.client.temperature.approach_mode.no_overshoot)
+            if self.temp_rate_method == 1:
+                self.client.set_temperature(self.set_temp,
+                                       self.set_temp_rate,
+                                       self.client.temperature.approach_mode.fast_settle)
+            elif self.temp_rate_method == 2:
+                self.client.set_temperature(self.set_temp,
+                                            self.set_temp_rate,
+                                            self.client.temperature.approach_mode.no_overshoot)
 
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
@@ -649,6 +656,10 @@ class PPMS(QWidget):
         self.set_Field = self.cur_field_entry_box.displayText()
         self.set_field_rate = self.field_rate_entry_box.displayText()
         self.field_rate_method = self.field_rate_combo.currentIndex()
+        fieldValidtor = self.check_validator(self.field_validator, self.cur_field_entry_box)
+        fieldRateValidtor = self.check_validator(self.field_rate_validator, self.field_rate_entry_box)
+        if not fieldValidtor or not fieldRateValidtor:
+            return
         if self.set_Field != '' and self.set_field_rate != '' and self.field_rate_method != 0:
 
             self.set_Field = float(self.set_Field)
