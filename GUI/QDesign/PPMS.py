@@ -532,7 +532,8 @@ class PPMS(QWidget):
 
     def start_server(self):
         if self.server_btn_clicked == False:
-            self.server()
+            # import Data_Processing_Suite.GUI.QDesign.run_server as s
+            # s.server()
             self.server_btn.setText('Stop Server')
             self.server_btn_clicked = True
             self.connect_btn.setEnabled(True)
@@ -542,27 +543,16 @@ class PPMS(QWidget):
             self.server_btn_clicked = False
             self.connect_btn.setEnabled(False)
 
-    # Uncommented it on the sever computer
-    def server(self, flags: str = ''):
-        user_flags = []
-        if flags == '':
-            user_flags = sys.argv[1:]
-        else:
-            user_flags = flags.split(' ')
-
-        self.s = mpv.Server(user_flags, keep_server_open=True)
-        self.s.open()  # Uncommented it on the sever computer
-
     def connect_client(self):
-        self.client = mpv.Client(host_entry_box=self.host_entry_box.displayText())
+        self.host = self.host_entry_box.displayText()
+        self.port = self.port_entry_box.displayText()
+        self.client = mpv.Client(self.host, self.port)
         self.reading_timer = QTimer()
         if self.connect_btn_clicked == False:
             self.connect_btn.setText('Stop Client')
             self.connect_btn_clicked = True
             self.server_btn.setEnabled(False)
             # Uncommented it on the client computer
-            # with mpv.Client(self.host, self.port) as self.client:
-
             self.client.open()
             import time
             time.sleep(5)

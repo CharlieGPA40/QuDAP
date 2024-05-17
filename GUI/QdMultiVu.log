@@ -89,3 +89,263 @@ KeyboardInterrupt
 2024-05-17 16:13:17,993     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
 2024-05-17 16:13:17,998     MultiVuServer        INFO     Listening on ('localhost', 5000)
 2024-05-17 16:13:17,998     MultiVuServer        INFO     Press ESC to exit.
+2024-05-17 16:16:41,990     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-17 16:16:47,403     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-17 16:16:47,404     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-17 16:16:47,404     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-17 16:16:47,409     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-17 16:16:47,409     MultiVuServer        INFO     Press ESC to exit.
+2024-05-17 16:17:03,325     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-17 16:17:03,325     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-17 16:17:03,325     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-17 16:17:03,330     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-17 16:17:03,330     MultiVuServer        INFO     Press ESC to exit.
+2024-05-17 16:17:05,346     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-17 16:17:31,646     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-17 16:17:31,647     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-17 16:17:31,647     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-17 16:17:31,650     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-17 16:17:31,651     MultiVuServer        INFO     Press ESC to exit.
+2024-05-17 16:17:56,923     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-17 16:19:52,735     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-17 16:19:52,735     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-17 16:19:52,735     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-17 16:19:52,740     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-17 16:19:52,740     MultiVuServer        INFO     Press ESC to exit.
+2024-05-17 16:24:36,240     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-17 16:31:04,213     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-05-17 16:31:04,514     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-05-17 16:31:04,715     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'START', 'query': '', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 57533)"}
+2024-05-17 16:31:04,715     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 57533)
+2024-05-17 16:31:10,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:10,728     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:10,729     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:10,730     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:10,730     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:10,731     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:11,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:11,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:11,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:11,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:11,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:11,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:12,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:12,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:12,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:12,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:12,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:12,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:13,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:13,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:13,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:13,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:13,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:13,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:14,716     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:14,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:14,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:14,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:14,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:14,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:15,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:15,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:15,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:15,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:15,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:15,725     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:16,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:16,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:16,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:16,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:16,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:16,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:17,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:17,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:17,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:17,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:17,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:17,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:18,716     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:18,717     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:18,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:18,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:18,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:18,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:19,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:19,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:19,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:19,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:19,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:19,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:20,716     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:20,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:20,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:20,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:20,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:20,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:21,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:21,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:21,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:21,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:21,722     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:21,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:22,716     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:22,717     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:22,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:22,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:22,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:22,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:23,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:23,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:23,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:23,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:23,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:23,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:24,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:24,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:24,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:24,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:24,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:24,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:25,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:25,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:25,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:25,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:25,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:25,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:26,716     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:26,717     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:26,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:26,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:26,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:26,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:27,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:27,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:27,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:27,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:27,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:27,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:28,716     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:28,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:28,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:28,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:28,722     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:28,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:29,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:29,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:29,722     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:29,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:29,724     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:29,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:30,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:30,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:30,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:30,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:30,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:30,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:31,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:31,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:31,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:31,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:31,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:31,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:32,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:32,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:32,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:32,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:32,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:32,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:33,719     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:33,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:33,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:33,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:33,722     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:33,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:34,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:34,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:34,722     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:34,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:34,724     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:34,725     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:35,717     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:35,718     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:35,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:35,719     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:35,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:35,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:36,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:36,723     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:36,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:36,725     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:36,726     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:36,728     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:37,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:37,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:37,723     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:37,724     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:37,724     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:37,725     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:38,718     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-05-17 16:31:38,720     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-05-17 16:31:38,720     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-05-17 16:31:38,721     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-05-17 16:31:38,721     MultiVuClient        DEBUG    ;to ('127.0.0.1', 57533); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-05-17 16:31:38,722     MultiVuClient        DEBUG    ;from ('127.0.0.1', 57533); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-05-17 16:31:50,908     MultiVuClient        INFO     Starting connection to ('127.0.0.1', '5000')
+2024-05-17 16:32:42,035     MultiVuClient        INFO     Starting connection to ('127.0.0.1', '5000')
