@@ -616,8 +616,6 @@ class CurrentSource6221(QWidget):
             self.connect_btn.setText('Disonnect')
             self.connect_btn_clicked = True
         elif self.connect_btn_clicked == True:
-            if self.isPlotting:
-                self.rst()
             self.connect_btn.setText('Connect')
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
