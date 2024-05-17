@@ -84,6 +84,7 @@ class PPMS(QWidget):
                                                 }
                                                 """)
         self.host_entry_box = QLineEdit("127.0.0.1")
+        self.host_entry_box.setFixedHeight(30)
 
         self.port_label = QLabel("Port:")
         self.port_label.setFont(font)
@@ -94,6 +95,7 @@ class PPMS(QWidget):
                                                         """)
 
         self.port_entry_box = QLineEdit("5000")
+        self.port_entry_box.setFixedHeight(30)
 
         self.server_btn = QPushButton('Start Server')
         self.server_btn_clicked = False
@@ -203,6 +205,7 @@ class PPMS(QWidget):
         self.set_temp_Label = QLabel("Target Temperature:")
         self.set_temp_Label.setFont(font)
         self.cur_temp_entry_box = QLineEdit()
+        self.cur_temp_entry_box.setFixedHeight(30)
         # Create a QDoubleValidator with range 1.8 to 400.0 and precision of 2 decimal places
         self.temp_validator = QDoubleValidator(1.8, 400.0, 2)
         self.temp_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -223,6 +226,7 @@ class PPMS(QWidget):
         self.temp_rate_Label = QLabel("Rate:")
         self.temp_rate_Label.setFont(font)
         self.temp_rate_entry_box = QLineEdit()
+        self.temp_rate_entry_box.setFixedHeight(30)
         self.temp_rate_validator = QDoubleValidator(0, 50.0, 2)
         self.temp_rate_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.temp_rate_entry_box.setValidator(self.temp_rate_validator)
@@ -287,6 +291,7 @@ class PPMS(QWidget):
         self.set_field_Label = QLabel("Target Temperature:")
         self.set_field_Label.setFont(font)
         self.cur_field_entry_box = QLineEdit()
+        self.cur_field_entry_box.setFixedHeight(30)
         self.field_validator = QDoubleValidator(-90000.00, 90000.0, 2)
         self.field_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.cur_field_entry_box.setValidator(self.field_validator)
@@ -302,6 +307,7 @@ class PPMS(QWidget):
         self.field_rate_Label = QLabel("Rate:")
         self.field_rate_Label.setFont(font)
         self.field_rate_entry_box = QLineEdit()
+        self.field_rate_entry_box.setFixedHeight(30)
         self.field_rate_validator = QDoubleValidator(0, 220.0, 2)
         self.field_rate_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.field_rate_entry_box.setValidator(self.field_rate_validator)

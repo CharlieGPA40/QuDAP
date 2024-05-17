@@ -39,7 +39,7 @@ class MplCanvas(FigureCanvas):
         super(MplCanvas, self).__init__(fig)
 
 
-class CurrentSource6221(QWidget):
+class BNC845RF(QWidget):
 
     def __init__(self):
         super().__init__()
@@ -57,7 +57,7 @@ class CurrentSource6221(QWidget):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         #  ---------------------------- PART 1 --------------------------------
-        self.current_intrument_label = QLabel("Keithley 6221 DC and AC Current Source")
+        self.current_intrument_label = QLabel("Berkeley Nucleonics Microwave and RF Signal Generator 845")
         self.current_intrument_label.setFont(titlefont)
         self.current_intrument_label.setStyleSheet("""
                                             QLabel{

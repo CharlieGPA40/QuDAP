@@ -13,6 +13,7 @@ import Data_Processing_Suite.GUI.ETO.ETO as eto
 import Data_Processing_Suite.GUI.SHG.SHG as shg
 import Data_Processing_Suite.GUI.QDesign.Keithley2182nv as nv
 import Data_Processing_Suite.GUI.QDesign.Keithley6221 as cs
+import Data_Processing_Suite.GUI.QDesign.BNC845RF as rf
 
 
 # Individual Frames
@@ -189,6 +190,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(ppms.PPMS())  # 6
         self.pages.addWidget(nv.NV())  # 7
         self.pages.addWidget(cs.CurrentSource6221())  # 8
+        self.pages.addWidget(rf.BNC845RF())  # 8
 
 
         # self.toggle_dark_mode()
@@ -317,7 +319,7 @@ class MainWindow(QMainWindow):
         self.whichSideBar = 1
         self.Tool_menu.setCurrentRow(-1)  # Force clearing selection
         self.right_sidebar.clear()
-        if current_row == 0:  # Home
+        if current_row == 0:  # FMR
             self.right_sidebar.addItem(QListWidgetItem("RAW Data Processing"))
             self.right_sidebar.addItem(QListWidgetItem("Data Interpolation"))
             self.right_sidebar.addItem(QListWidgetItem("Heatmap Generation"))
@@ -352,7 +354,7 @@ class MainWindow(QMainWindow):
             self.pages.setCurrentIndex(3)
             self.currentindex = 3
 
-        elif current_row == 4:  # Profile
+        elif current_row == 4:  # PPMS
             self.right_sidebar.addItem(QListWidgetItem("PPMS"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
@@ -386,7 +388,7 @@ class MainWindow(QMainWindow):
 
         elif current_row == 3:  # RF
             self.right_sidebar.setCurrentRow(3)
-            # self.pages.setCurrentIndex(3)
+            self.pages.setCurrentIndex(9)
             self.currentqdindex = 3
 
         elif current_row == 4:  # Profile
