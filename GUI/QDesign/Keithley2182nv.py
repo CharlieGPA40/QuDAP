@@ -318,7 +318,7 @@ class NV(QWidget):
                                                background-color: #FADBD8; /* Even darker green */
                                            }
                                        """)
-        #  ---------------------------- Plotting --------------------------------
+
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA

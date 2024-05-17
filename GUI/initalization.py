@@ -356,6 +356,8 @@ class MainWindow(QMainWindow):
             self.right_sidebar.addItem(QListWidgetItem("PPMS"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
+            self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
+            self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
             self.right_sidebar.addItem(QListWidgetItem("Measure"))
             self.right_sidebar.currentRowChanged.connect(self.update_qd)
             self.right_sidebar.setCurrentRow(4)
@@ -363,33 +365,33 @@ class MainWindow(QMainWindow):
             self.currentindex = 4
 
     def update_qd(self, current_row):
-        if current_row == 0:  # Home
+        if current_row == 0:  # PPMS
             self.right_sidebar.setCurrentRow(0)
             # Enter the corresponding function
             self.pages.setCurrentIndex(6)
             self.currentqdindex = 0
             # self.left_sidebar.setEnabled(True)
 
-        elif current_row == 1:  # Settings
+        elif current_row == 1:  # NV
 
             self.right_sidebar.setCurrentRow(1)
             self.pages.setCurrentIndex(7)
             self.currentqdindex = 1
 
-        elif current_row == 2:  # Profile
+        elif current_row == 2:  # DC AC Current
 
             self.right_sidebar.setCurrentRow(2)
             self.pages.setCurrentIndex(8)
             self.currentqdindex = 2
 
-        elif current_row == 3:  # Profile
+        elif current_row == 3:  # RF
             self.right_sidebar.setCurrentRow(3)
             # self.pages.setCurrentIndex(3)
             self.currentqdindex = 3
 
         elif current_row == 4:  # Profile
-            self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
-            # self.right_sidebar.setCurrentRow(4)
+            # self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
+            self.right_sidebar.setCurrentRow(4)
             self.pages.setCurrentIndex(4)
             self.currentqdindex = 4
 

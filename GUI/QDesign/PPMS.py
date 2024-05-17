@@ -710,5 +710,5 @@ class PPMS(QWidget):
                 QMessageBox.warning(self, "Error", "Input Out of range")
                 return False
         except:
-            QMessageBox.warning(self, "Error", "Input Out of range")
+            # QMessageBox.warning(self, "Error", "Input Out of range 2")
             return False
