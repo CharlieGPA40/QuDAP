@@ -543,8 +543,9 @@ class PPMS(QWidget):
             self.server_btn.setText('Stop Server')
             self.server_btn_clicked = True
             self.connect_btn.setEnabled(True)
+            self.server.open()
         elif self.server_btn_clicked == True:
-            self.s.close()  # Uncommented it on the sever computer
+            self.server.close()  # Uncommented it on the sever computer
             self.server_btn.setText('Start Server')
             self.server_btn_clicked = False
             self.connect_btn.setEnabled(False)
@@ -560,6 +561,7 @@ class PPMS(QWidget):
             self.client_keep_going = True
             # with mpv.Server() as self.server:
             # with mpv.Client() as self.client:
+
             self.client = mpv.Client(host='127.0.0.1', port=5000)
             self.client.open()
             # while self.client_keep_going:
