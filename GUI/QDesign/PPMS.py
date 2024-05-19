@@ -1,8 +1,10 @@
+import time
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
 from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator, QDoubleValidator
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
 import pyvisa as visa
 import matplotlib
@@ -13,30 +15,34 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import random
 import MultiPyVu as mpv # Uncommented it on the/thesever computer
+from MultiPyVu import MultiVuClient as mvc
 import sys
 import Data_Processing_Suite.GUI.Icon as Icon
 
-# class IntegerValidator(QDoubleValidator):
-#     def __init__(self, minimum, maximum, decimal):
-#         super().__init__(minimum, maximum, decimal)
-#         self.minimum = minimum
-#         self.maximum = maximum
-#         self.decimal = decimal
 
-    # def validate(self, input, pos):
-    #     if input == "":
-    #         return (QValidator.State.Intermediate, input, pos)
-    #     state, value, pos = super().validate(input, pos)
-    #     try:
-    #         if self.minimum <= int(input) <= self.maximum:
-    #             return (QValidator.State.Acceptable, input, pos)
-    #         else:
-    #             return (QValidator.State.Invalid, input, pos)
-    #     except ValueError:
-    #         return (QValidator.State.Invalid, input, pos)
+class THREAD(QThread):
+    update_data = pyqtSignal(float, str, float, str, str)  # Signal to emit the temperature and field values
+    def __init__(self, client):
+        super().__init__()
+        self.client = client
+        self.running = True
 
+    def run(self):
+        while self.running:
+            try:
 
+                T, sT = self.client.get_temperature()
+                F, sF = self.client.get_field()
+                C = self.client.get_chamber()
+                print(T,sT)
+                self.update_data.emit(T, sT, F, sF, C)
+                time.sleep(1)  # Update every second
+            except Exception as e:
+                print(f"Error: {e}")
+                self.running = False
 
+    def stop(self):
+        self.running = False
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -533,7 +539,7 @@ class PPMS(QWidget):
     def start_server(self):
         if self.server_btn_clicked == False:
             # import Data_Processing_Suite.GUI.QDesign.run_server as s
-            # s.server()
+            self.server = mpv.Server()
             self.server_btn.setText('Stop Server')
             self.server_btn_clicked = True
             self.connect_btn.setEnabled(True)
@@ -546,48 +552,36 @@ class PPMS(QWidget):
     def connect_client(self):
         self.host = self.host_entry_box.displayText()
         self.port = self.port_entry_box.displayText()
-        self.client = mpv.Client(self.host, self.port)
-        self.reading_timer = QTimer()
         if self.connect_btn_clicked == False:
             self.connect_btn.setText('Stop Client')
             self.connect_btn_clicked = True
             self.server_btn.setEnabled(False)
             # Uncommented it on the client computer
+            self.client_keep_going = True
+            # with mpv.Server() as self.server:
+            # with mpv.Client() as self.client:
+            self.client = mpv.Client(host='127.0.0.1', port=5000)
             self.client.open()
-            import time
-            time.sleep(5)
-            self.reading_timer = QTimer()
-            self.reading_timer.setInterval(1000)
-            self.reading_timer.timeout.connect(self.ppms_reading)
-            self.reading_timer.start()
-
-            # """
-            # THis is only for test purpose
-            # """
-            #
-            # self.reading_timer.setInterval(1000)
-            # self.reading_timer.timeout.connect(self.ppms_reading)
-            # self.reading_timer.start()
-
+            # while self.client_keep_going:
+            #     time.sleep(1)
+            self.thread = THREAD(self.client)
+            self.thread.update_data.connect(self.ppms_reading)
+            self.thread.start()
 
         elif self.connect_btn_clicked == True:
-            self.client.close_client()
+            # self.client.close_client()
+            self.client_keep_going = False
             self.connect_btn.setText('Start Client')
+            self.thread.stop()
             self.connect_btn_clicked = False
             self.server_btn.setEnabled(True)
-            self.reading_timer.stop()
             self.cur_temp_reading_Label.setText('N/A K')
             self.cur_temp_status_reading_Label.setText('Unknown')
-        self.host = self.host_entry_box.displayText()
-        self.port = self.port_entry_box.displayText()
 
 
-    def ppms_reading(self):
+    def ppms_reading(self, T, sT, F, sF, C):
         # Uncomment this section to enable ppms control
-        T, sT = self.client.get_temperature()
-        F, sF = self.client.get_field()
-        R, sR = "N/A", "Unknown"
-        C = self.client.get_chamber()
+        print(T, sT)
         self.cur_temp_reading_Label.setText(f'{T} K')
         self.cur_temp_status_reading_Label.setText(f'{sT}')
         self.cur_field_reading_Label.setText(f'{F} Oe')

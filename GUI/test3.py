@@ -1,60 +1,94 @@
+import time
+from PyQt6.QtCore import QThread, pyqtSignal
+
+class DataFetcher(QThread):
+    print('enter')
+    update_data = pyqtSignal(float, str)  # Signal to emit all data
+
+    def __init__(self, client):
+        super().__init__()
+        self.client = client
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                T, sT = self.client.get_temperature()
+                print(T, sT)
+                time.sleep(2)
+                # F, sF = self.client.get_field()
+                # time.sleep(2)
+                # C = self.client.get_chamber()
+                self.update_data.emit(T, sT)
+                time.sleep(2)  # Update every second
+            except Exception as e:
+                print(f"Error: {e}")
+                self.running = False
+
+    def stop(self):
+        self.running = False
+
+
+from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 import sys
-import random
+
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Create labels
+        self.temperature_label = QLabel('Temperature: --')
+        self.field_label = QLabel('Field: --')
+        self.chamber_label = QLabel('Chamber: --')
+
+        # Set up layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.temperature_label)
+        layout.addWidget(self.field_label)
+        layout.addWidget(self.chamber_label)
+        self.setLayout(layout)
+        self.client_keep_going = True
+
+        # Start the data fetcher thread
+        import MultiPyVu as mpv
+        with mpv.Server() as self.server:
+            with mpv.Client() as self.client:
+                while self.client_keep_going:
+                    time.sleep(2)
+                    # T, sT = self.client.get_temperature()
+                    # print(T, sT)
+                    self.thread = DataFetcher(self.client)
+                    self.thread.update_data.connect(self.update_labels)
+                    self.thread.start()
+
+    def update_labels(self, T, sT):
+        self.temperature_label.setText(f'Temperature: {T:.2f} ({sT})')
+        # self.field_label.setText(f'Field: {F:.2f} ({sF})')
+        # self.chamber_label.setText(f'Chamber: {C}')
+
+    def closeEvent(self, event):
+        self.thread.stop()
+        self.thread.wait()
+        event.accept()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
 
 
-from PyQt6 import QtCore, QtWidgets
+    class MockClient:
+        """Mock client to simulate server methods."""
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import matplotlib
-matplotlib.use('QtAgg')
+        def get_temperature(self):
+            import random
+            return random.uniform(20.0, 25.0), 'Celsius'
 
-class MplCanvas(FigureCanvas):
+        def get_field(self):
+            import random
+            return random.uniform(0.0, 10.0), 'Tesla'
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
-
-
-class MainWindow(QtWidgets.QMainWindow):
-
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
-
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        toolbar = NavigationToolbar(self.canvas, self)
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(toolbar)
-        layout.addWidget(self.canvas)
-        widget = QtWidgets.QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
-
-
-        n_data = 50
-        self.xdata = list(range(n_data))
-        self.ydata = [random.randint(0, 10) for i in range(n_data)]
-        self.update_plot()
-
-        self.show()
-
-        # Setup a timer to trigger the redraw by calling update_plot.
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(1000)
-        self.timer.timeout.connect(self.update_plot)
-        self.timer.start()
-
-    def update_plot(self):
-        # Drop off the first y element, append a new one.
-        self.ydata = self.ydata[1:] + [random.randint(0, 10)]
-        self.canvas.axes.cla()  # Clear the canvas.
-        self.canvas.axes.plot(self.xdata, self.ydata, 'r')
-        # Trigger the canvas to update and redraw.
-        self.canvas.draw()
-
-
-app = QtWidgets.QApplication(sys.argv)
-w = MainWindow()
-app.exec()
+        def get_chamber(self):
+            import random
+            return 'Closed' if random.random() > 0.5 else 'Open'
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())

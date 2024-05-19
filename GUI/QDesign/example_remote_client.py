@@ -14,19 +14,21 @@ import MultiPyVu as mpv
 # 'local' operation.
 host = "172.00.00.1"
 port = 5000
-
+client = mpv.Client(host, port)
 # Start the client
-with mpv.Client(host, port) as client:
-
-    # A basic loop that demonstrates communication between client/server
-    for t in range(5):
-        # Polls MultiVu for the temperature, field, and their respective states
-        T, sT = client.get_temperature()
-        F, sF = client.get_field()
-
-        # Relay the information from MultiVu
-        message = f'The temperature is {T}, status is {sT}; the field is {F}, status is {sF}. '
-        print(message)
-
-        # collect data at roughly 2s intervals
-        time.sleep(2)
+# client.open()
+# with mpv.Server() as server:
+#     with mpv.Client() as client:
+#
+#         # A basic loop that demonstrates communication between client/server
+#         for t in range(5):
+#             # Polls MultiVu for the temperature, field, and their respective states
+#             T, sT = client.get_temperature()
+#             F, sF = client.get_field()
+#
+#             # Relay the information from MultiVu
+#             message = f'The temperature is {T}, status is {sT}; the field is {F}, status is {sF}. '
+#             print(message)
+#
+#             # collect data at roughly 2s intervals
+#             time.sleep(2)
