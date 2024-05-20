@@ -129,17 +129,17 @@ class NV(QWidget):
         self.channel1_Label.setFont(font)
         self.channel1_Volt = QLabel("N/A Volts")
         self.channel1_Volt.setFont(font)
-        self.setStyleSheet("""
-                                        QLabel{
-                                            background-color: #F8F8F8;
-                                            }
-                                            """)
 
         channel2_read_layout = QHBoxLayout()
         self.channel2_Label = QLabel("Channel 2:")
         self.channel2_Label.setFont(font)
         self.channel2_Volt = QLabel("N/A Volts")
         self.channel2_Volt.setFont(font)
+        self.setStyleSheet("""
+                                                QLabel{
+                                                    background-color: #F8F8F8;
+                                                    }
+                                                    """)
         # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
         self.voltage_timer = QTimer()
         self.voltage_timer.setInterval(1000)
@@ -169,7 +169,7 @@ class NV(QWidget):
         self.checkbox1 = QCheckBox("Channel 1")
         self.checkbox1.setFont(font)
         self.checkbox2 = QCheckBox("Channel 2")
-        self.checkbox1.setFont(font)
+        self.checkbox2.setFont(font)
         self.checkbox1.setStyleSheet("""
                                         QCheckBox{
                                             background-color: #F8F8F8;
