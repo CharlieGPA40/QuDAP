@@ -386,3 +386,88 @@ KeyboardInterrupt
 2024-05-17 16:48:28,689     MultiVuClient        INFO     Caught keyboard interrupt, exiting
 2024-05-17 16:48:28,689     MultiVuClient        INFO     Closing connection to ('127.0.0.1', 58005)
 2024-05-17 16:48:28,690     MultiVuServer        INFO     Closing connection to ('127.0.0.1', 58005)
+2024-05-20 11:55:27,931     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-20 11:55:27,932     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-20 11:55:27,932     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-20 11:55:27,941     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-20 11:55:27,942     MultiVuServer        INFO     Press ESC to exit.
+2024-05-20 11:56:26,487     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-20 12:03:49,407     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-20 12:03:49,407     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-20 12:03:49,407     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-20 12:03:49,418     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-20 12:03:49,418     MultiVuServer        INFO     Press ESC to exit.
+2024-05-20 12:04:02,541     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-20 12:04:04,873     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-20 12:04:04,874     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-20 12:04:04,874     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-20 12:04:04,883     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-20 12:04:04,883     MultiVuServer        INFO     Press ESC to exit.
+2024-05-20 12:04:09,525     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-20 12:04:09,526     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-20 12:04:09,526     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-20 12:04:09,535     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-20 12:04:09,536     MultiVuServer        INFO     Press ESC to exit.
+2024-05-20 12:10:22,843     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2024-05-20 12:10:24,646     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '15576')
+2024-05-20 12:10:24,646     MultiVuServer        INFO     Found DYNACOOL running.
+2024-05-20 12:10:24,646     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-05-20 12:10:24,657     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-05-20 12:10:24,657     MultiVuServer        INFO     Press ESC to exit.
+2024-05-20 12:10:29,687     MultiVuServer        INFO     Exception in thread 'MainThread' in method '_monitor_socket_connection':
+Traceback (most recent call last):
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 47, in error_handler
+    func(*args, **kwargs)
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\site-packages\MultiPyVu\MultiVuServer.py", line 392, in _monitor_socket_connection
+    events = selectors.select(timeout=TIMEOUT_LENGTH)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 323, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\czt0036\AppData\Local\Programs\Python\Python311\Lib\selectors.py", line 314, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+

@@ -406,6 +406,7 @@ class PPMS(QWidget):
         self.chamber_set_combo.addItems(["Pump Continuous"])
         self.chamber_set_combo.addItems(["Vent Continuous"])
         self.chamber_set_combo.addItems(["High Vacuum"])
+        # self.chamber_set_combo.setEnabled(False)
         chamber_setting_layout.addWidget(self.chamber_set_Label, 1)
         chamber_setting_layout.addWidget(self.chamber_set_combo, 2)
         chamber_setting_layout.setContentsMargins(0,0,450,0)
@@ -536,16 +537,36 @@ class PPMS(QWidget):
                                                            }
                                                        """)
 
+    def remote_server(self, flags: str = ''):
+        user_flags = []
+        if flags == '':
+            user_flags = sys.argv[1:]
+        else:
+            msg = 'No flags detected; using hard-coded IP address'
+            msg += 'for remote access.'
+            print(msg)
+
+            # This value comes from the server PC's self-identified IPV4
+            # address and needs to be manually input
+            user_flags = ['-ip=172.19.159.4']
+
+        # Opens the server connection
+        self.remoteServer = mpv.Server(user_flags, keep_server_open=True)
+        self.remoteServer.open()
+
     def start_server(self):
         if self.server_btn_clicked == False:
             # import Data_Processing_Suite.GUI.QDesign.run_server as s
             self.server = mpv.Server()
+            # user_flags = ['-ip=172.19.159.4']
+            # self.server = mpv.Server(user_flags, keep_server_open=True)
             self.server_btn.setText('Stop Server')
             self.server_btn_clicked = True
             self.connect_btn.setEnabled(True)
             self.server.open()
         elif self.server_btn_clicked == True:
-            self.server.close()  # Uncommented it on the sever computer
+            # self.server.close()  # Uncommented it on the sever computer
+            self.remoteServer.close()
             self.server_btn.setText('Start Server')
             self.server_btn_clicked = False
             self.connect_btn.setEnabled(False)
@@ -562,7 +583,7 @@ class PPMS(QWidget):
             # with mpv.Server() as self.server:
             # with mpv.Client() as self.client:
 
-            self.client = mpv.Client(host='127.0.0.1', port=5000)
+            self.client = mpv.Client(host=self.host, port=5000)
             self.client.open()
             # while self.client_keep_going:
             #     time.sleep(1)
@@ -583,7 +604,7 @@ class PPMS(QWidget):
 
     def ppms_reading(self, T, sT, F, sF, C):
         # Uncomment this section to enable ppms control
-
+        self.C = C
         self.cur_temp_reading_Label.setText(f'{T} K')
         self.cur_temp_status_reading_Label.setText(f'{sT}')
         self.cur_field_reading_Label.setText(f'{F} Oe')
@@ -604,6 +625,7 @@ class PPMS(QWidget):
         # self.cur_chamb_status_reading_Label.setText(f'{C}')
 
     def setTemp(self):
+        self.thread.stop()
         self.set_temp = self.cur_temp_entry_box.displayText()
         self.set_temp_rate = self.temp_rate_entry_box.displayText()
         self.temp_rate_method = self.temp_rate_combo.currentIndex()
@@ -625,13 +647,17 @@ class PPMS(QWidget):
                     self.client.set_temperature(self.set_temp,
                                                 self.set_temp_rate,
                                                 self.client.temperature.approach_mode.no_overshoot)
+                self.thread = THREAD(self.client)
+                self.thread.update_data.connect(self.ppms_reading)
+                self.thread.start()
             except MultiPyVuError:
                 QMessageBox.warning(self, "Setup Fail", "Please try again!")
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
-
+        self.thread.start()
 
     def setField(self):
+        self.thread.stop()
         self.set_Field = self.cur_field_entry_box.displayText()
         self.set_field_rate = self.field_rate_entry_box.displayText()
         self.field_rate_method = self.field_rate_combo.currentIndex()
@@ -645,42 +671,66 @@ class PPMS(QWidget):
             self.set_field_rate = float(self.set_field_rate)
             print(self.set_Field, self.set_field_rate, self.field_rate_method)
             try:
-                if self.temp_rate_method == 1:
+                if self.field_rate_method == 1:
                     self.client.set_field(self.set_Field,
                                                 self.set_field_rate,
                                                 self.client.field.approach_mode.linear)
-                if self.temp_rate_method == 2:
+
+                if self.field_rate_method == 2:
                     self.client.set_field(self.set_Field,
                                            self.set_field_rate,
-                                           self.client.field.approach_mode.fast_settle)
-                elif self.temp_rate_method == 3:
+                                           self.client.field.approach_mode.no_overshoot)
+                elif self.field_rate_method == 3:
                     self.client.set_field(self.set_Field,
-                                                self.set_temp_rate,
-                                                self.client.tempfielderature.approach_mode.no_overshoot)
+                                                self.set_field_rate,
+                                                self.client.field.approach_mode.oscillate)
 
+                self.thread = THREAD(self.client)
+                self.thread.update_data.connect(self.ppms_reading)
+                self.thread.start()
             except MultiPyVuError as e:
                 QMessageBox.warning(self, "Setup Fail", "Please try again!")
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+        self.thread.start()
 
     def setChamber(self):
+        self.thread.stop()
         self.set_Chamber = self.chamber_set_combo.currentIndex()
+        self.chamber_set_combo.setEnabled(True)
+        # if self.C == 'Sealed':
+        #     self.chamber_set_combo.setCurrentIndex(1)
+        # elif self.C == 'Purged and Sealed':
+        #     self.chamber_set_combo.setCurrentIndex(2)
+        # elif self.C == 'Purged and Sealed':
+        #     self.chamber_set_combo.setCurrentIndex(3)
+        # elif self.C == 'Purged and Sealed':
+        #     self.chamber_set_combo.setCurrentIndex(4)
+        # elif self.C == 'Purged and Sealed':
+        #     self.chamber_set_combo.setCurrentIndex(5)
+        # elif self.C == 'Purged and Sealed':
+        #     self.chamber_set_combo.setCurrentIndex(6)
+
         if self.set_Chamber != 0:
             print(self.set_Chamber)
             try:
                 if self.set_Chamber == 1:
-                    self.client.set_chamber(mode=self.client.chamber.mode.seal)
+                    self.client.set_chamber(mode=mpv.MultiVuClient.chamber.Mode.seal)
                 elif self.set_Chamber == 2:
                     self.client.set_chamber(self.client.chamber.mode.purge_seal)
-                elif self.set_Chamber == 2:
+                elif self.set_Chamber == 3:
                     self.client.set_chamber(self.client.chamber.mode.vent_seal)
-                elif self.set_Chamber == 2:
+                elif self.set_Chamber == 4:
                     self.client.set_chamber(self.client.chamber.mode.pump_continuous)
-                elif self.set_Chamber == 2:
+                elif self.set_Chamber == 5:
                     self.client.set_chamber(self.client.chamber.mode.vent_continuous)
-                elif self.set_Chamber == 2:
+                elif self.set_Chamber == 6:
                     self.client.set_chamber(self.client.chamber.mode.high_vacuum)
+                self.thread = THREAD(self.client)
+                self.thread.update_data.connect(self.ppms_reading)
+                self.thread.start()
             except MultiPyVuError as e:
+                self.connect_client()
                 QMessageBox.warning(self, "Setup Fail", "Please try again!")
 
         else:
