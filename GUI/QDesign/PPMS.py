@@ -15,7 +15,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import random
 import MultiPyVu as mpv # Uncommented it on the/thesever computer
-from MultiPyVu import MultiVuClient as mvc
+from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 import sys
 import Data_Processing_Suite.GUI.Icon as Icon
 
@@ -583,7 +583,7 @@ class PPMS(QWidget):
 
     def ppms_reading(self, T, sT, F, sF, C):
         # Uncomment this section to enable ppms control
-        print(T, sT)
+
         self.cur_temp_reading_Label.setText(f'{T} K')
         self.cur_temp_status_reading_Label.setText(f'{sT}')
         self.cur_field_reading_Label.setText(f'{F} Oe')
@@ -616,15 +616,17 @@ class PPMS(QWidget):
             self.set_temp_rate = float(self.set_temp_rate)
             self.set_temp = float(self.set_temp)
             self.check_validator(self.temp_validator, self.cur_temp_entry_box)
-            if self.temp_rate_method == 1:
-                self.client.set_temperature(self.set_temp,
-                                       self.set_temp_rate,
-                                       self.client.temperature.approach_mode.fast_settle)
-            elif self.temp_rate_method == 2:
-                self.client.set_temperature(self.set_temp,
-                                            self.set_temp_rate,
-                                            self.client.temperature.approach_mode.no_overshoot)
-
+            try:
+                if self.temp_rate_method == 1:
+                    self.client.set_temperature(self.set_temp,
+                                           self.set_temp_rate,
+                                           self.client.temperature.approach_mode.fast_settle)
+                elif self.temp_rate_method == 2:
+                    self.client.set_temperature(self.set_temp,
+                                                self.set_temp_rate,
+                                                self.client.temperature.approach_mode.no_overshoot)
+            except MultiPyVuError:
+                QMessageBox.warning(self, "Setup Fail", "Please try again!")
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
 
@@ -642,18 +644,22 @@ class PPMS(QWidget):
             self.set_Field = float(self.set_Field)
             self.set_field_rate = float(self.set_field_rate)
             print(self.set_Field, self.set_field_rate, self.field_rate_method)
-            if self.temp_rate_method == 1:
-                self.client.set_field(self.set_Field,
-                                            self.set_field_rate,
-                                            self.client.field.approach_mode.linear)
-            if self.temp_rate_method == 2:
-                self.client.set_field(self.set_Field,
-                                       self.set_field_rate,
-                                       self.client.field.approach_mode.fast_settle)
-            elif self.temp_rate_method == 3:
-                self.client.set_field(self.set_Field,
-                                            self.set_temp_rate,
-                                            self.client.tempfielderature.approach_mode.no_overshoot)
+            try:
+                if self.temp_rate_method == 1:
+                    self.client.set_field(self.set_Field,
+                                                self.set_field_rate,
+                                                self.client.field.approach_mode.linear)
+                if self.temp_rate_method == 2:
+                    self.client.set_field(self.set_Field,
+                                           self.set_field_rate,
+                                           self.client.field.approach_mode.fast_settle)
+                elif self.temp_rate_method == 3:
+                    self.client.set_field(self.set_Field,
+                                                self.set_temp_rate,
+                                                self.client.tempfielderature.approach_mode.no_overshoot)
+
+            except MultiPyVuError as e:
+                QMessageBox.warning(self, "Setup Fail", "Please try again!")
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
 
@@ -661,18 +667,21 @@ class PPMS(QWidget):
         self.set_Chamber = self.chamber_set_combo.currentIndex()
         if self.set_Chamber != 0:
             print(self.set_Chamber)
-            if self.set_Chamber == 1:
-                self.client.set_chamber(self.client.chamber.mode.seal)
-            elif self.set_Chamber == 2:
-                self.client.set_chamber(self.client.chamber.mode.seal)
-            elif self.set_Chamber == 2:
-                self.client.set_chamber(self.client.chamber.mode.seal)
-            elif self.set_Chamber == 2:
-                self.client.set_chamber(self.client.chamber.mode.seal)
-            elif self.set_Chamber == 2:
-                self.client.set_chamber(self.client.chamber.mode.seal)
-            elif self.set_Chamber == 2:
-                self.client.set_chamber(self.client.chamber.mode.seal)
+            try:
+                if self.set_Chamber == 1:
+                    self.client.set_chamber(mode=self.client.chamber.mode.seal)
+                elif self.set_Chamber == 2:
+                    self.client.set_chamber(self.client.chamber.mode.purge_seal)
+                elif self.set_Chamber == 2:
+                    self.client.set_chamber(self.client.chamber.mode.vent_seal)
+                elif self.set_Chamber == 2:
+                    self.client.set_chamber(self.client.chamber.mode.pump_continuous)
+                elif self.set_Chamber == 2:
+                    self.client.set_chamber(self.client.chamber.mode.vent_continuous)
+                elif self.set_Chamber == 2:
+                    self.client.set_chamber(self.client.chamber.mode.high_vacuum)
+            except MultiPyVuError as e:
+                QMessageBox.warning(self, "Setup Fail", "Please try again!")
 
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
