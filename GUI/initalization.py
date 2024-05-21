@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Quantum Data Processing")
-        self.Listwidgets_Font = 18
+        self.Listwidgets_Font = 15
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
         self.isinital = True  # Flag for first initialization of the program; this essential to avoid the auto select of hide function
         self.currentindex = 0  # Index for menu bar; this tells which row of the menu bar has been selected (FMR, VSM, etc.)
@@ -207,7 +207,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.resize(1200, 800)
+        self.resize(1500, 800)
 
     def toggle_dark_mode(self):
         # if is_checked == 0:

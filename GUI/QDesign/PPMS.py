@@ -83,21 +83,21 @@ class PPMS(QWidget):
         # Set the layout for the group box
         self.host_label = QLabel("Host:")
         self.host_label.setFont(font)
-        self.host_label.setStyleSheet("""
-                                            QLabel{
-                                                background-color: #F8F8F8;
-                                                }
-                                                """)
+        # self.host_label.setStyleSheet("""
+        #                                     QLabel{
+        #                                         background-color: #F8F8F8;
+        #                                         }
+        #                                         """)
         self.host_entry_box = QLineEdit("127.0.0.1")
         self.host_entry_box.setFixedHeight(30)
 
         self.port_label = QLabel("Port:")
         self.port_label.setFont(font)
-        self.port_label.setStyleSheet("""
-                                                    QLabel{
-                                                        background-color: #F8F8F8;
-                                                        }
-                                                        """)
+        # self.port_label.setStyleSheet("""
+        #                                             QLabel{
+        #                                                 background-color: #F8F8F8;
+        #                                                 }
+        #                                                 """)
 
         self.port_entry_box = QLineEdit("5000")
         self.port_entry_box.setFixedHeight(30)
@@ -393,11 +393,11 @@ class PPMS(QWidget):
                                         left: 1px;
                                     }
                                 """)
-        self.setStyleSheet("""
-                                            QLabel{
-                                                background-color: #F8F8F8;
-                                                }
-                                                """)
+        # self.setStyleSheet("""
+        #                                     QLabel{
+        #                                         background-color: #F8F8F8;
+        #                                         }
+        #                                         """)
         self.chamber_set_combo.setFont(font)
         self.chamber_set_combo.addItems([""])
         self.chamber_set_combo.addItems(["Seal"])
@@ -565,8 +565,8 @@ class PPMS(QWidget):
             self.connect_btn.setEnabled(True)
             self.server.open()
         elif self.server_btn_clicked == True:
-            # self.server.close()  # Uncommented it on the sever computer
-            self.remoteServer.close()
+            self.server.close()  # Uncommented it on the sever computer
+            # self.remoteServer.close()
             self.server_btn.setText('Start Server')
             self.server_btn_clicked = False
             self.connect_btn.setEnabled(False)

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
 from PyQt6.QtGui import QIcon, QFont
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
 import pyvisa as visa
 import matplotlib
@@ -11,8 +11,33 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import random
+import time
 
 import Data_Processing_Suite.GUI.Icon as Icon
+class THREAD(QThread):
+    update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
+    def __init__(self, server):
+        super().__init__()
+        self.client = server
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                self.server.write("SENS:CHAN 1")
+                Chan_1_voltage = float(self.server.query("FETCH?"))  # Read the measurement result
+
+                self.keithley_2182A_NV.write("SENS:CHAN 2")
+                Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
+
+                self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
+                time.sleep(1)  # Update every second
+            except Exception as e:
+                print(f"Error: {e}")
+                self.running = False
+
+    def stop(self):
+        self.running = False
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -27,6 +52,7 @@ class NV(QWidget):
         super().__init__()
         self.isConnect = False
         self.isPlotting = False
+        # self.keithley_2182A_NV = 'None'
         self.init_ui()
 
     def init_ui(self):
@@ -83,12 +109,12 @@ class NV(QWidget):
 
         self.current_gpib_label = QLabel("Current GPIB Connection: None")
         self.current_gpib_label.setFont(font)
-        self.current_gpib_label.setStyleSheet("""
-                                    QLabel{
-                                        background-color: #F8F8F8;
-                                        }
-                                        """)
-
+        # self.current_gpib_label.setStyleSheet("""
+        #                             QLabel{
+        #                                 background-color: #F8F8F8;
+        #                                 }
+        #                                 """)
+        #
 
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
@@ -135,16 +161,16 @@ class NV(QWidget):
         self.channel2_Label.setFont(font)
         self.channel2_Volt = QLabel("N/A Volts")
         self.channel2_Volt.setFont(font)
-        self.setStyleSheet("""
-                                                QLabel{
-                                                    background-color: #F8F8F8;
-                                                    }
-                                                    """)
+        # self.setStyleSheet("""
+        #                                         QLabel{
+        #                                             background-color: #F8F8F8;
+        #                                             }
+        #                                             """)
         # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
-        self.voltage_timer = QTimer()
-        self.voltage_timer.setInterval(1000)
-        self.voltage_timer.timeout.connect(self.update_voltage)
-        self.voltage_timer.start()
+        # self.voltage_timer = QTimer()
+        # self.voltage_timer.setInterval(1000)
+        # self.voltage_timer.timeout.connect(self.update_voltage)
+        # self.voltage_timer.start()
         channel1_read_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         channel1_read_layout.addWidget(self.channel1_Label, 1)
         channel1_read_layout.addWidget(self.channel1_Volt, 5)
@@ -159,6 +185,11 @@ class NV(QWidget):
         voltage_reading_layout.addLayout(channel1_read_layout, 1)
         voltage_reading_layout.addLayout(channel2_read_layout, 1)
         voltage_reading_group_box.setLayout(voltage_reading_layout)
+        self.keep_reading = True
+        # while self.keep_reading:
+            # self.thread = THREAD(self.keithley_2182A_NV)
+            # self.thread.update_data.connect(self.update_voltage)
+            # self.thread.start()
 
         #  ---------------------------- PART 4 --------------------------------
 
@@ -170,16 +201,16 @@ class NV(QWidget):
         self.checkbox1.setFont(font)
         self.checkbox2 = QCheckBox("Channel 2")
         self.checkbox2.setFont(font)
-        self.checkbox1.setStyleSheet("""
-                                        QCheckBox{
-                                            background-color: #F8F8F8;
-                                            }
-                                                    """)
-        self.checkbox2.setStyleSheet("""
-                                                        QCheckBox{
-                                                            background-color: #F8F8F8;
-                                                            }
-                                                            """)
+        # self.checkbox1.setStyleSheet("""
+        #                                 QCheckBox{
+        #                                     background-color: #F8F8F8;
+        #                                     }
+        #                                             """)
+        # self.checkbox2.setStyleSheet("""
+        #                                                 QCheckBox{
+        #                                                     background-color: #F8F8F8;
+        #                                                     }
+        #                                                     """)
         plot_btn = QPushButton('Plot')
         plot_btn.clicked.connect(self.plot_selection)
         stop_btn = QPushButton('Stop')
@@ -372,15 +403,18 @@ class NV(QWidget):
                 # Comment it in real implementation
                 self.isConnect = True
 
-        # self.keithley_2182A_NV=rm.open_resource(current_connection, timeout=10000)
+        # self.keithley_2182A_NV=rm.open_resource(self.current_connection, timeout=10000)
 
 
-    def update_voltage(self):
+    def update_voltage(self, Chan_1_voltage, Chan_2_voltage):
+        self.Chan_1_voltage = Chan_1_voltage
+        self.Chan_2_voltage = Chan_2_voltage
         if self.isConnect:
             self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
             # This is for testing uncommand it to test GUI
             self.Chan_1_voltage = random.randint(0, 1000) / 1000
             self.Chan_2_voltage = random.randint(0, 1000) / 100
+
             self.channel1_Volt.setText(f"{self.Chan_1_voltage} Volts")
             self.channel2_Volt.setText(f"{self.Chan_2_voltage} Volts")
 
