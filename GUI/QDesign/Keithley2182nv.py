@@ -56,8 +56,8 @@ class NV(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        titlefont = QFont("Arial",25)
-        font = QFont("Arial", 15)
+        titlefont = QFont("Arial",20)
+        font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
 
         # Create main vertical layout with centered alignment

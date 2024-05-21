@@ -48,8 +48,8 @@ class CurrentSource6221(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        titlefont = QFont("Arial", 25)
-        font = QFont("Arial", 15)
+        titlefont = QFont("Arial", 20)
+        font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
 
         # Create main vertical layout with centered alignment
@@ -102,11 +102,11 @@ class CurrentSource6221(QWidget):
 
         self.current_gpib_label = QLabel("Current GPIB Connection: None")
         self.current_gpib_label.setFont(font)
-        self.current_gpib_label.setStyleSheet("""
-                                          QLabel{
-                                              background-color: #F8F8F8;
-                                              }
-                                              """)
+        # self.current_gpib_label.setStyleSheet("""
+        #                                   QLabel{
+        #                                       background-color: #F8F8F8;
+        #                                       }
+        #                                       """)
 
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
@@ -184,11 +184,11 @@ class CurrentSource6221(QWidget):
                                 left: 1px;
                             }
                         """)
-        self.setStyleSheet("""
-                                                    QLabel{
-                                                        background-color: #F8F8F8;
-                                                        }
-                                                        """)
+        # self.setStyleSheet("""
+        #                                             QLabel{
+        #                                                 background-color: #F8F8F8;
+        #                                                 }
+        #                                                 """)
         self.DCUnitSource_combo.addItems(["Select Units"])    # 0
         self.DCUnitSource_combo.addItems(["mA"])  # 1
         self.DCUnitSource_combo.addItems(["µA"])  # 2
@@ -199,11 +199,11 @@ class CurrentSource6221(QWidget):
         self.DC_Range_checkbox.setFont(font)
         self.DC_Range_checkbox.setChecked(True)
         # self.DC_Range_checkbox.clicked.connect()
-        self.DC_Range_checkbox.setStyleSheet("""
-                                                QCheckBox{
-                                                    background-color: #F8F8F8;
-                                                    }
-                                                            """)
+        # self.DC_Range_checkbox.setStyleSheet("""
+        #                                         QCheckBox{
+        #                                             background-color: #F8F8F8;
+        #                                             }
+        #                                                     """)
 
         self.send_btn = QPushButton('Send')
         # self.send_btn.clicked.connect(self.plot_selection)
@@ -260,11 +260,11 @@ class CurrentSource6221(QWidget):
                                                 left: 1px;
                                             }
                                         """)
-        self.setStyleSheet("""
-                                                                    QLabel{
-                                                                        background-color: #F8F8F8;
-                                                                        }
-                                                                        """)
+        # self.setStyleSheet("""
+        #                                                             QLabel{
+        #                                                                 background-color: #F8F8F8;
+        #                                                                 }
+        #                                                                 """)
         self.waveform_combo.addItems(["Select Funcs"])  # 0
         self.waveform_combo.addItems(["SINE"])  # 1
         self.waveform_combo.addItems(["SQUARE"])  # 2
@@ -312,11 +312,11 @@ class CurrentSource6221(QWidget):
                                         left: 1px;
                                     }
                                 """)
-        self.setStyleSheet("""
-                                                            QLabel{
-                                                                background-color: #F8F8F8;
-                                                                }
-                                                                """)
+        # self.setStyleSheet("""
+        #                                                     QLabel{
+        #                                                         background-color: #F8F8F8;
+        #                                                         }
+        #                                                         """)
 
         self.WaveAmpUnitSource_combo.addItems(["Select Units"])  # 0
         self.WaveAmpUnitSource_combo.addItems(["mA"])  # 1
@@ -385,11 +385,11 @@ class CurrentSource6221(QWidget):
                                                 left: 1px;
                                             }
                                         """)
-        self.setStyleSheet("""
-                                                                    QLabel{
-                                                                        background-color: #F8F8F8;
-                                                                        }
-                                                                        """)
+        # self.setStyleSheet("""
+        #                                                             QLabel{
+        #                                                                 background-color: #F8F8F8;
+        #                                                                 }
+        #                                                                 """)
 
         self.WaveOffsetUnitSource_combo.addItems(["Select Units"])  # 0
         self.WaveOffsetUnitSource_combo.addItems(["mA"])  # 1
@@ -400,11 +400,11 @@ class CurrentSource6221(QWidget):
         self.Wave_Range_checkbox = QCheckBox("Best Range")
         self.Wave_Range_checkbox.setFont(font)
         self.Wave_Range_checkbox.setChecked(True)
-        self.Wave_Range_checkbox.setStyleSheet("""
-                                                        QCheckBox{
-                                                            background-color: #F8F8F8;
-                                                            }
-                                                                    """)
+        # self.Wave_Range_checkbox.setStyleSheet("""
+        #                                                 QCheckBox{
+        #                                                     background-color: #F8F8F8;
+        #                                                     }
+        #                                                             """)
 
         Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_label)
         Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_entry_box)
@@ -438,16 +438,16 @@ class CurrentSource6221(QWidget):
         self.checkbox1.setFont(font)
         self.checkbox2 = QCheckBox("Channel 2")
         self.checkbox1.setFont(font)
-        self.checkbox1.setStyleSheet("""
-                                        QCheckBox{
-                                            background-color: #F8F8F8;
-                                            }
-                                                    """)
-        self.checkbox2.setStyleSheet("""
-                                                        QCheckBox{
-                                                            background-color: #F8F8F8;
-                                                            }
-                                                            """)
+        # self.checkbox1.setStyleSheet("""
+        #                                 QCheckBox{
+        #                                     background-color: #F8F8F8;
+        #                                     }
+        #                                             """)
+        # self.checkbox2.setStyleSheet("""
+        #                                                 QCheckBox{
+        #                                                     background-color: #F8F8F8;
+        #                                                     }
+        #                                                     """)
         plot_btn = QPushButton('Plot')
         plot_btn.clicked.connect(self.plot_selection)
         stop_btn = QPushButton('Stop')

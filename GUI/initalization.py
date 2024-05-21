@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
             self.main_layout = QHBoxLayout()
             self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
             self.main_layout.addWidget(self.right_sidebar, 5)  # Right sidebar stretch factor 1
-            self.main_layout.addWidget(self.pages, 20)  # Central content area stretch factor 4
+            self.main_layout.addWidget(self.pages, 30)  # Central content area stretch factor 4
             self.main_layout.setSpacing(0)
             self.main_layout.setContentsMargins(0, 0, 0, 0)
             self.container = QWidget()
