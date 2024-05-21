@@ -1,67 +1,105 @@
-import time
-from PyQt6.QtCore import QThread, pyqtSignal
-
-class DataFetcher(QThread):
-    update_data = pyqtSignal(float, str, float, str, str)  # Signal to emit all data
-
-    def __init__(self, client):
-        super().__init__()
-        self.client = client
-        self.running = True
-
-    def run(self):
-        while self.running:
-            try:
-                T, sT = self.client.get_temperature()
-                F, sF = self.client.get_field()
-                C = self.client.get_chamber()
-                self.update_data.emit(T, sT, F, sF, C)
-                time.sleep(1)  # Update every second
-            except Exception as e:
-                print(f"Error: {e}")
-                self.running = False
-
-    def stop(self):
-        self.running = False
-
-
-from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QLabel, QLineEdit, QVBoxLayout,
+    QGridLayout, QMessageBox
+)
+from PyQt6.QtGui import QMouseEvent, QPalette, QColor
+from PyQt6.QtCore import Qt, pyqtSignal
 import sys
 
-class MainWindow(QWidget):
+class CustomButtonWidget(QWidget):
+    clicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Set the widget to be clickable and set a border
+        self.setAutoFillBackground(True)
+        self.setStyleSheet("""
+            QWidget {
+                border: 2px solid black;
+                border-radius: 5px;
+                background-color: lightgrey;
+            }
+            QWidget:pressed {
+                background-color: grey;
+            }
+        """)
+
+        # Main layout for the custom widget
+        main_layout = QVBoxLayout(self)
+
+        # Top label with grey background
+        top_label = QLabel("Top Label", self)
+        top_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        top_label.setStyleSheet("background-color: grey; color: white;")
+        main_layout.addWidget(top_label)
+
+        # Grid layout for labels and entry boxes
+        grid_layout = QGridLayout()
+
+        self.entry_boxes = []
+        for i in range(3):
+            label = QLabel(f"Label {i+1}")
+            entry = QLineEdit()
+            grid_layout.addWidget(label, i, 0)
+            grid_layout.addWidget(entry, i, 1)
+            self.entry_boxes.append(entry)
+
+        main_layout.addLayout(grid_layout)
+
+        # Connect the clicked signal to the handler
+        self.clicked.connect(self.on_button_click)
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.setStyleSheet("""
+                QWidget {
+                    border: 2px solid black;
+                    border-radius: 5px;
+                    background-color: grey;
+                }
+                QWidget:pressed {
+                    background-color: darkgrey;
+                }
+            """)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.setStyleSheet("""
+                QWidget {
+                    border: 2px solid black;
+                    border-radius: 5px;
+                    background-color: lightgrey;
+                }
+                QWidget:pressed {
+                    background-color: grey;
+                }
+            """)
+            self.clicked.emit()
+
+    def on_button_click(self):
+        values = [entry.text() for entry in self.entry_boxes]
+        QMessageBox.information(self, "Entry Values", f"Values: {', '.join(values)}")
+
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # Instantiate the client here
-        self.client = self.create_client()
+        self.setWindowTitle("PyQt6 Custom Button Example")
+        self.setGeometry(100, 100, 400, 300)
+        self.initUI()
 
-        # Create labels
-        self.temperature_label = QLabel('Temperature: --')
-        self.field_label = QLabel('Field: --')
-        self.chamber_label = QLabel('Chamber: --')
+    def initUI(self):
+        # Central widget
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
 
-        # Set up layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.temperature_label)
-        layout.addWidget(self.field_label)
-        layout.addWidget(self.chamber_label)
-        self.setLayout(layout)
+        # Main layout
+        main_layout = QVBoxLayout(central_widget)
 
-        # Start the data fetcher thread
-        self.thread = DataFetcher(self.client)
-        self.thread.update_data.connect(self.update_labels)
-        self.thread.start()
-
-
-    def update_labels(self, T, sT, F, sF, C):
-        self.temperature_label.setText(f'Temperature: {T:.2f} ({sT})')
-        self.field_label.setText(f'Field: {F:.2f} ({sF})')
-        self.chamber_label.setText(f'Chamber: {C}')
-
-    def closeEvent(self, event):
-        self.thread.stop()
-        self.thread.wait()
-        event.accept()
+        # Custom button widget
+        custom_button_widget = CustomButtonWidget(self)
+        main_layout.addWidget(custom_button_widget)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

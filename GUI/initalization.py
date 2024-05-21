@@ -14,6 +14,7 @@ import Data_Processing_Suite.GUI.SHG.SHG as shg
 import Data_Processing_Suite.GUI.QDesign.Keithley2182nv as nv
 import Data_Processing_Suite.GUI.QDesign.Keithley6221 as cs
 import Data_Processing_Suite.GUI.QDesign.BNC845RF as rf
+import Data_Processing_Suite.GUI.QDesign.measurement as m
 
 
 # Individual Frames
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Quantum Data Processing")
+        self.setWindowIcon(QIcon("Icon/QEP.svg"))
         self.Listwidgets_Font = 15
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
         self.isinital = True  # Flag for first initialization of the program; this essential to avoid the auto select of hide function
@@ -190,7 +192,8 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(ppms.PPMS())  # 6
         self.pages.addWidget(nv.NV())  # 7
         self.pages.addWidget(cs.CurrentSource6221())  # 8
-        self.pages.addWidget(rf.BNC845RF())  # 8
+        self.pages.addWidget(rf.BNC845RF())  # 9
+        self.pages.addWidget(m.Measurement())  # 10
 
 
         # self.toggle_dark_mode()
@@ -391,10 +394,10 @@ class MainWindow(QMainWindow):
             self.pages.setCurrentIndex(9)
             self.currentqdindex = 3
 
-        elif current_row == 4:  # Profile
+        elif current_row == 4:  # Measure
             # self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
             self.right_sidebar.setCurrentRow(4)
-            self.pages.setCurrentIndex(4)
+            self.pages.setCurrentIndex(10)
             self.currentqdindex = 4
 
     def update_tool_bar(self, current_row):
