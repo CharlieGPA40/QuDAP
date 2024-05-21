@@ -2,7 +2,8 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
 from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator, QDoubleValidator
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
+import time
 import sys
 import pyvisa as visa
 import matplotlib
@@ -14,22 +15,31 @@ from matplotlib.figure import Figure
 import random
 
 import Data_Processing_Suite.GUI.Icon as Icon
-class IntegerValidator(QIntValidator):
-    def __init__(self, minimum, maximum):
-        super().__init__(minimum, maximum)
-        self.minimum = minimum
-        self.maximum = maximum
-    def validate(self, input, pos):
-        if input == "":
-            return (QValidator.State.Intermediate, input, pos)
-        state, value, pos = super().validate(input, pos)
-        try:
-            if self.minimum <= int(input) <= self.maximum:
-                return (QValidator.State.Acceptable, input, pos)
-            else:
-                return (QValidator.State.Invalid, input, pos)
-        except ValueError:
-            return (QValidator.State.Invalid, input, pos)
+class THREAD(QThread):
+    update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
+    def __init__(self, server):
+        super().__init__()
+        self.client = server
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                self.server.write("SENS:CHAN 1")
+                Chan_1_voltage = float(self.server.query("FETCH?"))  # Read the measurement result
+
+                self.keithley_2182A_NV.write("SENS:CHAN 2")
+                Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
+
+                self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
+                time.sleep(1)  # Update every second
+            except Exception as e:
+                print(f"Error: {e}")
+                self.running = False
+
+    def stop(self):
+        self.running = False
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
