@@ -696,6 +696,7 @@ class PPMS(QWidget):
 
     def setChamber(self):
         self.thread.stop()
+        time.sleep(1)
         self.set_Chamber = self.chamber_set_combo.currentIndex()
         self.chamber_set_combo.setEnabled(True)
         # if self.C == 'Sealed':
@@ -715,7 +716,7 @@ class PPMS(QWidget):
             print(self.set_Chamber)
             try:
                 if self.set_Chamber == 1:
-                    self.client.set_chamber(mode=mpv.MultiVuClient.chamber.Mode.seal)
+                    self.client.set_chamber(self.client.chamber.Mode.seal)
                 elif self.set_Chamber == 2:
                     self.client.set_chamber(self.client.chamber.mode.purge_seal)
                 elif self.set_Chamber == 3:
@@ -729,9 +730,11 @@ class PPMS(QWidget):
                 self.thread = THREAD(self.client)
                 self.thread.update_data.connect(self.ppms_reading)
                 self.thread.start()
-            except MultiPyVuError as e:
-                self.connect_client()
-                QMessageBox.warning(self, "Setup Fail", "Please try again!")
+
+            # except mpv.exceptions.MultiPyVuError:
+            except Exception:
+                print('Getting there!')
+                # QMessageBox.warning(self, "Setup Fail", "Please try again!")
 
         else:
             QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
