@@ -14,7 +14,6 @@ from matplotlib.figure import Figure
 import random
 import time
 
-import Data_Processing_Suite.GUI.Icon as Icon
 
 
 class THREAD(QThread):
@@ -34,7 +33,7 @@ class THREAD(QThread):
                 self.server.write("SENS:CHAN 2")
                 Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
                 self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
-                time.sleep(2)  # Update every second
+                time.sleep(1)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
                 self.running = False
@@ -359,6 +358,8 @@ class NV(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
+        # self.gpib_combo.addItems(["GPIB:7"])
+        # self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
