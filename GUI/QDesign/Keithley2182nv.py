@@ -359,8 +359,6 @@ class NV(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
-        # self.gpib_combo.addItems(["GPIB:7"])
-        # self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
