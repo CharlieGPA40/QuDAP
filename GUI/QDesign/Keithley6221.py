@@ -1,52 +1,11 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+    QMessageBox, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
 from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import time
 import sys
 import pyvisa as visa
-import matplotlib
-
-matplotlib.use('QtAgg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import random
-
-import Data_Processing_Suite.GUI.Icon as Icon
-class THREAD(QThread):
-    update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
-    def __init__(self, server):
-        super().__init__()
-        self.client = server
-        self.running = True
-
-    def run(self):
-        while self.running:
-            try:
-                self.server.write("SENS:CHAN 1")
-                Chan_1_voltage = float(self.server.query("FETCH?"))  # Read the measurement result
-
-                self.keithley_2182A_NV.write("SENS:CHAN 2")
-                Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
-
-                self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
-                time.sleep(1)  # Update every second
-            except Exception as e:
-                print(f"Error: {e}")
-                self.running = False
-
-    def stop(self):
-        self.running = False
-
-
-class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=4, dpi=300):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
 
 
 class CurrentSource6221(QWidget):
@@ -54,7 +13,9 @@ class CurrentSource6221(QWidget):
     def __init__(self):
         super().__init__()
         self.isConnect = False
-        self.isPlotting = False
+        self.keithley_6221 = 'None'
+        self.DCisOn = False
+        self.ACisOn = False
         self.init_ui()
 
     def init_ui(self):
@@ -112,11 +73,6 @@ class CurrentSource6221(QWidget):
 
         self.current_gpib_label = QLabel("Current GPIB Connection: None")
         self.current_gpib_label.setFont(font)
-        # self.current_gpib_label.setStyleSheet("""
-        #                                   QLabel{
-        #                                       background-color: #F8F8F8;
-        #                                       }
-        #                                       """)
 
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
@@ -147,14 +103,13 @@ class CurrentSource6221(QWidget):
         combo_text_layout.addLayout(combo_layout)
         combo_text_layout.addWidget(self.current_gpib_label, alignment=Qt.AlignmentFlag.AlignCenter)
         group_box.setLayout(combo_text_layout)
+
         #  ---------------------------- PART 3 --------------------------------
         dc_current_group_box = QGroupBox("DC Current")  # Container widget for the horizontal layout
         dc_current_main_layout = QVBoxLayout()
-        # voltage_reading_widget.setStyleSheet("QWidget { border: 2px solid black; }")
         DC_setup_layout = QHBoxLayout()
         self.DCSource_label = QLabel("DC Source:")
         self.DCSource_label.setFont(font)
-
         self.dc_source_entry_box = QLineEdit()
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
         self.current_validator = QDoubleValidator(-105, 105, 3)
@@ -194,12 +149,7 @@ class CurrentSource6221(QWidget):
                                 left: 1px;
                             }
                         """)
-        # self.setStyleSheet("""
-        #                                             QLabel{
-        #                                                 background-color: #F8F8F8;
-        #                                                 }
-        #                                                 """)
-        self.DCUnitSource_combo.addItems(["Select Units"])    # 0
+        self.DCUnitSource_combo.addItems(["Select Units"])  # 0
         self.DCUnitSource_combo.addItems(["mA"])  # 1
         self.DCUnitSource_combo.addItems(["µA"])  # 2
         self.DCUnitSource_combo.addItems(["nA"])  # 3
@@ -208,22 +158,14 @@ class CurrentSource6221(QWidget):
         self.DC_Range_checkbox = QCheckBox("Auto Range")
         self.DC_Range_checkbox.setFont(font)
         self.DC_Range_checkbox.setChecked(True)
-        # self.DC_Range_checkbox.clicked.connect()
-        # self.DC_Range_checkbox.setStyleSheet("""
-        #                                         QCheckBox{
-        #                                             background-color: #F8F8F8;
-        #                                             }
-        #                                                     """)
-
         self.send_btn = QPushButton('Send')
-        # self.send_btn.clicked.connect(self.plot_selection)
-
+        self.send_btn.clicked.connect(self.sendDCCurrent)
 
         DC_setup_layout.addWidget(self.DCSource_label, 1)
         DC_setup_layout.addWidget(self.dc_source_entry_box, 3)
-        DC_setup_layout.addWidget(self.DCUnitSource_combo,1)
+        DC_setup_layout.addWidget(self.DCUnitSource_combo, 1)
         DC_setup_layout.addStretch(1)
-        DC_setup_layout.addWidget(self.DC_Range_checkbox,1)
+        DC_setup_layout.addWidget(self.DC_Range_checkbox, 1)
         DC_setup_layout.addStretch(1)
         DC_setup_layout.addWidget(self.send_btn, 1)
 
@@ -334,7 +276,7 @@ class CurrentSource6221(QWidget):
         self.WaveAmpUnitSource_combo.addItems(["nA"])  # 3
         self.WaveAmpUnitSource_combo.addItems(["pA"])  # 3
 
-        Wave_AMP_setup_layout.addWidget(self.wave_func_label,1)
+        Wave_AMP_setup_layout.addWidget(self.wave_func_label, 1)
         Wave_AMP_setup_layout.addWidget(self.waveform_combo, 1)
         Wave_AMP_setup_layout.addStretch(1)
         Wave_AMP_setup_layout.addWidget(self.AC_Amplitude_label, 1)
@@ -430,65 +372,13 @@ class CurrentSource6221(QWidget):
         self.arm_btn = QPushButton('Arm')
         # send_btn.clicked.connect(self.plot_selection)
         Wave_Arm_setup_layout.addStretch(20)
-        Wave_Arm_setup_layout.addWidget(self.arm_btn,1)
+        Wave_Arm_setup_layout.addWidget(self.arm_btn, 1)
 
         wave_main_layout.addLayout(Wave_AMP_setup_layout)
         wave_main_layout.addLayout(Wave_Freq_Offset_setup_layout)
         wave_main_layout.addLayout(Wave_Arm_setup_layout)
 
         wave_group_box.setLayout(wave_main_layout)
-
-        #  ---------------------------- PART 4 --------------------------------
-
-        graphing_layout = QHBoxLayout()
-        selection_Layout = QHBoxLayout()
-        plotting_control_group_box = QGroupBox("Plotting Selection")
-
-        self.checkbox1 = QCheckBox("Channel 1")
-        self.checkbox1.setFont(font)
-        self.checkbox2 = QCheckBox("Channel 2")
-        self.checkbox1.setFont(font)
-        # self.checkbox1.setStyleSheet("""
-        #                                 QCheckBox{
-        #                                     background-color: #F8F8F8;
-        #                                     }
-        #                                             """)
-        # self.checkbox2.setStyleSheet("""
-        #                                                 QCheckBox{
-        #                                                     background-color: #F8F8F8;
-        #                                                     }
-        #                                                     """)
-        plot_btn = QPushButton('Plot')
-        plot_btn.clicked.connect(self.plot_selection)
-        stop_btn = QPushButton('Stop')
-        stop_btn.clicked.connect(self.stop)
-        rst_btn = QPushButton('Reset')
-        rst_btn.clicked.connect(self.rst)
-        selection_Layout.addWidget(plot_btn)
-        selection_Layout.addWidget(stop_btn)
-        selection_Layout.addWidget(rst_btn)
-
-        # Arrange radio buttons horizontally
-        radio_layout = QVBoxLayout()
-        radio_layout.addWidget(self.checkbox1)
-        radio_layout.addWidget(self.checkbox2)
-        radio_layout.addLayout(selection_Layout)
-        plotting_control_group_box.setLayout(radio_layout)
-
-        figure_group_box = QGroupBox("Graph")
-        figure_Layout = QVBoxLayout()
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        toolbar = NavigationToolbar(self.canvas, self)
-        toolbar.setStyleSheet("""
-                                   QWidget {
-                                       border: None; 
-                                   }
-                               """)
-        figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-        figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-        figure_group_box.setLayout(figure_Layout)
-        graphing_layout.addWidget(plotting_control_group_box)
-        graphing_layout.addWidget(figure_group_box)
 
         #  ---------------------------- Main Layout --------------------------------
         # Add widgets to the main layout with centered alignment
@@ -596,7 +486,6 @@ class CurrentSource6221(QWidget):
                                           }
                                       """)
 
-
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
         rm = visa.ResourceManager()
@@ -607,26 +496,20 @@ class CurrentSource6221(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
-        self.gpib_combo.addItems(["GPIB:7"])
-        self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
         self.isCheckedBox1 = False
         self.isCheckedBox2 = False
-        self.counter = 0
-        self.counter_array = []
-        if self.isPlotting:
-            self.rst()
 
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
-        print(self.connect_btn_clicked)
         if self.connect_btn_clicked == False:
             self.connect_btn.setText('Disonnect')
             self.connect_btn_clicked = True
         elif self.connect_btn_clicked == True:
             self.connect_btn.setText('Connect')
+            self.current_gpib_label.setText("Current GPIB Connection: None")
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
@@ -637,93 +520,122 @@ class CurrentSource6221(QWidget):
             else:
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
-                    self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
+                    self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                    time.sleep(3)
+                    self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")
                 # Comment it in real implementation
                 self.isConnect = True
 
-        # self.keithley_2182A_NV=rm.open_resource(current_connection, timeout=10000)
+    def sendDCCurrent(self):
+        if self.isConnect == True:
+            if self.DCisOn == False:
+                self.keithley_6221.write('CLE')
+                DC_validator = self.check_validator(self.current_validator, self.dc_source_entry_box)
+                if DC_validator == True:
+                    if self.DC_Range_checkbox.isChecked():
+                        self.keithley_6221.write('CURR:RANG:AUTO ON')
+                    else:
+                        self.keithley_6221.write('CURR:RANG:AUTO OFF')
+                    self.DC_current_entry = self.dc_source_entry_box.displayText()
+                    self.DC_unit = self.DCUnitSource_combo.currentIndex()
+                    if self.DC_unit != 0:
+                        if self.DC_unit == 1:  # mA
+                            unit = 'e-3'
+                        elif self.DC_unit == 2:  # uA
+                            unit = 'e-6'
+                        elif self.DC_unit == 3:  # nA
+                            unit = 'e-9'
+                        elif self.DC_unit == 4:  # pA
+                            unit = 'e-12'
+                        self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
+                        self.keithley_6221.write("OUTPut ON")
+                        self.send_btn.setText('ON')
+                        self.DCisOn = True
+                        self.send_btn.setStyleSheet("""
+                                                           QPushButton {
+                                                               background-color: #28A630; /* Green background */
+                                                               color: black; /* White text */
+                                                               border-style: solid;
+                                                               border-color: #28A630;
+                                                               border-width: 2px;
+                                                               border-radius: 10px; /* Rounded corners */
+                                                               padding: 5px;
+                                                               min-height: 1px;
+                                                               min-width: 10px;
+                                                           }
+                                                           QPushButton:hover {
+                                                               background-color: #3BF247; /* Slightly darker green */
+                                                           }
+                                                           QPushButton:pressed {
+                                                               background-color: #979A9A; /* Even darker green */
+                                                           }
+                                                       """)
+                    else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                else:
+                    QMessageBox.warning(self, "Input out of range", "Please enter again")
+            else:
+                self.DCisOn = False
+                self.keithley_6221.write("OUTPut OFF")
+                self.send_btn.setText('Send')
+                self.send_btn.setStyleSheet("""
+                                                   QPushButton {
+                                                       background-color: #CAC9Cb; /* Green background */
+                                                       color: black; /* White text */
+                                                       border-style: solid;
+                                                       border-color: #CAC9Cb;
+                                                       border-width: 2px;
+                                                       border-radius: 10px; /* Rounded corners */
+                                                       padding: 5px;
+                                                       min-height: 1px;
+                                                       min-width: 10px;
+                                                   }
+                                                   QPushButton:hover {
+                                                       background-color: #5F6A6A; /* Slightly darker green */
+                                                   }
+                                                   QPushButton:pressed {
+                                                       background-color: #979A9A; /* Even darker green */
+                                                   }
+                                               """)
 
-    def update_voltage(self):
+    def sendACCurrent(self):
         if self.isConnect:
-            self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
-            # This is for testing uncommand it to test GUI
-            self.Chan_1_voltage = random.randint(0, 1000) / 1000
-            self.Chan_2_voltage = random.randint(0, 1000) / 100
-            self.channel1_Volt.setText(f"{self.Chan_1_voltage} Volts")
-            self.channel2_Volt.setText(f"{self.Chan_2_voltage} Volts")
+            DC_validator = self.check_validator(self.current_validator, self.dc_source_entry_box)
+            if DC_validator == True:
+                if self.DC_Range_checkbox.isChecked():
+                    self.self.keithley_6221.write('CURR:RANG:AUTO ON')
+                else:
+                    self.self.keithley_6221.write('CURR:RANG:AUTO OFF')
+                self.DC_current_entry = self.dc_source_entry_box.displayText()
+                self.DC_unit = self.DCUnitSource_combo.currentIndex()
+                if self.DC_unit != 0:
+                    if self.DC_unit == 1:  # mA
+                        unit = 'e-3'
+                    elif self.DC_unit == 2:  # uA
+                        unit = 'e-6'
+                    elif self.DC_unit == 3:  # nA
+                        unit = 'e-9'
+                    elif self.DC_unit == 4:  # pA
+                        unit = 'e-12'
+                    self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
+                else:
+                    QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
 
-            # This is for real interfac uncommand it to test GUI
-            # self.keithley_2182A_NV.write("SENS:CHAN 1")
-            # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
-            # self.channel1_Volt.setText(f"{Chan_1_voltage} Volts")
-            # self.keithley_2182A_NV.write("SENS:CHAN 2")
-            # # keithley_2182A_NV.write("SENS:CHAN2:RANG AUTO")
-            # Chan_2_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read th
-            # self.channel2_Volt.setText(f"{Chan_2_voltage} Volts")
-        else:
-            self.channel1_Volt.setText(f"N/A Volts")
-            self.channel2_Volt.setText(f"N/A Volts")
+    def check_validator(self, validator_model, entry):
 
-    def plot_selection(self):
-        # This method updates the label based on the checkbox states
-        status = []
-        if self.checkbox1.isChecked():
-            status.append(self.checkbox1.text())
-            self.isCheckedBox1 = True
-        else:
-            self.isCheckedBox1 = False
-        if self.checkbox2.isChecked():
-            status.append(self.checkbox2.text())
-            self.isCheckedBox2 = True
-        else:
-            self.isCheckedBox2 = False
-
-        if len(status) > 0 and self.isConnect == True:
-            self.canvas.axes.cla()
-            self.channel1_Volt_Array = []
-            self.channel2_Volt_Array = []
-            self.counter = 0
-            self.counter_array = []
-            self.counter_array.append(self.counter)
-            self.update_plot()
-            self.show()
-
-            # Setup a timer to trigger the redraw by calling update_plot.
-            self.timer = QTimer()
-            self.timer.setInterval(1000)
-            self.timer.timeout.connect(self.update_plot)
-            self.timer.start()
-
-    def update_plot(self):
-        # self.canvas.axes.cla()  # Clear the canvas.
-        if self.isCheckedBox1 == True:
-            self.isPlotting = True
-            self.channel1_Volt_Array.append(self.Chan_1_voltage)
-            # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
-            self.canvas.draw()
-        if self.isCheckedBox2 == True:
-            self.isPlotting = True
-            self.channel2_Volt_Array.append(self.Chan_2_voltage)
-            # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
-            self.canvas.draw()
-        self.counter += 1
-        self.counter_array.append(self.counter)
-
-    def stop(self):
-        self.timer.stop()
-
-    def rst(self):
-        # This method updates the label based on the checkbox states
-        self.timer = QTimer()
-        self.timer.stop()
-        self.canvas.axes.cla()
-        self.canvas.draw()
-
+        try:
+            if float(entry.displayText()) <= validator_model.top() and float(
+                    entry.displayText()) >= validator_model.bottom():
+                return True
+            else:
+                QMessageBox.warning(self, "Error", "Input Out of range")
+                return False
+        except:
+            # QMessageBox.warning(self, "Error", "Input Out of range 2")
+            return False
 

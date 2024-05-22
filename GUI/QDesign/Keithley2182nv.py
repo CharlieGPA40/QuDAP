@@ -14,7 +14,6 @@ from matplotlib.figure import Figure
 import random
 import time
 
-import Data_Processing_Suite.GUI.Icon as Icon
 
 
 class THREAD(QThread):
