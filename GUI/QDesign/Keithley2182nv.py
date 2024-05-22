@@ -34,7 +34,7 @@ class THREAD(QThread):
                 self.server.write("SENS:CHAN 2")
                 Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
                 self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
-                time.sleep(2)  # Update every second
+                time.sleep(1)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
                 self.running = False
