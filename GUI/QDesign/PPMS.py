@@ -17,7 +17,7 @@ import random
 import MultiPyVu as mpv # Uncommented it on the/thesever computer
 from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 import sys
-import Data_Processing_Suite.GUI.Icon as Icon
+# import Data_Processing_Suite.GUI.Icon as Icon
 
 
 class THREAD(QThread):
@@ -253,7 +253,7 @@ class PPMS(QWidget):
                         border-bottom-right-radius: 3px;
                     }
                     QComboBox::down-arrow {
-                        image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
                     }
                     QComboBox::down-arrow:on { /* When the combo box is open */
                         top: 1px;
@@ -331,7 +331,7 @@ class PPMS(QWidget):
                                 border-bottom-right-radius: 3px;
                             }
                             QComboBox::down-arrow {
-                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
                             }
                             QComboBox::down-arrow:on { /* When the combo box is open */
                                 top: 1px;
@@ -386,7 +386,7 @@ class PPMS(QWidget):
                                         border-bottom-right-radius: 3px;
                                     }
                                     QComboBox::down-arrow {
-                                        image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                     }
                                     QComboBox::down-arrow:on { /* When the combo box is open */
                                         top: 1px;

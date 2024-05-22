@@ -13,8 +13,6 @@ from matplotlib.figure import Figure
 import random
 import time
 
-import Data_Processing_Suite.GUI.Icon as Icon
-
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
         fig = Figure(figsize=(width, height), dpi=dpi)
