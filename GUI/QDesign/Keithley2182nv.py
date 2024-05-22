@@ -6,6 +6,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
 import pyvisa as visa
 import matplotlib
+
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -14,11 +15,15 @@ import random
 import time
 
 import Data_Processing_Suite.GUI.Icon as Icon
+
+
 class THREAD(QThread):
     update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
+
     def __init__(self, server):
         super().__init__()
-        self.client = server
+        print(str(server))
+        self.server = server
         self.running = True
 
     def run(self):
@@ -26,18 +31,17 @@ class THREAD(QThread):
             try:
                 self.server.write("SENS:CHAN 1")
                 Chan_1_voltage = float(self.server.query("FETCH?"))  # Read the measurement result
-
-                self.keithley_2182A_NV.write("SENS:CHAN 2")
+                self.server.write("SENS:CHAN 2")
                 Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
-
                 self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
-                time.sleep(1)  # Update every second
+                time.sleep(2)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
                 self.running = False
 
     def stop(self):
         self.running = False
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -46,17 +50,18 @@ class MplCanvas(FigureCanvas):
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
+
 class NV(QWidget):
 
     def __init__(self):
         super().__init__()
         self.isConnect = False
         self.isPlotting = False
-        # self.keithley_2182A_NV = 'None'
+        self.keithley_2182A_NV = 'None'
         self.init_ui()
 
     def init_ui(self):
-        titlefont = QFont("Arial",20)
+        titlefont = QFont("Arial", 20)
         font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
 
@@ -86,7 +91,7 @@ class NV(QWidget):
                         background-color: #FFFFFF;  /* Background color for selected item */
                         color: #7CACEC
                     }
-                    
+
                     QComboBox::drop-down {
                         subcontrol-origin: padding;
                         subcontrol-position: top right;
@@ -123,7 +128,7 @@ class NV(QWidget):
         # Label to display current GPIB connection
 
         # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
-          # Populate GPIB ports initially
+        # Populate GPIB ports initially
         self.connect_btn = QPushButton('Connect')
         self.connect_btn_clicked = False
         self.connect_btn.clicked.connect(self.connect_current_gpib)
@@ -141,7 +146,7 @@ class NV(QWidget):
         combo_layout.addWidget(refresh_btn, 1)
         self.refresh_gpib_list()
         combo_layout.addWidget(self.connect_btn, 2)
-        combo_layout.setContentsMargins(50,0,50,0)
+        combo_layout.setContentsMargins(50, 0, 50, 0)
         combo_text_layout.addLayout(combo_layout)
         combo_text_layout.addWidget(self.current_gpib_label, alignment=Qt.AlignmentFlag.AlignCenter)
         group_box.setLayout(combo_text_layout)
@@ -180,16 +185,10 @@ class NV(QWidget):
         channel2_read_layout.addWidget(self.channel2_Volt, 5)
         channel2_read_layout.setContentsMargins(50, 0, 250, 0)
 
-
         voltage_reading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         voltage_reading_layout.addLayout(channel1_read_layout, 1)
         voltage_reading_layout.addLayout(channel2_read_layout, 1)
         voltage_reading_group_box.setLayout(voltage_reading_layout)
-        self.keep_reading = True
-        # while self.keep_reading:
-            # self.thread = THREAD(self.keithley_2182A_NV)
-            # self.thread.update_data.connect(self.update_voltage)
-            # self.thread.start()
 
         #  ---------------------------- PART 4 --------------------------------
 
@@ -350,7 +349,6 @@ class NV(QWidget):
                                            }
                                        """)
 
-
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
         rm = visa.ResourceManager()
@@ -361,8 +359,8 @@ class NV(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
-        self.gpib_combo.addItems(["GPIB:7"])
-        self.gpib_combo.addItems(["GPIB:8"])
+        # self.gpib_combo.addItems(["GPIB:7"])
+        # self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
@@ -373,10 +371,8 @@ class NV(QWidget):
         if self.isPlotting:
             self.rst()
 
-
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
-        print(self.connect_btn_clicked)
         if self.connect_btn_clicked == False:
             self.connect_btn.setText('Disonnect')
             self.connect_btn_clicked = True
@@ -384,6 +380,7 @@ class NV(QWidget):
             if self.isPlotting:
                 self.rst()
             self.connect_btn.setText('Connect')
+            self.current_gpib_label.setText("Current GPIB Connection: None")
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
@@ -397,6 +394,19 @@ class NV(QWidget):
                     self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                    # self.keithley_2182A_NV.write("SENS:CHAN 1")
+                    # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
+                    # print(Chan_1_voltage)
+                    self.keep_reading = True
+                    # while self.keep_reading:
+                    #     self.timer = QTimer(self)
+                    #     self.timer.timeout.connect(self.update_voltage)
+                    #     self.timer.start(2000)  # Update every second
+
+                    if self.isConnect:
+                        self.thread = THREAD(server=self.keithley_2182A_NV)
+                        self.thread.update_data.connect(self.update_voltage)
+                        self.thread.start()
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")
@@ -405,6 +415,10 @@ class NV(QWidget):
 
         # self.keithley_2182A_NV=rm.open_resource(self.current_connection, timeout=10000)
 
+    # def enable_thread(self):
+    #     if self.isConnect == True:
+    #         self.keep_reading = True
+    #         while self.keep_reading:
 
     def update_voltage(self, Chan_1_voltage, Chan_2_voltage):
         self.Chan_1_voltage = Chan_1_voltage
@@ -412,8 +426,8 @@ class NV(QWidget):
         if self.isConnect:
             self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
             # This is for testing uncommand it to test GUI
-            self.Chan_1_voltage = random.randint(0, 1000) / 1000
-            self.Chan_2_voltage = random.randint(0, 1000) / 100
+            # self.Chan_1_voltage = random.randint(0, 1000) / 1000
+            # self.Chan_2_voltage = random.randint(0, 1000) / 100
 
             self.channel1_Volt.setText(f"{self.Chan_1_voltage} Volts")
             self.channel2_Volt.setText(f"{self.Chan_2_voltage} Volts")
@@ -465,13 +479,13 @@ class NV(QWidget):
         if self.isCheckedBox1 == True:
             self.isPlotting = True
             self.channel1_Volt_Array.append(self.Chan_1_voltage)
-        # # Drop off the first y element, append a new one.
+            # # Drop off the first y element, append a new one.
             self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
             self.canvas.draw()
         if self.isCheckedBox2 == True:
             self.isPlotting = True
             self.channel2_Volt_Array.append(self.Chan_2_voltage)
-        # # Drop off the first y element, append a new one.
+            # # Drop off the first y element, append a new one.
             self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
             self.canvas.draw()
         self.counter += 1
