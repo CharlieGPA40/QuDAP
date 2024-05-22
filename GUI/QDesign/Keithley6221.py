@@ -609,16 +609,20 @@ class CurrentSource6221(QWidget):
         if self.isConnect:
             if self.ACisOn == False:
                 self.keithley_6221.write('CLE')
+                self.keithley_6221.write('CURR:RANG:AUTO ON')
                 self.wave_mode = self.waveform_combo.currentIndex()
                 if self.wave_mode != 0:
                     if self.wave_mode == 1:  # mA
                         self.keithley_6221.write('SOUR:WAVE:FUNC SIN')
                     elif self.wave_mode == 2:  # uA
-                        self.keithley_6221.write('SOUR:WAVE:SQU SIN')
+                        self.keithley_6221.write('SOUR:WAVE:FUNC SQU')
                     elif self.wave_mode == 3:  # nA
                         self.keithley_6221.write('SOUR:WAVE:FUNC RAMP')
                     elif self.wave_mode == 4:  # pA
                         self.keithley_6221.write('SOUR:WAVE:FUNC ARB0')
+                else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                        return
                 if self.AC_Amplitude_entry_box.displayText() == '':
                     self.AC_Amplitude_entry_box.setText('1')
                     self.WaveAmpUnitSource_combo.setCurrentIndex(1)  # 0
@@ -635,6 +639,7 @@ class CurrentSource6221(QWidget):
                 if Amplitude_Validator == True and Freq_Validator == True and Offset_Validator == True:
 
                     self.AC_amplitude = self.AC_Amplitude_entry_box.displayText()
+                    
                     self.AC_amplitude_Unit = self.WaveAmpUnitSource_combo.currentIndex()
                     if self.AC_amplitude_Unit != 0:
                         if self.AC_amplitude_Unit == 1:  # mA
@@ -664,10 +669,9 @@ class CurrentSource6221(QWidget):
                     else:
                         QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
                         return
-
-                    self.keithley_6221.write('SOUR:WAVE:AMP ' + self.AC_amplitude + amp_unit)
+                    self.keithley_6221.write('SOUR:WAVE:AMPL ' + self.AC_amplitude + amp_unit)
                     self.keithley_6221.write('SOUR:WAVE:FREQ ' + self.AC_Freq)
-                    self.keithley_6221.write('SOUR:WAVE:OFF ' + self.AC_Offset + offset_unit)
+                    self.keithley_6221.write('SOUR:WAVE:OFFset ' + self.AC_Offset + offset_unit)
                     self.keithley_6221.write('SOUR:WAVE:PMAR:STAT OFF')
                     if self.Wave_Range_checkbox.isChecked():
                         self.keithley_6221.write('SOUR:WAVE:RANG BEST')
