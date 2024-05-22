@@ -230,7 +230,7 @@ class CurrentSource6221(QWidget):
         self.AC_Amplitude_validator = QDoubleValidator(0, 105, 10)
         self.AC_Amplitude_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.AC_Amplitude_entry_box.setValidator(self.AC_Amplitude_validator)
-        self.AC_Amplitude_entry_box.setPlaceholderText("1pA to 105mA")
+        self.AC_Amplitude_entry_box.setPlaceholderText("2pA to 105mA")
         self.AC_Amplitude_entry_box.setFixedHeight(30)
         self.WaveAmpUnitSource_combo = QComboBox()
         self.WaveAmpUnitSource_combo.setFont(font)
@@ -288,10 +288,10 @@ class CurrentSource6221(QWidget):
         self.AC_Frequency_label.setFont(font)
         self.AC_Frequency_entry_box = QLineEdit()
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
-        self.AC_Frequency_validator = QDoubleValidator(0.001, 100000, 3)
+        self.AC_Frequency_validator = QDoubleValidator(0.00, 100000, 5)
         self.AC_Frequency_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.AC_Frequency_entry_box.setValidator(self.AC_Frequency_validator)
-        self.AC_Frequency_entry_box.setPlaceholderText("1mHz to 100KHz")
+        self.AC_Frequency_entry_box.setPlaceholderText("0Hz to 100KHz")
         self.AC_Frequency_entry_box.setFixedHeight(30)
         self.AC_Frequency_Unit_label = QLabel("Hz")
         self.AC_Frequency_Unit_label.setFont(font)
@@ -370,8 +370,8 @@ class CurrentSource6221(QWidget):
 
         Wave_Arm_setup_layout = QHBoxLayout()
         self.arm_btn = QPushButton('Arm')
-        # send_btn.clicked.connect(self.plot_selection)
-        Wave_Arm_setup_layout.addStretch(20)
+        self.arm_btn.clicked.connect(self.sendACCurrent)
+        Wave_Arm_setup_layout.addStretch(10)
         Wave_Arm_setup_layout.addWidget(self.arm_btn, 1)
 
         wave_main_layout.addLayout(Wave_AMP_setup_layout)
@@ -554,8 +554,9 @@ class CurrentSource6221(QWidget):
                             unit = 'e-12'
                         self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
                         self.keithley_6221.write("OUTPut ON")
-                        self.send_btn.setText('ON')
+                        self.send_btn.setText('Abort')
                         self.DCisOn = True
+                        self.arm_btn.setEnabled(False)
                         self.send_btn.setStyleSheet("""
                                                            QPushButton {
                                                                background-color: #28A630; /* Green background */
@@ -569,7 +570,7 @@ class CurrentSource6221(QWidget):
                                                                min-width: 10px;
                                                            }
                                                            QPushButton:hover {
-                                                               background-color: #3BF247; /* Slightly darker green */
+                                                               background-color: #F2433B; /* Slightly darker green */
                                                            }
                                                            QPushButton:pressed {
                                                                background-color: #979A9A; /* Even darker green */
@@ -582,6 +583,7 @@ class CurrentSource6221(QWidget):
             else:
                 self.DCisOn = False
                 self.keithley_6221.write("OUTPut OFF")
+                self.arm_btn.setEnabled(True)
                 self.send_btn.setText('Send')
                 self.send_btn.setStyleSheet("""
                                                    QPushButton {
@@ -605,26 +607,123 @@ class CurrentSource6221(QWidget):
 
     def sendACCurrent(self):
         if self.isConnect:
-            DC_validator = self.check_validator(self.current_validator, self.dc_source_entry_box)
-            if DC_validator == True:
-                if self.DC_Range_checkbox.isChecked():
-                    self.self.keithley_6221.write('CURR:RANG:AUTO ON')
+            if self.ACisOn == False:
+                self.keithley_6221.write('CLE')
+                self.wave_mode = self.waveform_combo.currentIndex()
+                if self.wave_mode != 0:
+                    if self.wave_mode == 1:  # mA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC SIN')
+                    elif self.wave_mode == 2:  # uA
+                        self.keithley_6221.write('SOUR:WAVE:SQU SIN')
+                    elif self.wave_mode == 3:  # nA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC RAMP')
+                    elif self.wave_mode == 4:  # pA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC ARB0')
+                if self.AC_Amplitude_entry_box.displayText() == '':
+                    self.AC_Amplitude_entry_box.setText('1')
+                    self.WaveAmpUnitSource_combo.setCurrentIndex(1)  # 0
+
+                if self.AC_Frequency_entry_box.displayText() == '':
+                    self.AC_Frequency_entry_box.setText('1e3')
+
+                if self.AC_Offset_entry_box.displayText() == '':
+                    self.AC_Offset_entry_box.setText('0')
+                    self.WaveOffsetUnitSource_combo.setCurrentIndex(1)  # 0
+                Amplitude_Validator = self.check_validator(self.AC_Amplitude_validator, self.AC_Amplitude_entry_box)
+                Freq_Validator = self.check_validator(self.AC_Frequency_validator, self.AC_Frequency_entry_box)
+                Offset_Validator = self.check_validator(self.AC_Offset_validator, self.AC_Offset_entry_box)
+                if Amplitude_Validator == True and Freq_Validator == True and Offset_Validator == True:
+
+                    self.AC_amplitude = self.AC_Amplitude_entry_box.displayText()
+                    self.AC_amplitude_Unit = self.WaveAmpUnitSource_combo.currentIndex()
+                    if self.AC_amplitude_Unit != 0:
+                        if self.AC_amplitude_Unit == 1:  # mA
+                            amp_unit = 'e-3'
+                        elif self.AC_amplitude_Unit == 2:  # uA
+                            amp_unit = 'e-6'
+                        elif self.AC_amplitude_Unit == 3:  # nA
+                            amp_unit = 'e-9'
+                        elif self.AC_amplitude_Unit == 4:  # pA
+                            amp_unit = 'e-12'
+                    else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                        return
+
+                    self.AC_Freq = self.AC_Frequency_entry_box.displayText()
+                    self.AC_Offset = self.AC_Offset_entry_box.displayText()
+                    self.AC_Offset_unit = self.WaveOffsetUnitSource_combo.currentIndex()
+                    if self.AC_Offset_unit != 0:
+                        if self.AC_Offset_unit == 1:  # mA
+                            offset_unit = 'e-3'
+                        elif self.AC_Offset_unit == 2:  # uA
+                            offset_unit = 'e-6'
+                        elif self.AC_Offset_unit == 3:  # nA
+                            offset_unit = 'e-9'
+                        elif self.AC_Offset_unit == 4:  # pA
+                            offset_unit = 'e-12'
+                    else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                        return
+
+                    self.keithley_6221.write('SOUR:WAVE:AMP ' + self.AC_amplitude + amp_unit)
+                    self.keithley_6221.write('SOUR:WAVE:FREQ ' + self.AC_Freq)
+                    self.keithley_6221.write('SOUR:WAVE:OFF ' + self.AC_Offset + offset_unit)
+                    self.keithley_6221.write('SOUR:WAVE:PMAR:STAT OFF')
+                    if self.Wave_Range_checkbox.isChecked():
+                        self.keithley_6221.write('SOUR:WAVE:RANG BEST')
+                    else:
+                        self.keithley_6221.write('SOUR:WAVE:RANG FIX')
+                    self.keithley_6221.write('SOUR:WAVE:ARM')
+                    self.keithley_6221.write('SOUR:WAVE:INIT')
+                    self.ACisOn = True
+                    self.send_btn.setEnabled(False)
+                    self.arm_btn.setText('Abort')
+                    self.arm_btn.setStyleSheet("""
+                                              QPushButton {
+                                                  background-color: #28A630; /* Green background */
+                                                  color: black; /* White text */
+                                                  border-style: solid;
+                                                  border-color: #28A630;
+                                                  border-width: 2px;
+                                                  border-radius: 10px; /* Rounded corners */
+                                                  padding: 5px;
+                                                  min-height: 1px;
+                                                  min-width: 10px;
+                                              }
+                                              QPushButton:hover {
+                                                  background-color: #F2433B; /* Slightly darker green */
+                                              }
+                                              QPushButton:pressed {
+                                                  background-color: #979A9A; /* Even darker green */
+                                              }
+                                          """)
+
                 else:
-                    self.self.keithley_6221.write('CURR:RANG:AUTO OFF')
-                self.DC_current_entry = self.dc_source_entry_box.displayText()
-                self.DC_unit = self.DCUnitSource_combo.currentIndex()
-                if self.DC_unit != 0:
-                    if self.DC_unit == 1:  # mA
-                        unit = 'e-3'
-                    elif self.DC_unit == 2:  # uA
-                        unit = 'e-6'
-                    elif self.DC_unit == 3:  # nA
-                        unit = 'e-9'
-                    elif self.DC_unit == 4:  # pA
-                        unit = 'e-12'
-                    self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
-                else:
-                    QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                    QMessageBox.warning(self, "Input out of range", "Please enter again")
+            else:
+                self.ACisOn = False
+                self.keithley_6221.write("SOUR:WAVE:ABOR")
+                self.send_btn.setEnabled(True)
+                self.arm_btn.setText('Arm')
+                self.arm_btn.setStyleSheet("""
+                                                                   QPushButton {
+                                                                       background-color: #CAC9Cb; /* Green background */
+                                                                       color: black; /* White text */
+                                                                       border-style: solid;
+                                                                       border-color: #CAC9Cb;
+                                                                       border-width: 2px;
+                                                                       border-radius: 10px; /* Rounded corners */
+                                                                       padding: 5px;
+                                                                       min-height: 1px;
+                                                                       min-width: 10px;
+                                                                   }
+                                                                   QPushButton:hover {
+                                                                       background-color: #5F6A6A; /* Slightly darker green */
+                                                                   }
+                                                                   QPushButton:pressed {
+                                                                       background-color: #979A9A; /* Even darker green */
+                                                                   }
+                                                               """)
 
     def check_validator(self, validator_model, entry):
 
