@@ -397,8 +397,14 @@ class MainWindow(QMainWindow):
         elif current_row == 4:  # Measure
             # self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
             self.right_sidebar.setCurrentRow(4)
-            self.pages.setCurrentIndex(10)
+            self.pages.setCurrentIndex(1)
             self.currentqdindex = 4
+
+        elif current_row == 5:  # Measure
+            # self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
+            self.right_sidebar.setCurrentRow(5)
+            self.pages.setCurrentIndex(10)
+            self.currentqdindex = 5
 
     def update_tool_bar(self, current_row):
         self.whichSideBar = 2

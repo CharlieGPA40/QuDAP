@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QCheckBox, QPushButton, QComboBox, QLineEdit)
-from PyQt6.QtGui import QIcon, QFont
+    QApplication, QMainWindow, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+, QCheckBox, QPushButton, QComboBox, QLineEdit, QScrollArea, QFrame)
+from PyQt6.QtGui import QIcon, QFont, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
 import pyvisa as visa
@@ -12,6 +12,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import random
 import time
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -33,6 +34,8 @@ class Measurement(QWidget):
         # Create main vertical layout with centered alignment
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
 
         #  ---------------------------- PART 1 --------------------------------
         self.current_intrument_label = QLabel("Select Measurement")
@@ -95,7 +98,7 @@ class Measurement(QWidget):
 
         # Layout for the combobox and refresh button
         combo_text_layout = QVBoxLayout()
-        group_box = QGroupBox("Device Connection")
+        group_box = QGroupBox("ETO")
 
         # Set the layout for the group box
 
@@ -386,7 +389,21 @@ class Measurement(QWidget):
         wave_main_layout.addLayout(Wave_Arm_setup_layout)
 
         wave_group_box.setLayout(wave_main_layout)
-
+        #  ---------------------------- Main Layout --------------------------------
+        figure_group_box = QGroupBox("Graph")
+        figure_Layout = QVBoxLayout()
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        toolbar = NavigationToolbar(self.canvas, self)
+        toolbar.setStyleSheet("""
+                                         QWidget {
+                                             border: None; 
+                                         }
+                                     """)
+        figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+        figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+        figure_group_box.setLayout(figure_Layout)
+        graphing_layout.addWidget(plotting_control_group_box)
+        graphing_layout.addWidget(figure_group_box)
         #  ---------------------------- Main Layout --------------------------------
         # Add widgets to the main layout with centered alignment
         main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
