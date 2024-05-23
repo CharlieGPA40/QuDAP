@@ -14,7 +14,6 @@ import math
 
 import MultiPyVu as mpv
 
-
 # ========================================================= #
 # ---------Open Dynacool MuliVu (Don't run as Admin)-------- #
 # ========================================================= #
@@ -29,7 +28,7 @@ host = "127.0.0.1"
 port = 5000
 
 # =============================== Set the current ==================================== #
-current = [f"{i}e-6" for i in range(20,40,5)]   # Set the current to 20 µA
+current = [f"{i}e-6" for i in range(20, 40, 5)]  # Set the current to 20 µA
 number_of_current = len(current)
 
 # =============================== Set Temperature ==================================== #
@@ -51,10 +50,10 @@ deltaH = 50
 fieldRate = 220
 fieldRateSlow = 10
 tempRate = 50
-number_of_field = 2*(topField-botField)/deltaH
+number_of_field = 2 * (topField - botField) / deltaH
+
 
 # ---------------- Set the File Name -----------------------#
-
 
 
 def save_temp_field_chamber():
@@ -62,6 +61,7 @@ def save_temp_field_chamber():
     F, sF = client.get_field()
     C = client.get_chamber()
     print(f'{T:{7}.{3}f} {sT:{10}} {F:{7}} {sF:{20}} {C:{15}}')
+
 
 # def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
 #     if (currentField <= LowerB2 or currentField >= UpperB2):
@@ -137,7 +137,6 @@ with mpv.Server() as server:
         # MaxField = 2000 #Oe
         # i = 0
 
-
         print(f'\n Waiting for {zeroField} Oe Field \n')
         time.sleep(10)
         # client.wait_for(30,
@@ -148,14 +147,14 @@ with mpv.Server() as server:
         # ----------------- Loop Down ----------------------#
         Curlen = len(current)
         templen = len(TempList)
-        
+
         for i in range(templen):
 
             print(f'\n Loop is at {TempList[i]} K Temperature\n')
             Tempsetpoint = TempList[i]
             client.set_temperature(Tempsetpoint,
-                                    tempRate,
-                                    client.temperature.approach_mode.fast_settle) #fast_settle/no_overshoot
+                                   tempRate,
+                                   client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
             print(f'Waiting for {Tempsetpoint} K Temperature')
             time.sleep(4)
 
@@ -282,17 +281,21 @@ with mpv.Server() as server:
                     # Update currentField for the next iteration
                     currentField += deltaH
                     pts += 1  # Number of pts count
-               
+
                 single_measurement_end = time.time()
                 Single_loop = single_measurement_start - single_measurement_end
-                total_time_in_seconds =  Single_loop * (number_of_current-j)*(number_of_temp-i) - Single_loop
-                totoal_time_in_minutes = total_time_in_seconds /60
-                total_time_in_hours = totoal_time_in_minutes /60
+                total_time_in_seconds = Single_loop * (number_of_current - j) * (number_of_temp - i) - Single_loop
+                totoal_time_in_minutes = total_time_in_seconds / 60
+                total_time_in_hours = totoal_time_in_minutes / 60
                 total_time_in_days = total_time_in_hours / 24
-                print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(total_time_in_seconds))
-                print('Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(totoal_time_in_minutes))
-                print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(total_time_in_hours))
-                print('Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(total_time_in_days))
+                print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                    total_time_in_seconds))
+                print('Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                    totoal_time_in_minutes))
+                print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                    total_time_in_hours))
+                print('Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
+                    total_time_in_days))
 
         client.set_field(zeroField,
                          fieldRate,
