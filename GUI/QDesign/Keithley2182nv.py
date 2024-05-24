@@ -199,16 +199,7 @@ class NV(QWidget):
         self.checkbox1.setFont(font)
         self.checkbox2 = QCheckBox("Channel 2")
         self.checkbox2.setFont(font)
-        # self.checkbox1.setStyleSheet("""
-        #                                 QCheckBox{
-        #                                     background-color: #F8F8F8;
-        #                                     }
-        #                                             """)
-        # self.checkbox2.setStyleSheet("""
-        #                                                 QCheckBox{
-        #                                                     background-color: #F8F8F8;
-        #                                                     }
-        #                                                     """)
+
         plot_btn = QPushButton('Plot')
         plot_btn.clicked.connect(self.plot_selection)
         stop_btn = QPushButton('Stop')

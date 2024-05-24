@@ -6,8 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/QDesign/Keithley2182nv.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/Keithley2182nv.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/QDesign/Keithley6221.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/Keithley6221.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/QDesign/measurement.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/measurement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/initalization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/test3.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test3.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -94,14 +96,25 @@
       <option name="presentableId" value="Default" />
       <updated>1715893585961</updated>
       <workItem from="1715893586881" duration="447000" />
-      <workItem from="1716409883595" duration="5458000" />
+      <workItem from="1716409883595" duration="26632000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1716439701529" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1716588852902" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
   </component>
 </project>

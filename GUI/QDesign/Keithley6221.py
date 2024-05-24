@@ -523,7 +523,6 @@ class CurrentSource6221(QWidget):
                     self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
-                    time.sleep(3)
                     self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
                 except visa.errors.VisaIOError:
                     self.isConnect = False
