@@ -266,31 +266,31 @@ class Measurement(QWidget):
 
         self.main_layout.addLayout(self.ETO_instru_content_layout)
         # --------------------------------------- Part PPMS_layout Init ----------------------------
-        graphing_layout = QHBoxLayout()
-        selection_Layout = QHBoxLayout()
-        plotting_control_group_box = QGroupBox("x Axis Selection")
-
-        self.checkbox1 = QCheckBox("Channel 1")
-        self.checkbox1.setFont(self.font)
-        self.checkbox2 = QCheckBox("Channel 2")
-        self.checkbox2.setFont(self.font)
-
-        plot_btn = QPushButton('Plot')
-        plot_btn.clicked.connect(self.plot_selection)
-        stop_btn = QPushButton('Stop')
-        stop_btn.clicked.connect(self.stop)
-        rst_btn = QPushButton('Reset')
-        rst_btn.clicked.connect(self.rst)
-        selection_Layout.addWidget(plot_btn)
-        selection_Layout.addWidget(stop_btn)
-        selection_Layout.addWidget(rst_btn)
-
-        # Arrange radio buttons horizontally
-        radio_layout = QVBoxLayout()
-        radio_layout.addWidget(self.checkbox1)
-        radio_layout.addWidget(self.checkbox2)
-        radio_layout.addLayout(selection_Layout)
-        plotting_control_group_box.setLayout(radio_layout
+        # graphing_layout = QHBoxLayout()
+        # selection_Layout = QHBoxLayout()
+        # plotting_x_axis_group_box = QGroupBox("x Axis Selection")
+        # plotting_y_axis_group_box = QGroupBox("x Axis Selection")
+        # # self.checkbox1 = QCheckBox("Channel 1")
+        # # self.checkbox1.setFont(self.font)
+        # # self.checkbox2 = QCheckBox("Channel 2")
+        # # self.checkbox2.setFont(self.font)
+        #
+        # plot_btn = QPushButton('Plot')
+        # plot_btn.clicked.connect(self.plot_selection)
+        # stop_btn = QPushButton('Stop')
+        # stop_btn.clicked.connect(self.stop)
+        # rst_btn = QPushButton('Reset')
+        # rst_btn.clicked.connect(self.rst)
+        # selection_Layout.addWidget(plot_btn)
+        # selection_Layout.addWidget(stop_btn)
+        # selection_Layout.addWidget(rst_btn)
+        #
+        # # Arrange radio buttons horizontally
+        # radio_layout = QVBoxLayout()
+        # radio_layout.addWidget(self.checkbox1)
+        # radio_layout.addWidget(self.checkbox2)
+        # radio_layout.addLayout(selection_Layout)
+        # plotting_control_group_box.setLayout(radio_layout)
 
         # #  ---------------------------- Figure Layout --------------------------------
         figure_group_box = QGroupBox("Graph")
