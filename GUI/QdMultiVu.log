@@ -711,3 +711,183 @@
 2024-05-27 00:28:10,598     MultiVuServer        DEBUG    ;to ('127.0.0.1', 62371); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 62371)"}'
 2024-05-27 00:28:10,598     MultiVuClient        DEBUG    ;from ('127.0.0.1', 62371); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 62371)"}
 2024-05-27 00:28:10,599     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 62371)
+2024-06-01 00:33:24,570     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 00:33:24,570     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 00:33:24,570     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 00:33:24,578     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 00:33:24,578     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 00:33:26,303     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 00:33:26,309     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 54702)
+2024-06-01 00:33:26,605     MultiVuClient        DEBUG    ;to ('127.0.0.1', 54702); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 00:33:26,810     MultiVuServer        DEBUG    ;from ('127.0.0.1', 54702); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 00:33:26,810     MultiVuServer        DEBUG    ;to ('127.0.0.1', 54702); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 54702)"}'
+2024-06-01 00:33:26,811     MultiVuClient        DEBUG    ;from ('127.0.0.1', 54702); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 54702)"}
+2024-06-01 00:33:26,811     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 54702)
+2024-06-01 00:57:34,707     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 00:57:34,707     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 00:57:34,708     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 00:57:34,714     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 00:57:34,714     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 00:57:35,655     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 00:57:35,659     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 55493)
+2024-06-01 00:57:35,956     MultiVuClient        DEBUG    ;to ('127.0.0.1', 55493); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 00:57:36,159     MultiVuServer        DEBUG    ;from ('127.0.0.1', 55493); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 00:57:36,160     MultiVuServer        DEBUG    ;to ('127.0.0.1', 55493); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 55493)"}'
+2024-06-01 00:57:36,160     MultiVuClient        DEBUG    ;from ('127.0.0.1', 55493); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 55493)"}
+2024-06-01 00:57:36,162     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 55493)
+2024-06-01 01:13:15,556     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:13:15,556     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:13:15,556     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:13:15,563     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:13:15,563     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:13:16,434     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:13:16,440     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 55986)
+2024-06-01 01:13:16,736     MultiVuClient        DEBUG    ;to ('127.0.0.1', 55986); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:13:16,941     MultiVuServer        DEBUG    ;from ('127.0.0.1', 55986); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:13:16,942     MultiVuServer        DEBUG    ;to ('127.0.0.1', 55986); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 55986)"}'
+2024-06-01 01:13:16,942     MultiVuClient        DEBUG    ;from ('127.0.0.1', 55986); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 55986)"}
+2024-06-01 01:13:16,943     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 55986)
+2024-06-01 01:15:00,672     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:15:00,672     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:15:00,672     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:15:00,678     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:15:00,678     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:15:01,312     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:15:01,316     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56024)
+2024-06-01 01:15:01,613     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56024); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:15:01,817     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56024); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:15:01,818     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56024); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56024)"}'
+2024-06-01 01:15:01,818     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56024); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56024)"}
+2024-06-01 01:15:01,818     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56024)
+2024-06-01 01:27:02,659     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:27:02,661     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:27:02,661     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:27:02,666     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:27:02,666     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:27:03,657     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:27:03,664     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56117)
+2024-06-01 01:27:03,959     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56117); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:27:04,165     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56117); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:27:04,165     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56117); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56117)"}'
+2024-06-01 01:27:04,167     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56117); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56117)"}
+2024-06-01 01:27:04,167     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56117)
+2024-06-01 01:28:03,620     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:28:03,621     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:28:03,621     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:28:03,625     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:28:03,625     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:28:04,423     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:28:04,427     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56168)
+2024-06-01 01:28:04,725     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56168); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:28:04,927     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56168); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:28:04,928     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56168); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56168)"}'
+2024-06-01 01:28:04,928     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56168); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56168)"}
+2024-06-01 01:28:04,929     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56168)
+2024-06-01 01:28:15,803     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:28:15,803     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:28:15,803     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:28:15,807     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:28:15,807     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:28:16,605     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:28:16,606     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56176)
+2024-06-01 01:28:16,906     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56176); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:28:17,107     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56176); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:28:17,107     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56176); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56176)"}'
+2024-06-01 01:28:17,107     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56176); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56176)"}
+2024-06-01 01:28:17,108     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56176)
+2024-06-01 01:29:02,963     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:29:02,963     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:29:02,963     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:29:02,969     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:29:02,970     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:29:04,043     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:29:04,046     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56206)
+2024-06-01 01:29:04,344     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56206); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:29:04,548     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56206); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:29:04,549     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56206); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56206)"}'
+2024-06-01 01:29:04,550     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56206); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56206)"}
+2024-06-01 01:29:04,551     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56206)
+2024-06-01 01:30:22,136     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:30:22,137     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:30:22,137     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:30:22,143     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:30:22,144     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:30:23,333     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:30:23,338     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56241)
+2024-06-01 01:30:23,635     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56241); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:30:23,839     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56241); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:30:23,840     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56241); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56241)"}'
+2024-06-01 01:30:23,840     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56241); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56241)"}
+2024-06-01 01:30:23,841     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56241)
+2024-06-01 01:32:17,991     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:32:17,992     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:32:17,992     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:32:17,996     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:32:17,996     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:32:19,349     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:32:19,353     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56272)
+2024-06-01 01:32:19,651     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56272); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:32:19,854     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56272); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:32:19,855     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56272); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56272)"}'
+2024-06-01 01:32:19,855     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56272); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56272)"}
+2024-06-01 01:32:19,856     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56272)
+2024-06-01 01:32:58,869     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:32:58,869     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:32:58,869     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:32:58,873     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:32:58,873     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:32:59,462     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:32:59,467     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56307)
+2024-06-01 01:32:59,763     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56307); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:32:59,968     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56307); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:32:59,969     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56307); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56307)"}'
+2024-06-01 01:32:59,969     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56307); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56307)"}
+2024-06-01 01:32:59,971     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56307)
+2024-06-01 01:34:44,934     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:34:44,934     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:34:44,934     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:34:44,939     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:34:44,939     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:34:45,735     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:34:45,740     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56352)
+2024-06-01 01:34:46,037     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56352); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:34:46,241     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56352); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:34:46,241     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56352); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56352)"}'
+2024-06-01 01:34:46,242     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56352); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56352)"}
+2024-06-01 01:34:46,243     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56352)
+2024-06-01 01:37:23,415     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:37:23,415     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:37:23,415     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:37:23,420     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:37:23,420     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:37:24,146     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:37:24,152     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56398)
+2024-06-01 01:37:24,448     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56398); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:37:24,653     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56398); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:37:24,653     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56398); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56398)"}'
+2024-06-01 01:37:24,653     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56398); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56398)"}
+2024-06-01 01:37:24,654     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56398)
+2024-06-01 01:39:04,199     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:39:04,199     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:39:04,200     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:39:04,205     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:39:04,205     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:39:05,220     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:39:05,225     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56435)
+2024-06-01 01:39:05,522     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56435); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:39:05,726     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56435); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:39:05,727     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56435); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56435)"}'
+2024-06-01 01:39:05,727     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56435); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56435)"}
+2024-06-01 01:39:05,728     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56435)
+2024-06-01 01:43:57,438     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '34264')
+2024-06-01 01:43:57,438     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-01 01:43:57,439     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-01 01:43:57,443     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-01 01:43:57,443     MultiVuServer        INFO     Press ESC to exit.
+2024-06-01 01:43:59,050     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-01 01:43:59,055     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56544)
+2024-06-01 01:43:59,351     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56544); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-01 01:43:59,556     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56544); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-01 01:43:59,556     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56544); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56544)"}'
+2024-06-01 01:43:59,557     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56544); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56544)"}
+2024-06-01 01:43:59,558     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56544)

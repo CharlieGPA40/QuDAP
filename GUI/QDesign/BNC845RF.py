@@ -90,7 +90,7 @@ class BNC845RF(QWidget):
                               border-bottom-right-radius: 3px;
                           }
                           QComboBox::down-arrow {
-                              image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                              image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                           }
                           QComboBox::down-arrow:on { /* When the combo box is open */
                               top: 1px;
@@ -108,7 +108,7 @@ class BNC845RF(QWidget):
                                               """)
 
         # Refresh Button
-        refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
+        refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
 
         refresh_btn.clicked.connect(self.refresh_gpib_list)
         # Label to display current GPIB connection
@@ -176,7 +176,7 @@ class BNC845RF(QWidget):
                                 border-bottom-right-radius: 3px;
                             }
                             QComboBox::down-arrow {
-                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                             }
                             QComboBox::down-arrow:on { /* When the combo box is open */
                                 top: 1px;
@@ -252,7 +252,7 @@ class BNC845RF(QWidget):
                                                 border-bottom-right-radius: 3px;
                                             }
                                             QComboBox::down-arrow {
-                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                             }
                                             QComboBox::down-arrow:on { /* When the combo box is open */
                                                 top: 1px;
@@ -304,7 +304,7 @@ class BNC845RF(QWidget):
                                         border-bottom-right-radius: 3px;
                                     }
                                     QComboBox::down-arrow {
-                                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                        image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                     }
                                     QComboBox::down-arrow:on { /* When the combo box is open */
                                         top: 1px;
@@ -377,7 +377,7 @@ class BNC845RF(QWidget):
                                                 border-bottom-right-radius: 3px;
                                             }
                                             QComboBox::down-arrow {
-                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                             }
                                             QComboBox::down-arrow:on { /* When the combo box is open */
                                                 top: 1px;

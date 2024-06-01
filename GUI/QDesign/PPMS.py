@@ -253,7 +253,7 @@ class PPMS(QWidget):
                         border-bottom-right-radius: 3px;
                     }
                     QComboBox::down-arrow {
-                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                        image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                     }
                     QComboBox::down-arrow:on { /* When the combo box is open */
                         top: 1px;
@@ -331,7 +331,7 @@ class PPMS(QWidget):
                                 border-bottom-right-radius: 3px;
                             }
                             QComboBox::down-arrow {
-                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                             }
                             QComboBox::down-arrow:on { /* When the combo box is open */
                                 top: 1px;
@@ -386,7 +386,7 @@ class PPMS(QWidget):
                                         border-bottom-right-radius: 3px;
                                     }
                                     QComboBox::down-arrow {
-                                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                        image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                     }
                                     QComboBox::down-arrow:on { /* When the combo box is open */
                                         top: 1px;

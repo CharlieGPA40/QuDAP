@@ -192,7 +192,7 @@ class Measurement(QWidget):
                                                                 border-bottom-right-radius: 3px;
                                                             }
                                                             QComboBox::down-arrow {
-                                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                                             }
                                                             QComboBox::down-arrow:on { /* When the combo box is open */
                                                                 top: 1px;
@@ -205,6 +205,8 @@ class Measurement(QWidget):
         self.Instruments_combo.addItems(["RF"])  # 3
         self.Instruments_combo.addItems(["Locked_in"])  # 4
 
+        self.Instruments_port_label = QLabel("Channel:")
+        self.Instruments_port_label.setFont(self.font)
         self.gpib_combo = QComboBox()
         self.gpib_combo.setStyleSheet("""
                             QComboBox {
@@ -229,7 +231,7 @@ class Measurement(QWidget):
                                 border-bottom-right-radius: 3px;
                             }
                             QComboBox::down-arrow {
-                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
                             }
                             QComboBox::down-arrow:on { /* When the combo box is open */
                                 top: 1px;
@@ -238,7 +240,7 @@ class Measurement(QWidget):
                         """)
         self.gpib_combo.setFont(self.font)
         self.refresh_gpib_list()
-        self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
+        self.refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
         self.refresh_btn.clicked.connect(self.refresh_gpib_list)
         self.instru_connect_btn = QPushButton('Connect')
         self.instru_connect_btn.clicked.connect(self.connect_current_gpib)
@@ -246,6 +248,7 @@ class Measurement(QWidget):
         Instru_main_layout.addWidget(self.Instruments_sel_label, 1)
         Instru_main_layout.addWidget(self.Instruments_combo, 2)
         Instru_main_layout.addStretch(1)
+        Instru_main_layout.addWidget(self.Instruments_port_label, 1)
         Instru_main_layout.addWidget(self.gpib_combo, 3)
         Instru_main_layout.addStretch(1)
         Instru_main_layout.addWidget(self.refresh_btn, 2)
@@ -413,7 +416,7 @@ class Measurement(QWidget):
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
-        rm = visa.ResourceManager()
+        rm = visa.ResourceManager('@sim')
         instruments = rm.list_resources()
         self.gpib_ports = [instr for instr in instruments if 'GPIB' in instr]
         # Clear existing items and add new ones
@@ -512,6 +515,8 @@ class Measurement(QWidget):
             # --------------------------------------- Part PPMS Field Setup ----------------------------
             self.ppms_field_setting_layout = QVBoxLayout()
             self.ppms_field_radio_buttom_layout = QHBoxLayout()
+            self.ppms_zone_field_layout = QVBoxLayout()
+
             self.enter_Zone_1 = False
             self.enter_Zone_2 = False
             self.enter_Zone_3 = False
@@ -521,7 +526,6 @@ class Measurement(QWidget):
             self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
             self.ppms_field_Three_zone_radio = QRadioButton("3 Zones")
             self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_zone_field_layout = QVBoxLayout()
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
@@ -550,9 +554,6 @@ class Measurement(QWidget):
                 return None
             elif self.current_connection_index == 1:
                 self.keithley_2182nv = rm.open_resource(self.current_connection, timeout=10000)
-
-
-
             elif self.current_connection_index == 2:
                 self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
             elif self.current_connection_index == 3:
@@ -564,6 +565,9 @@ class Measurement(QWidget):
 
     def field_zone_selection(self):
         # self.clear_layout(self.ppms_zone_field_layout)
+
+        # self.clear_layout(self.ppms_zone_field_layout)
+
         if self.ppms_field_One_zone_radio.isChecked() and self.enter_Zone_1 == False:
             self.ppms_field_One_zone_radio.setChecked(False)
             self.enter_Zone_1 = True
@@ -587,7 +591,14 @@ class Measurement(QWidget):
             self.ppms_field_Three_zone_radio.setChecked(False)
     def field_one_zone(self):
         self.clear_layout(self.ppms_zone_field_layout)
+        # self.clear_layout(self.ppms_zone2_field_layout)
+        # self.clear_layout(self.ppms_zone3_field_layout)
         self.ppms_zone1_field_layout = QVBoxLayout()
+        # self.ppms_zone2_field_layout = QVBoxLayout()
+        # self.ppms_zone3_field_layout = QVBoxLayout()
+        # self.clear_layout(self.ppms_zone1_field_layout)
+        # self.clear_layout(self.ppms_zone2_field_layout)
+        # self.clear_layout(self.ppms_zone3_field_layout)
         self.ppms_zone1_field_range_layout = QHBoxLayout()
         self.ppms_zone1_from_label = QLabel('Field Range (Oe): From')
         self.ppms_zone1_from_label.setFont(self.font)
@@ -609,14 +620,23 @@ class Measurement(QWidget):
         self.ppms_zone1_feild_step_entry.setFont(self.font)
         self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_feild_step_label)
         self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_feild_step_entry)
+
+
+        self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_range_layout)
+        self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_step_layout)
         self.clear_layout(self.ppms_zone_field_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_range_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_step_layout)
+        self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_layout)
+        # self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_step_layout)
+
 
 
     def field_two_zone(self):
         self.clear_layout(self.ppms_zone_field_layout)
+        # self.clear_layout(self.ppms_zone1_field_layout)
+        # self.clear_layout(self.ppms_zone3_field_layout)
         self.field_one_zone()
+        self.ppms_zone2_field_layout = QVBoxLayout()
+        # self.ppms_zone3_field_layout = QVBoxLayout()
         self.ppms_zone2_field_range_layout = QHBoxLayout()
         self.ppms_zone2_from_label = QLabel('Field Range 2 (Oe): From')
         self.ppms_zone2_from_label.setFont(self.font)
@@ -639,13 +659,21 @@ class Measurement(QWidget):
         self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_feild_step_label)
         self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_feild_step_entry)
 
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_range_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_step_layout)
+
+        self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_range_layout)
+        self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_step_layout)
+        self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_layout)
+        # self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_step_layout)
 
     def field_three_zone(self):
         self.clear_layout(self.ppms_zone_field_layout)
+        # self.clear_layout(self.ppms_zone1_field_layout)
+        # self.clear_layout(self.ppms_zone2_field_layout)
+        # self.clear_layout(self.ppms_zone3_field_layout)
         self.field_two_zone()
-
+        # self.ppms_zone1_field_layout = QVBoxLayout()
+        # self.ppms_zone2_field_layout = QVBoxLayout()
+        self.ppms_zone3_field_layout = QVBoxLayout()
 
         self.ppms_zone3_field_range_layout = QHBoxLayout()
         self.ppms_zone3_from_label = QLabel('Field Range 3 (Oe): From')
@@ -668,8 +696,11 @@ class Measurement(QWidget):
         self.ppms_zone3_feild_step_entry.setFont(self.font)
         self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_feild_step_label)
         self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_feild_step_entry)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_range_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_step_layout)
+
+        self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_range_layout)
+        self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_step_layout)
+
+        self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_layout)
 
 
     def update_plot(self):

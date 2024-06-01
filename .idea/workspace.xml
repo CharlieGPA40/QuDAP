@@ -5,9 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/Data_Processing_Suite.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Data_Processing_Suite.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/QDesign/BNC845RF.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/BNC845RF.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/QDesign/Keithley2182nv.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/Keithley2182nv.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/QDesign/Keithley6221.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/Keithley6221.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/QDesign/PPMS.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/PPMS.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/QDesign/measurement.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/measurement.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/QdMultiVu.log" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QdMultiVu.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/initalization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,15 +46,21 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "R:/Documents/GitHub/Data_Processing_Combine/Data_Processing_Suite",
+    "last_opened_file_path": "R:/GitHub/Data_Processing_Suite",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="R:\GitHub\Data_Processing_Suite" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="initalization" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Data_Processing_Suite" />
@@ -62,7 +76,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/GUI/initalization.py" />
+      <option name="SCRIPT_NAME" value="R:\GitHub\Data_Processing_Suite\initalization.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -80,8 +94,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-PY-241.15989.155" />
-        <option value="bundled-python-sdk-babbdf50b680-7c6932dee5e4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.15989.155" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
+        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
       </set>
     </attachedChunks>
   </component>
@@ -95,6 +109,8 @@
       <updated>1715893585961</updated>
       <workItem from="1715893586881" duration="447000" />
       <workItem from="1716409883595" duration="35250000" />
+      <workItem from="1717218164730" duration="58000" />
+      <workItem from="1717218230876" duration="7719000" />
     </task>
     <servers />
   </component>
@@ -113,6 +129,6 @@
     </option>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1716787671141" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1717224224531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
   </component>
 </project>

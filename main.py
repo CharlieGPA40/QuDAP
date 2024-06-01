@@ -43,8 +43,8 @@ else:  # Linux
         return_call = call('echo {} | sudo -S {}'.format(pwd, cmd), shell=True)
 
 if OS == 'Windows':
-    import GUI.initalization
+    pass
 elif OS == 'Darwin':
-    import GUI.initalization
+    pass
 else:  # Linux
-    import GUI.initalization
+    pass
