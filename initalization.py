@@ -11,6 +11,9 @@ import GUI.QDesign.QD as qd
 import GUI.VSM.VSM as vsm
 import GUI.ETO.ETO as eto
 import GUI.SHG.SHG as shg
+import GUI.SHG.SHG_General as shg_general
+import GUI.SHG.SHG_Temp_Dep as shg_tempdep
+import GUI.SHG.SHG_Imaging as shg_imaging
 import GUI.QDesign.Keithley2182nv as nv
 import GUI.QDesign.Keithley6221 as cs
 import GUI.QDesign.BNC845RF as rf
@@ -195,7 +198,9 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(cs.CurrentSource6221())  # 8
         self.pages.addWidget(rf.BNC845RF())  # 9
         self.pages.addWidget(m.Measurement())  # 10
-
+        self.pages.addWidget(shg_general.General())  # 11
+        self.pages.addWidget(shg_tempdep.Tempdep())  # 12
+        self.pages.addWidget(shg_imaging.Imaging())  # 13
 
         # self.toggle_dark_mode()
         # Main Layout
@@ -334,7 +339,7 @@ class MainWindow(QMainWindow):
             self.currentindex = 0
             # self.left_sidebar.setEnabled(True)
 
-        elif current_row == 1:  # Settings
+        elif current_row == 1:  # VSM
             self.right_sidebar.addItem(QListWidgetItem("General Settings"))
             self.right_sidebar.addItem(QListWidgetItem("Security"))
             self.right_sidebar.addItem(QListWidgetItem("Privacy"))
@@ -342,7 +347,7 @@ class MainWindow(QMainWindow):
             self.pages.setCurrentIndex(1)
             self.currentindex = 1
 
-        elif current_row == 2:  # Profile
+        elif current_row == 2:  # ETO
             self.right_sidebar.addItem(QListWidgetItem("Edit Profile"))
             self.right_sidebar.addItem(QListWidgetItem("Notifications"))
             self.right_sidebar.addItem(QListWidgetItem("Logout"))
@@ -350,10 +355,11 @@ class MainWindow(QMainWindow):
             self.pages.setCurrentIndex(2)
             self.currentindex = 2
 
-        elif current_row == 3:  # Profile
-            self.right_sidebar.addItem(QListWidgetItem("Profile"))
-            self.right_sidebar.addItem(QListWidgetItem("LL"))
-            self.right_sidebar.addItem(QListWidgetItem("SS"))
+        elif current_row == 3:  # SHG
+            self.right_sidebar.addItem(QListWidgetItem("General Processing"))
+            self.right_sidebar.addItem(QListWidgetItem("Temperature Dependence"))
+            self.right_sidebar.addItem(QListWidgetItem("Imaging Mode"))
+            self.right_sidebar.currentRowChanged.connect(self.update_SHG)
             self.right_sidebar.setCurrentRow(3)
             self.pages.setCurrentIndex(3)
             self.currentindex = 3
@@ -406,6 +412,26 @@ class MainWindow(QMainWindow):
             self.right_sidebar.setCurrentRow(5)
             self.pages.setCurrentIndex(10)
             self.currentqdindex = 5
+
+    def update_SHG(self, current_row):
+        if current_row == 0:  # General Processing
+            self.right_sidebar.setCurrentRow(0)
+            # Enter the corresponding function
+            self.pages.setCurrentIndex(11)
+            self.currentqdindex = 0
+            # self.left_sidebar.setEnabled(True)
+
+        elif current_row == 1:  # Temp Dep
+
+            self.right_sidebar.setCurrentRow(1)
+            self.pages.setCurrentIndex(12)
+            self.currentqdindex = 1
+
+        elif current_row == 2:  # Imaging
+
+            self.right_sidebar.setCurrentRow(2)
+            self.pages.setCurrentIndex(13)
+            self.currentqdindex = 2
 
     def update_tool_bar(self, current_row):
         self.whichSideBar = 2

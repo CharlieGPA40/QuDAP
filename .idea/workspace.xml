@@ -5,17 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/Data_Processing_Suite.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Data_Processing_Suite.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/BNC845RF.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/BNC845RF.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/Keithley2182nv.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/Keithley2182nv.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/Keithley6221.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/Keithley6221.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/PPMS.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/PPMS.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/measurement.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/measurement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QdMultiVu.log" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QdMultiVu.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/initalization.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/SHG/Imaging_SHG.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_Imaging.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/SHG/SHG Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/SHG/Temp_set.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_Temp_Dep.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/Test.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/Test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/test2.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/test3.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test3.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/initalization.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,6 +39,8 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.SHG_General.executor": "Run",
+    "Python.initalization (1).executor": "Run",
     "Python.initalization.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
@@ -61,7 +60,53 @@
       <recent name="R:\GitHub\Data_Processing_Suite" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.initalization (1)">
+    <configuration name="SHG_General" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Data_Processing_Suite" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/GUI/SHG" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/GUI/SHG/SHG_General.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="initalization (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Data_Processing_Suite" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/initalization.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="initalization" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Data_Processing_Suite" />
       <option name="ENV_FILES" value="" />
@@ -87,15 +132,17 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.initalization (1)" />
         <item itemvalue="Python.initalization" />
+        <item itemvalue="Python.SHG_General" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
-        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
+        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-PY-241.15989.155" />
+        <option value="bundled-python-sdk-babbdf50b680-7c6932dee5e4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.15989.155" />
       </set>
     </attachedChunks>
   </component>
@@ -111,6 +158,7 @@
       <workItem from="1716409883595" duration="35250000" />
       <workItem from="1717218164730" duration="58000" />
       <workItem from="1717218230876" duration="7719000" />
+      <workItem from="1717617439782" duration="10436000" />
     </task>
     <servers />
   </component>
@@ -129,6 +177,8 @@
     </option>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1717224224531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$SHG_General.coverage" NAME="SHG_General Coverage Results" MODIFIED="1717619711563" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/SHG" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1717619765618" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1717627397138" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
