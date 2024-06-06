@@ -21,10 +21,6 @@ class UserDefineFittingWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.FitSeleciton = 'None'
-        self.autoSelection = 'None'
-        self.fitSelected = False
-        self.modeSelected = False
 
     def initUI(self):
         self.setWindowTitle('User Defined Fitting Window')
@@ -58,6 +54,7 @@ class General(QWidget):
     def __init__(self):
         super().__init__()
         self.init_ui()
+        self.plot_index = 0
 
     def init_ui(self):
         titlefont = QFont("Arial", 20)
