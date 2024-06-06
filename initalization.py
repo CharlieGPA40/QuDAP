@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Quantum Data Processing")
-        self.setWindowIcon(QIcon("Icon/QEP.svg"))
+        self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
         self.Listwidgets_Font = 15
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
         self.isinital = True  # Flag for first initialization of the program; this essential to avoid the auto select of hide function
@@ -79,11 +79,11 @@ class MainWindow(QMainWindow):
             
         """)
 
-        FMR = QListWidgetItem(QIcon("Icon/FMR.svg"), "FMR")
-        VSM = QListWidgetItem(QIcon("Icon/VSM.svg"), "VSM")
-        ETO = QListWidgetItem(QIcon("Icon/ETO.svg"), "ETO")
-        SHG = QListWidgetItem(QIcon("Icon/SHG.svg"), "SHG")
-        PPMS = QListWidgetItem(QIcon("Icon/PPMS.svg"), "Quantum Design")
+        FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "FMR")
+        VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "VSM")
+        ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "ETO")
+        SHG = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "SHG")
+        PPMS = QListWidgetItem(QIcon("GUI/Icon/PPMS.svg"), "Quantum Design")
 
         self.left_sidebar.addItem(FMR)
         self.left_sidebar.addItem(VSM)
@@ -111,8 +111,8 @@ class MainWindow(QMainWindow):
                 background-color: #F0F0F0;  /* Light grey background on hover */
             }
                """)
-        tool_home_item = QListWidgetItem(QIcon("Icon/help-circle.svg"), "Help")
-        tool_settings_item = QListWidgetItem(QIcon("Icon/settings.svg"), "Settings")
+        tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "Help")
+        tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "Settings")
 
         self.Tool_menu.addItem(tool_home_item)
         self.Tool_menu.addItem(tool_settings_item)
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
                         background-color: #F0F0F0;  /* Light grey background on hover */
                     }
                        """)
-        hide_menu_item = QListWidgetItem(QIcon("Icon/align-justify.svg"), "Hide")
+        hide_menu_item = QListWidgetItem(QIcon("GUI/Icon/align-justify.svg"), "Hide")
 
         self.hide_menu.addItem(hide_menu_item)
         # Disable item selection in the QListWidget
@@ -270,11 +270,11 @@ class MainWindow(QMainWindow):
         if self.ishide == False and self.isinital == False:
             self.hide_menu.clear()
             self.Tool_menu.clear()
-            FMR = QListWidgetItem(QIcon("Icon/FMR.svg"), "")
-            VSM = QListWidgetItem(QIcon("Icon/VSM.svg"), "")
-            ETO = QListWidgetItem(QIcon("Icon/ETO.svg"), "")
-            SHG = QListWidgetItem(QIcon("Icon/SHG.svg"), "")
-            PPMS = QListWidgetItem(QIcon("Icon/PPMS.svg"), "")
+            FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "")
+            VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "")
+            ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "")
+            SHG = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "")
+            PPMS = QListWidgetItem(QIcon("GUI/Icon/PPMS.svg"), "")
             self.left_sidebar.clear()
             self.left_sidebar.addItem(FMR)
             self.left_sidebar.addItem(VSM)
@@ -283,12 +283,12 @@ class MainWindow(QMainWindow):
             self.left_sidebar.addItem(PPMS)
             # self.left_sidebar.currentRowChanged.connect(self.update_right_sidebar)
 
-            tool_home_item = QListWidgetItem(QIcon("Icon/help-circle.svg"), "")
-            tool_settings_item = QListWidgetItem(QIcon("Icon/settings.svg"), "")
+            tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "")
+            tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "")
             self.Tool_menu.addItem(tool_home_item)
             self.Tool_menu.addItem(tool_settings_item)
 
-            hide_menu_item = QListWidgetItem(QIcon("Icon/align-justify.svg"), "")
+            hide_menu_item = QListWidgetItem(QIcon("GUI/Icon/align-justify.svg"), "")
             self.hide_menu.addItem(hide_menu_item)
             # self.hide_menu.currentRowChanged.connect(self.hide_left_sidebar)
             self.ishide = True

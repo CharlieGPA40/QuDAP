@@ -192,7 +192,7 @@ class Measurement(QWidget):
                                                                 border-bottom-right-radius: 3px;
                                                             }
                                                             QComboBox::down-arrow {
-                                                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
                                                             }
                                                             QComboBox::down-arrow:on { /* When the combo box is open */
                                                                 top: 1px;
@@ -231,7 +231,7 @@ class Measurement(QWidget):
                                 border-bottom-right-radius: 3px;
                             }
                             QComboBox::down-arrow {
-                                image: url(Icon/chevron-down.svg); /* Set your own icon for the arrow */
+                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
                             }
                             QComboBox::down-arrow:on { /* When the combo box is open */
                                 top: 1px;
@@ -240,7 +240,7 @@ class Measurement(QWidget):
                         """)
         self.gpib_combo.setFont(self.font)
         self.refresh_gpib_list()
-        self.refresh_btn = QPushButton(icon=QIcon("Icon/refresh.svg"))
+        self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
         self.refresh_btn.clicked.connect(self.refresh_gpib_list)
         self.instru_connect_btn = QPushButton('Connect')
         self.instru_connect_btn.clicked.connect(self.connect_current_gpib)
