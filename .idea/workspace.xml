@@ -5,14 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Update/client.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Update/sever.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/SHG/Imaging_SHG.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_Imaging.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/SHG/SHG Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/SHG/Temp_set.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_Temp_Dep.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/Test.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/Test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/test2.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/test3.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test3.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/initalization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/standardized_intensity_matrix.csv" beforeDir="false" afterPath="$PROJECT_DIR$/standardized_intensity_matrix.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +23,17 @@
       <list>
         <option value="Python Script" />
       </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
     </option>
   </component>
   <component name="Git.Settings">
@@ -42,6 +52,7 @@
     "Python.SHG_General.executor": "Run",
     "Python.initalization (1).executor": "Run",
     "Python.initalization.executor": "Run",
+    "Python.test22.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
@@ -51,7 +62,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "settings.editor.selected.configurable": "PyScientificConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -130,11 +141,35 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="test22" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Data_Processing_Suite" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/GUI" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/GUI/test22.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.initalization (1)" />
-        <item itemvalue="Python.initalization" />
+        <item itemvalue="Python.test22" />
         <item itemvalue="Python.SHG_General" />
+        <item itemvalue="Python.initalization" />
       </list>
     </recent_temporary>
   </component>
@@ -158,7 +193,7 @@
       <workItem from="1716409883595" duration="35250000" />
       <workItem from="1717218164730" duration="58000" />
       <workItem from="1717218230876" duration="7719000" />
-      <workItem from="1717617439782" duration="10436000" />
+      <workItem from="1717617439782" duration="28776000" />
     </task>
     <servers />
   </component>
@@ -177,8 +212,9 @@
     </option>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$SHG_General.coverage" NAME="SHG_General Coverage Results" MODIFIED="1717619711563" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/SHG" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1717619765618" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1717627397138" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$SHG_General.coverage" NAME="SHG_General Coverage Results" MODIFIED="1717783264114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/SHG" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$test22.coverage" NAME="test22 Coverage Results" MODIFIED="1717798295965" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1717801218000" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

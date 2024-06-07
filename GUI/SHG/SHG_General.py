@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QMessageBox, QButtonGroup, QWidget, QRadioButton, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout
-, QDialog, QPushButton, QComboBox, QLineEdit)
+, QDialog, QPushButton, QComboBox, QLineEdit, QScrollArea)
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
@@ -14,8 +14,10 @@ from matplotlib.figure import Figure
 import matplotlib.patches as patches
 import numpy as np
 import time
-from pptx import Presentation
-from pptx.util import Inches, Pt
+
+
+# from pptx import Presentation
+# from pptx.util import Inches, Pt
 
 class UserDefineFittingWindow(QDialog):
     def __init__(self):
@@ -60,8 +62,14 @@ class General(QWidget):
         titlefont = QFont("Arial", 20)
         self.font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
+        # self.master_layout = QVBoxLayout()
+        # # Create main vertical layout with centered alignment
+        # self.scrollArea = QScrollArea(self)
+        # self.scrollArea.setWidgetResizable(True)
+        # self.scrollArea.setMinimumSize(800, 1000)
 
-        # Create main vertical layout with centered alignment
+        # self.scrollContent = QWidget()
+        # self.main_layout = QVBoxLayout(self.scrollContent)
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -110,13 +118,17 @@ class General(QWidget):
         self.file_selection_section_layout.addStretch(1)
 
         self.file_selection_main_layout.addLayout(self.file_selection_section_layout)
-        self.file_selection_main_layout.addWidget(self.file_selection_display_label , alignment=Qt.AlignmentFlag.AlignCenter)
+        self.file_selection_main_layout.addWidget(self.file_selection_display_label,
+                                                  alignment=Qt.AlignmentFlag.AlignCenter)
         self.file_selection_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.file_selection_group_box.setLayout(self.file_selection_main_layout)
 
         self.main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
         self.main_layout.addWidget(self.file_selection_group_box)
+        # self.scrollArea.setWidget(self.scrollContent)
 
+        # Add the scroll area to the main layout
+        # self.master_layout.addWidget(self.scrollArea)
 
     def showDialog(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -267,10 +279,13 @@ class General(QWidget):
         self.fitting_mode_usr_radio_buttom.toggled.connect(self.updateFitSelection)
         self.fitting_mode_no_radio_buttom.toggled.connect(self.updateFitSelection)
 
-    #  ---------------------------- Main Layout --------------------------------
-    # Add widgets to the main layout with centered alignment
+        #  ---------------------------- Main Layout --------------------------------
+        # Add widgets to the main layout with centered alignment
         self.main_layout.addLayout(self.auto_fitting_selection_layout)
+        # self.scrollArea.setWidget(self.scrollContent)
 
+        # Add the scroll area to the main layout
+        # self.master_layout.addWidget(self.scrollArea)
         self.process_layout = QHBoxLayout()
         self.rst_button = QPushButton('Reset')
         self.rst_button.setFont(self.font)
@@ -321,10 +336,15 @@ class General(QWidget):
         self.process_layout.addWidget(self.Process_button)
 
         self.main_layout.addLayout(self.process_layout)
+        # self.scrollArea.setWidget(self.scrollContent)
+
+        # Add the scroll area to the main layout
+        # self.master_layout.addWidget(self.scrollArea)
 
         self.setLayout(self.main_layout)
 
         #  ---------------------------- Style Sheet --------------------------------
+
     def PresetModel(self):
         self.current_model = self.fitting_mode_predef_combo.currentText()
         print(self.current_model)
@@ -369,56 +389,56 @@ class General(QWidget):
             self.log_group_box = QGroupBox("Experimental Log")
             self.Fitting_mode_group_box = QGroupBox("Graph")
             #  ---------------------------- PART 3 --------------------------------
-            Parameter = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
-            Date = Parameter.iat[0, 1]
+            self.Parametre = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
+            Date = self.Parametre.iat[0, 1]
             self.date_label = QLabel('Date: ' + str(Date))
             self.date_label.setFont(self.font)
-            file_name = Parameter.iat[1, 1]
+            file_name = self.Parametre.iat[1, 1]
             self.sample_label = QLabel('Sample: ' + str(file_name))
             self.sample_label.setFont(self.font)
-            Measure_Type = Parameter.iat[2, 1]
+            Measure_Type = self.Parametre.iat[2, 1]
             self.measure_type_label = QLabel('Measurement Type: ' + str(Measure_Type))
             self.measure_type_label.setFont(self.font)
-            Light_angle = Parameter.iat[3, 1]
+            Light_angle = self.Parametre.iat[3, 1]
             self.light_angle_label = QLabel('Incident Angle: ' + str(Light_angle))
             self.light_angle_label.setFont(self.font)
-            power = Parameter.iat[4, 1]
+            power = self.Parametre.iat[4, 1]
             self.power_label = QLabel('Power (mW): ' + str(power))
             self.power_label.setFont(self.font)
-            start_angle = Parameter.iat[5, 1]
+            start_angle = self.Parametre.iat[5, 1]
             self.start_angle_label = QLabel('Start Angle (degree): ' + str(start_angle))
             self.start_angle_label.setFont(self.font)
-            end_angle = Parameter.iat[6, 1]
+            end_angle = self.Parametre.iat[6, 1]
             self.end_angle_label = QLabel('Termination Angle (degree): ' + str(end_angle))
             self.end_angle_label.setFont(self.font)
-            step_size = Parameter.iat[7, 1]
+            step_size = self.Parametre.iat[7, 1]
             self.step_angle_label = QLabel('Angle Step Size (degree): ' + str(step_size))
             self.step_angle_label.setFont(self.font)
             step_size = int(step_size)
-            polarization = Parameter.iat[8, 1]
+            polarization = self.Parametre.iat[8, 1]
             self.polarization_label = QLabel('Polarization Configuration: ' + str(polarization))
             self.polarization_label.setFont(self.font)
-            exp_time = Parameter.iat[9, 1]
+            exp_time = self.Parametre.iat[9, 1]
             self.exp_time_label = QLabel('Exposure Time (s): ' + str(exp_time))
             self.exp_time_label.setFont(self.font)
-            EMGain = Parameter.iat[10, 1]
+            EMGain = self.Parametre.iat[10, 1]
             self.EMGain_label = QLabel('EMGain: ' + str(EMGain))
             self.EMGain_label.setFont(self.font)
-            Accumulation = Parameter.iat[11, 1]
+            Accumulation = self.Parametre.iat[11, 1]
             self.acc_label = QLabel('Accumulation: ' + str(Accumulation))
             self.acc_label.setFont(self.font)
-            Start_temp = Parameter.iat[12, 1]
+            Start_temp = self.Parametre.iat[12, 1]
             self.start_temp_label = QLabel('Initial Temperature (K): ' + str(Start_temp))
             self.start_temp_label.setFont(self.font)
-            End_temp = Parameter.iat[13, 1]
+            End_temp = self.Parametre.iat[13, 1]
             self.end_temp_label = QLabel('Termination Temperature (K): ' + str(End_temp))
             self.end_temp_label.setFont(self.font)
-            Step_temp = Parameter.iat[14, 1]
+            Step_temp = self.Parametre.iat[14, 1]
             self.step_temp_label = QLabel('Step Temperature (K): ' + str(Step_temp))
             self.step_temp_label.setFont(self.font)
 
             # If need to remove the space
-            file_name = str(Parameter.iat[1, 1]).replace(" ", "")
+            file_name = str(self.Parametre.iat[1, 1]).replace(" ", "")
 
             self.log_layout = QVBoxLayout()
             self.log_layout.addWidget(self.date_label)
@@ -447,294 +467,403 @@ class General(QWidget):
                                                                border: None;
                                                            }
                                                        """)
+
+            plot_entry_layout = QHBoxLayout()
+            self.center_x_y_label = QLabel("Center (x, y): ")
+            self.center_x_y_label.setFont(self.font)
+            self.center_front_p_label = QLabel("(")
+            self.center_front_p_label.setFont(self.font)
+            self.center_x_entry_box = QLineEdit()
+            self.center_comma_label = QLabel(",")
+            self.center_comma_label.setFont(self.font)
+            self.center_y_entry_box = QLineEdit()
+            self.center_end_p_label = QLabel(")")
+            self.center_end_p_label.setFont(self.font)
+
+            self.box_size_label = QLabel("Box Size (pixels): ")
+            self.box_size_label.setFont(self.font)
+            self.box_size_entry = QLineEdit()
+
+            plot_entry_layout.addWidget(self.center_x_y_label)
+            plot_entry_layout.addWidget(self.center_front_p_label)
+            plot_entry_layout.addWidget(self.center_x_entry_box)
+            plot_entry_layout.addWidget(self.center_comma_label)
+            plot_entry_layout.addWidget(self.center_y_entry_box)
+            plot_entry_layout.addWidget(self.center_end_p_label)
+            plot_entry_layout.addStretch(1)
+            plot_entry_layout.addWidget(self.box_size_label)
+            plot_entry_layout.addWidget(self.box_size_entry)
+
+            plot_button_layout = QHBoxLayout()
+            self.prev_button = QPushButton("Previous")
+            self.prev_button.clicked.connect(self.show_previous_plot)
+            self.prev_button.setStyleSheet("""
+                                               QPushButton {
+                                                   background-color: #CAC9Cb; /* Green background */
+                                                   color: black; /* White text */
+                                                   border-style: solid;
+                                                   border-color: #CAC9Cb;
+                                                   border-width: 2px;
+                                                   border-radius: 10px; /* Rounded corners */
+                                                   padding: 5px;
+                                                   min-height: 1px;
+                                                   min-width: 10px;
+                                               }
+                                               QPushButton:hover {
+                                                   background-color: #5F6A6A; /* Slightly darker green */
+                                               }
+                                               QPushButton:pressed {
+                                                   background-color: #979A9A; /* Even darker green */
+                                               }
+                                           """)
+            self.next_button = QPushButton("Next")
+            self.next_button.setStyleSheet("""
+                                               QPushButton {
+                                                   background-color: #CAC9Cb; /* Green background */
+                                                   color: black; /* White text */
+                                                   border-style: solid;
+                                                   border-color: #CAC9Cb;
+                                                   border-width: 2px;
+                                                   border-radius: 10px; /* Rounded corners */
+                                                   padding: 5px;
+                                                   min-height: 1px;
+                                                   min-width: 10px;
+                                               }
+                                               QPushButton:hover {
+                                                   background-color: #5F6A6A; /* Slightly darker green */
+                                               }
+                                               QPushButton:pressed {
+                                                   background-color: #979A9A; /* Even darker green */
+                                               }
+                                           """)
+            self.next_button.clicked.connect(self.show_next_plot)
+
+            plot_button_layout.addWidget(self.prev_button)
+            plot_button_layout.addWidget(self.next_button)
+
             figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
             figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+            figure_Layout.addLayout(plot_entry_layout)
+            figure_Layout.addLayout(plot_button_layout)
+
             self.Fitting_mode_group_box.setLayout(figure_Layout)
             self.data_processing_layout.addWidget(self.Fitting_mode_group_box)
             self.main_layout.addLayout(self.data_processing_layout)
-            self.setLayout(self.main_layout)
-            degree = 130
-            SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(degree) + ".txt", dtype=int, delimiter=',')
 
+            self.setLayout(self.main_layout)
+            self.degree = 130
+            self.SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(self.degree) + ".txt", dtype=int,
+                                      delimiter=',')
+            self.title = str(file_name) + '' + str(Measure_Type) + '' + str(Light_angle) + '\n' + str(power) + ('mW Exposure Time ') + str(exp_time) + 's Averaging ' + str(Accumulation)
             if self.auto == 'Auto':
                 max_sum = -np.inf
                 max_region = None
-                max_sum_candidate = np.inf
-                min_sum = 0
-                best_size = None
+                best_size = 0
                 min_region_size = 10
-                max_region_size = 30
-                array = []
+                max_region_size = 150
+                abs_SHG_Raw = np.abs(self.SHG_Raw)
+                background_pixel = np.sum(self.SHG_Raw[450:512, 450:512]) / (512 - 450) ** 2
 
-                for region_size in range(min_region_size, max_region_size + 1, 10):
-                    for i in range(SHG_Raw.shape[0] - region_size + 1):
-                        for j in range(SHG_Raw.shape[1] - region_size + 1):
-                            region = SHG_Raw[i:i + region_size, j:j + region_size]
-                            background_pixel = np.sum(SHG_Raw[450:512, 450:512]) / (512-450) ** 2
-                            pixel_region_sum = np.sum(region)
-                            pixel_region_sum = pixel_region_sum - background_pixel * (region_size**2)
-                            if pixel_region_sum < 0:
-                                pixel_region_sum = 0
+                for i in range(240, 280, 1):
+                    for j in range(240, 280, 1):
+                        center_region = abs_SHG_Raw[i:i + min_region_size, j:j + min_region_size]
+                        pixel_region_sum = np.sum(center_region)
+                        pixel_region_sum = pixel_region_sum - background_pixel * (min_region_size ** 2)
+                        if pixel_region_sum > max_sum:
+                            max_sum = pixel_region_sum
+                            best_size = min_region_size
+                            max_region = (i, j, best_size, max_sum)
 
-                            if pixel_region_sum > 0.8 * max_sum:
-                                max_sum_candidate = pixel_region_sum
-                                if region_size == min_region_size:
-                                    max_sum = max_sum_candidate
+                start_i, start_j, region_size_first, region_sum = max_region
+                center_i = start_i + region_size_first // 2
+                center_j = start_j + region_size_first // 2
 
-                                if max_sum_candidate > max_sum:
-                                    print(
-                                        f'Current row pixel at {i}; current colum pixel at {j}; current size {region_size}')
-                                    print(pixel_region_sum)
-                                    array.append(pixel_region_sum)
-                                    max_sum = pixel_region_sum
-                                    best_size = region_size
-                                    max_region = (i, j, best_size, min_sum)
+                max_center_i_start = int(center_i - max_region_size / 2)
+                max_center_i_end = int(center_i + max_region_size / 2)
+                max_center_j_start = int(center_j - max_region_size / 2)
+                max_center_j_end = int(center_j + max_region_size / 2)
 
-                # csv_file_path = 'standardized_intensity_matrix.csv'
-                # pd.DataFrame(array).to_csv(csv_file_path, index=False, header=False)
+                min_center_i_start = int(center_i - min_region_size / 2)
+                min_center_i_end = int(center_i + min_region_size / 2)
+                min_center_j_start = int(center_j - min_region_size / 2)
+                min_center_j_end = int(center_j + min_region_size / 2)
 
-                start_i, start_j, region_size, region_sum = max_region
-                center_i = start_i + region_size // 2
-                center_j = start_j + region_size // 2
+                max_sum_in_region = abs_SHG_Raw[max_center_i_start:max_center_i_end,
+                                    max_center_j_start:max_center_j_end]
+                min_sum_in_region = abs_SHG_Raw[min_center_i_start:min_center_i_end,
+                                    min_center_j_start:min_center_j_end]
+
+                max_pixel_region_sum = np.sum(max_sum_in_region) - background_pixel * (max_region_size ** 2)
+                min_pixel_region_sum = np.sum(min_sum_in_region) - background_pixel * (min_region_size ** 2)
+                difference_max_min = max_pixel_region_sum - min_pixel_region_sum
+                pixel_region_old = min_pixel_region_sum
+                for region_size in range(min_region_size, max_region_size, 2):
+                    center_i_start = int(center_i - region_size / 2)
+                    center_i_end = int(center_i + region_size / 2)
+                    center_j_start = int(center_j - region_size / 2)
+                    center_j_end = int(center_j + region_size / 2)
+
+                    region = abs_SHG_Raw[center_i_start:center_i_end, center_j_start:center_j_end]
+                    pixel_region_sum = np.sum(region) - background_pixel * (region_size ** 2)
+
+                    if pixel_region_sum - pixel_region_old > 0.2 * difference_max_min:
+                        max_sum = pixel_region_sum
+                        pixel_region_old = pixel_region_sum
+                        best_size = region_size
+                        max_region = (center_i, center_j, best_size, max_sum)
+
+                center_i, center_j, region_size, region_sum = max_region
+                start_i = center_i - region_size // 2
+                start_j = center_j - region_size // 2
+
+                self.center_x_entry_box.setEnabled(False)
+                self.center_y_entry_box.setEnabled(False)
+                self.box_size_entry.setEnabled(False)
+                self.center_x_entry_box.setText(str(center_i))
+                self.center_y_entry_box.setText(str(center_j))
+                self.box_size_entry.setText(str(region_size))
+                self.prev_button.setEnabled(False)
 
                 # self.canvas.figure.clf()
-                self.canvas.ax.imshow(SHG_Raw, aspect='auto', vmin=0, vmax=5000)
-
-                # # Plot the heatmap with the square region of maximum intensity highlighted
+                self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                 # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
                 self.canvas.ax.scatter(center_i, center_j, s=30, color='tomato',
-                               marker='x')
-                exposure_time = str(float(Parameter.iat[9, 1]))
-                title = str(Parameter.iat[1, 1]) + '' + str(Parameter.iat[2, 1]) + '' + str(Parameter.iat[3, 1]) \
-                        + '\n' + str(Parameter.iat[4, 1]) + 'mW Exposure Time ' + exposure_time + 's Averaging ' \
-                        + str(int(Parameter.iat[11, 1]))
-                self.canvas.ax.set_title(title + ' at {} Degree'.format(degree), pad=10, wrap=True)
+                                       marker='x')
+                self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
                 self.canvas.figure.gca().add_patch(patches.Rectangle((start_i, start_j), region_size, region_size,
-                                                        edgecolor='white', facecolor='none', linewidth=1))
+                                                                     edgecolor='white', facecolor='none', linewidth=1))
                 self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                 self.canvas.draw()
-            # #
-            # # else:
-            # #     return
-            # #     fig, ax = matplotlib.pyplot.subplots()
-            # #     im = matplotlib.pyplot.imshow(SHG_Raw, vmin=0, vmax=5000)
-            # #     polarization = Parameter.iat[8, 1]
-            # #     matplotlib.pyplot.colorbar(label='{} Polarization'.format(polarization))
-            # #     exposure_time = str(float(Parameter.iat[9, 1]))
-            # #     title = str(Parameter.iat[1, 1]) + '' + str(Parameter.iat[2, 1]) + '' + str(Parameter.iat[3, 1]) \
-            # #             + '\n' + str(Parameter.iat[4, 1]) + 'mW Exposure Time ' + exposure_time + 's Averaging ' \
-            # #             + str(int(Parameter.iat[11, 1]))
-            # #     matplotlib.pyplot.title(title + ' at {} Degree'.format(degree), pad=10, wrap=True)
-            # #
-            # #     def onclick(event):
-            # #         if event.dblclick:
-            # #             global cur_x, cur_y, click
-            # #             cur_x = event.xdata
-            # #             cur_y = event.ydata
-            # #             click = event.button
-            # #             if click == 1:
-            # #                 print('Closing')
-            # #                 matplotlib.pyplot.close()
-            # #
-            # #     connection_id = fig.canvas.mpl_connect('button_press_event', onclick)
-            # #     matplotlib.pyplot.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
-            # #     matplotlib.pyplot.show()
-            # #
-            deg_file = []
-            sig_file = []
-            if not self.autoSelection:
-                center_x = int(cur_x)
-                center_y = int(cur_y)
-                region_size = int(input('Enter the box size: '))
-                half_region_size = (np.ceil(region_size / 2)).astype(int)
-                SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(degree) + ".txt", dtype=int,
-                                     delimiter=',')
-                fig, ax = pyplot.subplots()
-                region = SHG_Raw[center_x - half_region_size: center_x + half_region_size,
-                         center_y - half_region_size: center_y + half_region_size]
-                im = ax.imshow(SHG_Raw, vmin=1000, vmax=5000)
-                fig.colorbar(im, ax=ax, label='Interactive colorbar')
-                ax.scatter(center_x, center_y, s=30, color='tomato', marker='x')
-                rect = patches.Rectangle((center_x - half_region_size, center_y - half_region_size),
-                                         region_size, region_size, linewidth=1, edgecolor='r', facecolor='none')
-                # Add the patch to the Axes
-                ax.add_patch(rect)
-                pyplot.show()
-                angle = 365
-            for degree in range(0, 365, step_size):
-                deg_file = np.append(deg_file, degree)
-                SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(degree) + ".txt", dtype=int,
-                                     delimiter=',')
-                if not self.autoSelection:
-                    region = SHG_Raw[center_x - half_region_size: center_x + half_region_size,
-                             center_y - half_region_size: center_y + half_region_size]
-                else:
-                    region = SHG_Raw[top_left_col: top_left_col + region_size, top_left_row: top_left_row + region_size]
-
-                small_sum = sum(map(sum, region))
-                large_sum = sum(map(sum, SHG_Raw))
-                bkg_pixel = (large_sum - small_sum) / (512 ** 2 - region_size ** 2)
-                sig = small_sum - bkg_pixel * region_size ** 2
-                sig_file = np.append(sig_file, sig)
-
-            sig_file = sig_file.astype(np.float64)
-            # sig_file = sig_file.tolist()
-            max_lim = max(sig_file)
-            min_lim = min(sig_file)
-            deg_file = deg_file * np.pi / 180
-            deg_file = deg_file.astype(np.float64)
-            # deg_file = deg_file.tolist()
-            fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
-            ax.plot(deg_file, sig_file, color='red')
-            ax.set_ylim(bottom=min_lim, top=max_lim)
-            # pyplot.autoscale()
-            pyplot.show()
-            pyplot.plot(deg_file, sig_file, linewidth=5, color='blue')
-            pyplot.close()
-            csv_file_name = 'Processed_First_Data.csv'
-            comb = pd.DataFrame(list(zip(deg_file, sig_file)))
-            rec_data = pd.DataFrame()
-            rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
-            rec_data.to_csv(folder_selected + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
-
-            slope = (sig_file[-1] - sig_file[0]) / (deg_file[-1] - deg_file[0])
-            const = sig_file[-1] - slope * deg_file[-1]
-            # const = sig_file[-1] + slope * deg_file[-1]
-            sig_file = sig_file - (slope * deg_file + const)
-            sig_file = (sig_file / 30) / 380000
-            csv_file_name = 'Processed_Data.csv'
-            comb = pd.DataFrame(list(zip(deg_file, sig_file)))
-            rec_data = pd.DataFrame()
-            rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
-            rec_data.to_csv(folder_selected + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
-
-            min_sig = min(sig_file)
-            sig_file = sig_file - min_sig
-            csv_file_name = 'Processed_Data_Min_Shift.csv'
-            comb = pd.DataFrame(list(zip(deg_file, sig_file)))
-            rec_data = pd.DataFrame()
-            rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
-            rec_data.to_csv(folder_selected + csv_file_name, mode='w', index=False, encoding='utf-8-sig', header=None)
-
-            pyplot.plot(deg_file, sig_file, linewidth=5, color='blue')
-            pyplot.show()
-
-            max_lim = max(sig_file)
-            min_lim = min(sig_file)
-
-            fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
-            ax.plot(deg_file, sig_file, color='tomato')
-            ax.scatter(deg_file, sig_file, color='tomato')
-            ax.set_ylim(bottom=min_lim, top=max_lim)
-            pyplot.title(title + '{} Polarization'.format(polarization), pad=10, wrap=True)
-            pyplot.tight_layout()
-            pyplot.savefig(folder_selected + "Figure_2.png")
-            pyplot.show()
-
-            fit = True
-            if fit == True:
-                def shg_sin(params, x, data=None):
-                    A = params['A']
-                    a2 = params['a2']
-                    B = params['B']
-                    x0 = params['x0']
-                    model = (A * np.sin(a2 - 3 * (x - x0)) + B * np.sin(a2 + (x - x0))) ** 2
-                    if data is None:
-                        return model
-                    return model - data
-
-                def shg_cos(params, x, data=None):
-
-                    A = params['A']
-                    a2 = params['a2']
-                    B = params['B']
-                    model = A * np.cos(a2 - 3 * x) + B * np.cos(a2 + 3 * x) * 2
-                    if data is None:
-                        return model
-                    return model - data
-
-                # Create a Parameters object
-                params = lmfit.Parameters()
-                params.add('A', value=-0.1)
-                params.add('a2', value=-0.1)
-                params.add('B', value=11)
-                params.add('x0', value=0.1)
-                result_sin = lmfit.minimize(shg_sin, params, args=(deg_file,), kws={'data': sig_file})
-                sin_A = result_sin.params['A'].value
-                sin_a2 = result_sin.params['a2'].value
-                sin_B = result_sin.params['B'].value
-                sin_x0 = result_sin.params['x0'].value
-
-                sin_A_err = result_sin.params['A'].stderr
-                sin_a2_err = result_sin.params['a2'].stderr
-                sin_B_err = result_sin.params['B'].stderr
-                sin_x0_err = result_sin.params['x0'].stderr
-
-                fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
-
-                ax.plot(deg_file, result_sin.residual + sig_file, color='#E74C3C', linewidth=2)
-                ax.scatter(deg_file, sig_file, color='black', s=4)
-                ax.set_ylim(bottom=min_lim * 1.1, top=max_lim * 1.1)
-                pyplot.title(title + '{} Polarization'.format(polarization), pad=10, wrap=True)
-                pyplot.tight_layout()
-                pyplot.savefig(folder_selected + "Fitted_Data.png")
-                pyplot.show()
-
-                df = pd.DataFrame()
-                df_comb = pd.DataFrame(
-                    list(zip([sin_A], [sin_A_err], [sin_a2], [sin_a2_err], [sin_B], [sin_B_err], [sin_x0], [sin_x0_err])))
-                df = pd.concat([df, df_comb], ignore_index=True, axis=1)
-                df.to_csv(folder_selected + 'Fitted_Data.csv', index=False)
-
-                # df = pd.DataFrame()
-                # df_comb = pd.DataFrame(list(zip([sin_A_err], [sin_a2_err], [sin_B_err], [sin_x0_err])))
-                # df = pd.concat([df, df_comb], ignore_index=True, axis=1)
-                # df.to_csv(folder_selected + 'Fitted_Data.csv', index=False)
-
-            if os.path.exists(folder_selected + 'Results.pptx'):
-                prs = Presentation(folder_selected + 'Results.pptx')
-                prs.slide_width = Inches(13.33)
-                prs.slide_height = Inches(7.5)
             else:
-                prs = Presentation()
-                prs.slide_width = Inches(13.33)
-                prs.slide_height = Inches(7.5)
-                prs.save(folder_selected + 'Results.pptx')
-                prs = Presentation(folder_selected + 'Results.pptx')
-                prs.slide_width = Inches(13.33)
-                prs.slide_height = Inches(7.5)
+                self.box_size_entry.setPlaceholderText("Enter Box Size")
+                self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+                def onclick(event):
+                    if event.dblclick:
+                        global cur_x, cur_y, click
+                        cur_x = event.xdata
+                        cur_y = event.ydata
+                        click = event.button
+                        if click == 1:
+                            print('Closing')
+                            self.canvas.ax.clear()
+                            self.center_x_entry_box.setEnabled(False)
+                            self.center_y_entry_box.setEnabled(False)
+                            self.center_x_entry_box.setText(str(cur_x))
+                            self.center_y_entry_box.setText(str(cur_y))
 
-            SHG_Image = folder_selected + 'Figure_1.png'
-            SHG_Signal = folder_selected + 'Figure_2.png'
-            blank_slide_layout = prs.slide_layouts[6]
-            slide = prs.slides.add_slide(blank_slide_layout)
-            SHG_Image_img = slide.shapes.add_picture(SHG_Image, Inches(0.32), Inches(1.42), Inches(6.39))
-            SHG_Signal_img = slide.shapes.add_picture(SHG_Signal, Inches(6.49), Inches(1.42), Inches(6.39))
-            text_frame = slide.shapes.add_textbox(Inches(0.18), Inches(0.2), Inches(6.67), Inches(0.4))
-            Data_frame = slide.shapes.add_textbox(Inches(11.19), Inches(0.2), Inches(2.04), Inches(0.4))
-            text_frame = text_frame.text_frame
-            Data_frame = Data_frame.text_frame
-            p = text_frame.paragraphs[0]
-            d = Data_frame.paragraphs[0]
-            run = p.add_run()
-            run.text = str(folder_name_pptx)
-            font = run.font
-            font.name = 'Calibri'
-            font.size = Pt(18)
-
-            run_d = d.add_run()
-            run_d.text = str(Date)
-            font_d = run_d.font
-            font_d.name = 'Calibri'
-            font_d.size = Pt(18)
-            prs.save(folder_selected + 'Results.pptx')
-
-
-
-
+                connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
+                self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                self.canvas.draw()
+                #
+                # self.center_x = int(cur_x)
+                # self.center_y = int(cur_y)
+                # self.prev_button.setEnabled(False)
 
         else:
             QMessageBox.warning(self, "Please try again!", "Select all the required option")
+
+    def show_previous_plot(self):
+        if self.plot_index == 0:
+            self.prev_button.setEnabled(False)
+
+    def show_next_plot(self):
+        if self.plot_index == 0:
+            if self.auto == 'Auto':
+                print("enter")
+            else:
+                self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+
+                region_size = int(self.box_size_entry.displayText())
+                half_region_size = (np.ceil(region_size / 2)).astype(int)
+
+                self.canvas.ax.scatter(self.center_x, self.center_y, s=30, color='tomato',
+                                       marker='x')
+
+                self.canvas.figure.gca().add_patch(
+                    patches.Rectangle((self.center_x - half_region_size, self.center_y - half_region_size), region_size,
+                                      region_size,
+                                      edgecolor='white', facecolor='none', linewidth=1))
+                self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                self.canvas.draw()
+            self.plot_index += 1
+
+            # #
+            # deg_file = []
+            # sig_file = []
+            # if not self.autoSelection:
+            # #region = self.SHG_Raw[self.center_x - half_region_size: self.center_x + half_region_size,
+            #              self.center_y - half_region_size: self.center_y + half_region_size]
+
+            #     angle = 365
+            # for degree in range(0, 365, step_size):
+            #     deg_file = np.append(deg_file, degree)
+            #     SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(degree) + ".txt", dtype=int,
+            #                          delimiter=',')
+            #     if not self.autoSelection:
+            #         region = SHG_Raw[center_x - half_region_size: center_x + half_region_size,
+            #                  center_y - half_region_size: center_y + half_region_size]
+            #     else:
+            #         region = SHG_Raw[top_left_col: top_left_col + region_size, top_left_row: top_left_row + region_size]
+            #
+            #     small_sum = sum(map(sum, region))
+            #     large_sum = sum(map(sum, SHG_Raw))
+            #     bkg_pixel = (large_sum - small_sum) / (512 ** 2 - region_size ** 2)
+            #     sig = small_sum - bkg_pixel * region_size ** 2
+            #     sig_file = np.append(sig_file, sig)
+            #
+            # sig_file = sig_file.astype(np.float64)
+            # # sig_file = sig_file.tolist()
+            # max_lim = max(sig_file)
+            # min_lim = min(sig_file)
+            # deg_file = deg_file * np.pi / 180
+            # deg_file = deg_file.astype(np.float64)
+            # # deg_file = deg_file.tolist()
+            # fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
+            # ax.plot(deg_file, sig_file, color='red')
+            # ax.set_ylim(bottom=min_lim, top=max_lim)
+            # # pyplot.autoscale()
+            # pyplot.show()
+            # pyplot.plot(deg_file, sig_file, linewidth=5, color='blue')
+            # pyplot.close()
+            # csv_file_name = 'Processed_First_Data.csv'
+            # comb = pd.DataFrame(list(zip(deg_file, sig_file)))
+            # rec_data = pd.DataFrame()
+            # rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
+            # rec_data.to_csv(folder_selected + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
+            #
+            # slope = (sig_file[-1] - sig_file[0]) / (deg_file[-1] - deg_file[0])
+            # const = sig_file[-1] - slope * deg_file[-1]
+            # # const = sig_file[-1] + slope * deg_file[-1]
+            # sig_file = sig_file - (slope * deg_file + const)
+            # sig_file = (sig_file / 30) / 380000
+            # csv_file_name = 'Processed_Data.csv'
+            # comb = pd.DataFrame(list(zip(deg_file, sig_file)))
+            # rec_data = pd.DataFrame()
+            # rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
+            # rec_data.to_csv(folder_selected + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
+            #
+            # min_sig = min(sig_file)
+            # sig_file = sig_file - min_sig
+            # csv_file_name = 'Processed_Data_Min_Shift.csv'
+            # comb = pd.DataFrame(list(zip(deg_file, sig_file)))
+            # rec_data = pd.DataFrame()
+            # rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
+            # rec_data.to_csv(folder_selected + csv_file_name, mode='w', index=False, encoding='utf-8-sig', header=None)
+            #
+            # pyplot.plot(deg_file, sig_file, linewidth=5, color='blue')
+            # pyplot.show()
+            #
+            # max_lim = max(sig_file)
+            # min_lim = min(sig_file)
+            #
+            # fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
+            # ax.plot(deg_file, sig_file, color='tomato')
+            # ax.scatter(deg_file, sig_file, color='tomato')
+            # ax.set_ylim(bottom=min_lim, top=max_lim)
+            # pyplot.title(title + '{} Polarization'.format(polarization), pad=10, wrap=True)
+            # pyplot.tight_layout()
+            # pyplot.savefig(folder_selected + "Figure_2.png")
+            # pyplot.show()
+            #
+            # fit = True
+            # if fit == True:
+            #     def shg_sin(params, x, data=None):
+            #         A = params['A']
+            #         a2 = params['a2']
+            #         B = params['B']
+            #         x0 = params['x0']
+            #         model = (A * np.sin(a2 - 3 * (x - x0)) + B * np.sin(a2 + (x - x0))) ** 2
+            #         if data is None:
+            #             return model
+            #         return model - data
+            #
+            #     def shg_cos(params, x, data=None):
+            #
+            #         A = params['A']
+            #         a2 = params['a2']
+            #         B = params['B']
+            #         model = A * np.cos(a2 - 3 * x) + B * np.cos(a2 + 3 * x) * 2
+            #         if data is None:
+            #             return model
+            #         return model - data
+
+            #     # Create a Parameters object
+            #     params = lmfit.Parameters()
+            #     params.add('A', value=-0.1)
+            #     params.add('a2', value=-0.1)
+            #     params.add('B', value=11)
+            #     params.add('x0', value=0.1)
+            #     result_sin = lmfit.minimize(shg_sin, params, args=(deg_file,), kws={'data': sig_file})
+            #     sin_A = result_sin.params['A'].value
+            #     sin_a2 = result_sin.params['a2'].value
+            #     sin_B = result_sin.params['B'].value
+            #     sin_x0 = result_sin.params['x0'].value
+            #
+            #     sin_A_err = result_sin.params['A'].stderr
+            #     sin_a2_err = result_sin.params['a2'].stderr
+            #     sin_B_err = result_sin.params['B'].stderr
+            #     sin_x0_err = result_sin.params['x0'].stderr
+            #
+            #     fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
+            #
+            #     ax.plot(deg_file, result_sin.residual + sig_file, color='#E74C3C', linewidth=2)
+            #     ax.scatter(deg_file, sig_file, color='black', s=4)
+            #     ax.set_ylim(bottom=min_lim * 1.1, top=max_lim * 1.1)
+            #     pyplot.title(title + '{} Polarization'.format(polarization), pad=10, wrap=True)
+            #     pyplot.tight_layout()
+            #     pyplot.savefig(folder_selected + "Fitted_Data.png")
+            #     pyplot.show()
+            #
+            #     df = pd.DataFrame()
+            #     df_comb = pd.DataFrame(
+            #         list(zip([sin_A], [sin_A_err], [sin_a2], [sin_a2_err], [sin_B], [sin_B_err], [sin_x0], [sin_x0_err])))
+            #     df = pd.concat([df, df_comb], ignore_index=True, axis=1)
+            #     df.to_csv(folder_selected + 'Fitted_Data.csv', index=False)
+            #
+            #     # df = pd.DataFrame()
+            #     # df_comb = pd.DataFrame(list(zip([sin_A_err], [sin_a2_err], [sin_B_err], [sin_x0_err])))
+            #     # df = pd.concat([df, df_comb], ignore_index=True, axis=1)
+            #     # df.to_csv(folder_selected + 'Fitted_Data.csv', index=False)
+            #
+            # if os.path.exists(folder_selected + 'Results.pptx'):
+            #     prs = Presentation(folder_selected + 'Results.pptx')
+            #     prs.slide_width = Inches(13.33)
+            #     prs.slide_height = Inches(7.5)
+            # else:
+            #     prs = Presentation()
+            #     prs.slide_width = Inches(13.33)
+            #     prs.slide_height = Inches(7.5)
+            #     prs.save(folder_selected + 'Results.pptx')
+            #     prs = Presentation(folder_selected + 'Results.pptx')
+            #     prs.slide_width = Inches(13.33)
+            #     prs.slide_height = Inches(7.5)
+            #
+            # SHG_Image = folder_selected + 'Figure_1.png'
+            # SHG_Signal = folder_selected + 'Figure_2.png'
+            # blank_slide_layout = prs.slide_layouts[6]
+            # slide = prs.slides.add_slide(blank_slide_layout)
+            # SHG_Image_img = slide.shapes.add_picture(SHG_Image, Inches(0.32), Inches(1.42), Inches(6.39))
+            # SHG_Signal_img = slide.shapes.add_picture(SHG_Signal, Inches(6.49), Inches(1.42), Inches(6.39))
+            # text_frame = slide.shapes.add_textbox(Inches(0.18), Inches(0.2), Inches(6.67), Inches(0.4))
+            # Data_frame = slide.shapes.add_textbox(Inches(11.19), Inches(0.2), Inches(2.04), Inches(0.4))
+            # text_frame = text_frame.text_frame
+            # Data_frame = Data_frame.text_frame
+            # p = text_frame.paragraphs[0]
+            # d = Data_frame.paragraphs[0]
+            # run = p.add_run()
+            # run.text = str(folder_name_pptx)
+            # font = run.font
+            # font.name = 'Calibri'
+            # font.size = Pt(18)
+            #
+            # run_d = d.add_run()
+            # run_d.text = str(Date)
+            # font_d = run_d.font
+            # font_d.name = 'Calibri'
+            # font_d.size = Pt(18)
+            # prs.save(folder_selected + 'Results.pptx')
 
     def rstpage(self):
         self.clearLayout(self.layout)
@@ -743,9 +872,6 @@ class General(QWidget):
     def showFittingPopup(self):
         self.popup = UserDefineFittingWindow()
         self.popup.exec()
-
-
-
 
     def clearLayout(self, layout):
         if layout is not None:
@@ -756,4 +882,3 @@ class General(QWidget):
                     widget.deleteLater()
                 elif item.layout() is not None:
                     self.clearLayout(item.layout())
-

@@ -46,7 +46,7 @@ class ProfilePage(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Quantum Data Processing")
+        self.setWindowTitle("QDPC")
         self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
         self.Listwidgets_Font = 15
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.resize(1500, 800)
+        self.resize(1500, 850)
 
     def toggle_dark_mode(self):
         # if is_checked == 0:

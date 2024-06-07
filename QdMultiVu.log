@@ -1,0 +1,26 @@
+2024-06-07 14:59:30,088     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '6560')
+2024-06-07 14:59:30,089     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-07 14:59:30,089     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-07 14:59:30,097     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-07 14:59:30,097     MultiVuServer        INFO     Press ESC to exit.
+2024-06-07 14:59:30,515     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-07 14:59:30,519     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 56356)
+2024-06-07 14:59:30,816     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-07 14:59:31,020     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-07 14:59:31,020     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56356)"}'
+2024-06-07 14:59:31,021     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56356)"}
+2024-06-07 14:59:31,021     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56356)
+2024-06-07 14:59:31,031     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "TEMP?", "query": "", "result": ""}'
+2024-06-07 14:59:31,032     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'TEMP?', 'query': '', 'result': ''}
+2024-06-07 14:59:31,033     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 64}{"action": "TEMP?", "query": "", "result": "300.0000,K,Standby"}'
+2024-06-07 14:59:31,034     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'TEMP?', 'query': '', 'result': '300.0000,K,Standby'}
+2024-06-07 14:59:31,034     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 47}{"action": "FIELD?", "query": "", "result": ""}'
+2024-06-07 14:59:31,034     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'FIELD?', 'query': '', 'result': ''}
+2024-06-07 14:59:31,035     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 73}{"action": "FIELD?", "query": "", "result": "0.0000,Oe,Holding (driven)"}'
+2024-06-07 14:59:31,036     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'FIELD?', 'query': '', 'result': '0.0000,Oe,Holding (driven)'}
+2024-06-07 14:59:31,036     MultiVuClient        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 49}{"action": "CHAMBER?", "query": "", "result": ""}'
+2024-06-07 14:59:31,036     MultiVuServer        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'CHAMBER?', 'query': '', 'result': ''}
+2024-06-07 14:59:31,037     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56356); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 77}{"action": "CHAMBER?", "query": "", "result": ",,Sealed (condition unknown)"}'
+2024-06-07 14:59:31,037     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
+2024-06-07 14:59:32,388     MultiVuServer        INFO     Closing connection to ('127.0.0.1', 56356)
+2024-06-07 14:59:32,388     MultiVuServer        INFO     [WinError 10038] An operation was attempted on something that is not a socket

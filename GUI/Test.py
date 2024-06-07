@@ -95,7 +95,7 @@ class SHG_Processing():
 
         else:
             fig, ax = pyplot.subplots()
-            im = pyplot.imshow(SHG_Raw, vmin=0, vmax=5000)
+            pyplot.imshow(SHG_Raw, vmin=0, vmax=5000)
             polarization = Parameter.iat[8, 1]
             pyplot.colorbar(label='{} Polarization'.format(polarization))
             exposure_time = str(float(Parameter.iat[9, 1]))
