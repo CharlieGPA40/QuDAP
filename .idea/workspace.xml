@@ -5,13 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Update/client.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Update/sever.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/Test.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/Test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/initalization.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/standardized_intensity_matrix.csv" beforeDir="false" afterPath="$PROJECT_DIR$/standardized_intensity_matrix.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/test22.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test22.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,6 +35,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "CharlieGPA40"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/CharlieGPA40/Data_Processing_Suite.git",
+    "accountId": "45f0d17d-a350-48e4-b1f8-b38c2ee4604a"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -167,8 +175,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.initalization (1)" />
-        <item itemvalue="Python.test22" />
         <item itemvalue="Python.SHG_General" />
+        <item itemvalue="Python.test22" />
         <item itemvalue="Python.initalization" />
       </list>
     </recent_temporary>
@@ -176,8 +184,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-PY-241.15989.155" />
-        <option value="bundled-python-sdk-babbdf50b680-7c6932dee5e4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.15989.155" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
+        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
       </set>
     </attachedChunks>
   </component>
@@ -194,6 +202,7 @@
       <workItem from="1717218164730" duration="58000" />
       <workItem from="1717218230876" duration="7719000" />
       <workItem from="1717617439782" duration="28776000" />
+      <workItem from="1717815512828" duration="14968000" />
     </task>
     <servers />
   </component>
@@ -211,10 +220,21 @@
       </map>
     </option>
   </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/GUI/SHG/SHG_General.py</url>
+          <line>1076</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1717832190070" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$test22.coverage" NAME="test22 Coverage Results" MODIFIED="1717823207478" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$SHG_General.coverage" NAME="SHG_General Coverage Results" MODIFIED="1717831974650" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/SHG" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1717619765618" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$SHG_General.coverage" NAME="SHG_General Coverage Results" MODIFIED="1717783264114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/SHG" />
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$test22.coverage" NAME="test22 Coverage Results" MODIFIED="1717798295965" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1717801218000" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
