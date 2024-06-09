@@ -114,6 +114,7 @@ class General(QWidget):
                 self.file_selection_label = QLabel('Please select the data directory:')
                 self.file_selection_label.setFont(self.font)
                 self.file_selection_button = QPushButton('Select')
+                self.file_selection_button.setFont(self.font)
                 self.file_selection_button.setStyleSheet("""
                                    QPushButton {
                                        background-color: #3498DB; /* Green background */
@@ -421,57 +422,57 @@ class General(QWidget):
                 self.log_group_box = QGroupBox("Experimental Log")
                 self.Fitting_mode_group_box = QGroupBox("Graph")
                 #  ---------------------------- PART 3 --------------------------------
-                self.Parametre = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
-                Date = self.Parametre.iat[0, 1]
+                self.Parameter = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
+                Date = self.Parameter.iat[0, 1]
                 self.date_label = QLabel('Date: ' + str(Date))
                 self.date_label.setFont(self.font)
-                file_name = self.Parametre.iat[1, 1]
+                file_name = self.Parameter.iat[1, 1]
                 self.sample_label = QLabel('Sample: ' + str(file_name))
                 self.sample_label.setFont(self.font)
-                Measure_Type = self.Parametre.iat[2, 1]
+                Measure_Type = self.Parameter.iat[2, 1]
                 self.measure_type_label = QLabel('Measurement Type: ' + str(Measure_Type))
                 self.measure_type_label.setFont(self.font)
-                Light_angle = self.Parametre.iat[3, 1]
+                Light_angle = self.Parameter.iat[3, 1]
                 self.light_angle_label = QLabel('Incident Angle: ' + str(Light_angle))
                 self.light_angle_label.setFont(self.font)
-                power = self.Parametre.iat[4, 1]
+                power = self.Parameter.iat[4, 1]
                 self.power_label = QLabel('Power (mW): ' + str(power))
                 self.power_label.setFont(self.font)
-                start_angle = self.Parametre.iat[5, 1]
+                start_angle = self.Parameter.iat[5, 1]
                 self.start_angle_label = QLabel('Start Angle (degree): ' + str(start_angle))
                 self.start_angle_label.setFont(self.font)
-                end_angle = self.Parametre.iat[6, 1]
+                end_angle = self.Parameter.iat[6, 1]
                 self.end_angle_label = QLabel('Termination Angle (degree): ' + str(end_angle))
                 self.end_angle_label.setFont(self.font)
-                step_size = self.Parametre.iat[7, 1]
+                step_size = self.Parameter.iat[7, 1]
                 self.step_angle_label = QLabel('Angle Step Size (degree): ' + str(step_size))
                 self.step_angle_label.setFont(self.font)
                 self.step_size = int(step_size)
-                polarization = self.Parametre.iat[8, 1]
+                polarization = self.Parameter.iat[8, 1]
                 self.polarization = polarization
                 self.polarization_label = QLabel('Polarization Configuration: ' + str(polarization))
                 self.polarization_label.setFont(self.font)
-                exp_time = self.Parametre.iat[9, 1]
+                exp_time = self.Parameter.iat[9, 1]
                 self.exp_time_label = QLabel('Exposure Time (s): ' + str(exp_time))
                 self.exp_time_label.setFont(self.font)
-                EMGain = self.Parametre.iat[10, 1]
+                EMGain = self.Parameter.iat[10, 1]
                 self.EMGain_label = QLabel('EMGain: ' + str(EMGain))
                 self.EMGain_label.setFont(self.font)
-                Accumulation = self.Parametre.iat[11, 1]
+                Accumulation = self.Parameter.iat[11, 1]
                 self.acc_label = QLabel('Accumulation: ' + str(Accumulation))
                 self.acc_label.setFont(self.font)
-                Start_temp = self.Parametre.iat[12, 1]
+                Start_temp = self.Parameter.iat[12, 1]
                 self.start_temp_label = QLabel('Initial Temperature (K): ' + str(Start_temp))
                 self.start_temp_label.setFont(self.font)
-                End_temp = self.Parametre.iat[13, 1]
+                End_temp = self.Parameter.iat[13, 1]
                 self.end_temp_label = QLabel('Termination Temperature (K): ' + str(End_temp))
                 self.end_temp_label.setFont(self.font)
-                Step_temp = self.Parametre.iat[14, 1]
+                Step_temp = self.Parameter.iat[14, 1]
                 self.step_temp_label = QLabel('Step Temperature (K): ' + str(Step_temp))
                 self.step_temp_label.setFont(self.font)
 
                 # If need to remove the space
-                file_name = str(self.Parametre.iat[1, 1]).replace(" ", "")
+                file_name = str(self.Parameter.iat[1, 1]).replace(" ", "")
                 self.file_name = file_name
                 self.log_layout = QVBoxLayout()
                 self.log_layout.addWidget(self.date_label)
@@ -492,7 +493,7 @@ class General(QWidget):
 
                 self.log_group_box.setLayout(self.log_layout)
                 self.data_processing_layout.addWidget(self.log_group_box)
-                figure_Layout = QVBoxLayout()
+                self.figure_Layout = QVBoxLayout()
                 self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                 toolbar = NavigationToolbar(self.canvas, self)
                 toolbar.setStyleSheet("""
@@ -527,7 +528,7 @@ class General(QWidget):
                 plot_entry_layout.addWidget(self.box_size_label)
                 plot_entry_layout.addWidget(self.box_size_entry)
 
-                plot_button_layout = QHBoxLayout()
+                self.plot_button_layout = QHBoxLayout()
                 self.prev_button = QPushButton("Previous")
                 self.prev_button.clicked.connect(self.show_previous_plot)
                 self.prev_button.setStyleSheet("""
@@ -571,15 +572,15 @@ class General(QWidget):
                                                """)
                 self.next_button.clicked.connect(self.show_next_plot)
 
-                plot_button_layout.addWidget(self.prev_button)
-                plot_button_layout.addWidget(self.next_button)
+                self.plot_button_layout.addWidget(self.prev_button)
+                self.plot_button_layout.addWidget(self.next_button)
 
-                figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-                figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-                figure_Layout.addLayout(plot_entry_layout)
-                figure_Layout.addLayout(plot_button_layout)
+                self.figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.figure_Layout.addLayout(plot_entry_layout)
+                self.figure_Layout.addLayout(self.plot_button_layout)
 
-                self.Fitting_mode_group_box.setLayout(figure_Layout)
+                self.Fitting_mode_group_box.setLayout(self.figure_Layout)
                 self.data_processing_layout.addWidget(self.Fitting_mode_group_box)
                 self.processWidget = True
                 self.SHG_data_Processing_main_layout.addLayout(self.data_processing_layout)
@@ -651,6 +652,8 @@ class General(QWidget):
                     start_j = center_j - region_size // 2
                     self.start_i = start_i
                     self.start_j = start_j
+                    self.center_i = center_i
+                    self.center_j = center_j
                     self.region_size = region_size
 
                     self.center_x_entry_box.setEnabled(False)
@@ -675,6 +678,9 @@ class General(QWidget):
                     self.next_button.setText("Polar Plot")
                 else:
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
+                    self.figure_Layout.removeWidget(self.canvas)
+                    self.canvas.deleteLater()
+                    self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
@@ -686,18 +692,17 @@ class General(QWidget):
                             click = event.button
                             if click == 1:
                                 print('Closing')
-
-                                self.center_x_entry_box.setEnabled(False)
-                                self.center_y_entry_box.setEnabled(False)
+                                # self.center_x_entry_box.setEnabled(False)
+                                # self.center_y_entry_box.setEnabled(False)
                                 self.center_x = int(cur_x)
                                 self.center_y = int(cur_y)
                                 self.center_x_entry_box.setText(str(int(cur_x)))
                                 self.center_y_entry_box.setText(str(int(cur_y)))
 
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
-                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
-                    self.prev_button.setEnabled(True)
+                    self.figure_Layout.insertWidget(1, self.canvas)
+                    self.prev_button.setEnabled(False)
                     self.next_button.setText("Submit")
 
             else:
@@ -706,15 +711,19 @@ class General(QWidget):
             QMessageBox.warning(self, "Error", str(e))
             return
 
-
-
     def show_previous_plot(self):
+        print(f'Previous{self.plot_index}')
+        self.plot_index -= 1
+        if self.plot_index < 0:
+            self.plot_index = 0
         try:
             if self.plot_index == 0:
-                self.prev_button.setEnabled(False)
-            elif self.plot_index == 1:
                 if self.auto == 'Manual':
+                    self.prev_button.setEnabled(False)
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
+                    self.figure_Layout.removeWidget(self.canvas)
+                    self.canvas.deleteLater()
+                    self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
@@ -726,29 +735,98 @@ class General(QWidget):
                             cur_y = event.ydata
                             click = event.button
                             if click == 1:
-                                self.center_x_entry_box.setEnabled(False)
-                                self.center_y_entry_box.setEnabled(False)
+                                print('Closing')
+                                # self.center_x_entry_box.setEnabled(False)
+                                # self.center_y_entry_box.setEnabled(False)
                                 self.center_x = int(cur_x)
                                 self.center_y = int(cur_y)
                                 self.center_x_entry_box.setText(str(int(cur_x)))
                                 self.center_y_entry_box.setText(str(int(cur_y)))
 
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
+                    self.canvas.draw()
+                    self.figure_Layout.insertWidget(1, self.canvas)
+                    self.prev_button.setEnabled(False)
+            elif self.plot_index == 1:
+                if self.auto == 'Manual':
+                    print(f'Enter{self.plot_index}')
+                    self.box_size_entry.setPlaceholderText("Enter Box Size")
+                    self.figure_Layout.removeWidget(self.canvas)
+                    self.canvas.deleteLater()
+                    self.canvas.ax.clear()
+                    self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+
+                    def onclick(event):
+                        if event.dblclick:
+                            global cur_x, cur_y, click
+                            cur_x = event.xdata
+                            cur_y = event.ydata
+                            click = event.button
+                            if click == 1:
+                                # self.center_x_entry_box.setEnabled(False)
+                                # self.center_y_entry_box.setEnabled(False)
+                                self.center_x = int(cur_x)
+                                self.center_y = int(cur_y)
+                                self.center_x_entry_box.setText(str(int(cur_x)))
+                                self.center_y_entry_box.setText(str(int(cur_y)))
+
+                    connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
+                    self.center_x = int( self.center_x_entry_box.displayText())
+                    self.center_y = int( self.center_y_entry_box.displayText())
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
+                    self.figure_Layout.insertWidget(1, self.canvas)
                     self.prev_button.setEnabled(True)
+
+                    self.next_button.setText("Reselect")
                     self.plot_index -= 1
+                else:
+                    self.figure_Layout.removeWidget(self.canvas)
+                    self.canvas.deleteLater()
+                    self.canvas.ax.clear()
+                    self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                    # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
+                    self.canvas.ax.scatter(self.center_i, self.center_j, s=30, color='tomato',
+                                           marker='x')
+                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+                    self.canvas.figure.gca().add_patch(patches.Rectangle((self.start_i, self.start_j), self.region_size, self.region_size,
+                                                                         edgecolor='white', facecolor='none',
+                                                                         linewidth=1))
+                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                    self.canvas.draw()
+                    self.figure_Layout.insertWidget(1, self.canvas)
+                    self.next_button.setText("Polar Plot")
+                    self.prev_button.setEnabled(False)
+
+            elif self.plot_index == 1:
+
+                self.plot_index -= 2
+                self.prev_button.setText('Reset')
+                self.show_next_plot()
+                print(f'Exit{self.plot_index}')
+            else:
+                self.plot_index -= 1
+                self.plot_button_layout.removeWidget(self.prev_button)
+                self.prev_button.deleteLater()
 
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
     def show_next_plot(self):
+        print(self.plot_index)
         try:
             if self.plot_index == 0:
                 if self.auto == 'Auto':
+                    self.plot_button_layout.removeWidget(self.prev_button)
+                    self.prev_button.deleteLater()
                     self.polar_plot_extraction()
                 else:
+                    self.figure_Layout.removeWidget(self.canvas)
+                    self.canvas.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
@@ -767,14 +845,19 @@ class General(QWidget):
                                           edgecolor='white', facecolor='none', linewidth=1))
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
+                    self.figure_Layout.insertWidget(1, self.canvas)
                     self.next_button.setText("Polar Plot")
+                    self.prev_button.setEnabled(True)
+                    self.prev_button.setText("Reset")
                 self.plot_index += 1
+                print(f'Forwarding{self.plot_index}')
             elif self.plot_index == 1:
                 if self.auto == 'Auto':
                     self.polar_plot_linear()
                 else:
                     self.polar_plot_extraction()
                 self.plot_index += 1
+
             elif self.plot_index == 2:
                 if self.auto == 'Auto':
                     self.polar_plot_linear_correction()
@@ -800,7 +883,7 @@ class General(QWidget):
                     self.next_button.setText("Fit")
                 else:
                     self.plot_index = 6
-                    self.next_button.setText("Exp. PPT.")
+                    self.next_button.setText("Export PPT.")
             elif self.plot_index == 5:
                 self.Fitting()
                 self.plot_index += 1
@@ -814,6 +897,8 @@ class General(QWidget):
 
     def polar_plot_extraction(self):
         try:
+            self.prev_button.setEnabled(True)
+            self.prev_button.setText("Reset")
             self.deg_file = []
             self.sig_file = []
 
@@ -838,13 +923,15 @@ class General(QWidget):
             min_lim = min(self.sig_file)
             self.deg_file = self.deg_file * np.pi / 180
             self.deg_file = self.deg_file.astype(np.float64)
+            self.figure_Layout.removeWidget(self.canvas)
+            self.canvas.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
-            self.canvas.ax.plot(self.deg_file, self.sig_file, color='red')
-            self.canvas.ax.scatter(self.deg_file, self.sig_file, color='orange')
+            self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot.png")
             self.canvas.draw()
+            self.figure_Layout.insertWidget(1, self.canvas)
 
             csv_file_name = 'Processed_First_Data.csv'
             comb = pd.DataFrame(list(zip(self.deg_file, self.sig_file)))
@@ -857,11 +944,17 @@ class General(QWidget):
 
     def polar_plot_linear(self):
         try:
+            self.plot_button_layout.removeWidget(self.prev_button)
+            self.prev_button.deleteLater()
+            self.figure_Layout.removeWidget(self.canvas)
+            self.canvas.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-            self.canvas.ax.plot(self.deg_file, self.sig_file, color='red')
+            self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
+            self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot_Linear.png")
             self.canvas.draw()
+            self.figure_Layout.insertWidget(1, self.canvas)
             self.next_button.setText("Slope Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -878,19 +971,24 @@ class General(QWidget):
             rec_data = pd.DataFrame()
             rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
             rec_data.to_csv(self.folder + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
+            self.figure_Layout.removeWidget(self.canvas)
+            self.canvas.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-            self.canvas.ax.plot(self.deg_file, self.sig_file, color='red')
-            self.canvas.ax.scatter(self.deg_file, self.sig_file, color='orange')
+            self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
+            self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Slope_removal.png")
             self.canvas.draw()
+            self.figure_Layout.insertWidget(1, self.canvas)
             self.next_button.setText("Negative Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
     def polar_plot_linear_neg_correction(self):
             min_sig = min(self.sig_file)
-            self.sig_file = self.sig_file - min_sig
+            print(min_sig)
+            if min_sig < 0:
+                self.sig_file = self.sig_file - min_sig
             csv_file_name = 'Shift_Negative_To_Positive.csv'
             comb = pd.DataFrame(list(zip(self.deg_file, self.sig_file)))
             rec_data = pd.DataFrame()
@@ -898,22 +996,17 @@ class General(QWidget):
             rec_data.to_csv(self.folder + csv_file_name, mode='w', index=False, encoding='utf-8-sig', header=None)
             max_lim = max(self.sig_file)
             min_lim = min(self.sig_file)
-            #
-            # fig, ax = pyplot.subplots(subplot_kw={'projection': 'polar'})
-            # ax.plot(deg_file, sig_file, color='tomato')
-            # ax.scatter(deg_file, sig_file, color='tomato')
-            # ax.set_ylim(bottom=min_lim, top=max_lim)
-            #
-            # pyplot.tight_layout()
-            # pyplot.savefig(folder_selected + "Figure_2.png")
-            # pyplot.show()
+            self.canvas.deleteLater()
+            self.canvas.ax.clear()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
-            self.canvas.ax.plot(self.deg_file, self.sig_file, color='red')
+            self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
             self.canvas.ax.set_title(self.title + '{} Polarization'.format(self.polarization), pad=10, wrap=True)
             self.canvas.figure.savefig(self.folder + "Final_Processed_Data.png")
             self.canvas.draw()
+            self.figure_Layout.insertWidget(1, self.canvas)
+
 
     def Fitting(self):
            print('adding')
@@ -1023,6 +1116,8 @@ class General(QWidget):
             font_d.name = 'Calibri'
             font_d.size = Pt(18)
             prs.save(self.folder + 'Results.pptx')
+            self.next_button.setText("Finished")
+            self.next_button.setEnabled(False)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
