@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QCheckBox, QPushButton, QComboBox, QLineEdit)
+, QCheckBox, QPushButton, QComboBox, QMessageBox)
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
@@ -54,10 +54,15 @@ class NV(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.isConnect = False
-        self.isPlotting = False
-        self.keithley_2182A_NV = 'None'
-        self.init_ui()
+        try:
+            self.isConnect = False
+            self.isPlotting = False
+            self.keithley_2182A_NV = 'None'
+            self.init_ui()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
 
     def init_ui(self):
         titlefont = QFont("Arial", 20)

@@ -26,8 +26,12 @@ class MplCanvas(FigureCanvas):
 class Measurement(QWidget):
     def __init__(self):
         super().__init__()
-        self.isConnect = False
-        self.init_ui()
+        try:
+            self.isConnect = False
+            self.init_ui()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
 
     def init_ui(self):
         titlefont = QFont("Arial", 20)

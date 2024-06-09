@@ -56,8 +56,12 @@ class PPMS(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.init_ui()
-        self.isConnect = False
+        try:
+            self.init_ui()
+            self.isConnect = False
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
 
     def init_ui(self):
         titlefont = QFont("Arial", 25)
@@ -557,49 +561,66 @@ class PPMS(QWidget):
     def start_server(self):
         if self.server_btn_clicked == False:
             # import Data_Processing_Suite.GUI.QDesign.run_server as s
-            self.server = mpv.Server()
-            # user_flags = ['-ip=172.19.159.4']
-            # self.server = mpv.Server(user_flags, keep_server_open=True)
-            self.server_btn.setText('Stop Server')
-            self.server_btn_clicked = True
-            self.connect_btn.setEnabled(True)
-            self.server.open()
+            try:
+                self.server = mpv.Server()
+                # user_flags = ['-ip=172.19.159.4']
+                # self.server = mpv.Server(user_flags, keep_server_open=True)
+                self.server_btn.setText('Stop Server')
+                self.server_btn_clicked = True
+                self.connect_btn.setEnabled(True)
+                self.server.open()
+            except MultiPyVuError as e:
+                print(e)
+                QMessageBox.warning(self, "Error", str(e))
+                return
         elif self.server_btn_clicked == True:
-            self.server.close()  # Uncommented it on the sever computer
-            # self.remoteServer.close()
-            self.server_btn.setText('Start Server')
-            self.server_btn_clicked = False
-            self.connect_btn.setEnabled(False)
+            try:
+                self.server.close()  # Uncommented it on the sever computer
+                # self.remoteServer.close()
+                self.server_btn.setText('Start Server')
+                self.server_btn_clicked = False
+                self.connect_btn.setEnabled(False)
+            except Exception as e:
+                QMessageBox.warning(self, "Error", str(e))
+                return
 
     def connect_client(self):
         self.host = self.host_entry_box.displayText()
         self.port = self.port_entry_box.displayText()
         if self.connect_btn_clicked == False:
-            self.connect_btn.setText('Stop Client')
-            self.connect_btn_clicked = True
-            self.server_btn.setEnabled(False)
-            # Uncommented it on the client computer
-            self.client_keep_going = True
-            # with mpv.Server() as self.server:
-            # with mpv.Client() as self.client:
+            try:
+                self.connect_btn.setText('Stop Client')
+                self.connect_btn_clicked = True
+                self.server_btn.setEnabled(False)
+                # Uncommented it on the client computer
+                self.client_keep_going = True
+                # with mpv.Server() as self.server:
+                # with mpv.Client() as self.client:
 
-            self.client = mpv.Client(host=self.host, port=5000)
-            self.client.open()
-            # while self.client_keep_going:
-            #     time.sleep(1)
-            self.thread = THREAD(self.client)
-            self.thread.update_data.connect(self.ppms_reading)
-            self.thread.start()
+                self.client = mpv.Client(host=self.host, port=5000)
+                self.client.open()
+                # while self.client_keep_going:
+                #     time.sleep(1)
+                self.thread = THREAD(self.client)
+                self.thread.update_data.connect(self.ppms_reading)
+                self.thread.start()
+            except Exception as e:
+                QMessageBox.warning(self, "Error", str(e))
+                return
 
         elif self.connect_btn_clicked == True:
             # self.client.close_client()
-            self.client_keep_going = False
-            self.connect_btn.setText('Start Client')
-            self.thread.stop()
-            self.connect_btn_clicked = False
-            self.server_btn.setEnabled(True)
-            self.cur_temp_reading_Label.setText('N/A K')
-            self.cur_temp_status_reading_Label.setText('Unknown')
+            try:
+                self.client_keep_going = False
+                self.connect_btn.setText('Start Client')
+                self.thread.stop()
+                self.connect_btn_clicked = False
+                self.server_btn.setEnabled(True)
+                self.cur_temp_reading_Label.setText('N/A K')
+                self.cur_temp_status_reading_Label.setText('Unknown')
+            except Exception as e:
+                QMessageBox.warning(self, "Error", str(e))
+                return
 
 
     def ppms_reading(self, T, sT, F, sF, C):

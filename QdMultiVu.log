@@ -24,3 +24,21 @@
 2024-06-07 14:59:31,037     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56356); Received request {'action': 'CHAMBER?', 'query': '', 'result': ',,Sealed (condition unknown)'}
 2024-06-07 14:59:32,388     MultiVuServer        INFO     Closing connection to ('127.0.0.1', 56356)
 2024-06-07 14:59:32,388     MultiVuServer        INFO     [WinError 10038] An operation was attempted on something that is not a socket
+2024-06-09 02:25:59,615     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-09 02:28:21,049     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-09 02:29:10,913     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-09 02:29:58,793     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-09 02:30:12,847     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-09 02:30:55,248     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
