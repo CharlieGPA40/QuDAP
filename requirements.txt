@@ -8,3 +8,4 @@ python-pptx
 pywin32
 setuptools
 pillow
+matplotlib
