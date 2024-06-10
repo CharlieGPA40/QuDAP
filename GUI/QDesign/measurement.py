@@ -126,13 +126,17 @@ class Measurement(QWidget):
         self.clear_layout(self.ppms_zone_field_layout)
 
     def preset_select(self):
-        if self.ETO_radio_buttom.isChecked():
-            # self.FMR_radio_buttom.setChecked(False)
-            self.ETO_Preset()
+        try:
+            if self.ETO_radio_buttom.isChecked():
+                # self.FMR_radio_buttom.setChecked(False)
+                self.ETO_Preset()
 
-        if self.FMR_radio_buttom.isChecked():
-            # self.ETO_radio_buttom.setChecked(False)
-            return
+            if self.FMR_radio_buttom.isChecked():
+                # self.ETO_radio_buttom.setChecked(False)
+                return
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+
     def ETO_Preset(self):
         #--------------------------------------- Part connection ----------------------------
         self.connection_group_box = QGroupBox("Select Instruments")

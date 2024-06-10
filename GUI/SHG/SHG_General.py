@@ -16,10 +16,11 @@ import numpy as np
 import traceback
 import os
 
-
-from pptx import Presentation
-from pptx.util import Inches, Pt
-
+try:
+    from pptx import Presentation
+    from pptx.util import Inches, Pt
+except ImportError as e:
+    print(e)
 class UserDefineFittingWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -151,6 +152,7 @@ class General(QWidget):
 
                 self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
                 self.SHG_data_Processing_main_layout.addWidget(self.file_selection_group_box)
+                self.rstpage()
                 # self.scrollArea.setWidget(self.scrollContent)
 
                 # Add the scroll area to the main layout
@@ -414,6 +416,7 @@ class General(QWidget):
 
     def process_data(self):
         try:
+            self.Process_button.setEnabled(False)
             self.updateModeSelection()
             self.updateFitSelection()
             if self.modeSelected and self.fitSelected:
@@ -855,6 +858,7 @@ class General(QWidget):
                 if self.auto == 'Auto':
                     self.polar_plot_linear()
                 else:
+
                     self.polar_plot_extraction()
                 self.plot_index += 1
 
@@ -862,6 +866,8 @@ class General(QWidget):
                 if self.auto == 'Auto':
                     self.polar_plot_linear_correction()
                 else:
+                    self.plot_button_layout.removeWidget(self.prev_button)
+                    self.prev_button.deleteLater()
                     self.polar_plot_linear()
                 self.plot_index += 1
             elif self.plot_index == 3:
@@ -944,8 +950,7 @@ class General(QWidget):
 
     def polar_plot_linear(self):
         try:
-            self.plot_button_layout.removeWidget(self.prev_button)
-            self.prev_button.deleteLater()
+
             self.figure_Layout.removeWidget(self.canvas)
             self.canvas.deleteLater()
             self.canvas.ax.clear()
@@ -1123,6 +1128,11 @@ class General(QWidget):
 
     def rstpage(self):
         try:
+            try:
+                self.Process_button.setEnabled(True)
+            except Exception as e:
+                return
+            self.plot_index = 0
             self.folder = 'N/A'
             self.file_selection_display_label.setText("Current Folder: {}".format(self.folder))
             if self.autofittingWidget == True:

@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         self.hide_menu.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         # Layo
 
-        self.hide_menu.currentRowChanged.connect(self.hide_left_sidebar)
+        # self.hide_menu.currentRowChanged.connect(self.hide_left_sidebar)
         # self.hide_menu.setFixedWidth(200)  # Sets a fixed width for the sidebar
         self.hide_menu.setMinimumHeight(40)  # Sets a minimum height while allowing expansion
 
