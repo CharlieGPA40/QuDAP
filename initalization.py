@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QListWidget, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QRadioButton, QAbstractItemView)
-from PyQt6.QtGui import QIcon, QFont
+, QAbstractItemView, QFrame)
+from PyQt6.QtGui import QIcon, QFont, QPixmap
 from PyQt6.QtCore import QSize, Qt
 import sys
 import GUI.FMR.FMR as fmr
@@ -18,7 +18,7 @@ import GUI.QDesign.Keithley2182nv as nv
 import GUI.QDesign.Keithley6221 as cs
 import GUI.QDesign.BNC845RF as rf
 import GUI.QDesign.measurement as m
-import GUI
+import GUI.Dashboard.Dashboard as Dashboard
 
 
 # Individual Frames
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("QDPC")
         self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
-        self.Listwidgets_Font = 15
+        self.Listwidgets_Font = 13
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
         self.isinital = True  # Flag for first initialization of the program; this essential to avoid the auto select of hide function
         self.currentindex = 0  # Index for menu bar; this tells which row of the menu bar has been selected (FMR, VSM, etc.)
@@ -60,31 +60,21 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.left_sidebar = QListWidget()
         self.left_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
-        self.left_sidebar.setStyleSheet("""
-            QListWidget {
-                outline: none;  /* Removes focus outline */
-                
-            }
-            QListWidget::item {
-                border: none;
-                padding: 5px;
-            }
-            QListWidget::item:selected {
-                background-color: #E0E0E0;  /* Background color for selected item */
-                border-left: 5px solid #0078D7;  /* Blue color bar on the left */
-            }
-            QListWidget::item:hover {
-                background-color: #F0F0F0;  /* Light grey background on hover */
-            }
-            
-        """)
+        with open("GUI/QSS/QListWidget.qss", "r") as file:
+            self.QListWidget_stylesheet = file.read()
 
-        FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "FMR")
-        VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "VSM")
-        ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "ETO")
-        SHG = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "SHG")
-        PPMS = QListWidgetItem(QIcon("GUI/Icon/PPMS.svg"), "Quantum Design")
+        with open("GUI/QSS/QListWidget_middle.qss", "r") as file:
+            self.QListWidget_middle_stylesheet = file.read()
 
+        self.left_sidebar.setStyleSheet(self.QListWidget_stylesheet)
+        dashboard = QListWidgetItem(QIcon("GUI/Icon/Dashboard_Dark.svg"), "Dashboard")
+        FMR = QListWidgetItem(QIcon("GUI/Icon/FMR_Dark.svg"), "FMR")
+        VSM = QListWidgetItem(QIcon("GUI/Icon/VSM_Dark.svg"), "VSM")
+        ETO = QListWidgetItem(QIcon("GUI/Icon/ETO_Dark.svg"), "ETO")
+        SHG = QListWidgetItem(QIcon("GUI/Icon/SHG_Dark.svg"), "SHG")
+        PPMS = QListWidgetItem(QIcon("GUI/Icon/PPMS_Dark.svg"), "Quantum Design")
+
+        self.left_sidebar.addItem(dashboard)
         self.left_sidebar.addItem(FMR)
         self.left_sidebar.addItem(VSM)
         self.left_sidebar.addItem(ETO)
@@ -95,67 +85,47 @@ class MainWindow(QMainWindow):
         # Left Sidebar
         self.Tool_menu = QListWidget()
         self.Tool_menu.setFont(QFont("Arial", self.Listwidgets_Font))
-        self.Tool_menu.setStyleSheet("""
-                QListWidget {
-                outline: none;  /* Removes focus outline */
-            }
-            QListWidget::item {
-                border: none;
-                padding: 5px;
-            }
-            QListWidget::item:selected {
-                background-color: #E0E0E0;  /* Background color for selected item */
-                border-left: 5px solid #0078D7;  /* Blue color bar on the left */
-            }
-            QListWidget::item:hover {
-                background-color: #F0F0F0;  /* Light grey background on hover */
-            }
-               """)
-        tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "Help")
-        tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "Settings")
+        self.Tool_menu.setStyleSheet(self.QListWidget_stylesheet)
+        tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle_Dark.svg"), "Help")
+        tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings_Dark.svg"), "Settings")
 
         self.Tool_menu.addItem(tool_home_item)
         self.Tool_menu.addItem(tool_settings_item)
         # Disable item selection in the QListWidget
         self.Tool_menu.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.Tool_menu.currentRowChanged.connect(self.update_tool_bar)
+        self.Tool_menu.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.Tool_menu.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.Tool_menu.setMinimumHeight(30)
-        # Left Sidebar hide menu
-        self.hide_menu = QListWidget()
-        self.hide_menu.setFont(QFont("Arial", self.Listwidgets_Font))
-        self.hide_menu.setStyleSheet("""
-                    QListWidget {
-                        outline: none;  /* Removes focus outline */
-                    }
-                    QListWidget::item {
-                        border: none;
-                        padding: 5px;
-                    }
-                
-                    QListWidget::item:selected {
-                        background-color: #E0E0E0;  /* Background color for selected item */
-                        border-lefft: 0px solid #E0E0E0;  /* Blue color bar on the left */
-                    }
-                    QListWidget::item:hover {
-                        background-color: #F0F0F0;  /* Light grey background on hover */
-                    }
-                       """)
-        hide_menu_item = QListWidgetItem(QIcon("GUI/Icon/align-justify.svg"), "Hide")
 
-        self.hide_menu.addItem(hide_menu_item)
-        # Disable item selection in the QListWidget
-        self.hide_menu.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        # Layo
+        self.logolayout = QHBoxLayout()
+        icon_label = QLabel(self)
 
-        # self.hide_menu.currentRowChanged.connect(self.hide_left_sidebar)
-        # self.hide_menu.setFixedWidth(200)  # Sets a fixed width for the sidebar
-        self.hide_menu.setMinimumHeight(40)  # Sets a minimum height while allowing expansion
+        # Load the icon image and set it to the QLabel
+        pixmap = QPixmap("GUI/Icon/logo-01.svg")  # Ensure this path is correct
+        resized_pixmap = pixmap.scaled(200,88, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        icon_label.setPixmap(pixmap)
+        icon_label.setStyleSheet("background-color: #2F3134;")
 
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)  # Horizontal line
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        line.setStyleSheet("color: orange;")  # Set the color of the line
+        line.setFixedHeight(1)  # Set the thickness of the line
+        line.setFixedWidth(50)  # Set the length of the line
+
+
+        self.logolayout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.logolayout.addStretch(1)
+        self.logolayout.setSpacing(0)
+        self.logolayout.setContentsMargins(0, 0, 0, 0)
         left_sidebar_layout = QVBoxLayout()
-        left_sidebar_layout.addWidget(self.hide_menu, 1)
+        left_sidebar_layout.addLayout(self.logolayout)
+        left_sidebar_layout.addWidget(line)
         left_sidebar_layout.addWidget(self.left_sidebar, 18)
         left_sidebar_layout.addStretch()
+        left_sidebar_layout.addWidget(line)
         left_sidebar_layout.addWidget(self.Tool_menu, 2)
         left_sidebar_layout.setSpacing(0)
         left_sidebar_layout.setContentsMargins(2, 0, 0, 0)
@@ -167,26 +137,14 @@ class MainWindow(QMainWindow):
         # Right Sidebar
         self.right_sidebar = QListWidget()
         self.right_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
-        self.right_sidebar.setStyleSheet("""
-            QListWidget {
-                outline: none;  /* Removes focus outline */
-            }
-            QListWidget::item {
-                border: none;
-                padding: 5px;
-            }
-            QListWidget::item:selected {
-                background-color: #E0E0E0;  /* Background color for selected item */
-                border-left: 5px solid #0078D7;  /* Blue color bar on the left */
-            }
-            QListWidget::item:hover {
-                background-color: #F0F0F0;  /* Light grey background on hover */
-            }
-        """)
+        self.right_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
+
+
 
         # Content Pages
         self.pages = QStackedWidget()
         self.pages.setStyleSheet("background-color: white;")
+        self.pages.addWidget(Dashboard.Dash())  # 0
         self.pages.addWidget(fmr.FMR())  # 0
         self.pages.addWidget(vsm.VSM())  # 1
         self.pages.addWidget(eto.ETO())  # 2
@@ -205,8 +163,8 @@ class MainWindow(QMainWindow):
         # self.toggle_dark_mode()
         # Main Layout
         self.main_layout = QHBoxLayout()
-        self.main_layout.addWidget(self.left_sidebar_container, 3)  # Left sidebar stretch factor 1
-        self.main_layout.addWidget(self.right_sidebar, 4)  # Right sidebar stretch factor 1
+        self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
+        self.main_layout.addWidget(self.right_sidebar, 3)  # Right sidebar stretch factor 1
         self.main_layout.addWidget(self.pages, 10)  # Central content area stretch factor 4
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -266,105 +224,62 @@ class MainWindow(QMainWindow):
                # }
            """)
 
-    def hide_left_sidebar(self):
-        if self.ishide == False and self.isinital == False:
-            self.hide_menu.clear()
-            self.Tool_menu.clear()
-            FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "")
-            VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "")
-            ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "")
-            SHG = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "")
-            PPMS = QListWidgetItem(QIcon("GUI/Icon/PPMS.svg"), "")
-            self.left_sidebar.clear()
-            self.left_sidebar.addItem(FMR)
-            self.left_sidebar.addItem(VSM)
-            self.left_sidebar.addItem(ETO)
-            self.left_sidebar.addItem(SHG)
-            self.left_sidebar.addItem(PPMS)
-            # self.left_sidebar.currentRowChanged.connect(self.update_right_sidebar)
 
-            tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "")
-            tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "")
-            self.Tool_menu.addItem(tool_home_item)
-            self.Tool_menu.addItem(tool_settings_item)
-
-            hide_menu_item = QListWidgetItem(QIcon("GUI/Icon/align-justify.svg"), "")
-            self.hide_menu.addItem(hide_menu_item)
-            # self.hide_menu.currentRowChanged.connect(self.hide_left_sidebar)
-            self.ishide = True
-
-            left_sidebar_layout = QVBoxLayout()
-            left_sidebar_layout.addWidget(self.hide_menu, 1)
-            left_sidebar_layout.addWidget(self.left_sidebar, 18)
-            left_sidebar_layout.addStretch()
-            left_sidebar_layout.addWidget(self.Tool_menu, 3)
-            left_sidebar_layout.setSpacing(0)
-            left_sidebar_layout.setContentsMargins(2, 0, 0, 0)
-
-            self.main_layout = QHBoxLayout()
-            self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
-            self.main_layout.addWidget(self.right_sidebar, 5)  # Right sidebar stretch factor 1
-            self.main_layout.addWidget(self.pages, 30)  # Central content area stretch factor 4
-            self.main_layout.setSpacing(0)
-            self.main_layout.setContentsMargins(0, 0, 0, 0)
-            self.container = QWidget()
-            self.container.setLayout(self.main_layout)
-            self.setCentralWidget(self.container)
-        else:
-            self.initUI()
-            self.ishide = False
-            self.isinital = False
-
-        if self.whichSideBar == 1:
-            self.left_sidebar.setCurrentRow(self.currentindex)
-            self.update_menu_bar(self.currentindex)
-            self.update_qd(self.currentqdindex)
-        #     place to add more page
-        elif self.whichSideBar == 2:
-            self.Tool_menu.setCurrentRow(self.currentToolIndex)
-            self.update_tool_bar(self.currentToolIndex)
 
     def update_menu_bar(self, current_row):
         self.whichSideBar = 1
-        self.Tool_menu.setCurrentRow(-1)  # Force clearing selection
+        self.Tool_menu.setCurrentRow(0)  # Force clearing selection
         self.right_sidebar.clear()
+
         if current_row == 0:  # FMR
+            self.right_sidebar.hide()
+         
+            self.pages.setCurrentIndex(0)
+            self.currentindex = 0
+        else:
+            self.right_sidebar.show()
+
+
+        if current_row == 1:  # FMR
+
             self.right_sidebar.addItem(QListWidgetItem("RAW Data Processing"))
             self.right_sidebar.addItem(QListWidgetItem("Data Interpolation"))
             self.right_sidebar.addItem(QListWidgetItem("Heatmap Generation"))
             self.right_sidebar.addItem(QListWidgetItem("FMR Profile Fitting"))
             self.right_sidebar.addItem(QListWidgetItem("Kittel Fitting"))
             self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(0)
-            self.currentindex = 0
+            self.pages.setCurrentIndex(1)
+            self.currentindex = 1
             # self.left_sidebar.setEnabled(True)
 
-        elif current_row == 1:  # VSM
+        elif current_row == 2:  # VSM
             self.right_sidebar.addItem(QListWidgetItem("General Settings"))
             self.right_sidebar.addItem(QListWidgetItem("Security"))
             self.right_sidebar.addItem(QListWidgetItem("Privacy"))
-            self.right_sidebar.setCurrentRow(1)
-            self.pages.setCurrentIndex(1)
-            self.currentindex = 1
-
-        elif current_row == 2:  # ETO
-            self.right_sidebar.addItem(QListWidgetItem("Edit Profile"))
-            self.right_sidebar.addItem(QListWidgetItem("Notifications"))
-            self.right_sidebar.addItem(QListWidgetItem("Logout"))
-            self.right_sidebar.setCurrentRow(2)
+            self.right_sidebar.setCurrentRow(0)
             self.pages.setCurrentIndex(2)
             self.currentindex = 2
 
-        elif current_row == 3:  # SHG
+
+        elif current_row == 3:  # ETO
+            self.right_sidebar.addItem(QListWidgetItem("Edit Profile"))
+            self.right_sidebar.addItem(QListWidgetItem("Notifications"))
+            self.right_sidebar.addItem(QListWidgetItem("Logout"))
+            self.right_sidebar.setCurrentRow(0)
+            self.pages.setCurrentIndex(3)
+            self.currentindex = 3
+
+        elif current_row == 4:  # SHG
             self.right_sidebar.addItem(QListWidgetItem("General Processing"))
             self.right_sidebar.addItem(QListWidgetItem("Temperature Dependence"))
             self.right_sidebar.addItem(QListWidgetItem("Imaging Mode"))
             self.right_sidebar.currentRowChanged.connect(self.update_SHG)
-            self.right_sidebar.setCurrentRow(3)
-            self.pages.setCurrentIndex(3)
-            self.currentindex = 3
+            self.right_sidebar.setCurrentRow(0)
+            self.pages.setCurrentIndex(4)
+            self.currentindex = 4
 
-        elif current_row == 4:  # PPMS
+        elif current_row == 5:  # PPMS
+
             self.right_sidebar.addItem(QListWidgetItem("PPMS"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
@@ -372,9 +287,9 @@ class MainWindow(QMainWindow):
             self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
             self.right_sidebar.addItem(QListWidgetItem("Measure"))
             self.right_sidebar.currentRowChanged.connect(self.update_qd)
-            self.right_sidebar.setCurrentRow(4)
-            self.pages.setCurrentIndex(4)
-            self.currentindex = 4
+            self.right_sidebar.setCurrentRow(0)
+            self.pages.setCurrentIndex(5)
+            self.currentindex = 5
 
     def update_qd(self, current_row):
         if current_row == 0:  # PPMS
@@ -456,6 +371,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    # app.setStyleSheet("QWidget { background-color: #36454F; }")
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

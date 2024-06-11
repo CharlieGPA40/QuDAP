@@ -1,0 +1,19 @@
+QListWidget {
+            outline: none;  /* Removes focus outline */
+
+            background: #ECECEB
+        }
+QListWidget::item {
+    border: none;
+    padding: 5px;
+}
+QListWidget::item:selected {
+    background-color: #E0E0E0;  /* Background color for selected item */
+    border-left: 5px solid #ff5733 ;  /* Blue color bar on the left */
+    border-radius: 15px;
+    color: #F26E00 ;
+}
+QListWidget::item:hover {
+    background-color: #F0F0F0;  /* Light grey background on hover */
+    border-radius: 15px
+}

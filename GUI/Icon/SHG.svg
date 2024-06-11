@@ -1,1 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17.66 21.74"><defs><style>.cls-1{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}</style></defs><path class="cls-1" d="M7.05,5.82c0-2.66.93-4.82,2.08-4.82s2.08,2.16,2.08,4.82-.93,4.82-2.08,4.82-2.08-2.16-2.08-4.82Z"/><path class="cls-1" d="M7.05,15.93c0-2.66.93-4.82,2.08-4.82s2.08,2.16,2.08,4.82-.93,4.82-2.08,4.82-2.08-2.16-2.08-4.82Z"/><ellipse class="cls-1" cx="4.92" cy="11.11" rx="3.32" ry="2.08"/><ellipse class="cls-1" cx="13.33" cy="10.89" rx="3.32" ry="2.08"/></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 17.7 21.7">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #fff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2px;
+      }
+    </style>
+  </defs>
+  <path class="cls-1" d="M7.1,5.8c0-2.7.9-4.8,2.1-4.8s2.1,2.2,2.1,4.8-.9,4.8-2.1,4.8-2.1-2.2-2.1-4.8Z"/>
+  <path class="cls-1" d="M7.1,15.9c0-2.7.9-4.8,2.1-4.8s2.1,2.2,2.1,4.8-.9,4.8-2.1,4.8-2.1-2.2-2.1-4.8Z"/>
+  <ellipse class="cls-1" cx="4.9" cy="11.1" rx="3.3" ry="2.1"/>
+  <ellipse class="cls-1" cx="13.3" cy="10.9" rx="3.3" ry="2.1"/>
+</svg>

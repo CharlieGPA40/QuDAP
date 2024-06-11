@@ -1,86 +1,43 @@
 import sys
-import numpy as np
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QMessageBox, QHBoxLayout
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QListWidget
+from PyQt6.QtCore import Qt
 
-
-class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=4, dpi=100, polar=False, title="Plot"):
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.ax = self.fig.add_subplot(111, projection='polar' if polar else 'rectilinear')
-        self.ax.set_title(title)
-        super(MplCanvas, self).__init__(self.fig)
-
-    def plot_data(self, theta, r):
-        self.ax.clear()
-        self.ax.set_title(self.ax.get_title())  # Keep the existing title
-        self.ax.plot(theta, r)
-        self.draw()
-
-    def set_polar(self, polar, title):
-        self.fig.clear()
-        self.ax = self.fig.add_subplot(111, projection='polar' if polar else 'rectilinear')
-        self.ax.set_title(title)
-        self.draw()
-
-
-class MainWindow(QMainWindow):
+class MyApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.current_plot_index = 0
-        self.plots = [
-            {"polar": False, "title": "Cartesian Plot 1"},
-            {"polar": False, "title": "Cartesian Plot 2"},
-            {"polar": True, "title": "Polar Plot 1"},
-            {"polar": True, "title": "Polar Plot 2"}
-        ]
-        self.init_ui()
+        self.initUI()
 
-    def init_ui(self):
-        self.setWindowTitle("PyQt6 Multiple Plots Example")
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.main_layout = QVBoxLayout(self.central_widget)
+    def initUI(self):
+        layout = QVBoxLayout()
 
-        # Create an initial MplCanvas
-        self.canvas = MplCanvas(self.central_widget, polar=self.plots[0]["polar"], title=self.plots[0]["title"])
-        self.main_layout.addWidget(self.canvas)
+        # Create a QListWidget
+        list_widget = QListWidget(self)
 
-        self.buttons_layout = QHBoxLayout()
-        self.next_button = QPushButton("Next Plot")
-        self.next_button.clicked.connect(self.next_plot)
-        self.buttons_layout.addWidget(self.next_button)
+        # Add some items to the QListWidget
+        list_widget.addItem("Item 1")
+        list_widget.addItem("Item 2")
+        list_widget.addItem("Item 3")
+        list_widget.addItem("Item 4")
+        list_widget.addItem("Item 5")
+        list_widget.addItem("Item 6")
+        list_widget.addItem("Item 7")
 
-        self.main_layout.addLayout(self.buttons_layout)
+        # Hide the scroll bars
+        list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.plot_data()
+        # Add the QListWidget to the layout
+        layout.addWidget(list_widget)
 
-    def plot_data(self):
-        # Generate data
-        self.theta = np.linspace(0, 2 * np.pi, 100)
-        self.r = np.abs(np.sin(2 * self.theta) * np.cos(2 * self.theta))
+        self.setLayout(layout)
+        self.setWindowTitle('Hide Scroll Bars in QListWidget')
+        self.setGeometry(300, 300, 300, 200)
 
-        # Plot data on the canvas
-        self.canvas.plot_data(self.theta, self.r)
-
-    def next_plot(self):
-        try:
-            # Increment plot index
-            self.current_plot_index = (self.current_plot_index + 1) % len(self.plots)
-            plot_info = self.plots[self.current_plot_index]
-
-            # Update canvas to the new plot type and title
-            self.canvas.set_polar(plot_info["polar"], plot_info["title"])
-
-            # Plot the data again with the new settings
-            self.plot_data()
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-
-
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
-    window = MainWindow()
+    window = MyApp()
     window.show()
     sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()
