@@ -16,9 +16,10 @@ class Dash(QMainWindow):
         current_time = QTime.currentTime()
 
         hour = current_time.hour()
-        if 0 <= hour <= 12:
+        print(hour)
+        if 0 <= hour <= 11:
             self.hello_label = QLabel('Good Morning, Colleague!', self)
-        elif 12 < hour <= 5:
+        elif 11 < hour <= 17:
             self.hello_label = QLabel('Good Afternoon, Colleague!', self)
         else:
             self.hello_label = QLabel('Good Evening, Colleague!', self)
