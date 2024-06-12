@@ -1,1 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22.31 18.51"><defs><style>.cls-1{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}</style></defs><path class="cls-1" d="M18.06,1h-4.91c-2.74,0-3.98,2.52-4.23,3.01l-2.09,6.25c-.88,2.26-2.23,3.38-4.21,3.64h-1.61"/><path class="cls-1" d="M1.76,13.89l4.91.02c2.74.02,3.99-2.51,4.24-3l2.11-6.25c.89-2.26,2.25-3.37,4.22-3.63h2.22"/></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 22.3 18.5">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #000;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2px;
+      }
+    </style>
+  </defs>
+  <path class="cls-1" d="M18.1,1h-4.9c-2.7,0-4,2.5-4.2,3l-2.1,6.2c-.9,2.3-2.2,3.4-4.2,3.6h-1.6"/>
+  <path class="cls-1" d="M1.8,13.9h4.9c2.7,0,4-2.5,4.2-3l2.1-6.2c.9-2.3,2.2-3.4,4.2-3.6h2.2"/>
+</svg>

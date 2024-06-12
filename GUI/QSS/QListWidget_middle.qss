@@ -1,11 +1,10 @@
 QListWidget {
             outline: none;  /* Removes focus outline */
-
-            background: #ECECEB
+            background: white
         }
 QListWidget::item {
     border: none;
-    padding: 5px;
+    padding: 10px;
 }
 QListWidget::item:selected {
     background-color: #E0E0E0;  /* Background color for selected item */

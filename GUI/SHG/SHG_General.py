@@ -1,8 +1,10 @@
+import mimetypes
+
 from PyQt6.QtWidgets import (
-    QMessageBox, QButtonGroup, QWidget, QRadioButton, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout
-, QDialog, QPushButton, QComboBox, QLineEdit, QScrollArea)
-from PyQt6.QtGui import QIcon, QFont
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
+    QTreeWidgetItem, QMessageBox, QButtonGroup, QWidget, QRadioButton, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout
+, QDialog, QPushButton, QComboBox, QLineEdit, QScrollArea, QTreeWidget, QSplitter)
+from PyQt6.QtGui import QIcon, QFont, QDragEnterEvent, QDropEvent
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QMimeData
 import sys
 import pandas as pd
 import matplotlib
@@ -21,6 +23,59 @@ try:
     from pptx.util import Inches, Pt
 except ImportError as e:
     print(e)
+
+
+class DragDropWidget(QWidget):
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.initUI()
+
+    def initUI(self):
+        with open("GUI/SHG/QButtonWidget.qss", "r") as file:
+            self.Browse_Button_stylesheet = file.read()
+        self.setAcceptDrops(True)
+        self.setStyleSheet("background-color: #F5F6FA; border: none;")
+
+        self.label = QLabel("Drag and drop a folder here", self)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setStyleSheet("color: #D4D5D9; font-weight: bold; font-size: 16px;")
+
+        self.button = QPushButton("Browse", self)
+        self.button.setStyleSheet(self.Browse_Button_stylesheet)
+        self.button.clicked.connect(self.open_folder_dialog)
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(self.label,4)
+        main_layout.addWidget(self.button,3, alignment=Qt.AlignmentFlag.AlignRight)
+        self.setLayout(main_layout)
+
+        # self.main_widget.setStyleSheet("background-color: #F5F6FA;")
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        try:
+            if event.mimeData().hasUrls():
+                event.acceptProposedAction()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
+    def dropEvent(self, event: QDropEvent):
+        try:
+            urls = event.mimeData().urls()
+            if urls:
+                folder_path = urls[0].toLocalFile()
+                # self.label.setText(f"Selected folder: {folder_path}")
+                # print(folder_path)
+                self.main_window.display_files(folder_path + '/')
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
+
+    def open_folder_dialog(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            # self.label.setText(f"Selected folder: {folder_path}")
+            self.main_window.display_files(folder_path + '/')
+
 class UserDefineFittingWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -85,6 +140,8 @@ class General(QWidget):
         try:
             if self.isInit == False:
                 self.isInit = True
+                with open("GUI/SHG/QButtonWidget.qss", "r") as file:
+                    self.Browse_Button_stylesheet = file.read()
                 titlefont = QFont("Arial", 20)
                 self.font = QFont("Arial", 13)
                 self.setStyleSheet("background-color: white;")
@@ -108,50 +165,39 @@ class General(QWidget):
                                                         }
                                                         """)
                 #  ---------------------------- PART 2 --------------------------------
-                self.file_selection_group_box = QGroupBox("Directory Selection")
-                self.file_selection_section_layout = QHBoxLayout()
-                self.file_selection_main_layout = QVBoxLayout()
+                self.fileUpload_layout = QHBoxLayout()
+                self.drag_drop_layout = QVBoxLayout()
+                self.file_selection_group_box = QGroupBox("Upload Directory")
+                self.file_view_group_box = QGroupBox("View Files")
 
-                self.file_selection_label = QLabel('Please select the data directory:')
-                self.file_selection_label.setFont(self.font)
-                self.file_selection_button = QPushButton('Select')
-                self.file_selection_button.setFont(self.font)
-                self.file_selection_button.setStyleSheet("""
-                                   QPushButton {
-                                       background-color: #3498DB; /* Green background */
-                                       color: white; /* White text */
-                                       border-style: solid;
-                                       border-color: #3498DB;
-                                       border-width: 2px;
-                                       border-radius: 10px; /* Rounded corners */
-                                       padding: 5px;
-                                       min-height: 2px;
-                                       min-width: 50px;
-                                   }
-                                   QPushButton:hover {
-                                       background-color: #2874A6  ; /* Slightly darker green */
-                                   }
-                                   QPushButton:pressed {
-                                       background-color: #85C1E9; /* Even darker green */
-                                   }
+                self.file_selection_display_label = QLabel('Please Upload Directory')
+                self.file_selection_display_label.setStyleSheet("""
+                                   color: white; 
+                                   font-size: 12px;
+                                   background-color:  #f38d76 ; 
+                                    border-radius: 5px; 
+                                   padding: 5px;
                                """)
-                self.file_selection_display_label = QLabel('Directory Selected: N/A')
-                self.file_selection_display_label.setFont(QFont("Arial", 9))
-                self.file_selection_button.clicked.connect(self.showDialog)
-                self.file_selection_section_layout.addStretch(1)
-                self.file_selection_section_layout.addWidget(self.file_selection_label, 2)
-                self.file_selection_section_layout.addStretch(2)
-                self.file_selection_section_layout.addWidget(self.file_selection_button, 1)
-                self.file_selection_section_layout.addStretch(1)
+                # self.file_selection_display_label.setWordWrap(True)
+                self.drag_drop_widget = DragDropWidget(self)
+                self.drag_drop_layout.addWidget(self.drag_drop_widget,4)
+                self.drag_drop_layout.addWidget(self.file_selection_display_label,1, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.file_selection_group_box.setLayout(self.drag_drop_layout)
 
-                self.file_selection_main_layout.addLayout(self.file_selection_section_layout)
-                self.file_selection_main_layout.addWidget(self.file_selection_display_label,
-                                                          alignment=Qt.AlignmentFlag.AlignCenter)
-                self.file_selection_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.file_selection_group_box.setLayout(self.file_selection_main_layout)
+
+                # # Create the file browser area
+                self.file_tree = QTreeWidget()
+                self.file_tree_layout = QHBoxLayout()
+                self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
+                self.file_tree_layout.addWidget(self.file_tree)
+                self.file_view_group_box.setLayout(self.file_tree_layout)
+                self.fileUpload_layout.addWidget(self.file_selection_group_box,1)
+                self.fileUpload_layout.addWidget(self.file_view_group_box,1)
+
 
                 self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
-                self.SHG_data_Processing_main_layout.addWidget(self.file_selection_group_box)
+                self.SHG_data_Processing_main_layout.addLayout(self.fileUpload_layout)
+                self.SHG_data_Processing_main_layout.addStretch(10)
                 self.rstpage()
                 # self.scrollArea.setWidget(self.scrollContent)
 
@@ -162,17 +208,46 @@ class General(QWidget):
             QMessageBox.warning(self, "Error", str(e))
             return
 
+    def display_files(self, folder_path):
+        self.file_tree.clear()
+        self.auto_fitting()
+        self.folder = folder_path
+        self.file_selection_display_label.setText("Directory Successfully Uploded")
+        self.file_selection_display_label.setStyleSheet("""
+                   color: #4b6172; 
+                   font-size: 12px;
+                   background-color: #DfE7Ef; 
+                   border-radius: 5px; 
+                   padding: 5px;
+               """)
+        for root, dirs, files in os.walk(folder_path):
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                file_info = os.stat(file_path)
+                file_size_kb = file_info.st_size / 1024  # Convert size to KB
+                file_size_str = f"{file_size_kb:.2f} KB"  # Format size as a string with 2 decimal places
+                file_type, _ = mimetypes.guess_type(file_path)
+                file_type = file_type if file_type else "Unknown"
+                item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
+                item.setToolTip(0, file_path)
+        self.file_tree.resizeColumnToContents(0)
+        # self.file_tree.resizeColumnToContents(1)
+        self.file_tree.resizeColumnToContents(2)
+
     def showDialog(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder:
-            print(folder)
             folder = folder + "/"
             self.folder = folder
             self.file_selection_display_label.setText("Current Folder: {}".format(self.folder))
             self.auto_fitting()
 
     def auto_fitting(self):
-
+        if self.SHG_data_Processing_main_layout.count() > 0:
+            item = self.SHG_data_Processing_main_layout.itemAt(self.SHG_data_Processing_main_layout.count() - 1)
+            if item.spacerItem():
+                self.SHG_data_Processing_main_layout.removeItem(item)
+        # self.SHG_data_Processing_main_layout.addStretch(5)
         #  ---------------------------- PART 3&4 --------------------------------
         self.auto_fitting_selection_layout = QHBoxLayout()
         self.Auto_mode_group_box = QGroupBox("Auto Mode *")
@@ -244,25 +319,7 @@ class General(QWidget):
         self.fitting_mode_predef_combo.addItems(["Please select a model"])
         # self.fitting_mode_predef_combo.setEnabled(True)
         self.fitting_mode_predef_button = QPushButton('Select')
-        self.fitting_mode_predef_button.setStyleSheet("""
-                                                                   QPushButton {
-                                                                       background-color: #CAC9Cb; /* Green background */
-                                                                       color: black; /* White text */
-                                                                       border-style: solid;
-                                                                       border-color: #CAC9Cb;
-                                                                       border-width: 2px;
-                                                                       border-radius: 10px; /* Rounded corners */
-                                                                       padding: 5px;
-                                                                       min-height: 1px;
-                                                                       min-width: 50px;
-                                                                   }
-                                                                   QPushButton:hover {
-                                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                                   }
-                                                                   QPushButton:pressed {
-                                                                       background-color: #979A9A; /* Even darker green */
-                                                                   }
-                                                               """)
+        self.fitting_mode_predef_button.setStyleSheet(self.Browse_Button_stylesheet)
         self.fitting_mode_predef_button.setFont(self.font)
 
         # self.fitting_mode_predef_button.setEnabled(True)
@@ -272,25 +329,7 @@ class General(QWidget):
 
         self.fitting_mode_usrdef_layout = QHBoxLayout()
         self.fitting_mode_usrdef_button = QPushButton('Define')
-        self.fitting_mode_usrdef_button.setStyleSheet("""
-                                                                   QPushButton {
-                                                                       background-color: #CAC9Cb; /* Green background */
-                                                                       color: black; /* White text */
-                                                                       border-style: solid;
-                                                                       border-color: #CAC9Cb;
-                                                                       border-width: 2px;
-                                                                       border-radius: 10px; /* Rounded corners */
-                                                                       padding: 5px;
-                                                                       min-height: 1px;
-                                                                       min-width: 50px;
-                                                                   }
-                                                                   QPushButton:hover {
-                                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                                   }
-                                                                   QPushButton:pressed {
-                                                                       background-color: #979A9A; /* Even darker green */
-                                                                   }
-                                                               """)
+        self.fitting_mode_usrdef_button.setStyleSheet(self.Browse_Button_stylesheet)
         self.fitting_mode_usrdef_button.setFont(self.font)
         # self.fitting_mode_usrdef_button.setEnabled(True)
         self.fitting_mode_usrdef_layout.addWidget(self.fitting_mode_usr_radio_buttom)
@@ -322,46 +361,10 @@ class General(QWidget):
         self.process_layout = QHBoxLayout()
         self.rst_button = QPushButton('Reset')
         self.rst_button.setFont(self.font)
-        self.rst_button.setStyleSheet("""
-                                                                               QPushButton {
-                                                                                   background-color: #CAC9Cb; /* Green background */
-                                                                                   color: black; /* White text */
-                                                                                   border-style: solid;
-                                                                                   border-color: #CAC9Cb;
-                                                                                   border-width: 2px;
-                                                                                   border-radius: 10px; /* Rounded corners */
-                                                                                   padding: 5px;
-                                                                                   min-height: 1px;
-                                                                                   min-width: 50px;
-                                                                               }
-                                                                               QPushButton:hover {
-                                                                                   background-color: #5F6A6A; /* Slightly darker green */
-                                                                               }
-                                                                               QPushButton:pressed {
-                                                                                   background-color: #979A9A; /* Even darker green */
-                                                                               }
-                                                                           """)
+        self.rst_button.setStyleSheet(self.Browse_Button_stylesheet)
         self.rst_button.clicked.connect(self.rstpage)
         self.Process_button = QPushButton('Process')
-        self.Process_button.setStyleSheet("""
-                                   QPushButton {
-                                       background-color: #3498DB; /* Green background */
-                                       color: white; /* White text */
-                                       border-style: solid;
-                                       border-color: #3498DB;
-                                       border-width: 2px;
-                                       border-radius: 10px; /* Rounded corners */
-                                       padding: 5px;
-                                       min-height: 2px;
-                                       min-width: 50px;
-                                   }
-                                   QPushButton:hover {
-                                       background-color: #2874A6  ; /* Slightly darker green */
-                                   }
-                                   QPushButton:pressed {
-                                       background-color: #85C1E9; /* Even darker green */
-                                   }
-                               """)
+        self.Process_button.setStyleSheet(self.Browse_Button_stylesheet)
         self.Process_button.clicked.connect(self.process_data)
         self.Process_button.setFont(self.font)
         self.process_layout.addStretch(3)
@@ -374,6 +377,8 @@ class General(QWidget):
 
         # Add the scroll area to the main layout
         # self.master_layout.addWidget(self.scrollArea)
+
+        self.SHG_data_Processing_main_layout.addStretch(5)
 
         self.setLayout(self.SHG_data_Processing_main_layout)
 
@@ -534,45 +539,9 @@ class General(QWidget):
                 self.plot_button_layout = QHBoxLayout()
                 self.prev_button = QPushButton("Previous")
                 self.prev_button.clicked.connect(self.show_previous_plot)
-                self.prev_button.setStyleSheet("""
-                                                   QPushButton {
-                                                       background-color: #CAC9Cb; /* Green background */
-                                                       color: black; /* White text */
-                                                       border-style: solid;
-                                                       border-color: #CAC9Cb;
-                                                       border-width: 2px;
-                                                       border-radius: 10px; /* Rounded corners */
-                                                       padding: 5px;
-                                                       min-height: 1px;
-                                                       min-width: 10px;
-                                                   }
-                                                   QPushButton:hover {
-                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                   }
-                                                   QPushButton:pressed {
-                                                       background-color: #979A9A; /* Even darker green */
-                                                   }
-                                               """)
+                self.prev_button.setStyleSheet(self.Browse_Button_stylesheet)
                 self.next_button = QPushButton("Next")
-                self.next_button.setStyleSheet("""
-                                                   QPushButton {
-                                                       background-color: #CAC9Cb; /* Green background */
-                                                       color: black; /* White text */
-                                                       border-style: solid;
-                                                       border-color: #CAC9Cb;
-                                                       border-width: 2px;
-                                                       border-radius: 10px; /* Rounded corners */
-                                                       padding: 5px;
-                                                       min-height: 1px;
-                                                       min-width: 10px;
-                                                   }
-                                                   QPushButton:hover {
-                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                   }
-                                                   QPushButton:pressed {
-                                                       background-color: #979A9A; /* Even darker green */
-                                                   }
-                                               """)
+                self.next_button.setStyleSheet(self.Browse_Button_stylesheet)
                 self.next_button.clicked.connect(self.show_next_plot)
 
                 self.plot_button_layout.addWidget(self.prev_button)
@@ -818,6 +787,8 @@ class General(QWidget):
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
+
+
 
     def show_next_plot(self):
         print(self.plot_index)
@@ -1130,6 +1101,7 @@ class General(QWidget):
         try:
             try:
                 self.Process_button.setEnabled(True)
+                self.file_tree.clear()
             except Exception as e:
                 return
             self.plot_index = 0

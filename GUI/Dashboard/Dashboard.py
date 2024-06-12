@@ -7,23 +7,31 @@ import time
 
 import sys
 
-class Dash(QWidget):
+class Dash(QMainWindow):
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout()
-        self.time_label = QLabel(self)
-        # current_time = QDateTime.currentDateTime()
-        # time_display = current_time.toString("hh:mm:ss AP - dd/MM/yyyy")
-        # self.time_label.setText(time_display)
 
-        font = QFont("Arial", 24)
-        self.time_label.setFont(font)
+        self.main_layout = QVBoxLayout()
+        self.headiing_layout = QVBoxLayout()
+        self.hello_label = QLabel('Hello, User!',  self)
+        self.hello_label.setStyleSheet("color:   #E44E2C  ; font-weight: bold; font-size: 30px; font-style: italic")
+        self.time_label = QLabel('Today is ', self)
+        self.time_label.setStyleSheet("color:  #abb2b9 ; font-weight: bold; font-size: 15px;")
 
         # Center the label horizontally and vertically
+        self.hello_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.headiing_layout.addWidget(self.hello_label)
+        self.headiing_layout.addWidget(self.time_label)
 
-        layout.addWidget(self.time_label)
-        layout.setContentsMargins(0, 0, 0, 0)
+        self.widget_layout = QHBoxLayout()
+
+        self.main_layout.addLayout(self.headiing_layout)
+        self.main_layout.setContentsMargins(50, 50, 50, 50)
+        self.container = QWidget()
+        self.container.setLayout(self.main_layout)
+        self.setCentralWidget(self.container)
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
         self.timer.start(1000)  # Update every 60,000 milliseconds (1 minute)
@@ -32,5 +40,6 @@ class Dash(QWidget):
 
     def update_time(self):
         current_time = QDateTime.currentDateTime()
-        time_display = current_time.toString("hh:mm:ss AP - dd/MM/yyyy")
-        self.time_label.setText(time_display)
+        time_display = current_time.toString("MM/dd/yyyy hh:mm:ss ")
+        self.time_label.setText('Today is ' + time_display)
+

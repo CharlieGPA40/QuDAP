@@ -46,7 +46,7 @@ class ProfilePage(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QDPC")
+        self.setWindowTitle("QDPE")
         self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
         self.Listwidgets_Font = 13
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.currentindex = 0  # Index for menu bar; this tells which row of the menu bar has been selected (FMR, VSM, etc.)
         self.currentToolIndex = 0  # Index for help menu and setting menu selection
         self.whichSideBar = 0  # Index for which side bar on the left side has been selected; 1 means menu sidebar; 2 means tool menu bar
-        self.currentqdindex = 0
+        self.currentdpindex = 0
         self.initUI()
 
     def initUI(self):
@@ -67,27 +67,22 @@ class MainWindow(QMainWindow):
             self.QListWidget_middle_stylesheet = file.read()
 
         self.left_sidebar.setStyleSheet(self.QListWidget_stylesheet)
-        dashboard = QListWidgetItem(QIcon("GUI/Icon/Dashboard_Dark.svg"), "Dashboard")
-        FMR = QListWidgetItem(QIcon("GUI/Icon/FMR_Dark.svg"), "FMR")
-        VSM = QListWidgetItem(QIcon("GUI/Icon/VSM_Dark.svg"), "VSM")
-        ETO = QListWidgetItem(QIcon("GUI/Icon/ETO_Dark.svg"), "ETO")
-        SHG = QListWidgetItem(QIcon("GUI/Icon/SHG_Dark.svg"), "SHG")
-        PPMS = QListWidgetItem(QIcon("GUI/Icon/PPMS_Dark.svg"), "Quantum Design")
+        dashboard = QListWidgetItem(QIcon("GUI/Icon/Dashboard.svg"), "Dashboard")
+        Data_processing = QListWidgetItem(QIcon("GUI/Icon/codesandbox.svg"), "Data Processing")
+        experiment = QListWidgetItem(QIcon("GUI/Icon/cpu.svg"), 'Experiment')
+
 
         self.left_sidebar.addItem(dashboard)
-        self.left_sidebar.addItem(FMR)
-        self.left_sidebar.addItem(VSM)
-        self.left_sidebar.addItem(ETO)
-        self.left_sidebar.addItem(SHG)
-        self.left_sidebar.addItem(PPMS)
+        self.left_sidebar.addItem(Data_processing)
+        self.left_sidebar.addItem(experiment)
         self.left_sidebar.currentRowChanged.connect(self.update_menu_bar)
 
         # Left Sidebar
         self.Tool_menu = QListWidget()
         self.Tool_menu.setFont(QFont("Arial", self.Listwidgets_Font))
         self.Tool_menu.setStyleSheet(self.QListWidget_stylesheet)
-        tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle_Dark.svg"), "Help")
-        tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings_Dark.svg"), "Settings")
+        tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "Help")
+        tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "Settings")
 
         self.Tool_menu.addItem(tool_home_item)
         self.Tool_menu.addItem(tool_settings_item)
@@ -103,17 +98,17 @@ class MainWindow(QMainWindow):
         icon_label = QLabel(self)
 
         # Load the icon image and set it to the QLabel
-        pixmap = QPixmap("GUI/Icon/logo-01.svg")  # Ensure this path is correct
+        pixmap = QPixmap("GUI/Icon/logo.svg")  # Ensure this path is correct
         resized_pixmap = pixmap.scaled(200,88, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        icon_label.setPixmap(pixmap)
-        icon_label.setStyleSheet("background-color: #2F3134;")
+        icon_label.setPixmap(resized_pixmap)
+        icon_label.setStyleSheet("background-color: #ECECEB;")
 
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)  # Horizontal line
-        line.setFrameShadow(QFrame.Shadow.Sunken)
-        line.setStyleSheet("color: orange;")  # Set the color of the line
-        line.setFixedHeight(1)  # Set the thickness of the line
-        line.setFixedWidth(50)  # Set the length of the line
+        # line.setFrameShadow(QFrame.Shadow.Sunken)
+        line.setStyleSheet("color: #ff5733;")  # Set the color of the line
+        line.setFixedHeight(5)  # Set the thickness of the line
+        line.setFixedWidth(150)  # Set the length of the line
 
 
         self.logolayout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -122,11 +117,12 @@ class MainWindow(QMainWindow):
         self.logolayout.setContentsMargins(0, 0, 0, 0)
         left_sidebar_layout = QVBoxLayout()
         left_sidebar_layout.addLayout(self.logolayout)
-        left_sidebar_layout.addWidget(line)
-        left_sidebar_layout.addWidget(self.left_sidebar, 18)
-        left_sidebar_layout.addStretch()
-        left_sidebar_layout.addWidget(line)
-        left_sidebar_layout.addWidget(self.Tool_menu, 2)
+        left_sidebar_layout.addWidget(line, alignment=Qt.AlignmentFlag.AlignCenter)
+        # left_sidebar_layout.addStretch(3)
+        left_sidebar_layout.addWidget(self.left_sidebar, 12)
+        left_sidebar_layout.addStretch(10)
+
+        left_sidebar_layout.addWidget(self.Tool_menu, 3)
         left_sidebar_layout.setSpacing(0)
         left_sidebar_layout.setContentsMargins(2, 0, 0, 0)
 
@@ -139,33 +135,31 @@ class MainWindow(QMainWindow):
         self.right_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
         self.right_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
 
-
-
         # Content Pages
         self.pages = QStackedWidget()
         self.pages.setStyleSheet("background-color: white;")
         self.pages.addWidget(Dashboard.Dash())  # 0
-        self.pages.addWidget(fmr.FMR())  # 0
-        self.pages.addWidget(vsm.VSM())  # 1
-        self.pages.addWidget(eto.ETO())  # 2
-        self.pages.addWidget(shg.SHG())  # 3
-        self.pages.addWidget(qd.QD())  # 4
-        self.pages.addWidget(Setting.Settings())  # 5
-        self.pages.addWidget(ppms.PPMS())  # 6
-        self.pages.addWidget(nv.NV())  # 7
-        self.pages.addWidget(cs.CurrentSource6221())  # 8
-        self.pages.addWidget(rf.BNC845RF())  # 9
-        self.pages.addWidget(m.Measurement())  # 10
-        self.pages.addWidget(shg_general.General())  # 11
-        self.pages.addWidget(shg_tempdep.Tempdep())  # 12
-        self.pages.addWidget(shg_imaging.Imaging())  # 13
+        self.pages.addWidget(fmr.FMR())  # 1
+        self.pages.addWidget(vsm.VSM())  # 2
+        self.pages.addWidget(eto.ETO())  # 3
+        self.pages.addWidget(shg.SHG())  # 4
+        self.pages.addWidget(qd.QD())  # 5
+        self.pages.addWidget(Setting.Settings())  # 6
+        self.pages.addWidget(ppms.PPMS())  # 7
+        self.pages.addWidget(nv.NV())  # 8
+        self.pages.addWidget(cs.CurrentSource6221())  # 9
+        self.pages.addWidget(rf.BNC845RF())  # 10
+        self.pages.addWidget(m.Measurement())  # 11
+        self.pages.addWidget(shg_general.General())  # 12
+        self.pages.addWidget(shg_tempdep.Tempdep())  # 13
+        self.pages.addWidget(shg_imaging.Imaging())  # 14
 
         # self.toggle_dark_mode()
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
-        self.main_layout.addWidget(self.right_sidebar, 3)  # Right sidebar stretch factor 1
-        self.main_layout.addWidget(self.pages, 10)  # Central content area stretch factor 4
+        self.main_layout.addWidget(self.right_sidebar, 2)  # Right sidebar stretch factor 1
+        self.main_layout.addWidget(self.pages, 13)  # Central content area stretch factor 4
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -174,57 +168,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.resize(1500, 850)
-
-    def toggle_dark_mode(self):
-        # if is_checked == 0:
-        print("ENTER DARK")
-        self.apply_dark_mode()
-        # elif is_checked == 1:
-        print("ENTER Bright")
-        self.apply_light_mode()
-
-    def apply_dark_mode(self):
-        self.setStyleSheet("""
-               QMainWindow {
-                   background-color: #2E2E2E;
-                   color: white;
-               }
-               QListWidget {
-                   background-color: #3B3B3B;
-                   color: #FFFFFF;
-                   border: none;
-                   font-size: 24px;
-               }
-               QListWidget::item:selected {
-                   background-color: #595959;
-               }
-               # QCheckBox {
-               #     color: #FFFFFF;
-               # }
-           """)
-
-    def apply_light_mode(self):
-        self.setStyleSheet("""
-               QMainWindow {
-                   background-color: #E0E0E0;
-                   color: black;
-               }
-               QListWidget {
-                   background-color: #FFFFFF;
-                   color: black;
-                   border: none;
-                   font-size: 24px;
-               }
-               QListWidget::item:selected {
-                   background-color: #C0C0C0;
-               }
-               # QCheckBox {
-               #     color: black;
-               # }
-           """)
-
-
+        self.resize(1500, 900)
 
     def update_menu_bar(self, current_row):
         self.whichSideBar = 1
@@ -233,7 +177,6 @@ class MainWindow(QMainWindow):
 
         if current_row == 0:  # FMR
             self.right_sidebar.hide()
-         
             self.pages.setCurrentIndex(0)
             self.currentindex = 0
         else:
@@ -241,25 +184,31 @@ class MainWindow(QMainWindow):
 
 
         if current_row == 1:  # FMR
-
-            self.right_sidebar.addItem(QListWidgetItem("RAW Data Processing"))
-            self.right_sidebar.addItem(QListWidgetItem("Data Interpolation"))
-            self.right_sidebar.addItem(QListWidgetItem("Heatmap Generation"))
-            self.right_sidebar.addItem(QListWidgetItem("FMR Profile Fitting"))
-            self.right_sidebar.addItem(QListWidgetItem("Kittel Fitting"))
-            self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(1)
+            FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "FMR")
+            VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "VSM")
+            ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "ETO")
+            SHG = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "SHG")
+            self.right_sidebar.addItem(QListWidgetItem(FMR))
+            self.right_sidebar.addItem(QListWidgetItem(VSM))
+            self.right_sidebar.addItem(QListWidgetItem(ETO))
+            self.right_sidebar.addItem(QListWidgetItem(SHG))
+            self.right_sidebar.currentRowChanged.connect(self.update_data_processing)
+            self.right_sidebar.setCurrentRow(7)
+            self.pages.setCurrentIndex(0)
             self.currentindex = 1
             # self.left_sidebar.setEnabled(True)
 
         elif current_row == 2:  # VSM
-            self.right_sidebar.addItem(QListWidgetItem("General Settings"))
-            self.right_sidebar.addItem(QListWidgetItem("Security"))
-            self.right_sidebar.addItem(QListWidgetItem("Privacy"))
-            self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(2)
+            self.right_sidebar.addItem(QListWidgetItem("PPMS"))
+            self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
+            self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
+            self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
+            self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
+            self.right_sidebar.addItem(QListWidgetItem("Measure"))
+            self.right_sidebar.currentRowChanged.connect(self.update_exp_processing)
+            self.right_sidebar.setCurrentRow(7)
+            self.pages.setCurrentIndex(0)
             self.currentindex = 2
-
 
         elif current_row == 3:  # ETO
             self.right_sidebar.addItem(QListWidgetItem("Edit Profile"))
@@ -275,78 +224,62 @@ class MainWindow(QMainWindow):
             self.right_sidebar.addItem(QListWidgetItem("Imaging Mode"))
             self.right_sidebar.currentRowChanged.connect(self.update_SHG)
             self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(4)
+            self.pages.setCurrentIndex(6)
             self.currentindex = 4
 
-        elif current_row == 5:  # PPMS
 
-            self.right_sidebar.addItem(QListWidgetItem("PPMS"))
-            self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
-            self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
-            self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
-            self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
-            self.right_sidebar.addItem(QListWidgetItem("Measure"))
-            self.right_sidebar.currentRowChanged.connect(self.update_qd)
-            self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(5)
-            self.currentindex = 5
-
-    def update_qd(self, current_row):
+    def update_data_processing(self, current_row):
         if current_row == 0:  # PPMS
             self.right_sidebar.setCurrentRow(0)
-            # Enter the corresponding function
-            self.pages.setCurrentIndex(6)
-            self.currentqdindex = 0
-            # self.left_sidebar.setEnabled(True)
+            self.pages.setCurrentIndex(1)
+            self.currentdpindex = 0
 
         elif current_row == 1:  # NV
-
             self.right_sidebar.setCurrentRow(1)
-            self.pages.setCurrentIndex(7)
+            self.pages.setCurrentIndex(2)
             self.currentqdindex = 1
 
         elif current_row == 2:  # DC AC Current
-
             self.right_sidebar.setCurrentRow(2)
-            self.pages.setCurrentIndex(8)
+            self.pages.setCurrentIndex(3)
             self.currentqdindex = 2
 
         elif current_row == 3:  # RF
             self.right_sidebar.setCurrentRow(3)
-            self.pages.setCurrentIndex(9)
+            self.pages.setCurrentIndex(12)
             self.currentqdindex = 3
 
-        elif current_row == 4:  # Measure
-            # self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
-            self.right_sidebar.setCurrentRow(4)
-            self.pages.setCurrentIndex(1)
-            self.currentqdindex = 4
 
-        elif current_row == 5:  # Measure
-            # self.right_sidebar.currentRowChanged.connect(self.update_PPMS)
-            self.right_sidebar.setCurrentRow(5)
-            self.pages.setCurrentIndex(10)
-            self.currentqdindex = 5
-
-    def update_SHG(self, current_row):
+    def update_exp_processing(self, current_row):
         if current_row == 0:  # General Processing
             self.right_sidebar.setCurrentRow(0)
-            # Enter the corresponding function
-            self.pages.setCurrentIndex(11)
+            self.pages.setCurrentIndex(7)
             self.currentqdindex = 0
-            # self.left_sidebar.setEnabled(True)
 
         elif current_row == 1:  # Temp Dep
-
             self.right_sidebar.setCurrentRow(1)
-            self.pages.setCurrentIndex(12)
+            self.pages.setCurrentIndex(8)
             self.currentqdindex = 1
 
         elif current_row == 2:  # Imaging
-
             self.right_sidebar.setCurrentRow(2)
-            self.pages.setCurrentIndex(13)
+            self.pages.setCurrentIndex(9)
             self.currentqdindex = 2
+
+        elif current_row == 3:  # Imaging
+            self.right_sidebar.setCurrentRow(3)
+            self.pages.setCurrentIndex(10)
+            self.currentqdindex = 3
+
+        elif current_row == 4:  # Imaging
+            self.right_sidebar.setCurrentRow(4)
+            self.pages.setCurrentIndex(11)
+            self.currentqdindex = 4
+
+        elif current_row == 5:  # Imaging
+            self.right_sidebar.setCurrentRow(5)
+            self.pages.setCurrentIndex(11)
+            self.currentqdindex = 5
 
     def update_tool_bar(self, current_row):
         self.whichSideBar = 2
@@ -371,7 +304,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    # app.setStyleSheet("QWidget { background-color: #36454F; }")
+    app.setStyleSheet("QWidget { background-color: #ECECEB; }")
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22.04 20.87">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 22 20.9">
   <defs>
     <style>
       .cls-1 {
         fill: none;
-        stroke: #000;
+        stroke: #2c6ff6;
         stroke-linecap: round;
         stroke-linejoin: round;
         stroke-width: 2px;
       }
     </style>
   </defs>
-  <circle class="cls-1" cx="4.79" cy="4.75" r="3.75"/>
-  <circle class="cls-1" cx="17.29" cy="4.75" r="3.75"/>
-  <circle class="cls-1" cx="4.75" cy="16.12" r="3.75"/>
-  <circle class="cls-1" cx="17.25" cy="16.12" r="3.75"/>
+  <circle class="cls-1" cx="4.8" cy="4.8" r="3.7"/>
+  <circle class="cls-1" cx="17.3" cy="4.8" r="3.7"/>
+  <circle class="cls-1" cx="4.8" cy="16.1" r="3.7"/>
+  <circle class="cls-1" cx="17.2" cy="16.1" r="3.7"/>
 </svg>
