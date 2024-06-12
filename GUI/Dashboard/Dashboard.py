@@ -22,8 +22,8 @@ class Dash(QMainWindow):
             self.hello_label = QLabel('Good Afternoon, Colleague!', self)
         else:
             self.hello_label = QLabel('Good Evening, Colleague!', self)
-        
-        self.hello_label.setStyleSheet("color:   #E44E2C  ; font-weight: bold; font-size: 30px; font-style: italic")
+
+        self.hello_label.setStyleSheet("color: #1c2833; font-weight: bold; font-size: 30px; font-style: italic")
         self.time_label = QLabel('Today is ', self)
         self.time_label.setStyleSheet("color:  #abb2b9 ; font-weight: bold; font-size: 15px;")
 
@@ -32,6 +32,7 @@ class Dash(QMainWindow):
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.headiing_layout.addWidget(self.hello_label)
         self.headiing_layout.addWidget(self.time_label)
+        self.headiing_layout.addStretch(2)
 
         self.widget_layout = QHBoxLayout()
 
