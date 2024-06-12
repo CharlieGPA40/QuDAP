@@ -143,7 +143,7 @@ class General(QWidget):
                 with open("GUI/SHG/QButtonWidget.qss", "r") as file:
                     self.Browse_Button_stylesheet = file.read()
                 titlefont = QFont("Arial", 20)
-                self.font = QFont("Arial", 13)
+                self.font = QFont("Arial", 12)
                 self.setStyleSheet("background-color: white;")
                 # self.master_layout = QVBoxLayout()
                 # # Create main vertical layout with centered alignment
@@ -187,9 +187,16 @@ class General(QWidget):
 
                 # # Create the file browser area
                 self.file_tree = QTreeWidget()
+                self.file_tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 self.file_tree_layout = QHBoxLayout()
+
                 self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
                 self.file_tree_layout.addWidget(self.file_tree)
+                self.file_tree.setStyleSheet("""
+                                            QTreeWidget:item {
+                                                font-size: 25px;
+                                            }
+                                        """)
                 self.file_view_group_box.setLayout(self.file_tree_layout)
                 self.fileUpload_layout.addWidget(self.file_selection_group_box,1)
                 self.fileUpload_layout.addWidget(self.file_view_group_box,1)
@@ -197,13 +204,12 @@ class General(QWidget):
 
                 self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
                 self.SHG_data_Processing_main_layout.addLayout(self.fileUpload_layout)
-                self.SHG_data_Processing_main_layout.addStretch(10)
+                self.SHG_data_Processing_main_layout.addStretch(1)
                 self.rstpage()
                 # self.scrollArea.setWidget(self.scrollContent)
 
                 # Add the scroll area to the main layout
                 # self.master_layout.addWidget(self.scrollArea)
-                print('End')
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -378,7 +384,7 @@ class General(QWidget):
         # Add the scroll area to the main layout
         # self.master_layout.addWidget(self.scrollArea)
 
-        self.SHG_data_Processing_main_layout.addStretch(5)
+        self.SHG_data_Processing_main_layout.addStretch(1)
 
         self.setLayout(self.SHG_data_Processing_main_layout)
 

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QListWidget, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QAbstractItemView)
 from PyQt6.QtGui import QIcon, QFont
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QDateTime, QThread
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QDateTime, QTime
 import time
 
 import sys
@@ -13,7 +13,16 @@ class Dash(QMainWindow):
 
         self.main_layout = QVBoxLayout()
         self.headiing_layout = QVBoxLayout()
-        self.hello_label = QLabel('Hello, User!',  self)
+        current_time = QTime.currentTime()
+
+        hour = current_time.hour()
+        if 0 <= hour <= 12:
+            self.hello_label = QLabel('Good Morning, Colleague!', self)
+        elif 12 < hour <= 5:
+            self.hello_label = QLabel('Good Afternoon, Colleague!', self)
+        else:
+            self.hello_label = QLabel('Good Evening, Colleague!', self)
+        
         self.hello_label.setStyleSheet("color:   #E44E2C  ; font-weight: bold; font-size: 30px; font-style: italic")
         self.time_label = QLabel('Today is ', self)
         self.time_label.setStyleSheet("color:  #abb2b9 ; font-weight: bold; font-size: 15px;")
@@ -41,5 +50,6 @@ class Dash(QMainWindow):
     def update_time(self):
         current_time = QDateTime.currentDateTime()
         time_display = current_time.toString("MM/dd/yyyy hh:mm:ss ")
+
         self.time_label.setText('Today is ' + time_display)
 
