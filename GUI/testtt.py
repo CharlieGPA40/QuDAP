@@ -1,46 +1,68 @@
 import sys
 import os
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QFileDialog, QTreeWidget, QTreeWidgetItem, QSplitter
-from PyQt6.QtCore import Qt, QMimeData, QDir
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+import mimetypes
+import psutil
+import pyvisa
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget,
+    QGroupBox, QLabel, QCalendarWidget, QPushButton
+)
+from PyQt6.QtCore import Qt, QTimer, QDate
+from PyQt6.QtGui import QPainter, QPen, QColor
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
-class DragDropWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
 
-    def initUI(self):
-        self.setAcceptDrops(True)
-        self.setStyleSheet("background-color: lightgray; border: 2px dashed black;")
+class MatplotlibWidget(FigureCanvas):
+    def __init__(self, parent=None):
+        fig = Figure(facecolor='white')
+        self.axes = fig.add_subplot(111)
+        super(MatplotlibWidget, self).__init__(fig)
+        self.setParent(parent)
+        self.cpu_usage = []
+        self.ram_usage = []
+        self.time = []
+        self.plot_initial()
 
-        self.label = QLabel("Drag and drop a folder here or click the button to select a folder", self)
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet("color: blue; font-weight: bold; font-size: 16px;")
+    def plot_initial(self):
+        # Initialize the plot with a dark theme
+        self.axes.set_title('CPU and RAM Usage', color='white')
+        self.axes.set_xlabel('Time (s)', color='white')
+        self.axes.set_ylabel('Usage (%)', color='white')
+        # self.axes.set_xlim(0, 10)
+        self.axes.set_ylim(0, 100)
+        self.axes.grid(True, color='gray', linestyle='--', linewidth=0.5)
+        self.axes.set_facecolor('white')
+        self.axes.tick_params(axis='x', colors='black')
+        self.axes.tick_params(axis='y', colors='black')
 
-        self.button = QPushButton("Select Folder", self)
-        self.button.clicked.connect(self.open_folder_dialog)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.button)
-        self.setLayout(layout)
+    def update_plot(self):
+        # Update the plot with new data
+        self.cpu_usage.append(psutil.cpu_percent())
+        self.ram_usage.append(psutil.virtual_memory().percent)
+        if len(self.time) > 0:
+            self.time.append(self.time[-1] + 1)
+        else:
+            self.time.append(0)
 
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+        if len(self.time) > 60:
+            self.time.pop(0)
+            self.cpu_usage.pop(0)
+            self.ram_usage.pop(0)
+            self.axes.cla()
+            # self.plot_initial()
 
-    def dropEvent(self, event: QDropEvent):
-        urls = event.mimeData().urls()
-        if urls:
-            folder_path = urls[0].toLocalFile()
-            self.label.setText(f"Selected folder: {folder_path}")
-            self.parent().display_files(folder_path)
+        else:
+            self.axes.cla()
+            self.axes.set_xlim(0, 60)
+        # self.axes.cla()
+        self.plot_initial()
+        self.axes.plot(self.time, self.cpu_usage, label='CPU Usage', color='green')
+        self.axes.fill_between(self.time, self.cpu_usage, color='green', alpha=0.3)
+        self.axes.plot(self.time, self.ram_usage, label='RAM Usage', color='blue')
+        self.draw()
 
-    def open_folder_dialog(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            self.label.setText(f"Selected folder: {folder_path}")
-            self.parent().display_files(folder_path)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -48,44 +70,95 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Folder Selection and File Browser Example")
-        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle('GPIB Connection and System Monitor')
+        self.setGeometry(100, 100, 1200, 600)
 
-        # Create main widget and layout
         main_widget = QWidget(self)
         main_layout = QVBoxLayout(main_widget)
+
+        # GPIB Group Boxes
+        hbox = QHBoxLayout()
+        self.gpib_boxes = []
+        for i in range(4):
+            box = QGroupBox(f'GPIB Connection {i + 1}')
+            layout = QVBoxLayout(box)
+            label = QLabel('Status: Disconnected')
+            layout.addWidget(label)
+            box.setLayout(layout)
+            self.gpib_boxes.append((box, label))
+            hbox.addWidget(box)
+        self.update_gpib_status()
+
+        # CPU and RAM Usage Chart
+        self.chart = MatplotlibWidget(self)
+        self.chart_timer = QTimer(self)
+        self.chart_timer.timeout.connect(self.chart.update_plot)
+        self.chart_timer.start(1000)  # Update every second
+
+        # Add GPIB boxes and chart to main layout
+        main_layout.addLayout(hbox)
+        main_layout.addWidget(self.chart)
+
+        # Calendar Widget
+        calendar_layout = QVBoxLayout()
+        calendar_layout.addStretch(1)
+        calendar_widget = CustomCalendarWidget(self)
+        calendar_layout.addWidget(calendar_widget)
+        calendar_layout.addStretch(1)
+
+        # Combine HBox and Calendar into a main layout
+        final_layout = QHBoxLayout()
+        final_layout.addLayout(main_layout)
+        final_layout.addLayout(calendar_layout)
+        main_widget.setLayout(final_layout)
         self.setCentralWidget(main_widget)
 
-        # Create a splitter to separate drag-and-drop area and file browser
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+    def update_gpib_status(self):
+        # Update the status of the GPIB connections
+        rm = pyvisa.ResourceManager()
+        try:
+            resources = rm.list_resources()
+            for i, (box, label) in enumerate(self.gpib_boxes):
+                if i < len(resources):
+                    label.setText(f'Status: Connected ({resources[i]})')
+                else:
+                    label.setText('Status: Disconnected')
+        except:
+            for box, label in self.gpib_boxes:
+                label.setText('Status: Disconnected')
 
-        # Create the drag-and-drop area
-        self.drag_drop_widget = DragDropWidget()
-        splitter.addWidget(self.drag_drop_widget)
+        QTimer.singleShot(5000, self.update_gpib_status)  # Update every 5 seconds
 
-        # Create the file browser area
-        self.file_tree = QTreeWidget()
-        self.file_tree.setHeaderLabels(["Name", "Size", "Comment"])
-        splitter.addWidget(self.file_tree)
 
-        # Add splitter to the main layout
-        main_layout.addWidget(splitter)
+class CustomCalendarWidget(QCalendarWidget):
+    def __init__(self, parent=None):
+        super(CustomCalendarWidget, self).__init__(parent)
+        self.setStyleSheet("background-color: lightorange;")
+        self.highlight_today()
 
-    def display_files(self, folder_path):
-        self.file_tree.clear()
-        for root, dirs, files in os.walk(folder_path):
-            for file_name in files:
-                file_path = os.path.join(root, file_name)
-                file_info = os.stat(file_path)
-                file_size = file_info.st_size
-                item = QTreeWidgetItem(self.file_tree, [file_name, str(file_size), ""])
-                item.setToolTip(0, file_path)
+    def highlight_today(self):
+        today = QDate.currentDate()
+        self.setDateTextFormat(today, self.get_highlight_format())
+
+    def get_highlight_format(self):
+        format = self.dateTextFormat(QDate.currentDate())
+        format.setBackground(QColor('orange'))
+        return format
+
+    def paintCell(self, painter, rect, date):
+        super().paintCell(painter, rect, date)
+        if date == QDate.currentDate():
+            painter.setPen(QPen(Qt.PenStyle.NoPen))
+            painter.setBrush(QColor('orange'))
+            painter.drawEllipse(rect.center(), rect.width() // 4, rect.height() // 4)
+
 
 def main():
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

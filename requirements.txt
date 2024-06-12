@@ -9,3 +9,4 @@ pywin32
 setuptools
 pillow
 matplotlib
+psutil
