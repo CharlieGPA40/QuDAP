@@ -334,6 +334,9 @@ class Dash(QMainWindow):
                 self.applyShadowEffect(obj)
             elif event.type() == QEvent.Type.HoverLeave:
                 self.removeShadowEffect(obj)
+            elif event.type() == QEvent.Type.MouseButtonPress:
+                print('enter')
+                self.openAnotherPythonFile()
         return super().eventFilter(obj, event)
 
     # def event(self, event):
@@ -352,6 +355,11 @@ class Dash(QMainWindow):
 
     def removeShadowEffect(self, widget):
         widget.setGraphicsEffect(None)
+
+    def openAnotherPythonFile(self):
+        # subprocess.run([sys.executable, self.file_path])
+        import initalization
+        initalization.MainWindow.pages.setCurrentIndex(1)
 
     def update_time(self):
         current_time = QDateTime.currentDateTime()
