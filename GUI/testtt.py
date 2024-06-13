@@ -15,27 +15,27 @@ from matplotlib.figure import Figure
 
 class MatplotlibWidget(FigureCanvas):
     def __init__(self, parent=None):
-        fig = Figure(facecolor='white')
+        fig = Figure(facecolor='white')  # Set the background color to white
         self.axes = fig.add_subplot(111)
         super(MatplotlibWidget, self).__init__(fig)
         self.setParent(parent)
-        self.cpu_usage = []
-        self.ram_usage = []
-        self.time = []
         self.plot_initial()
 
     def plot_initial(self):
         # Initialize the plot with a dark theme
-        self.axes.set_title('CPU and RAM Usage', color='white')
-        self.axes.set_xlabel('Time (s)', color='white')
-        self.axes.set_ylabel('Usage (%)', color='white')
-        # self.axes.set_xlim(0, 10)
+        self.axes.set_title('CPU and RAM Usage', color='black')
+        self.axes.set_xlabel('Time (s)', color='black')
+        self.axes.set_ylabel('% Utilization', color='black')
+        self.axes.set_xlim(0, 60)
         self.axes.set_ylim(0, 100)
         self.axes.grid(True, color='gray', linestyle='--', linewidth=0.5)
         self.axes.set_facecolor('white')
         self.axes.tick_params(axis='x', colors='black')
         self.axes.tick_params(axis='y', colors='black')
-
+        self.axes.set_xticklabels([])  # Hide x-tick labels
+        self.cpu_usage = []
+        self.ram_usage = []
+        self.time = []
 
     def update_plot(self):
         # Update the plot with new data
@@ -50,17 +50,14 @@ class MatplotlibWidget(FigureCanvas):
             self.time.pop(0)
             self.cpu_usage.pop(0)
             self.ram_usage.pop(0)
-            self.axes.cla()
-            # self.plot_initial()
 
-        else:
-            self.axes.cla()
-            self.axes.set_xlim(0, 60)
-        # self.axes.cla()
+        self.axes.cla()
         self.plot_initial()
-        self.axes.plot(self.time, self.cpu_usage, label='CPU Usage', color='green')
-        self.axes.fill_between(self.time, self.cpu_usage, color='green', alpha=0.3)
-        self.axes.plot(self.time, self.ram_usage, label='RAM Usage', color='blue')
+        self.axes.plot(self.time, self.cpu_usage, label='CPU Usage', color='blue')
+        self.axes.fill_between(self.time, self.cpu_usage, color='blue', alpha=0.3)
+        self.axes.plot(self.time, self.ram_usage, label='RAM Usage', color='green')
+        self.axes.fill_between(self.time, self.ram_usage, color='green', alpha=0.3)
+        self.axes.legend(facecolor='white', edgecolor='black')
         self.draw()
 
 
