@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 22.3 18.5">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 570 399">
   <defs>
     <style>
       .cls-1 {
@@ -7,10 +7,10 @@
         stroke: #000;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 2px;
+        stroke-width: 22px;
       }
     </style>
   </defs>
-  <path class="cls-1" d="M18.1,1h-4.9c-2.7,0-4,2.5-4.2,3l-2.1,6.2c-.9,2.3-2.2,3.4-4.2,3.6h-1.6"/>
-  <path class="cls-1" d="M1.8,13.9h4.9c2.7,0,4-2.5,4.2-3l2.1-6.2c.9-2.3,2.2-3.4,4.2-3.6h2.2"/>
+  <path class="cls-1" d="M483.9,54h-113.5c-62.5,0-92.7,48.1-97.3,57.7l-48.6,119.2c-20.8,44.2-51,65.4-97.3,69.2h-37.1"/>
+  <path class="cls-1" d="M106.3,302h113.5c62.5,0,92.7-48.1,97.3-57.7l48.6-119.2c20.8-44.2,51-65.4,97.3-69.2h51"/>
 </svg>

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QListWidget, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QAbstractItemView, QFrame)
 from PyQt6.QtGui import QIcon, QFont, QPixmap
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 import sys
 import GUI.FMR.FMR as fmr
 import GUI.Setting.Setting as Setting
@@ -20,7 +20,8 @@ import GUI.QDesign.BNC845RF as rf
 import GUI.QDesign.measurement as m
 import GUI.Dashboard.Dashboard as Dashboard
 
-
+class Communicator(QObject):
+    change_page = pyqtSignal(int, int, int)
 # Individual Frames
 class SettingsPage(QWidget):
     def __init__(self):
@@ -44,7 +45,7 @@ class ProfilePage(QWidget):
 
 # Main Window
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, communicator):
         super().__init__()
         self.setWindowTitle("QDPE")
         self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
@@ -55,6 +56,7 @@ class MainWindow(QMainWindow):
         self.currentToolIndex = 0  # Index for help menu and setting menu selection
         self.whichSideBar = 0  # Index for which side bar on the left side has been selected; 1 means menu sidebar; 2 means tool menu bar
         self.currentdpindex = 0
+        self.communicator = communicator
         self.initUI()
 
     def initUI(self):
@@ -134,7 +136,7 @@ class MainWindow(QMainWindow):
         self.right_sidebar = QListWidget()
         self.right_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
         self.right_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
-
+        self.communicator.change_page.connect(self.set_page)
         # Content Pages
         self.pages = QStackedWidget()
         self.pages.setStyleSheet("background-color: white;")
@@ -168,7 +170,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.resize(1600, 900)
+        self.setFixedSize(1600, 900)
+
+    @pyqtSlot(int, int, int)
+    def set_page(self, page, left_sidebar, right_sidebar):
+        self.pages.setCurrentIndex(page)
+        self.left_sidebar.setCurrentRow(left_sidebar)
+        self.right_sidebar.setCurrentRow(right_sidebar)
 
     def update_menu_bar(self, current_row):
         self.whichSideBar = 1
@@ -304,11 +312,13 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    communicator = Communicator()
     app.setStyleSheet("QWidget { background-color: #ECECEB; }")
-    window = MainWindow()
+    window = MainWindow(communicator)
     window.show()
-    sys.exit(app.exec())
 
+    app.communicator = communicator
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()

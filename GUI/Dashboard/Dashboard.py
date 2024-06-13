@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QFrame, QMainWindow, QWidget, QCalendarWidget, QGraphicsDropShadowEffect, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QCheckBox, QMessageBox)
+, QApplication, QMessageBox)
 from PyQt6.QtGui import QPen, QColor, QIcon, QPixmap
 from PyQt6.QtCore import QDate, Qt, QTimer, QDateTime, QTime, QEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -136,7 +136,143 @@ class Dash(QMainWindow):
             self.IOLabel_1_stylesheet = file.read()
         self.widget_layout = QHBoxLayout()
 
+        # ///////////////////
+        shg_layout = QHBoxLayout()
+        # IO
+        shg_icon_label = QLabel()
+        shg_pixmap = QPixmap('GUI/Icon/SHG.svg')
+        shg_pixmap = shg_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                         Qt.TransformationMode.SmoothTransformation)
+        shg_icon_label.setPixmap(shg_pixmap)
+        shg_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Value
+        shg_icon_connection_layout = QVBoxLayout()
+        shg_icon_connection_layout.addWidget(shg_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        shg_layout.addLayout(shg_icon_connection_layout)
+
+        shg_connection_layout = QVBoxLayout()
+        self.Quick_access_label = QLabel('Quick Access:')
+        self.shg_Label = QLabel('SHG')
+        self.shg_Label.setStyleSheet(self.IOLabel_stylesheet)
+        shg_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        shg_connection_layout.addWidget(self.shg_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        shg_layout.addLayout(shg_connection_layout)
+        self.shg_ccntainer = QWidget()
+        self.shg_ccntainer.setStyleSheet(
+            """
+             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.shg_ccntainer.setLayout(shg_layout)
+        self.shg_ccntainer.setObjectName('shg')
+        self.initShadowEffect(self.shg_ccntainer)
+        self.widget_layout.addWidget(self.shg_ccntainer, 1)
+        # ////////////////
+        # ///////////////////
+        fmr_layout = QHBoxLayout()
+        # IO
+        fmr_icon_label = QLabel()
+        fmr_pixmap = QPixmap('GUI/Icon/FMR.svg')
+        fmr_pixmap = fmr_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+        fmr_icon_label.setPixmap(fmr_pixmap)
+        fmr_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Value
+        fmr_icon_connection_layout = QVBoxLayout()
+        fmr_icon_connection_layout.addWidget(fmr_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        fmr_layout.addLayout(fmr_icon_connection_layout)
+
+        fmr_connection_layout = QVBoxLayout()
+        self.fmr_Label = QLabel('fmr')
+        self.fmr_Label.setStyleSheet(self.IOLabel_stylesheet)
+        fmr_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        fmr_connection_layout.addWidget(self.fmr_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        fmr_layout.addLayout(fmr_connection_layout)
+        self.fmr_ccntainer = QWidget()
+        self.fmr_ccntainer.setStyleSheet(
+            """
+             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.fmr_ccntainer.setLayout(fmr_layout)
+        self.fmr_ccntainer.setObjectName('fmr')
+        self.initShadowEffect(self.fmr_ccntainer)
+        self.widget_layout.addWidget(self.fmr_ccntainer, 1)
         #///////////////////
+        # ///////////////////
+        vsm_layout = QHBoxLayout()
+        # IO
+        vsm_icon_label = QLabel()
+        vsm_pixmap = QPixmap('GUI/Icon/VSM.svg')
+        vsm_pixmap = vsm_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+        vsm_icon_label.setPixmap(vsm_pixmap)
+        vsm_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Value
+        vsm_icon_connection_layout = QVBoxLayout()
+        vsm_icon_connection_layout.addWidget(vsm_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        vsm_layout.addLayout(vsm_icon_connection_layout)
+
+        vsm_connection_layout = QVBoxLayout()
+        self.vsm_Label = QLabel('VSM')
+        self.vsm_Label.setStyleSheet(self.IOLabel_stylesheet)
+        vsm_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        vsm_connection_layout.addWidget(self.vsm_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        vsm_layout.addLayout(vsm_connection_layout)
+        self.vsm_ccntainer = QWidget()
+        self.vsm_ccntainer.setStyleSheet(
+            """
+             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.vsm_ccntainer.setLayout(vsm_layout)
+        self.vsm_ccntainer.setObjectName('vsm')
+        self.initShadowEffect(self.vsm_ccntainer)
+        self.widget_layout.addWidget(self.vsm_ccntainer, 1)
+        # ///////////////////
+        # ///////////////////
+        eto_layout = QHBoxLayout()
+        # IO
+        eto_icon_label = QLabel()
+        eto_pixmap = QPixmap('GUI/Icon/ETO.svg')
+        eto_pixmap = eto_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+        eto_icon_label.setPixmap(eto_pixmap)
+        eto_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Value
+        eto_icon_connection_layout = QVBoxLayout()
+        eto_icon_connection_layout.addWidget(eto_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        eto_layout.addLayout(eto_icon_connection_layout)
+
+        eto_connection_layout = QVBoxLayout()
+        self.eto_Label = QLabel('ETO')
+        self.eto_Label.setStyleSheet(self.IOLabel_stylesheet)
+        eto_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        eto_connection_layout.addWidget(self.eto_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        eto_layout.addLayout(eto_connection_layout)
+        self.eto_ccntainer = QWidget()
+        self.eto_ccntainer.setStyleSheet(
+            """
+             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.eto_ccntainer.setLayout(eto_layout)
+        self.eto_ccntainer.setObjectName('eto')
+        self.initShadowEffect(self.eto_ccntainer)
+        self.widget_layout.addWidget(self.eto_ccntainer, 1)
+        # ///////////////////
         GPIB_layout = QHBoxLayout()
         # IO
         GPIB_icon_label = QLabel()
@@ -152,7 +288,7 @@ class Dash(QMainWindow):
 
         GPIB_connection_layout = QVBoxLayout()
         self.GPIB_Label = QLabel('GPIB Connections:')
-        self.GPIB_number_Label = QLabel('None')
+        self.GPIB_number_Label = QLabel('0')
         self.GPIB_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         GPIB_connection_layout.addWidget(self.GPIB_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         GPIB_connection_layout.addWidget(self.GPIB_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
@@ -168,8 +304,9 @@ class Dash(QMainWindow):
             }
                                           """)
         self.GPIB_ccntainer.setLayout(GPIB_layout)
+        self.GPIB_ccntainer.setObjectName("GPIB")
         self.initShadowEffect(self.GPIB_ccntainer)
-        self.widget_layout.addWidget(self.GPIB_ccntainer,1)
+        self.widget_layout.addWidget(self.GPIB_ccntainer, 1)
         # ////////////////
 
         # ///////////////////
@@ -187,7 +324,7 @@ class Dash(QMainWindow):
         ASLR_layout.addLayout(ASLR_icon_connection_layout)
         ASLR_connection_layout = QVBoxLayout()
         self.ASLR_Label = QLabel('ASLR Connections:')
-        self.ASLR_number_Label = QLabel('None')
+        self.ASLR_number_Label = QLabel('0')
         self.ASLR_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         ASLR_connection_layout.addWidget(self.ASLR_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         ASLR_connection_layout.addWidget(self.ASLR_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
@@ -203,6 +340,7 @@ class Dash(QMainWindow):
             }
                                           """)
         self.ASLR_ccntainer.setLayout(ASLR_layout)
+        self.ASLR_ccntainer.setObjectName("ASLR")
         self.widget_layout.addWidget(self.ASLR_ccntainer,1)
         self.initShadowEffect(self.ASLR_ccntainer)
         # ////////////////
@@ -221,7 +359,7 @@ class Dash(QMainWindow):
         USB_layout.addLayout(USB_icon_connection_layout)
         USB_connection_layout = QVBoxLayout()
         self.USB_Label = QLabel('USB Connections:')
-        self.USB_number_Label = QLabel('None')
+        self.USB_number_Label = QLabel('0')
         self.USB_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         USB_connection_layout.addWidget(self.USB_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         USB_connection_layout.addWidget(self.USB_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
@@ -236,6 +374,7 @@ class Dash(QMainWindow):
             }
                                           """)
         self.USB_ccntainer.setLayout(USB_layout)
+        self.USB_ccntainer.setObjectName("USB")
         self.initShadowEffect(self.USB_ccntainer)
         self.widget_layout.addWidget(self.USB_ccntainer,1)
         # ////////////////
@@ -255,7 +394,7 @@ class Dash(QMainWindow):
         TCPIP_layout.addLayout(TCPIP_icon_connection_layout)
         TCPIP_connection_layout = QVBoxLayout()
         self.TCPIP_Label = QLabel('Ethernet Connections:')
-        self.TCPIP_number_Label = QLabel('None')
+        self.TCPIP_number_Label = QLabel('0')
         self.TCPIP_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         TCPIP_connection_layout.addWidget(self.TCPIP_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         TCPIP_connection_layout.addWidget(self.TCPIP_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
@@ -263,19 +402,21 @@ class Dash(QMainWindow):
 
         TCPIP_layout.addWidget(TCPIP_icon_label)
         TCPIP_layout.addLayout(TCPIP_connection_layout)
-        self.TCPIP_ccntainer = QWidget()
-        self.TCPIP_ccntainer.setStyleSheet(""" 
+        self.TCPIP_container = QWidget()
+        self.TCPIP_container.setStyleSheet(""" 
                                           QWidget{background-color: peachpuff; border-radius: 20px;}
                                            QWidget:hover {
                 background-color: peachpuff;
                 border: 2px solid #ff5733;
             }
                                           """)
-        self.TCPIP_ccntainer.setLayout(TCPIP_layout)
-        self.initShadowEffect(self.TCPIP_ccntainer)
-        self.widget_layout.addWidget(self.TCPIP_ccntainer,1)
+        self.TCPIP_container.setLayout(TCPIP_layout)
+        self.TCPIP_container.setObjectName("TCPIP")
+        self.initShadowEffect(self.TCPIP_container)
+        self.widget_layout.addWidget(self.TCPIP_container,1)
         self.update_gpib_status()
         # ////////////////
+        self.Quick_access_label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.GPIB_Label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.ASLR_Label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.USB_Label.setStyleSheet(self.IOLabel_1_stylesheet)
@@ -307,7 +448,7 @@ class Dash(QMainWindow):
         self.main_layout.addStretch(1)
         self.container = QWidget()
         self.container.setLayout(self.main_layout)
-        self.container.setGeometry(100, 100, 400, 300)
+        # self.resize(200, 900)
         self.setCentralWidget(self.container)
 
         self.timer = QTimer(self)
@@ -335,19 +476,34 @@ class Dash(QMainWindow):
             elif event.type() == QEvent.Type.HoverLeave:
                 self.removeShadowEffect(obj)
             elif event.type() == QEvent.Type.MouseButtonPress:
-                print('enter')
-                self.openAnotherPythonFile()
+                self.openAnotherPythonFile(self.page_index, self.left_index, self.right_index)
         return super().eventFilter(obj, event)
 
-    # def event(self, event):
-    #     if event.type() == QEvent.Type.HoverEnter:
-    #         self.applyShadowEffect(event.target())
-    #     elif event.type() == QEvent.Type.HoverLeave:
-    #         self.removeShadowEffect(event.target())
-    #     return super().event(event)
 
     def applyShadowEffect(self, widget):
+        print(widget.objectName())
+        if widget.objectName() == 'shg':
+            self.page_index = 12
+            self.left_index = 1
+            self.right_index = 3
+        elif widget.objectName() == 'fmr':
+            self.page_index = 0
+            self.left_index = 1
+            self.right_index = 0
+        elif widget.objectName() == 'vsm':
+            self.page_index = 1
+            self.left_index = 1
+            self.right_index = 1
+        elif widget.objectName() == 'eto':
+            self.page_index = 2
+            self.left_index = 1
+            self.right_index = 2
+        else:
+            self.page_index = 0
+            self.left_index = 0
+            self.right_index = 0
         try:
+
             widget.setGraphicsEffect(widget.shadow_effect)
         except RuntimeError as e:
             self.initShadowEffect(widget)
@@ -356,11 +512,24 @@ class Dash(QMainWindow):
     def removeShadowEffect(self, widget):
         widget.setGraphicsEffect(None)
 
-    def openAnotherPythonFile(self):
-        # subprocess.run([sys.executable, self.file_path])
-        import initalization
-        initalization.MainWindow.pages.setCurrentIndex(1)
+    def openAnotherPythonFile(self, page_index, left_index, right_index):
+        try:
+            def change_page(page, left_sidebar, right_sidebar):
+                app = QApplication.instance()
+                if app is not None:
+                    communicator = getattr(app, 'communicator', None)
+                    if communicator is not None:
+                        communicator.change_page.emit(page, left_sidebar, right_sidebar)
+                    else:
+                        print("Communicator not found.")
+                else:
+                    print("Application instance not found.")
 
+            change_page(page_index, left_index, right_index)
+        except Exception as e:
+            print(e)
+            self.initUI()
+            return
     def update_time(self):
         current_time = QDateTime.currentDateTime()
         time_display = current_time.toString("MM/dd/yyyy hh:mm:ss ")
