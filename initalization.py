@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
-        self.main_layout.addWidget(self.right_sidebar, 2)  # Right sidebar stretch factor 1
+        self.main_layout.addWidget(self.right_sidebar, 4)  # Right sidebar stretch factor 1
         self.main_layout.addWidget(self.pages, 13)  # Central content area stretch factor 4
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -168,7 +168,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.resize(1500, 900)
+        self.resize(1600, 900)
 
     def update_menu_bar(self, current_row):
         self.whichSideBar = 1

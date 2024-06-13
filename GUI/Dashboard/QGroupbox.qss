@@ -1,9 +1,0 @@
- QGroupBox {
-                    border: none;
-                    border-radius: 10px;
-                    margin-top: 1ex; /* leave space at the top for the title */
-                    padding: 2px;
-                    background-color: white;
-
-                }
-

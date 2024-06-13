@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import (
-    QFrame, QMainWindow, QWidget, QCalendarWidget, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+    QFrame, QMainWindow, QWidget, QCalendarWidget, QGraphicsDropShadowEffect, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QMessageBox)
-from PyQt6.QtGui import QPen, QColor
-from PyQt6.QtCore import QDate, Qt, QTimer, QDateTime, QTime
+from PyQt6.QtGui import QPen, QColor, QIcon, QPixmap
+from PyQt6.QtCore import QDate, Qt, QTimer, QDateTime, QTime, QEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import pyvisa
 from matplotlib.figure import Figure
@@ -104,9 +104,9 @@ class Dash(QMainWindow):
         self.main_layout = QVBoxLayout()
         self.headiing_layout = QVBoxLayout()
         current_time = QTime.currentTime()
-
+        self.setGeometry(100, 100, 50, 50)
         hour = current_time.hour()
-        print(hour)
+        self.shadow_effects = []
         if 0 <= hour <= 11:
             self.hello_label = QLabel('Good Morning, Colleague!', self)
         elif 11 < hour <= 17:
@@ -121,120 +121,168 @@ class Dash(QMainWindow):
         line.setFrameShape(QFrame.Shape.HLine)  # Horizontal line
         # line.setFrameShadow(QFrame.Shadow.Sunken)
         line.setStyleSheet("color: #ff5733;")  # Set the color of the line
-        line.setFixedHeight(5)  # Set the thickness of the line
-        line.setFixedWidth(1150)  # Set the length of the line
+        line.setFixedHeight(10)  # Set the thickness of the line
+        line.setFixedWidth(1200)  # Set the length of the line
         # Center the label horizontally and vertically
         self.hello_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.headiing_layout.addWidget(self.hello_label)
         self.headiing_layout.addWidget(self.time_label)
-        self.headiing_layout.addWidget(line)
-        self.headiing_layout.addSpacing(70)
-        with open("GUI/Dashboard/QGroupbox.qss", "r") as file:
-            self.IOGroup_stylesheet = file.read()
-            print(self.IOGroup_stylesheet)
+        self.headiing_layout.addWidget(line, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.headiing_layout.addSpacing(50)
+        with open("GUI/Dashboard/QLabel.qss", "r") as file:
+            self.IOLabel_stylesheet = file.read()
+        with open("GUI/Dashboard/QLabel_1.qss", "r") as file:
+            self.IOLabel_1_stylesheet = file.read()
         self.widget_layout = QHBoxLayout()
 
         #///////////////////
-        io_layout = QVBoxLayout()
+        GPIB_layout = QHBoxLayout()
         # IO
-        io_label = QLabel('Available Connection')
+        GPIB_icon_label = QLabel()
+        GPIB_pixmap = QPixmap('GUI/Icon/GPIB.svg')
+        GPIB_pixmap = GPIB_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                         Qt.TransformationMode.SmoothTransformation)
+        GPIB_icon_label.setPixmap(GPIB_pixmap)
+        GPIB_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Value
+        GPIB_icon_connection_layout = QVBoxLayout()
+        GPIB_icon_connection_layout.addWidget(GPIB_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        GPIB_layout.addLayout(GPIB_icon_connection_layout)
 
-        i_o_connection_layout = QVBoxLayout()
-        self.GPIB_Label = QLabel('Current GPIB Connection: none')
-        self.USB_Label = QLabel('Current USB Connection: none')
-        self.ASRL_Label = QLabel('Current ASRL Connection: none')
-        self.TCPIP_Label = QLabel('Current TCP/IP Connection: none')
-        i_o_connection_layout.addWidget(self.GPIB_Label)
-        i_o_connection_layout.addWidget(self.USB_Label)
-        i_o_connection_layout.addWidget(self.ASRL_Label)
-        i_o_connection_layout.addWidget(self.TCPIP_Label)
-        self.update_gpib_status()
+        GPIB_connection_layout = QVBoxLayout()
+        self.GPIB_Label = QLabel('GPIB Connections:')
+        self.GPIB_number_Label = QLabel('None')
+        self.GPIB_number_Label.setStyleSheet(self.IOLabel_stylesheet)
+        GPIB_connection_layout.addWidget(self.GPIB_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        GPIB_connection_layout.addWidget(self.GPIB_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
 
-
-        io_layout.addWidget(io_label)
-        io_layout.addLayout(i_o_connection_layout)
-        self.io_ccntainer = QWidget()
-        self.io_ccntainer.setStyleSheet(f"background-color: #FFCCCC; border-radius: 10px;")
-        self.io_ccntainer.setLayout(io_layout)
-        self.widget_layout.addWidget(self.io_ccntainer)
+        GPIB_layout.addLayout(GPIB_connection_layout)
+        self.GPIB_ccntainer = QWidget()
+        self.GPIB_ccntainer.setStyleSheet(
+                                          """ 
+                                          QWidget{background-color: #d6eaf8; border-radius: 20px;}
+                                           QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+            }
+                                          """)
+        self.GPIB_ccntainer.setLayout(GPIB_layout)
+        self.initShadowEffect(self.GPIB_ccntainer)
+        self.widget_layout.addWidget(self.GPIB_ccntainer,1)
         # ////////////////
 
         # ///////////////////
-        io_layout = QVBoxLayout()
+        ASLR_layout = QHBoxLayout()
         # IO
-        io_label = QLabel('Available Connection')
+        ASLR_icon_label = QLabel()
+        ASLR_pixmap = QPixmap('GUI/Icon/ASLR.svg')
+        ASLR_pixmap = ASLR_pixmap.scaled(60, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+        ASLR_icon_label.setPixmap(ASLR_pixmap)
+        ASLR_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Value
-
-        i_o_connection_layout = QVBoxLayout()
-        self.GPIB_Label = QLabel('Current GPIB Connection: none')
-        self.USB_Label = QLabel('Current USB Connection: none')
-        self.ASRL_Label = QLabel('Current ASRL Connection: none')
-        self.TCPIP_Label = QLabel('Current TCP/IP Connection: none')
-        i_o_connection_layout.addWidget(self.GPIB_Label)
-        i_o_connection_layout.addWidget(self.USB_Label)
-        i_o_connection_layout.addWidget(self.ASRL_Label)
-        i_o_connection_layout.addWidget(self.TCPIP_Label)
-        self.update_gpib_status()
-
-        io_layout.addWidget(io_label)
-        io_layout.addLayout(i_o_connection_layout)
-        self.io_ccntainer = QWidget()
-        self.io_ccntainer.setStyleSheet(f"background-color: #FFCCCC; border-radius: 10px;")
-        self.io_ccntainer.setLayout(io_layout)
-        self.widget_layout.addWidget(self.io_ccntainer)
+        ASLR_icon_connection_layout = QVBoxLayout()
+        ASLR_icon_connection_layout.addWidget(ASLR_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        ASLR_layout.addLayout(ASLR_icon_connection_layout)
+        ASLR_connection_layout = QVBoxLayout()
+        self.ASLR_Label = QLabel('ASLR Connections:')
+        self.ASLR_number_Label = QLabel('None')
+        self.ASLR_number_Label.setStyleSheet(self.IOLabel_stylesheet)
+        ASLR_connection_layout.addWidget(self.ASLR_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        ASLR_connection_layout.addWidget(self.ASLR_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        ASLR_layout.addWidget(ASLR_icon_label)
+        ASLR_layout.addLayout(ASLR_connection_layout)
+        self.ASLR_ccntainer = QWidget()
+        self.ASLR_ccntainer.setStyleSheet(
+                                          """ 
+                                          QWidget{background-color:lightblue; border-radius: 20px;}
+                                           QWidget:hover {
+                background-color: lightblue;
+                border: 2px solid #ff5733;
+            }
+                                          """)
+        self.ASLR_ccntainer.setLayout(ASLR_layout)
+        self.widget_layout.addWidget(self.ASLR_ccntainer,1)
+        self.initShadowEffect(self.ASLR_ccntainer)
         # ////////////////
 
         # ///////////////////
-        io_layout = QVBoxLayout()
+        USB_layout = QHBoxLayout()
         # IO
-        io_label = QLabel('Available Connection')
+        USB_icon_label = QLabel()
+        USB_pixmap = QPixmap('GUI/Icon/USB.svg')
+        USB_pixmap = USB_pixmap.scaled(45,88, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        USB_icon_label.setPixmap(USB_pixmap)
+        USB_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Value
-
-        i_o_connection_layout = QVBoxLayout()
-        self.GPIB_Label = QLabel('Current GPIB Connection: none')
-        self.USB_Label = QLabel('Current USB Connection: none')
-        self.ASRL_Label = QLabel('Current ASRL Connection: none')
-        self.TCPIP_Label = QLabel('Current TCP/IP Connection: none')
-        i_o_connection_layout.addWidget(self.GPIB_Label)
-        i_o_connection_layout.addWidget(self.USB_Label)
-        i_o_connection_layout.addWidget(self.ASRL_Label)
-        i_o_connection_layout.addWidget(self.TCPIP_Label)
-        self.update_gpib_status()
-
-        io_layout.addWidget(io_label)
-        io_layout.addLayout(i_o_connection_layout)
-        self.io_ccntainer = QWidget()
-        self.io_ccntainer.setStyleSheet(f"background-color: #FFCCCC; border-radius: 10px;")
-        self.io_ccntainer.setLayout(io_layout)
-        self.widget_layout.addWidget(self.io_ccntainer)
+        USB_icon_connection_layout = QVBoxLayout()
+        USB_icon_connection_layout.addWidget(USB_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        USB_layout.addLayout(USB_icon_connection_layout)
+        USB_connection_layout = QVBoxLayout()
+        self.USB_Label = QLabel('USB Connections:')
+        self.USB_number_Label = QLabel('None')
+        self.USB_number_Label.setStyleSheet(self.IOLabel_stylesheet)
+        USB_connection_layout.addWidget(self.USB_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        USB_connection_layout.addWidget(self.USB_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        USB_layout.addWidget(USB_icon_label)
+        USB_layout.addLayout(USB_connection_layout)
+        self.USB_ccntainer = QWidget()
+        self.USB_ccntainer.setStyleSheet(""" 
+                                          QWidget{background-color: #e8daef; border-radius: 20px;}
+                                           QWidget:hover {
+                background-color: #e8daef;
+                border: 2px solid #ff5733;
+            }
+                                          """)
+        self.USB_ccntainer.setLayout(USB_layout)
+        self.initShadowEffect(self.USB_ccntainer)
+        self.widget_layout.addWidget(self.USB_ccntainer,1)
         # ////////////////
 
         # ///////////////////
-        io_layout = QVBoxLayout()
+        TCPIP_layout = QHBoxLayout()
         # IO
-        io_label = QLabel('Available Connection')
+        TCPIP_icon_label = QLabel()
+        TCPIP_pixmap = QPixmap('GUI/Icon/TCPIP.svg')
+        TCPIP_pixmap = TCPIP_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+        TCPIP_icon_label.setPixmap(TCPIP_pixmap)
+        TCPIP_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Value
+        TCPIP_icon_connection_layout = QVBoxLayout()
+        TCPIP_icon_connection_layout.addWidget(TCPIP_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        TCPIP_layout.addLayout(TCPIP_icon_connection_layout)
+        TCPIP_connection_layout = QVBoxLayout()
+        self.TCPIP_Label = QLabel('Ethernet Connections:')
+        self.TCPIP_number_Label = QLabel('None')
+        self.TCPIP_number_Label.setStyleSheet(self.IOLabel_stylesheet)
+        TCPIP_connection_layout.addWidget(self.TCPIP_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        TCPIP_connection_layout.addWidget(self.TCPIP_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
 
-        i_o_connection_layout = QVBoxLayout()
-        self.GPIB_Label = QLabel('Current GPIB Connection: none')
-        self.USB_Label = QLabel('Current USB Connection: none')
-        self.ASRL_Label = QLabel('Current ASRL Connection: none')
-        self.TCPIP_Label = QLabel('Current TCP/IP Connection: none')
-        i_o_connection_layout.addWidget(self.GPIB_Label)
-        i_o_connection_layout.addWidget(self.USB_Label)
-        i_o_connection_layout.addWidget(self.ASRL_Label)
-        i_o_connection_layout.addWidget(self.TCPIP_Label)
+
+        TCPIP_layout.addWidget(TCPIP_icon_label)
+        TCPIP_layout.addLayout(TCPIP_connection_layout)
+        self.TCPIP_ccntainer = QWidget()
+        self.TCPIP_ccntainer.setStyleSheet(""" 
+                                          QWidget{background-color: peachpuff; border-radius: 20px;}
+                                           QWidget:hover {
+                background-color: peachpuff;
+                border: 2px solid #ff5733;
+            }
+                                          """)
+        self.TCPIP_ccntainer.setLayout(TCPIP_layout)
+        self.initShadowEffect(self.TCPIP_ccntainer)
+        self.widget_layout.addWidget(self.TCPIP_ccntainer,1)
         self.update_gpib_status()
-
-        io_layout.addWidget(io_label)
-        io_layout.addLayout(i_o_connection_layout)
-        self.io_ccntainer = QWidget()
-        self.io_ccntainer.setStyleSheet(f"background-color: #FFCCCC; border-radius: 10px;")
-        self.io_ccntainer.setLayout(io_layout)
-        self.widget_layout.addWidget(self.io_ccntainer)
         # ////////////////
+        self.GPIB_Label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.ASLR_Label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.USB_Label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.TCPIP_Label.setStyleSheet(self.IOLabel_1_stylesheet)
+
+
+
         # CPU and RAM Usage Chart
         self.cpu = CPU_Display(self,cpu=True)
         self.chart_timer = QTimer(self)
@@ -252,11 +300,14 @@ class Dash(QMainWindow):
         self.pc_status_layout.addWidget(self.ram)
 
         self.main_layout.addLayout(self.headiing_layout)
-        self.main_layout.setContentsMargins(50, 50, 50, 50)
-        self.main_layout.addLayout(self.widget_layout)
-        self.main_layout.addLayout(self.pc_status_layout)
+        # self.main_layout.setContentsMargins(50, 50, 50, 50)
+        self.main_layout.addLayout(self.widget_layout,2)
+        self.main_layout.addSpacing(20)
+        self.main_layout.addLayout(self.pc_status_layout,4)
+        self.main_layout.addStretch(1)
         self.container = QWidget()
         self.container.setLayout(self.main_layout)
+        self.container.setGeometry(100, 100, 400, 300)
         self.setCentralWidget(self.container)
 
         self.timer = QTimer(self)
@@ -264,6 +315,43 @@ class Dash(QMainWindow):
         self.timer.start(1000)  # Update every 60,000 milliseconds (1 minute)
         self.update_time()
 
+    def initShadowEffect(self, widget):
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(15)
+        shadow_effect.setXOffset(5)
+        shadow_effect.setYOffset(5)
+        shadow_effect.setColor(QColor(0, 0, 0, 160))
+        widget.setGraphicsEffect(None)
+
+        self.shadow_effects.append(shadow_effect)
+        widget.shadow_effect = shadow_effect  # Store shadow effect in widget for easy access
+        widget.installEventFilter(self)
+        # widget.setAttribute(Qt.WidgetAttribute.WA_Hover)
+
+    def eventFilter(self, obj, event):
+        if isinstance(obj, QWidget):
+            if event.type() == QEvent.Type.HoverEnter:
+                self.applyShadowEffect(obj)
+            elif event.type() == QEvent.Type.HoverLeave:
+                self.removeShadowEffect(obj)
+        return super().eventFilter(obj, event)
+
+    # def event(self, event):
+    #     if event.type() == QEvent.Type.HoverEnter:
+    #         self.applyShadowEffect(event.target())
+    #     elif event.type() == QEvent.Type.HoverLeave:
+    #         self.removeShadowEffect(event.target())
+    #     return super().event(event)
+
+    def applyShadowEffect(self, widget):
+        try:
+            widget.setGraphicsEffect(widget.shadow_effect)
+        except RuntimeError as e:
+            self.initShadowEffect(widget)
+            widget.setGraphicsEffect(widget.shadow_effect)
+
+    def removeShadowEffect(self, widget):
+        widget.setGraphicsEffect(None)
 
     def update_time(self):
         current_time = QDateTime.currentDateTime()
@@ -281,10 +369,10 @@ class Dash(QMainWindow):
             self.usb_ports = [instr for instr in resources if 'USB' in instr]
             self.ASTL_ports = [instr for instr in resources if 'ASRL' in instr]
             self.TCP_ports = [instr for instr in resources if 'TCPIP' in instr]
-            self.GPIB_Label.setText(f'Current GPIB Connection: {len(self.gpib_ports)}')
-            self.USB_Label.setText(f'Current USB Connection: {len(self.usb_ports)}')
-            self.ASRL_Label.setText(f'Current ASRL Connection: {len(self.ASTL_ports)}')
-            self.TCPIP_Label.setText(f'Current TCP/IP Connection: {len(self.TCP_ports)}')
+            self.GPIB_number_Label.setText(f'{len(self.gpib_ports)}')
+            self.USB_number_Label.setText(f'{len(self.usb_ports)}')
+            self.ASLR_number_Label.setText(f'{len(self.ASTL_ports)}')
+            self.TCPIP_number_Label.setText(f'{len(self.TCP_ports)}')
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
         QTimer.singleShot(5000, self.update_gpib_status)  # Update every 5 seconds

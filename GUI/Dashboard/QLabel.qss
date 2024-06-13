@@ -1,0 +1,11 @@
+ QLabel {
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px;
+            font-size: 54px;
+            color:   #ffffff  ;
+            font-weight: bold;
+            font-style: italic;
+        }
+
