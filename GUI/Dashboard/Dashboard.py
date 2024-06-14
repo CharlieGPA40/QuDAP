@@ -100,11 +100,12 @@ class Dash(QMainWindow):
         self.initUI()
 
     def initUI(self):
+        widget_size = 260
         self.setStyleSheet("background-color: whitesmoke;")
         self.main_layout = QVBoxLayout()
         self.headiing_layout = QVBoxLayout()
         current_time = QTime.currentTime()
-        self.setGeometry(100, 100, 50, 50)
+        # self.setFixedSize(1300,900)
         hour = current_time.hour()
         self.shadow_effects = []
         if 0 <= hour <= 11:
@@ -135,13 +136,51 @@ class Dash(QMainWindow):
         with open("GUI/Dashboard/QLabel_1.qss", "r") as file:
             self.IOLabel_1_stylesheet = file.read()
         self.widget_layout = QHBoxLayout()
+        self.IO_widget_layout = QHBoxLayout()
 
+        self.wrap_layout = QHBoxLayout()
+        # ///////////////////
+        measure_layout = QHBoxLayout()
+        # IO
+        measure_icon_label = QLabel()
+        measure_pixmap = QPixmap('GUI/Icon/PPMS.svg')
+        measure_pixmap = measure_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+        measure_icon_label.setPixmap(measure_pixmap)
+        measure_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Value
+        measure_icon_connection_layout = QVBoxLayout()
+        measure_icon_connection_layout.addWidget(measure_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        measure_layout.addLayout(measure_icon_connection_layout)
+
+        measure_connection_layout = QVBoxLayout()
+        self.Quick_accesmeasure_label = QLabel('Quick Access:')
+        self.measure_Label = QLabel('Measure')
+        self.measure_Label.setStyleSheet(self.IOLabel_stylesheet)
+        measure_connection_layout.addWidget(self.Quick_accesmeasure_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        measure_connection_layout.addWidget(self.measure_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        measure_layout.addLayout(measure_connection_layout)
+        self.measure_ccntainer = QWidget()
+        self.measure_ccntainer.setFixedSize(widget_size, 150)
+        self.measure_ccntainer.setStyleSheet(
+            """
+             QWidget{background-color: #717d7e; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #5dade2;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.measure_ccntainer.setLayout(measure_layout)
+        self.measure_ccntainer.setObjectName('measure')
+        self.initShadowEffect(self.measure_ccntainer)
+
+        # ////////////////
         # ///////////////////
         shg_layout = QHBoxLayout()
         # IO
         shg_icon_label = QLabel()
         shg_pixmap = QPixmap('GUI/Icon/SHG.svg')
-        shg_pixmap = shg_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+        shg_pixmap = shg_pixmap.scaled(50, 88, Qt.AspectRatioMode.KeepAspectRatio,
                                          Qt.TransformationMode.SmoothTransformation)
         shg_icon_label.setPixmap(shg_pixmap)
         shg_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -151,32 +190,33 @@ class Dash(QMainWindow):
         shg_layout.addLayout(shg_icon_connection_layout)
 
         shg_connection_layout = QVBoxLayout()
-        self.Quick_access_label = QLabel('Quick Access:')
+        self.Quick_accesSHG_label = QLabel('Quick Access:')
         self.shg_Label = QLabel('SHG')
         self.shg_Label.setStyleSheet(self.IOLabel_stylesheet)
-        shg_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        shg_connection_layout.addWidget(self.shg_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        shg_connection_layout.addWidget(self.Quick_accesSHG_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        shg_connection_layout.addWidget(self.shg_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         shg_layout.addLayout(shg_connection_layout)
         self.shg_ccntainer = QWidget()
+        self.shg_ccntainer.setFixedSize(widget_size, 150)
         self.shg_ccntainer.setStyleSheet(
             """
-             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget{background-color: #e5e8e8; border-radius: 20px;}
              QWidget:hover {
-                background-color: #d6eaf8;
+                background-color: #e5e8e8;
                 border: 2px solid #ff5733;
                 }
             """)
         self.shg_ccntainer.setLayout(shg_layout)
         self.shg_ccntainer.setObjectName('shg')
         self.initShadowEffect(self.shg_ccntainer)
-        self.widget_layout.addWidget(self.shg_ccntainer, 1)
+
         # ////////////////
         # ///////////////////
         fmr_layout = QHBoxLayout()
         # IO
         fmr_icon_label = QLabel()
         fmr_pixmap = QPixmap('GUI/Icon/FMR.svg')
-        fmr_pixmap = fmr_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+        fmr_pixmap = fmr_pixmap.scaled(75, 88, Qt.AspectRatioMode.KeepAspectRatio,
                                        Qt.TransformationMode.SmoothTransformation)
         fmr_icon_label.setPixmap(fmr_pixmap)
         fmr_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -186,31 +226,33 @@ class Dash(QMainWindow):
         fmr_layout.addLayout(fmr_icon_connection_layout)
 
         fmr_connection_layout = QVBoxLayout()
-        self.fmr_Label = QLabel('fmr')
+        self.fmr_Label = QLabel('FMR')
         self.fmr_Label.setStyleSheet(self.IOLabel_stylesheet)
-        fmr_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        fmr_connection_layout.addWidget(self.fmr_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        self.Quick_accesFMR_label = QLabel('Quick Access:')
+        fmr_connection_layout.addWidget(self.Quick_accesFMR_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        fmr_connection_layout.addWidget(self.fmr_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         fmr_layout.addLayout(fmr_connection_layout)
         self.fmr_ccntainer = QWidget()
+        self.fmr_ccntainer.setFixedSize(widget_size, 150)
         self.fmr_ccntainer.setStyleSheet(
             """
-             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget{background-color: #e5e8e8; border-radius: 20px;}
              QWidget:hover {
-                background-color: #d6eaf8;
+                background-color: #e5e8e8;
                 border: 2px solid #ff5733;
                 }
             """)
         self.fmr_ccntainer.setLayout(fmr_layout)
         self.fmr_ccntainer.setObjectName('fmr')
         self.initShadowEffect(self.fmr_ccntainer)
-        self.widget_layout.addWidget(self.fmr_ccntainer, 1)
+
         #///////////////////
         # ///////////////////
         vsm_layout = QHBoxLayout()
         # IO
         vsm_icon_label = QLabel()
         vsm_pixmap = QPixmap('GUI/Icon/VSM.svg')
-        vsm_pixmap = vsm_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+        vsm_pixmap = vsm_pixmap.scaled(80, 88, Qt.AspectRatioMode.KeepAspectRatio,
                                        Qt.TransformationMode.SmoothTransformation)
         vsm_icon_label.setPixmap(vsm_pixmap)
         vsm_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -222,29 +264,40 @@ class Dash(QMainWindow):
         vsm_connection_layout = QVBoxLayout()
         self.vsm_Label = QLabel('VSM')
         self.vsm_Label.setStyleSheet(self.IOLabel_stylesheet)
-        vsm_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        vsm_connection_layout.addWidget(self.vsm_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        self.Quick_accesVSM_label = QLabel('Quick Access:')
+        vsm_connection_layout.addWidget(self.Quick_accesVSM_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        vsm_connection_layout.addWidget(self.vsm_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         vsm_layout.addLayout(vsm_connection_layout)
         self.vsm_ccntainer = QWidget()
+        self.vsm_ccntainer.setFixedSize(widget_size, 150)
         self.vsm_ccntainer.setStyleSheet(
             """
-             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget{background-color: #e5e8e8; border-radius: 20px;}
              QWidget:hover {
-                background-color: #d6eaf8;
+                background-color: #e5e8e8;
                 border: 2px solid #ff5733;
                 }
             """)
         self.vsm_ccntainer.setLayout(vsm_layout)
         self.vsm_ccntainer.setObjectName('vsm')
         self.initShadowEffect(self.vsm_ccntainer)
+
+        # self.widget_layout.addSpacing(35)
+        # self.widget_layout.addWidget(self.measure_ccntainer, 1)
+        # self.widget_layout.addSpacing(80)
+        self.widget_layout.addWidget(self.shg_ccntainer, 1)
+        # self.widget_layout.addSpacing(80)
+        self.widget_layout.addWidget(self.fmr_ccntainer, 1)
+        # self.widget_layout.addSpacing(80)
         self.widget_layout.addWidget(self.vsm_ccntainer, 1)
+        # self.widget_layout.addSpacing(80)
         # ///////////////////
         # ///////////////////
         eto_layout = QHBoxLayout()
         # IO
         eto_icon_label = QLabel()
         eto_pixmap = QPixmap('GUI/Icon/ETO.svg')
-        eto_pixmap = eto_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+        eto_pixmap = eto_pixmap.scaled(50, 88, Qt.AspectRatioMode.KeepAspectRatio,
                                        Qt.TransformationMode.SmoothTransformation)
         eto_icon_label.setPixmap(eto_pixmap)
         eto_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -256,15 +309,17 @@ class Dash(QMainWindow):
         eto_connection_layout = QVBoxLayout()
         self.eto_Label = QLabel('ETO')
         self.eto_Label.setStyleSheet(self.IOLabel_stylesheet)
-        eto_connection_layout.addWidget(self.Quick_access_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        eto_connection_layout.addWidget(self.eto_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        self.Quick_accesETO_label = QLabel('Quick Access:')
+        eto_connection_layout.addWidget(self.Quick_accesETO_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        eto_connection_layout.addWidget(self.eto_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         eto_layout.addLayout(eto_connection_layout)
         self.eto_ccntainer = QWidget()
+        self.eto_ccntainer.setFixedSize(widget_size, 150)
         self.eto_ccntainer.setStyleSheet(
             """
-             QWidget{background-color: #d6eaf8; border-radius: 20px;}
+             QWidget{background-color: #e5e8e8; border-radius: 20px;}
              QWidget:hover {
-                background-color: #d6eaf8;
+                background-color: #e5e8e8;
                 border: 2px solid #ff5733;
                 }
             """)
@@ -295,18 +350,19 @@ class Dash(QMainWindow):
 
         GPIB_layout.addLayout(GPIB_connection_layout)
         self.GPIB_ccntainer = QWidget()
+        self.GPIB_ccntainer.setFixedSize(widget_size, 150)
         self.GPIB_ccntainer.setStyleSheet(
                                           """ 
-                                          QWidget{background-color: #d6eaf8; border-radius: 20px;}
+                                          QWidget{background-color: #d1f2eb ; border-radius: 20px;}
                                            QWidget:hover {
-                background-color: #d6eaf8;
+                background-color: #d1f2eb;
                 border: 2px solid #ff5733;
             }
                                           """)
         self.GPIB_ccntainer.setLayout(GPIB_layout)
         self.GPIB_ccntainer.setObjectName("GPIB")
         self.initShadowEffect(self.GPIB_ccntainer)
-        self.widget_layout.addWidget(self.GPIB_ccntainer, 1)
+        self.IO_widget_layout.addWidget(self.GPIB_ccntainer, 1)
         # ////////////////
 
         # ///////////////////
@@ -327,10 +383,11 @@ class Dash(QMainWindow):
         self.ASLR_number_Label = QLabel('0')
         self.ASLR_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         ASLR_connection_layout.addWidget(self.ASLR_Label, alignment=Qt.AlignmentFlag.AlignLeft)
-        ASLR_connection_layout.addWidget(self.ASLR_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
+        ASLR_connection_layout.addWidget(self.ASLR_number_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         ASLR_layout.addWidget(ASLR_icon_label)
         ASLR_layout.addLayout(ASLR_connection_layout)
         self.ASLR_ccntainer = QWidget()
+        self.ASLR_ccntainer.setFixedSize(widget_size, 150)
         self.ASLR_ccntainer.setStyleSheet(
                                           """ 
                                           QWidget{background-color:lightblue; border-radius: 20px;}
@@ -341,7 +398,7 @@ class Dash(QMainWindow):
                                           """)
         self.ASLR_ccntainer.setLayout(ASLR_layout)
         self.ASLR_ccntainer.setObjectName("ASLR")
-        self.widget_layout.addWidget(self.ASLR_ccntainer,1)
+        self.IO_widget_layout.addWidget(self.ASLR_ccntainer,1)
         self.initShadowEffect(self.ASLR_ccntainer)
         # ////////////////
 
@@ -366,6 +423,7 @@ class Dash(QMainWindow):
         USB_layout.addWidget(USB_icon_label)
         USB_layout.addLayout(USB_connection_layout)
         self.USB_ccntainer = QWidget()
+        self.USB_ccntainer.setFixedSize(widget_size, 150)
         self.USB_ccntainer.setStyleSheet(""" 
                                           QWidget{background-color: #e8daef; border-radius: 20px;}
                                            QWidget:hover {
@@ -376,7 +434,7 @@ class Dash(QMainWindow):
         self.USB_ccntainer.setLayout(USB_layout)
         self.USB_ccntainer.setObjectName("USB")
         self.initShadowEffect(self.USB_ccntainer)
-        self.widget_layout.addWidget(self.USB_ccntainer,1)
+        self.IO_widget_layout.addWidget(self.USB_ccntainer,1)
         # ////////////////
 
         # ///////////////////
@@ -403,6 +461,7 @@ class Dash(QMainWindow):
         TCPIP_layout.addWidget(TCPIP_icon_label)
         TCPIP_layout.addLayout(TCPIP_connection_layout)
         self.TCPIP_container = QWidget()
+        self.TCPIP_container.setFixedSize(widget_size, 150)
         self.TCPIP_container.setStyleSheet(""" 
                                           QWidget{background-color: peachpuff; border-radius: 20px;}
                                            QWidget:hover {
@@ -413,39 +472,73 @@ class Dash(QMainWindow):
         self.TCPIP_container.setLayout(TCPIP_layout)
         self.TCPIP_container.setObjectName("TCPIP")
         self.initShadowEffect(self.TCPIP_container)
-        self.widget_layout.addWidget(self.TCPIP_container,1)
+        self.IO_widget_layout.addWidget(self.TCPIP_container,1)
         self.update_gpib_status()
         # ////////////////
-        self.Quick_access_label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.Quick_accesSHG_label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.Quick_accesVSM_label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.Quick_accesFMR_label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.Quick_accesETO_label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.GPIB_Label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.ASLR_Label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.USB_Label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.TCPIP_Label.setStyleSheet(self.IOLabel_1_stylesheet)
 
 
-
+        self.cpu_container=QWidget()
+        self.cpu_container.setStyleSheet(
+            """
+             QWidget{background-color: #ffffff; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.cpu_container_layout = QHBoxLayout()
+        self.cpu_container.setFixedSize(550, 300)
         # CPU and RAM Usage Chart
         self.cpu = CPU_Display(self,cpu=True)
+        self.cpu_container_layout.addWidget(self.cpu)
+        self.cpu_container.setLayout(self.cpu_container_layout)
         self.chart_timer = QTimer(self)
         self.chart_timer.timeout.connect(self.cpu.update_plot)
         self.chart_timer.start(1000)  # Update every second
 
+        self.ram_container = QWidget()
+        self.ram_container.setStyleSheet(
+            """
+             QWidget{background-color: #ffffff; border-radius: 20px;}
+             QWidget:hover {
+                background-color: #d6eaf8;
+                border: 2px solid #ff5733;
+                }
+            """)
+        self.ram_container_layout = QHBoxLayout()
+        self.ram_container.setFixedSize(550, 300)
         self.ram = CPU_Display(self, cpu=False)
+        self.ram_container_layout.addWidget(self.ram)
+        self.ram_container.setLayout(self.ram_container_layout)
         self.chart_timer = QTimer(self)
         self.chart_timer.timeout.connect(self.ram.update_plot)
         self.chart_timer.start(1000)  # Update every second
 
 
         self.pc_status_layout = QHBoxLayout()
-        self.pc_status_layout.addWidget(self.cpu)
-        self.pc_status_layout.addWidget(self.ram)
+        self.pc_status_layout.addWidget(self.cpu_container)
+        self.pc_status_layout.addWidget(self.ram_container)
 
         self.main_layout.addLayout(self.headiing_layout)
         # self.main_layout.setContentsMargins(50, 50, 50, 50)
+        # self.widget_layout.addWidget(self.measure_ccntainer, 1)
         self.main_layout.addLayout(self.widget_layout,2)
         self.main_layout.addSpacing(20)
-        self.main_layout.addLayout(self.pc_status_layout,4)
+        self.main_layout.addLayout(self.IO_widget_layout, 2)
+        self.main_layout.addSpacing(20)
+        self.main_layout.addLayout(self.pc_status_layout,6)
         self.main_layout.addStretch(1)
+
+        # self.wrap_layout.addLayout(self.main_layout)
+        # self.wrap_layout.addLayout(self.IO_widget_layout)
         self.container = QWidget()
         self.container.setLayout(self.main_layout)
         # self.resize(200, 900)
@@ -498,6 +591,10 @@ class Dash(QMainWindow):
             self.page_index = 2
             self.left_index = 1
             self.right_index = 2
+        elif widget.objectName() == 'GPIB' or widget.objectName() == 'ASLR' or widget.objectName() == 'USB' or widget.objectName() == 'TCPIP':
+            self.page_index = 11
+            self.left_index = 2
+            self.right_index = 5
         else:
             self.page_index = 0
             self.left_index = 0

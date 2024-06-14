@@ -170,7 +170,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.setFixedSize(1600, 900)
+        self.setFixedSize(1600, 920)
 
     @pyqtSlot(int, int, int)
     def set_page(self, page, left_sidebar, right_sidebar):
