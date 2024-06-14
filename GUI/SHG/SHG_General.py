@@ -448,13 +448,13 @@ class General(QWidget):
 
     def updateGeneralSelection(self):
         selectedSHGButton = self.SHGbuttonGroup.checkedButton()
-        if selectedSHGButton:
-            self.SHGSelected = True
-            self.shg = str(selectedSHGButton.text())
-            print(self.shg)
-        else:
-            self.SHGSelected = False
-            self.shg = 'None'
+        # if selectedSHGButton:
+        self.SHGSelected = True
+        self.shg = str(selectedSHGButton.text())
+        print(self.shg)
+        # else:
+        #     self.SHGSelected = False
+        #     self.shg = 'None'
 
     def updateModeSelection(self):
         selectedModeButton = self.buttonGroup.checkedButton()
