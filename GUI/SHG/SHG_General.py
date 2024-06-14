@@ -107,7 +107,7 @@ class UserDefineFittingWindow(QDialog):
 
 
 class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=8, dpi=1000, polar=False):
+    def __init__(self, parent=None, width=8, height=8, dpi=1000, polar=False):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         # if polar:
         self.fig.clear()
@@ -451,12 +451,27 @@ class General(QWidget):
         if selectedSHGButton:
             self.SHGSelected = True
             self.shg = str(selectedSHGButton.text())
+            if self.shg == 'Imaging Mode':
+                self.auto_mode_no_radio_buttom.setChecked(True)
+                self.auto_mode_no_radio_buttom.setEnabled(False)
+                self.auto_mode_yes_radio_buttom.setEnabled(False)
+            elif self.shg == 'Temperature Dependence':
+                self.fitting_mode_no_radio_buttom.setChecked(True)
+                self.fitting_mode_no_radio_buttom.setEnabled(False)
+                self.fitting_mode_predef_radio_buttom.setEnabled(False)
+                self.fitting_mode_usr_radio_buttom.setEnabled(False)
+            else:
+                if self.auto == 'Auto':
+                    self.auto_mode_yes_radio_buttom.setChecked(True)
+                else:
+                    self.auto_mode_no_radio_buttom.setEnabled(True)
+                self.auto_mode_no_radio_buttom.setEnabled(True)
+                self.auto_mode_yes_radio_buttom.setEnabled(True)
         else:
             self.SHGSelected = False
             self.shg = 'None'
 
     def updateModeSelection(self):
-        print('enterm')
         selectedModeButton = self.buttonGroup.checkedButton()
         if selectedModeButton:
             self.modeSelected = True
@@ -494,284 +509,290 @@ class General(QWidget):
                 if item.spacerItem():
                     self.SHG_data_Processing_main_layout.removeItem(item)
             self.Process_button.setEnabled(False)
-            self.updateGeneralSelection()
+
             self.updateModeSelection()
+            self.updateGeneralSelection()
             self.updateFitSelection()
             if self.modeSelected and self.fitSelected and self.SHGSelected:
-                if self.shg == 'RA-SHG':
-                    #  ---------------------------- PART 5&6 --------------------------------
-                    self.data_processing_layout = QHBoxLayout()
-                    self.log_group_box = QGroupBox("Experimental Log")
-                    self.Fitting_mode_group_box = QGroupBox("Graph")
-                    self.log_group_box.setStyleSheet("""
-                                                QGroupBox {
-    
-                                                    max-width: 600px;
-                                                    max-height: 480px;
-                                                }
-    
-                                            """)
-                    self.Fitting_mode_group_box.setStyleSheet("""
-                                                                QGroupBox {
-    
-                                                                    max-width: 600px;
-                                                                    max-height: 480px
-                                                                }
-    
-                                                            """)
-                    #  ---------------------------- PART 3 --------------------------------
-                    self.Parameter = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
-                    Date = self.Parameter.iat[0, 1]
-                    self.date_label = QLabel('Date: ' + str(Date))
-                    self.date_label.setFont(self.font)
-                    file_name = self.Parameter.iat[1, 1]
-                    self.sample_label = QLabel('Sample: ' + str(file_name))
-                    self.sample_label.setFont(self.font)
-                    Measure_Type = self.Parameter.iat[2, 1]
-                    self.measure_type_label = QLabel('Measurement Type: ' + str(Measure_Type))
-                    self.measure_type_label.setFont(self.font)
-                    Light_angle = self.Parameter.iat[3, 1]
-                    self.light_angle_label = QLabel('Incident Angle: ' + str(Light_angle))
-                    self.light_angle_label.setFont(self.font)
-                    power = self.Parameter.iat[4, 1]
-                    self.power_label = QLabel('Power (mW): ' + str(power))
-                    self.power_label.setFont(self.font)
-                    start_angle = self.Parameter.iat[5, 1]
-                    self.start_angle_label = QLabel('Start Angle (degree): ' + str(start_angle))
-                    self.start_angle_label.setFont(self.font)
-                    end_angle = self.Parameter.iat[6, 1]
-                    self.end_angle_label = QLabel('Termination Angle (degree): ' + str(end_angle))
-                    self.end_angle_label.setFont(self.font)
-                    step_size = self.Parameter.iat[7, 1]
-                    self.step_angle_label = QLabel('Angle Step Size (degree): ' + str(step_size))
-                    self.step_angle_label.setFont(self.font)
-                    self.step_size = int(step_size)
-                    polarization = self.Parameter.iat[8, 1]
-                    self.polarization = polarization
-                    self.polarization_label = QLabel('Polarization Configuration: ' + str(polarization))
-                    self.polarization_label.setFont(self.font)
-                    exp_time = self.Parameter.iat[9, 1]
-                    self.exp_time_label = QLabel('Exposure Time (s): ' + str(exp_time))
-                    self.exp_time_label.setFont(self.font)
-                    EMGain = self.Parameter.iat[10, 1]
-                    self.EMGain_label = QLabel('EMGain: ' + str(EMGain))
-                    self.EMGain_label.setFont(self.font)
-                    Accumulation = self.Parameter.iat[11, 1]
-                    self.acc_label = QLabel('Accumulation: ' + str(Accumulation))
-                    self.acc_label.setFont(self.font)
-                    Start_temp = self.Parameter.iat[12, 1]
-                    self.start_temp_label = QLabel('Initial Temperature (K): ' + str(Start_temp))
-                    self.start_temp_label.setFont(self.font)
-                    End_temp = self.Parameter.iat[13, 1]
-                    self.end_temp_label = QLabel('Termination Temperature (K): ' + str(End_temp))
-                    self.end_temp_label.setFont(self.font)
-                    Step_temp = self.Parameter.iat[14, 1]
-                    self.step_temp_label = QLabel('Step Temperature (K): ' + str(Step_temp))
-                    self.step_temp_label.setFont(self.font)
+                #  ---------------------------- PART 5&6 --------------------------------
+                self.data_processing_layout = QHBoxLayout()
+                self.log_group_box = QGroupBox("Experimental Log")
+                self.Fitting_mode_group_box = QGroupBox("Graph")
+                self.log_group_box.setStyleSheet("""
+                                            QGroupBox {
 
-                    # If need to remove the space
-                    file_name = str(self.Parameter.iat[1, 1]).replace(" ", "")
-                    self.file_name = file_name
-                    self.log_layout = QVBoxLayout()
-                    self.log_layout.addWidget(self.date_label)
-                    self.log_layout.addWidget(self.sample_label)
-                    self.log_layout.addWidget(self.measure_type_label)
-                    self.log_layout.addWidget(self.light_angle_label)
-                    self.log_layout.addWidget(self.power_label)
-                    self.log_layout.addWidget(self.start_angle_label)
-                    self.log_layout.addWidget(self.end_angle_label)
-                    self.log_layout.addWidget(self.step_angle_label)
-                    self.log_layout.addWidget(self.polarization_label)
-                    self.log_layout.addWidget(self.exp_time_label)
-                    self.log_layout.addWidget(self.EMGain_label)
-                    self.log_layout.addWidget(self.acc_label)
-                    self.log_layout.addWidget(self.start_temp_label)
-                    self.log_layout.addWidget(self.end_temp_label)
-                    self.log_layout.addWidget(self.step_temp_label)
+                                                max-width: 600px;
+                                                max-height: 480px;
+                                            }
 
-                    self.log_group_box.setLayout(self.log_layout)
-                    self.data_processing_layout.addWidget(self.log_group_box)
-                    self.figure_Layout = QVBoxLayout()
-                    self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                    toolbar = NavigationToolbar(self.canvas, self)
-                    toolbar.setStyleSheet("""
-                                                                   QWidget {
-                                                                       border: None;
-                                                                   }
-                                                               """)
+                                        """)
+                self.Fitting_mode_group_box.setStyleSheet("""
+                                                            QGroupBox {
 
-                    plot_entry_layout = QHBoxLayout()
-                    self.center_x_y_label = QLabel("Center (x, y): ")
-                    self.center_x_y_label.setFont(self.font)
-                    self.center_front_p_label = QLabel("(")
-                    self.center_front_p_label.setFont(self.font)
-                    self.center_x_entry_box = QLineEdit()
-                    self.center_comma_label = QLabel(",")
-                    self.center_comma_label.setFont(self.font)
-                    self.center_y_entry_box = QLineEdit()
-                    self.center_end_p_label = QLabel(")")
-                    self.center_end_p_label.setFont(self.font)
+                                                                max-width: 600px;
+                                                                max-height: 480px
+                                                            }
 
-                    self.box_size_label = QLabel("Box Size (pixels): ")
-                    self.box_size_label.setFont(self.font)
-                    self.box_size_entry = QLineEdit()
+                                                        """)
+                #  ---------------------------- PART 3 --------------------------------
+                self.Parameter = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
+                Date = self.Parameter.iat[0, 1]
+                self.date_label = QLabel('Date: ' + str(Date))
+                self.date_label.setFont(self.font)
+                file_name = self.Parameter.iat[1, 1]
+                self.sample_label = QLabel('Sample: ' + str(file_name))
+                self.sample_label.setFont(self.font)
+                Measure_Type = self.Parameter.iat[2, 1]
+                self.measure_type_label = QLabel('Measurement Type: ' + str(Measure_Type))
+                self.measure_type_label.setFont(self.font)
+                Light_angle = self.Parameter.iat[3, 1]
+                self.light_angle_label = QLabel('Incident Angle: ' + str(Light_angle))
+                self.light_angle_label.setFont(self.font)
+                power = self.Parameter.iat[4, 1]
+                self.power_label = QLabel('Power (mW): ' + str(power))
+                self.power_label.setFont(self.font)
+                start_angle = self.Parameter.iat[5, 1]
+                self.start_angle_label = QLabel('Start Angle (degree): ' + str(start_angle))
+                self.start_angle_label.setFont(self.font)
+                end_angle = self.Parameter.iat[6, 1]
+                self.end_angle_label = QLabel('Termination Angle (degree): ' + str(end_angle))
+                self.end_angle_label.setFont(self.font)
+                self.end_angle = int(end_angle)
+                step_size = self.Parameter.iat[7, 1]
+                self.step_angle_label = QLabel('Angle Step Size (degree): ' + str(step_size))
+                self.step_angle_label.setFont(self.font)
+                self.step_size = int(step_size)
+                polarization = self.Parameter.iat[8, 1]
+                self.polarization = polarization
+                self.polarization_label = QLabel('Polarization Configuration: ' + str(polarization))
+                self.polarization_label.setFont(self.font)
+                exp_time = self.Parameter.iat[9, 1]
+                self.exp_time_label = QLabel('Exposure Time (s): ' + str(exp_time))
+                self.exp_time_label.setFont(self.font)
+                EMGain = self.Parameter.iat[10, 1]
+                self.EMGain_label = QLabel('EMGain: ' + str(EMGain))
+                self.EMGain_label.setFont(self.font)
+                Accumulation = self.Parameter.iat[11, 1]
+                self.acc_label = QLabel('Accumulation: ' + str(Accumulation))
+                self.acc_label.setFont(self.font)
+                self.Start_temp = self.Parameter.iat[12, 1]
+                self.start_temp_label = QLabel('Initial Temperature (K): ' + str(self.Start_temp))
+                self.start_temp_label.setFont(self.font)
+                self.End_temp = self.Parameter.iat[13, 1]
+                self.end_temp_label = QLabel('Termination Temperature (K): ' + str(self.End_temp))
+                self.end_temp_label.setFont(self.font)
+                self.Step_temp = self.Parameter.iat[14, 1]
+                self.step_temp_label = QLabel('Step Temperature (K): ' + str(self.Step_temp))
+                self.step_temp_label.setFont(self.font)
 
-                    plot_entry_layout.addWidget(self.center_x_y_label)
-                    plot_entry_layout.addWidget(self.center_front_p_label)
-                    plot_entry_layout.addWidget(self.center_x_entry_box)
-                    plot_entry_layout.addWidget(self.center_comma_label)
-                    plot_entry_layout.addWidget(self.center_y_entry_box)
-                    plot_entry_layout.addWidget(self.center_end_p_label)
-                    plot_entry_layout.addStretch(1)
-                    plot_entry_layout.addWidget(self.box_size_label)
-                    plot_entry_layout.addWidget(self.box_size_entry)
+                # If need to remove the space
+                file_name = str(self.Parameter.iat[1, 1]).replace(" ", "")
+                self.file_name = file_name
+                self.log_layout = QVBoxLayout()
+                self.log_layout.addWidget(self.date_label)
+                self.log_layout.addWidget(self.sample_label)
+                self.log_layout.addWidget(self.measure_type_label)
+                self.log_layout.addWidget(self.light_angle_label)
+                self.log_layout.addWidget(self.power_label)
+                self.log_layout.addWidget(self.start_angle_label)
+                self.log_layout.addWidget(self.end_angle_label)
+                self.log_layout.addWidget(self.step_angle_label)
+                self.log_layout.addWidget(self.polarization_label)
+                self.log_layout.addWidget(self.exp_time_label)
+                self.log_layout.addWidget(self.EMGain_label)
+                self.log_layout.addWidget(self.acc_label)
+                self.log_layout.addWidget(self.start_temp_label)
+                self.log_layout.addWidget(self.end_temp_label)
+                self.log_layout.addWidget(self.step_temp_label)
 
-                    self.plot_button_layout = QHBoxLayout()
-                    self.prev_button = QPushButton("Previous")
-                    self.prev_button.clicked.connect(self.show_previous_plot)
-                    self.prev_button.setStyleSheet(self.Browse_Button_stylesheet)
-                    self.next_button = QPushButton("Next")
-                    self.next_button.setStyleSheet(self.Browse_Button_stylesheet)
-                    self.next_button.clicked.connect(self.show_next_plot)
+                self.log_group_box.setLayout(self.log_layout)
+                self.data_processing_layout.addWidget(self.log_group_box)
+                self.figure_Layout = QVBoxLayout()
+                self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                self.toolbar = NavigationToolbar(self.canvas, self)
+                self.toolbar.setStyleSheet("""
+                                                               QWidget {
+                                                                   border: None;
+                                                               }
+                                                           """)
 
-                    self.plot_button_layout.addWidget(self.prev_button)
-                    self.plot_button_layout.addWidget(self.next_button)
+                plot_entry_layout = QHBoxLayout()
+                self.center_x_y_label = QLabel("Center (x, y): ")
+                self.center_x_y_label.setFont(self.font)
+                self.center_front_p_label = QLabel("(")
+                self.center_front_p_label.setFont(self.font)
+                self.center_x_entry_box = QLineEdit()
+                self.center_comma_label = QLabel(",")
+                self.center_comma_label.setFont(self.font)
+                self.center_y_entry_box = QLineEdit()
+                self.center_end_p_label = QLabel(")")
+                self.center_end_p_label.setFont(self.font)
 
-                    self.figure_Layout.addWidget(toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.figure_Layout.addWidget(self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.figure_Layout.addLayout(plot_entry_layout, 1)
-                    self.figure_Layout.addLayout(self.plot_button_layout, 1)
+                self.box_size_label = QLabel("Box Size (pixels): ")
+                self.box_size_label.setFont(self.font)
+                self.box_size_entry = QLineEdit()
 
-                    self.Fitting_mode_group_box.setLayout(self.figure_Layout)
-                    self.data_processing_layout.addWidget(self.Fitting_mode_group_box)
-                    self.processWidget = True
-                    self.SHG_data_Processing_main_layout.addLayout(self.data_processing_layout)
+                plot_entry_layout.addWidget(self.center_x_y_label)
+                plot_entry_layout.addWidget(self.center_front_p_label)
+                plot_entry_layout.addWidget(self.center_x_entry_box)
+                plot_entry_layout.addWidget(self.center_comma_label)
+                plot_entry_layout.addWidget(self.center_y_entry_box)
+                plot_entry_layout.addWidget(self.center_end_p_label)
+                plot_entry_layout.addStretch(1)
+                plot_entry_layout.addWidget(self.box_size_label)
+                plot_entry_layout.addWidget(self.box_size_entry)
 
-                    self.setLayout(self.SHG_data_Processing_main_layout)
-                    self.degree = 130
+                self.plot_button_layout = QHBoxLayout()
+                self.prev_button = QPushButton("Previous")
+                self.prev_button.clicked.connect(self.show_previous_plot)
+                self.prev_button.setStyleSheet(self.Browse_Button_stylesheet)
+                self.next_button = QPushButton("Next")
+                self.next_button.setStyleSheet(self.Browse_Button_stylesheet)
+                self.next_button.clicked.connect(self.show_next_plot)
+
+                self.plot_button_layout.addWidget(self.prev_button)
+                self.plot_button_layout.addWidget(self.next_button)
+
+                self.figure_Layout.addWidget(self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.figure_Layout.addWidget(self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.figure_Layout.addLayout(plot_entry_layout, 1)
+                self.figure_Layout.addLayout(self.plot_button_layout, 1)
+
+                self.Fitting_mode_group_box.setLayout(self.figure_Layout)
+                self.data_processing_layout.addWidget(self.Fitting_mode_group_box)
+                self.processWidget = True
+                self.SHG_data_Processing_main_layout.addLayout(self.data_processing_layout)
+
+                self.setLayout(self.SHG_data_Processing_main_layout)
+                self.degree = 130
+                if self.shg == 'Temperature Dependence':
+                    print()
+                else:
                     self.SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(self.degree) + ".txt", dtype=int,
                                               delimiter=',')
-                    self.title = str(file_name) + '' + str(Measure_Type) + '' + str(Light_angle) + '\n' + str(power) + ('mW Exposure Time ') + str(exp_time) + 's Averaging ' + str(Accumulation)
-                    if self.auto == 'Auto':
-                        max_sum = -np.inf
-                        max_region = None
-                        best_size = 0
-                        min_region_size = 10
-                        max_region_size = 150
-                        abs_SHG_Raw = np.abs(self.SHG_Raw)
-                        background_pixel = np.sum(self.SHG_Raw[450:512, 450:512]) / (512 - 450) ** 2
+                self.title = str(file_name) + '' + str(Measure_Type) + '' + str(Light_angle) + '\n' + str(power) + ('mW Exposure Time ') + str(exp_time) + 's Averaging ' + str(Accumulation)
+                if self.auto == 'Auto':
+                    max_sum = -np.inf
+                    max_region = None
+                    best_size = 0
+                    min_region_size = 10
+                    max_region_size = 150
+                    abs_SHG_Raw = np.abs(self.SHG_Raw)
+                    background_pixel = np.sum(self.SHG_Raw[450:512, 450:512]) / (512 - 450) ** 2
 
-                        for i in range(240, 280, 1):
-                            for j in range(240, 280, 1):
-                                center_region = abs_SHG_Raw[i:i + min_region_size, j:j + min_region_size]
-                                pixel_region_sum = np.sum(center_region)
-                                pixel_region_sum = pixel_region_sum - background_pixel * (min_region_size ** 2)
-                                if pixel_region_sum > max_sum:
-                                    max_sum = pixel_region_sum
-                                    best_size = min_region_size
-                                    max_region = (i, j, best_size, max_sum)
-
-                        start_i, start_j, region_size_first, region_sum = max_region
-                        center_i = start_i + region_size_first // 2
-                        center_j = start_j + region_size_first // 2
-
-                        max_center_i_start = int(center_i - max_region_size / 2)
-                        max_center_i_end = int(center_i + max_region_size / 2)
-                        max_center_j_start = int(center_j - max_region_size / 2)
-                        max_center_j_end = int(center_j + max_region_size / 2)
-
-                        min_center_i_start = int(center_i - min_region_size / 2)
-                        min_center_i_end = int(center_i + min_region_size / 2)
-                        min_center_j_start = int(center_j - min_region_size / 2)
-                        min_center_j_end = int(center_j + min_region_size / 2)
-
-                        max_sum_in_region = abs_SHG_Raw[max_center_i_start:max_center_i_end,
-                                            max_center_j_start:max_center_j_end]
-                        min_sum_in_region = abs_SHG_Raw[min_center_i_start:min_center_i_end,
-                                            min_center_j_start:min_center_j_end]
-
-                        max_pixel_region_sum = np.sum(max_sum_in_region) - background_pixel * (max_region_size ** 2)
-                        min_pixel_region_sum = np.sum(min_sum_in_region) - background_pixel * (min_region_size ** 2)
-                        difference_max_min = max_pixel_region_sum - min_pixel_region_sum
-                        pixel_region_old = min_pixel_region_sum
-                        for region_size in range(min_region_size, max_region_size, 2):
-                            center_i_start = int(center_i - region_size / 2)
-                            center_i_end = int(center_i + region_size / 2)
-                            center_j_start = int(center_j - region_size / 2)
-                            center_j_end = int(center_j + region_size / 2)
-
-                            region = abs_SHG_Raw[center_i_start:center_i_end, center_j_start:center_j_end]
-                            pixel_region_sum = np.sum(region) - background_pixel * (region_size ** 2)
-
-                            if pixel_region_sum - pixel_region_old > 0.2 * difference_max_min:
+                    for i in range(240, 280, 1):
+                        for j in range(240, 280, 1):
+                            center_region = abs_SHG_Raw[i:i + min_region_size, j:j + min_region_size]
+                            pixel_region_sum = np.sum(center_region)
+                            pixel_region_sum = pixel_region_sum - background_pixel * (min_region_size ** 2)
+                            if pixel_region_sum > max_sum:
                                 max_sum = pixel_region_sum
-                                pixel_region_old = pixel_region_sum
-                                best_size = region_size
-                                max_region = (center_i, center_j, best_size, max_sum)
+                                best_size = min_region_size
+                                max_region = (i, j, best_size, max_sum)
 
-                        center_i, center_j, region_size, region_sum = max_region
-                        start_i = center_i - region_size // 2
-                        start_j = center_j - region_size // 2
-                        self.start_i = start_i
-                        self.start_j = start_j
-                        self.center_i = center_i
-                        self.center_j = center_j
-                        self.region_size = region_size
+                    start_i, start_j, region_size_first, region_sum = max_region
+                    center_i = start_i + region_size_first // 2
+                    center_j = start_j + region_size_first // 2
 
-                        self.center_x_entry_box.setEnabled(False)
-                        self.center_y_entry_box.setEnabled(False)
-                        self.box_size_entry.setEnabled(False)
-                        self.center_x_entry_box.setText(str(center_i))
-                        self.center_y_entry_box.setText(str(center_j))
-                        self.box_size_entry.setText(str(region_size))
-                        self.prev_button.setEnabled(False)
+                    max_center_i_start = int(center_i - max_region_size / 2)
+                    max_center_i_end = int(center_i + max_region_size / 2)
+                    max_center_j_start = int(center_j - max_region_size / 2)
+                    max_center_j_end = int(center_j + max_region_size / 2)
 
-                        # self.canvas.figure.clf()
-                        # self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                        im = self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
-                        # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
-                        self.canvas.figure.colorbar(im, ax=self.canvas.ax)
-                        self.canvas.ax.scatter(center_i, center_j, s=30, color='tomato',
-                                               marker='x')
-                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
-                        self.canvas.figure.gca().add_patch(patches.Rectangle((start_i, start_j), region_size, region_size,
-                                                                             edgecolor='white', facecolor='none', linewidth=1))
-                        self.canvas.figure.tight_layout()
-                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                    min_center_i_start = int(center_i - min_region_size / 2)
+                    min_center_i_end = int(center_i + min_region_size / 2)
+                    min_center_j_start = int(center_j - min_region_size / 2)
+                    min_center_j_end = int(center_j + min_region_size / 2)
 
-                        self.canvas.draw()
-                        self.next_button.setText("Polar Plot")
-                    else:
-                        self.box_size_entry.setPlaceholderText("Enter Box Size")
-                        self.figure_Layout.removeWidget(self.canvas)
-                        self.canvas.deleteLater()
-                        self.canvas.ax.clear()
-                        self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                        toolbar = NavigationToolbar(self.canvas, self)
-                        self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
-                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
-                        def onclick(event):
-                            if event.dblclick:
-                                global cur_x, cur_y, click
-                                cur_x = event.xdata
-                                cur_y = event.ydata
-                                click = event.button
-                                if click == 1:
-                                    print('Closing')
-                                    # self.center_x_entry_box.setEnabled(False)
-                                    # self.center_y_entry_box.setEnabled(False)
-                                    self.center_x = int(cur_x)
-                                    self.center_y = int(cur_y)
-                                    self.center_x_entry_box.setText(str(int(cur_x)))
-                                    self.center_y_entry_box.setText(str(int(cur_y)))
+                    max_sum_in_region = abs_SHG_Raw[max_center_i_start:max_center_i_end,
+                                        max_center_j_start:max_center_j_end]
+                    min_sum_in_region = abs_SHG_Raw[min_center_i_start:min_center_i_end,
+                                        min_center_j_start:min_center_j_end]
 
-                        connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
-                        self.canvas.draw()
-                        self.figure_Layout.insertWidget(1, self.canvas, 3)
-                        self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                        self.prev_button.setEnabled(False)
-                        self.next_button.setText("Submit")
+                    max_pixel_region_sum = np.sum(max_sum_in_region) - background_pixel * (max_region_size ** 2)
+                    min_pixel_region_sum = np.sum(min_sum_in_region) - background_pixel * (min_region_size ** 2)
+                    difference_max_min = max_pixel_region_sum - min_pixel_region_sum
+                    pixel_region_old = min_pixel_region_sum
+                    for region_size in range(min_region_size, max_region_size, 2):
+                        center_i_start = int(center_i - region_size / 2)
+                        center_i_end = int(center_i + region_size / 2)
+                        center_j_start = int(center_j - region_size / 2)
+                        center_j_end = int(center_j + region_size / 2)
 
+                        region = abs_SHG_Raw[center_i_start:center_i_end, center_j_start:center_j_end]
+                        pixel_region_sum = np.sum(region) - background_pixel * (region_size ** 2)
+
+                        if pixel_region_sum - pixel_region_old > 0.2 * difference_max_min:
+                            max_sum = pixel_region_sum
+                            pixel_region_old = pixel_region_sum
+                            best_size = region_size
+                            max_region = (center_i, center_j, best_size, max_sum)
+
+                    center_i, center_j, region_size, region_sum = max_region
+                    start_i = center_i - region_size // 2
+                    start_j = center_j - region_size // 2
+                    self.start_i = start_i
+                    self.start_j = start_j
+                    self.center_i = center_i
+                    self.center_j = center_j
+                    self.region_size = region_size
+
+                    self.center_x_entry_box.setEnabled(False)
+                    self.center_y_entry_box.setEnabled(False)
+                    self.box_size_entry.setEnabled(False)
+                    self.center_x_entry_box.setText(str(center_i))
+                    self.center_y_entry_box.setText(str(center_j))
+                    self.box_size_entry.setText(str(region_size))
+                    self.prev_button.setEnabled(False)
+
+                    # self.canvas.figure.clf()
+                    # self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    im = self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+                    # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
+                    self.canvas.figure.colorbar(im, ax=self.canvas.ax)
+                    self.canvas.ax.scatter(center_i, center_j, s=30, color='tomato',
+                                           marker='x')
+                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
+                    self.canvas.figure.gca().add_patch(patches.Rectangle((start_i, start_j), region_size, region_size,
+                                                                         edgecolor='white', facecolor='none', linewidth=1))
+                    self.canvas.figure.tight_layout()
+                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+
+                    self.canvas.draw()
+                    self.next_button.setText("Polar Plot")
+                else:
+                    self.box_size_entry.setPlaceholderText("Enter Box Size")
+                    self.figure_Layout.removeWidget(self.canvas)
+                    self.canvas.deleteLater()
+                    self.toolbar.deleteLater()
+                    self.canvas.ax.clear()
+                    self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    self.toolbar = NavigationToolbar(self.canvas, self)
+                    im = self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+                    self.canvas.figure.colorbar(im, ax=self.canvas.ax)
+                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
+                    def onclick(event):
+                        if event.dblclick:
+                            global cur_x, cur_y, click
+                            cur_x = event.xdata
+                            cur_y = event.ydata
+                            click = event.button
+                            if click == 1:
+
+                                # self.center_x_entry_box.setEnabled(False)
+                                # self.center_y_entry_box.setEnabled(False)
+                                self.center_x = int(cur_x)
+                                self.center_y = int(cur_y)
+                                self.center_x_entry_box.setText(str(int(cur_x)))
+                                self.center_y_entry_box.setText(str(int(cur_y)))
+
+                    connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
+                    self.canvas.figure.tight_layout()
+                    self.canvas.draw()
+                    self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.prev_button.setEnabled(False)
+                    self.next_button.setText("Submit")
             else:
                 QMessageBox.warning(self, "Please try again!", "Select all the required option")
         except Exception as e:
@@ -790,10 +811,11 @@ class General(QWidget):
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
                     self.canvas.deleteLater()
+                    self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                    toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                    self.toolbar = NavigationToolbar(self.canvas, self)
+                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
                     def onclick(event):
@@ -814,7 +836,7 @@ class General(QWidget):
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
-                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(False)
             elif self.plot_index == 1:
                 if self.auto == 'Manual':
@@ -822,10 +844,11 @@ class General(QWidget):
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
                     self.canvas.deleteLater()
+                    self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                    toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                    self.toolbar = NavigationToolbar(self.canvas, self)
+                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
                     def onclick(event):
@@ -848,7 +871,7 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
-                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(True)
 
                     self.next_button.setText("Reselect")
@@ -856,10 +879,11 @@ class General(QWidget):
                 else:
                     self.figure_Layout.removeWidget(self.canvas)
                     self.canvas.deleteLater()
+                    self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                    toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                    self.toolbar = NavigationToolbar(self.canvas, self)
+                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
                     # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
                     self.canvas.ax.scatter(self.center_i, self.center_j, s=30, color='tomato',
                                            marker='x')
@@ -870,7 +894,7 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
-                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.next_button.setText("Polar Plot")
                     self.prev_button.setEnabled(False)
 
@@ -892,7 +916,6 @@ class General(QWidget):
 
 
     def show_next_plot(self):
-        print(self.plot_index)
         try:
             if self.plot_index == 0:
                 if self.auto == 'Auto':
@@ -902,10 +925,11 @@ class General(QWidget):
                 else:
                     self.figure_Layout.removeWidget(self.canvas)
                     self.canvas.deleteLater()
+                    self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                    toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
+                    self.toolbar = NavigationToolbar(self.canvas, self)
+                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
                     region_size = int(self.box_size_entry.displayText())
@@ -922,55 +946,84 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
-                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    # self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.next_button.setText("Polar Plot")
                     self.prev_button.setEnabled(True)
                     self.prev_button.setText("Reset")
                 self.plot_index += 1
-                print(f'Forwarding{self.plot_index}')
             elif self.plot_index == 1:
                 if self.auto == 'Auto':
-                    self.polar_plot_linear()
+                    if self.shg == 'Temperature Dependence':
+                        print()
+                    else:
+                        self.polar_plot_linear()
                 else:
-
-                    self.polar_plot_extraction()
+                    if self.shg == 'Temperature Dependence':
+                        print()
+                    else:
+                        self.polar_plot_extraction()
                 self.plot_index += 1
 
             elif self.plot_index == 2:
                 if self.auto == 'Auto':
-                    self.polar_plot_linear_correction()
+                    if self.shg == 'Temperature Dependence':
+                        print()
+                    else:
+                        self.polar_plot_linear_correction()
                 else:
-                    self.plot_button_layout.removeWidget(self.prev_button)
-                    self.prev_button.deleteLater()
-                    self.polar_plot_linear()
+                    if self.shg == 'Temperature Dependence':
+                        print()
+                    else:
+                        self.plot_button_layout.removeWidget(self.prev_button)
+                        self.prev_button.deleteLater()
+                        self.polar_plot_linear()
                 self.plot_index += 1
+
             elif self.plot_index == 3:
                 if self.auto == 'Auto':
+                    if self.shg == 'Temperature Dependence':
+                        print()
+                    else:
+                        self.polar_plot_linear_neg_correction()
+                        if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
+                            self.plot_index = 5
+                            self.next_button.setText("Fit")
+                        else:
+                            self.plot_index = 6
+                            self.next_button.setText("Exp. PPT.")
+                else:
+                    if self.shg == 'Temperature Dependence':
+                        print()
+                    else:
+                        self.polar_plot_linear_correction()
+                        self.plot_index += 1
+
+
+            elif self.plot_index == 4:
+                if self.shg == 'Temperature Dependence':
+                    print()
+                else:
                     self.polar_plot_linear_neg_correction()
                     if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
                         self.plot_index = 5
                         self.next_button.setText("Fit")
                     else:
                         self.plot_index = 6
-                        self.next_button.setText("Exp. PPT.")
-                else:
-                    self.polar_plot_linear_correction()
-                    self.plot_index += 1
-            elif self.plot_index == 4:
-                self.polar_plot_linear_neg_correction()
-                if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
-                    self.plot_index = 5
-                    self.next_button.setText("Fit")
-                else:
-                    self.plot_index = 6
-                    self.next_button.setText("Export PPT.")
+                        self.next_button.setText("Export PPT.")
+
             elif self.plot_index == 5:
-                self.Fitting()
-                self.plot_index += 1
+                if self.shg == 'Temperature Dependence':
+                    print()
+                else:
+                    self.Fitting()
+                    self.plot_index += 1
 
             elif self.plot_index == 6:
-                self.export_PPT()
-                self.plot_index = 0
+                if self.shg == 'Temperature Dependence':
+                    print()
+                else:
+                    self.export_PPT()
+                    self.plot_index = 0
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -982,7 +1035,7 @@ class General(QWidget):
             self.deg_file = []
             self.sig_file = []
 
-            for degree in range(0, 365, self.step_size):
+            for degree in range(0, self.end_angle, self.step_size):
                 self.deg_file = np.append(self.deg_file, degree)
                 SHG_Raw = np.loadtxt(self.folder + self.file_name + "_{}deg".format(degree) + ".txt", dtype=int,
                                      delimiter=',')
@@ -1005,15 +1058,16 @@ class General(QWidget):
             self.deg_file = self.deg_file.astype(np.float64)
             self.figure_Layout.removeWidget(self.canvas)
             self.canvas.deleteLater()
+            self.toolbar.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
-            toolbar = NavigationToolbar(self.canvas, self)
+            self.toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
-            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
 
             csv_file_name = 'Processed_First_Data.csv'
             comb = pd.DataFrame(list(zip(self.deg_file, self.sig_file)))
@@ -1029,15 +1083,16 @@ class General(QWidget):
 
             self.figure_Layout.removeWidget(self.canvas)
             self.canvas.deleteLater()
+            self.toolbar.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-            toolbar = NavigationToolbar(self.canvas, self)
+            self.toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot_Linear.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
-            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
             self.next_button.setText("Slope Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1056,22 +1111,22 @@ class General(QWidget):
             rec_data.to_csv(self.folder + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
             self.figure_Layout.removeWidget(self.canvas)
             self.canvas.deleteLater()
+            self.toolbar.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-            toolbar = NavigationToolbar(self.canvas, self)
+            self.toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Slope_removal.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
-            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
             self.next_button.setText("Negative Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
     def polar_plot_linear_neg_correction(self):
             min_sig = min(self.sig_file)
-            print(min_sig)
             if min_sig < 0:
                 self.sig_file = self.sig_file - min_sig
             csv_file_name = 'Shift_Negative_To_Positive.csv'
@@ -1082,17 +1137,19 @@ class General(QWidget):
             max_lim = max(self.sig_file)
             min_lim = min(self.sig_file)
             self.canvas.deleteLater()
+            self.toolbar.deleteLater()
             self.canvas.ax.clear()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
-            toolbar = NavigationToolbar(self.canvas, self)
+            self.toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
-            self.canvas.ax.set_title(self.title + '{} Polarization'.format(self.polarization), pad=10, wrap=True)
+            self.canvas.ax.set_title(self.title + '{} Polarization'.format(self.polarization), pad=10, wrap=True, fontsize=10)
+            self.canvas.figure.tight_layout()
             self.canvas.figure.savefig(self.folder + "Final_Processed_Data.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
-            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
 
 
 
@@ -1218,8 +1275,7 @@ class General(QWidget):
             except Exception as e:
                 return
             self.plot_index = 0
-            self.folder = 'N/A'
-            self.file_selection_display_label.setText("Current Folder: {}".format(self.folder))
+            self.file_selection_display_label.setText('Please Upload Directory')
             if self.autofittingWidget == True:
                 self.autofittingWidget = False
                 self.clearLayout(self.auto_fitting_selection_layout)

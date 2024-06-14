@@ -7,7 +7,7 @@
                                        border-radius: 5px; /* Rounded corners */
                                        padding: 2px;
                                        min-height: 2px;
-                                       max-width: 130px;
+                                       max-width: 150px;
                                        font-size: 16px;;
                                    }
                                    QPushButton:hover {
