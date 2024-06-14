@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QListWidget, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QAbstractItemView, QFrame)
+, QAbstractItemView, QFrame, QPushButton, QMessageBox)
 from PyQt6.QtGui import QIcon, QFont, QPixmap
 from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 import sys
@@ -136,6 +136,37 @@ class MainWindow(QMainWindow):
         self.right_sidebar = QListWidget()
         self.right_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
         self.right_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
+        self.hide_button_container = QWidget()
+        self.hide_button_container.setStyleSheet(
+            """ 
+            QWidget{background-color: #ECECEB  ; border-radius: 15px;}
+
+            """)
+        self.hide_button_layout = QVBoxLayout()
+        self.hide_button_container.setFixedSize(30,910)
+        self.hide_button = QPushButton(QIcon("GUI/Icon/arrow-left.svg"),'')
+        self.hide_button.clicked.connect(self.hide_show_right_sidebar)
+        self.hide_button.setStyleSheet("""
+        QPushButton {
+                                       background-color: #ECECEB ; /* Green background */
+                                       color: #2b2b2b; /* White text */
+                                       border-style: solid;
+                                       border-color: #F9F9F9;
+                                       border-width: 2px;
+                                       border-radius: 5px; /* Rounded corners */
+                                       padding: 2px;
+                                       min-height: 2px;
+                                       max-width: 130px;
+                                       font-size: 16px;;
+                                   }
+                                   QPushButton:hover {
+                                       background-color: #CECFCE  ; /* Slightly darker green */
+                                   }
+                                   QPushButton:pressed {
+                                       background-color: #c8c9c8; /* Even darker green */
+                                   }""")
+        self.hide_button_layout.addWidget(self.hide_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.hide_button_container.setLayout(self.hide_button_layout)
         self.communicator.change_page.connect(self.set_page)
         # Content Pages
         self.pages = QStackedWidget()
@@ -160,7 +191,9 @@ class MainWindow(QMainWindow):
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
+        self.main_layout.addWidget(self.hide_button_container, 1)
         self.main_layout.addWidget(self.right_sidebar, 4)  # Right sidebar stretch factor 1
+
         self.main_layout.addWidget(self.pages, 13)  # Central content area stretch factor 4
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -178,13 +211,33 @@ class MainWindow(QMainWindow):
         self.left_sidebar.setCurrentRow(left_sidebar)
         self.right_sidebar.setCurrentRow(right_sidebar)
 
+    def hide_show_right_sidebar(self):
+        self.show = self.right_sidebar.isVisible()
+        print(self.show)
+        if not self.show:
+            try:
+                print(self.currentindex)
+                if self.currentindex == 1 or self.currentindex == 2:
+                    self.right_sidebar.show()
+                    self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
+            except Exception as e:
+                QMessageBox.warning(self, "Error", str(e))
+        else:
+            if self.currentindex == 1 or self.currentindex == 2:
+                # self.right_sidebar.show()
+                # self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
+                self.hide_button.setIcon(QIcon("GUI/Icon/arrow-right.svg"))
+                self.right_sidebar.hide()
+
     def update_menu_bar(self, current_row):
         self.whichSideBar = 1
         self.Tool_menu.setCurrentRow(0)  # Force clearing selection
         self.right_sidebar.clear()
 
         if current_row == 0:  # FMR
+            # self.show = False
             self.right_sidebar.hide()
+            self.hide_button.setEnabled(False)
             self.pages.setCurrentIndex(0)
             self.currentindex = 0
         else:
@@ -192,6 +245,8 @@ class MainWindow(QMainWindow):
 
 
         if current_row == 1:  # FMR
+            self.hide_button.setEnabled(True)
+            self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
             FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "FMR")
             VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "VSM")
             ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "ETO")
@@ -207,6 +262,8 @@ class MainWindow(QMainWindow):
             # self.left_sidebar.setEnabled(True)
 
         elif current_row == 2:  # VSM
+            self.hide_button.setEnabled(True)
+            self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
             self.right_sidebar.addItem(QListWidgetItem("PPMS"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
             self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))

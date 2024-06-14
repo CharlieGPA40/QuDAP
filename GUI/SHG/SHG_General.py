@@ -175,7 +175,7 @@ class General(QWidget):
                             QGroupBox {
 
                                 max-width: 600px;
-                                max-height: 250px;
+                                max-height: 230px;
                             }
 
                         """)
@@ -183,7 +183,7 @@ class General(QWidget):
                                             QGroupBox {
 
                                                 max-width: 650px;
-                                                max-height: 250px;
+                                                max-height: 230px;
                                             }
 
                                         """)
@@ -448,15 +448,15 @@ class General(QWidget):
 
     def updateGeneralSelection(self):
         selectedSHGButton = self.SHGbuttonGroup.checkedButton()
-        # if selectedSHGButton:
-        self.SHGSelected = True
-        self.shg = str(selectedSHGButton.text())
-        print(self.shg)
-        # else:
-        #     self.SHGSelected = False
-        #     self.shg = 'None'
+        if selectedSHGButton:
+            self.SHGSelected = True
+            self.shg = str(selectedSHGButton.text())
+        else:
+            self.SHGSelected = False
+            self.shg = 'None'
 
     def updateModeSelection(self):
+        print('enterm')
         selectedModeButton = self.buttonGroup.checkedButton()
         if selectedModeButton:
             self.modeSelected = True
@@ -494,6 +494,7 @@ class General(QWidget):
                 if item.spacerItem():
                     self.SHG_data_Processing_main_layout.removeItem(item)
             self.Process_button.setEnabled(False)
+            self.updateGeneralSelection()
             self.updateModeSelection()
             self.updateFitSelection()
             if self.modeSelected and self.fitSelected and self.SHGSelected:
@@ -746,6 +747,7 @@ class General(QWidget):
                         self.canvas.deleteLater()
                         self.canvas.ax.clear()
                         self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                        toolbar = NavigationToolbar(self.canvas, self)
                         self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                         self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
                         def onclick(event):
@@ -766,6 +768,7 @@ class General(QWidget):
                         connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                         self.canvas.draw()
                         self.figure_Layout.insertWidget(1, self.canvas, 3)
+                        self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                         self.prev_button.setEnabled(False)
                         self.next_button.setText("Submit")
 
@@ -789,6 +792,7 @@ class General(QWidget):
                     self.canvas.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    toolbar = NavigationToolbar(self.canvas, self)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
@@ -810,6 +814,7 @@ class General(QWidget):
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(False)
             elif self.plot_index == 1:
                 if self.auto == 'Manual':
@@ -819,6 +824,7 @@ class General(QWidget):
                     self.canvas.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    toolbar = NavigationToolbar(self.canvas, self)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
@@ -842,6 +848,7 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(True)
 
                     self.next_button.setText("Reselect")
@@ -851,6 +858,7 @@ class General(QWidget):
                     self.canvas.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    toolbar = NavigationToolbar(self.canvas, self)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                     # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
                     self.canvas.ax.scatter(self.center_i, self.center_j, s=30, color='tomato',
@@ -862,6 +870,7 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.next_button.setText("Polar Plot")
                     self.prev_button.setEnabled(False)
 
@@ -895,6 +904,7 @@ class General(QWidget):
                     self.canvas.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                    toolbar = NavigationToolbar(self.canvas, self)
                     self.canvas.ax.imshow(self.SHG_Raw, aspect='auto', vmin=0, vmax=5000)
                     self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
@@ -912,6 +922,7 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.next_button.setText("Polar Plot")
                     self.prev_button.setEnabled(True)
                     self.prev_button.setText("Reset")
@@ -996,11 +1007,13 @@ class General(QWidget):
             self.canvas.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
+            toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
 
             csv_file_name = 'Processed_First_Data.csv'
             comb = pd.DataFrame(list(zip(self.deg_file, self.sig_file)))
@@ -1018,11 +1031,13 @@ class General(QWidget):
             self.canvas.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+            toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot_Linear.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
             self.next_button.setText("Slope Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1043,11 +1058,13 @@ class General(QWidget):
             self.canvas.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+            toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Slope_removal.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
             self.next_button.setText("Negative Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1068,12 +1085,15 @@ class General(QWidget):
             self.canvas.ax.clear()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
+            toolbar = NavigationToolbar(self.canvas, self)
             self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
             self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
             self.canvas.ax.set_title(self.title + '{} Polarization'.format(self.polarization), pad=10, wrap=True)
             self.canvas.figure.savefig(self.folder + "Final_Processed_Data.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(0, toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+
 
 
     def Fitting(self):
