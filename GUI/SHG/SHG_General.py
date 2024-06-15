@@ -586,13 +586,13 @@ class General(QWidget):
                 Accumulation = self.Parameter.iat[11, 1]
                 self.acc_label = QLabel('Accumulation: ' + str(Accumulation))
                 self.acc_label.setFont(self.font)
-                self.Start_temp = self.Parameter.iat[12, 1]
+                self.Start_temp = int(self.Parameter.iat[12, 1])
                 self.start_temp_label = QLabel('Initial Temperature (K): ' + str(self.Start_temp))
                 self.start_temp_label.setFont(self.font)
-                self.End_temp = self.Parameter.iat[13, 1]
+                self.End_temp = int(self.Parameter.iat[13, 1])
                 self.end_temp_label = QLabel('Termination Temperature (K): ' + str(self.End_temp))
                 self.end_temp_label.setFont(self.font)
-                self.Step_temp = self.Parameter.iat[14, 1]
+                self.Step_temp = int(self.Parameter.iat[14, 1])
                 self.step_temp_label = QLabel('Step Temperature (K): ' + str(self.Step_temp))
                 self.step_temp_label.setFont(self.font)
 
@@ -678,11 +678,12 @@ class General(QWidget):
                 self.degree = 130
                 if self.shg == 'Temperature Dependence':
                     try:
+                        print(self.folder + file_name + '_0deg_{}K_Warm_Up'.format(self.Start_temp) + ".txt")
                         self.SHG_Raw = np.loadtxt(self.folder + file_name + '_0deg_{}K_Warm_Up'.format(self.Start_temp) + ".txt",
                                             dtype=int, delimiter=',')
                         self.warming_temp = True
                     except FileNotFoundError:
-                        return
+                        print('Warming File not find')
 
                     try:
                         self.SHG_Raw = np.loadtxt(
@@ -690,7 +691,7 @@ class General(QWidget):
                             dtype=int, delimiter=',')
                         self.cooling_temp = True
                     except FileNotFoundError:
-                        return
+                        print('Cooling File not find')
 
                 else:
                     self.SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(self.degree) + ".txt", dtype=int,
@@ -777,17 +778,27 @@ class General(QWidget):
                     self.canvas.figure.colorbar(im, ax=self.canvas.ax)
                     self.canvas.ax.scatter(center_i, center_j, s=30, color='tomato',
                                            marker='x')
-                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.ax.set_title(self.title + ' at {} K'.format(self.Start_temp), pad=10, wrap=True,
+                                                 fontsize=10)
+                        self.next_button.setText("Temp. Dep.")
+                    else:
+                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
+                        self.next_button.setText("Polar Plot")
                     self.canvas.figure.gca().add_patch(patches.Rectangle((start_i, start_j), region_size, region_size,
                                                                          edgecolor='white', facecolor='none', linewidth=1))
                     self.canvas.figure.tight_layout()
-                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_{}_K.png".format(self.Start_temp))
+                    else:
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
 
                     self.canvas.draw()
-                    self.next_button.setText("Polar Plot")
+
                 else:
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
+                    self.figure_Layout.removeWidget(self.toolbar)
                     self.canvas.deleteLater()
                     self.toolbar.deleteLater()
                     self.canvas.ax.clear()
@@ -795,7 +806,14 @@ class General(QWidget):
                     self.toolbar = NavigationToolbar(self.canvas, self)
                     im = self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
                     self.canvas.figure.colorbar(im, ax=self.canvas.ax)
-                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.ax.set_title(self.title + ' at {} K'.format(self.Start_temp), pad=10, wrap=True,
+                                                 fontsize=10)
+                    else:
+                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True,
+                                                 fontsize=10)
+
+                    # self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True, fontsize=10)
                     def onclick(event):
                         if event.dblclick:
                             global cur_x, cur_y, click
@@ -814,14 +832,15 @@ class General(QWidget):
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                     self.canvas.figure.tight_layout()
                     self.canvas.draw()
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.prev_button.setEnabled(False)
                     self.next_button.setText("Submit")
             else:
                 QMessageBox.warning(self, "Please try again!", "Select all the required option")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
+            self.rstpage()
             return
 
     def show_previous_plot(self):
@@ -835,13 +854,22 @@ class General(QWidget):
                     self.prev_button.setEnabled(False)
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
+                    self.figure_Layout.removeWidget(self.toolbar)
                     self.canvas.deleteLater()
                     self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
-                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+                    im =self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+                    self.canvas.figure.colorbar(im, ax=self.canvas.ax)
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.ax.set_title(self.title + ' at {} K'.format(self.Start_temp), pad=10, wrap=True,
+                                                 fontsize=10)
+                    else:
+                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True,
+                                                 fontsize=10)
+
+                    # self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
                     def onclick(event):
                         if event.dblclick:
@@ -850,7 +878,6 @@ class General(QWidget):
                             cur_y = event.ydata
                             click = event.button
                             if click == 1:
-                                print('Closing')
                                 # self.center_x_entry_box.setEnabled(False)
                                 # self.center_y_entry_box.setEnabled(False)
                                 self.center_x = int(cur_x)
@@ -860,21 +887,32 @@ class General(QWidget):
 
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                     self.canvas.draw()
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.prev_button.setEnabled(False)
+                    self.next_button.setText("Reselect")
             elif self.plot_index == 1:
                 if self.auto == 'Manual':
                     print(f'Enter{self.plot_index}')
+                    # self.next_button.setText("Reselect")
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
+                    self.figure_Layout.removeWidget(self.toolbar)
                     self.canvas.deleteLater()
                     self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
-                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+                    im = self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+                    self.canvas.figure.colorbar(im, ax=self.canvas.ax)
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.ax.set_title(self.title + ' at {} K'.format(self.Start_temp), pad=10, wrap=True,
+                                                 fontsize=10)
+                    else:
+                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True,
+                                                 fontsize=10)
+
+                    # self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
                     def onclick(event):
                         if event.dblclick:
@@ -893,54 +931,72 @@ class General(QWidget):
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                     self.center_x = int( self.center_x_entry_box.displayText())
                     self.center_y = int( self.center_y_entry_box.displayText())
-                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_{}_K.png".format(self.Start_temp))
+                    else:
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.prev_button.setEnabled(True)
 
-                    self.next_button.setText("Reselect")
+
                     self.plot_index -= 1
                 else:
                     self.figure_Layout.removeWidget(self.canvas)
+                    self.figure_Layout.removeWidget(self.toolbar)
                     self.canvas.deleteLater()
                     self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+
+                    im = self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+                    self.canvas.figure.colorbar(im, ax=self.canvas.ax)
                     # self.canvas.figure.colorbar(label='{} Polarization'.format(polarization))
                     self.canvas.ax.scatter(self.center_i, self.center_j, s=30, color='tomato',
                                            marker='x')
-                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.ax.set_title(self.title + ' at {} K'.format(self.Start_temp), pad=10, wrap=True,
+                                                 fontsize=10)
+                        self.next_button.setText("Temp. Dep.")
+                    else:
+                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True,
+                                                 fontsize=10)
+                        self.next_button.setText("Submit")
+
+                    # self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
                     self.canvas.figure.gca().add_patch(patches.Rectangle((self.start_i, self.start_j), self.region_size, self.region_size,
                                                                          edgecolor='white', facecolor='none',
                                                                          linewidth=1))
-                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_{}_K.png".format(self.Start_temp))
+                    else:
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.next_button.setText("Polar Plot")
+                    self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.prev_button.setEnabled(False)
+                    self.next_button.setText("Submit")
 
             elif self.plot_index == 1:
 
                 self.plot_index -= 2
                 self.prev_button.setText('Reset')
+                # self.next_button.setText("Submit")
+
                 self.show_next_plot()
-                print(f'Exit{self.plot_index}')
             else:
                 self.plot_index -= 1
                 self.plot_button_layout.removeWidget(self.prev_button)
                 self.prev_button.deleteLater()
-
-
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
 
 
     def show_next_plot(self):
+        print(self.plot_index)
         try:
             if self.plot_index == 0:
                 if self.auto == 'Auto':
@@ -949,13 +1005,25 @@ class General(QWidget):
                     self.polar_plot_extraction()
                 else:
                     self.figure_Layout.removeWidget(self.canvas)
+                    self.figure_Layout.removeWidget(self.toolbar)
                     self.canvas.deleteLater()
                     self.toolbar.deleteLater()
                     self.canvas.ax.clear()
                     self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                     self.toolbar = NavigationToolbar(self.canvas, self)
-                    self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
-                    self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
+                    im = self.canvas.ax.imshow(self.SHG_Raw, vmin=0, vmax=5000)
+                    self.canvas.figure.colorbar(im, ax=self.canvas.ax)
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.ax.set_title(self.title + ' at {} K'.format(self.Start_temp), pad=10, wrap=True,
+                                                 fontsize=10)
+                        self.next_button.setText("Temp. Dep.")
+
+                    else:
+                        self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True,
+                                                 fontsize=10)
+                        self.next_button.setText("Polar Plot")
+
+                    # self.canvas.ax.set_title(self.title + ' at {} Degree'.format(self.degree), pad=10, wrap=True)
 
                     region_size = int(self.box_size_entry.displayText())
                     self.region_size = region_size
@@ -968,19 +1036,27 @@ class General(QWidget):
                         patches.Rectangle((self.center_x - self.half_region_size, self.center_y - self.half_region_size), region_size,
                                           region_size,
                                           edgecolor='white', facecolor='none', linewidth=1))
-                    self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
+                    if self.shg == 'Temperature Dependence':
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_{}_K.png".format(self.Start_temp))
+                    else:
+                        self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
+                    self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
-                    # self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.next_button.setText("Polar Plot")
+
                     self.prev_button.setEnabled(True)
                     self.prev_button.setText("Reset")
                 self.plot_index += 1
             elif self.plot_index == 1:
                 if self.auto == 'Auto':
                     if self.shg == 'Temperature Dependence':
-                        print()
-                    else:
+                        if self.cooling_temp:
+                            self.temp_dep_warm_process('Cool')
+                            self.next_button.setText('Combine')
+                            self.plot_index += 1
+                        else:
+                            self.plot_index += 1
+                            self.next_button.setText('Combine')
                         self.polar_plot_linear()
                 else:
                     if self.shg == 'Temperature Dependence':
@@ -992,12 +1068,33 @@ class General(QWidget):
             elif self.plot_index == 2:
                 if self.auto == 'Auto':
                     if self.shg == 'Temperature Dependence':
-                        print()
+                        self.plot_index = 6
+                        self.next_button.setText('Exp. PPT')
                     else:
                         self.polar_plot_linear_correction()
                 else:
                     if self.shg == 'Temperature Dependence':
-                        print()
+                        self.figure_Layout.removeWidget(self.canvas)
+                        self.figure_Layout.removeWidget(self.toolbar)
+                        self.canvas.deleteLater()
+                        self.toolbar.deleteLater()
+                        self.canvas.ax.clear()
+                        self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
+                        self.toolbar = NavigationToolbar(self.canvas, self)
+                        self.canvas.ax.plot(self.temp_file, self.sig_file, linewidth=3, color='tomato',
+                                            label="Warm Up Process")
+                        self.canvas.ax.scatter(self.temp_file, self.sig_file, color='tomato')
+                        self.canvas.ax.plot(self.temp_file, self.sig_file_Cooling, linewidth=3, color='tomato',
+                                            label="Warm Up Process")
+                        self.canvas.ax.scatter(self.temp_file, self.sig_file_Cooling, color='tomato')
+                        self.canvas.ax.set_xlabel('Temperature (K)')
+                        self.canvas.ax.set_ylabel(f'SHG Intensity (counts/{self.exp_time}s)')
+                        self.canvas.ax.legend()
+                        self.canvas.ax.set_title(self.title, pad=10, wrap=True, fontsize=10)
+                        self.canvas.figure.savefig(self.folder + "Temp_Dep_Combined.png")
+                        self.canvas.draw()
+                        self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                        self.figure_Layout.insertWidget(1, self.canvas, 8)
                     else:
                         self.plot_button_layout.removeWidget(self.prev_button)
                         self.prev_button.deleteLater()
@@ -1006,16 +1103,13 @@ class General(QWidget):
 
             elif self.plot_index == 3:
                 if self.auto == 'Auto':
-                    if self.shg == 'Temperature Dependence':
-                        print()
+                    self.polar_plot_linear_neg_correction()
+                    if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
+                        self.plot_index = 5
+                        self.next_button.setText("Fit")
                     else:
-                        self.polar_plot_linear_neg_correction()
-                        if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
-                            self.plot_index = 5
-                            self.next_button.setText("Fit")
-                        else:
-                            self.plot_index = 6
-                            self.next_button.setText("Exp. PPT.")
+                        self.plot_index = 6
+                        self.next_button.setText("Exp. PPT.")
                 else:
                     if self.shg == 'Temperature Dependence':
                         print()
@@ -1025,30 +1119,21 @@ class General(QWidget):
 
 
             elif self.plot_index == 4:
-                if self.shg == 'Temperature Dependence':
-                    print()
+                self.polar_plot_linear_neg_correction()
+                if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
+                    self.plot_index = 5
+                    self.next_button.setText("Fit")
                 else:
-                    self.polar_plot_linear_neg_correction()
-                    if self.FitSeleciton == 'Pre-defined' or self.FitSeleciton == 'User-defined':
-                        self.plot_index = 5
-                        self.next_button.setText("Fit")
-                    else:
-                        self.plot_index = 6
-                        self.next_button.setText("Export PPT.")
+                    self.plot_index = 6
+                    self.next_button.setText("Export PPT.")
 
             elif self.plot_index == 5:
-                if self.shg == 'Temperature Dependence':
-                    print()
-                else:
-                    self.Fitting()
-                    self.plot_index += 1
+                self.Fitting()
+                self.plot_index += 1
 
             elif self.plot_index == 6:
-                if self.shg == 'Temperature Dependence':
-                    print()
-                else:
-                    self.export_PPT()
-                    self.plot_index = 0
+                self.export_PPT()
+                self.plot_index = 0
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1099,6 +1184,7 @@ class General(QWidget):
                 self.deg_file = self.deg_file * np.pi / 180
                 self.deg_file = self.deg_file.astype(np.float64)
                 self.figure_Layout.removeWidget(self.canvas)
+                self.figure_Layout.removeWidget(self.toolbar)
                 self.canvas.deleteLater()
                 self.toolbar.deleteLater()
                 self.canvas.ax.clear()
@@ -1108,9 +1194,9 @@ class General(QWidget):
                 self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
                 self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot.png")
                 self.canvas.draw()
-                self.figure_Layout.insertWidget(1, self.canvas, 8)
-                self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
 
+                self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.figure_Layout.insertWidget(1, self.canvas, 8)
                 csv_file_name = 'Processed_First_Data.csv'
                 comb = pd.DataFrame(list(zip(self.deg_file, self.sig_file)))
                 rec_data = pd.DataFrame()
@@ -1123,6 +1209,7 @@ class General(QWidget):
     def polar_plot_linear(self):
         try:
             self.figure_Layout.removeWidget(self.canvas)
+            self.figure_Layout.removeWidget(self.toolbar)
             self.canvas.deleteLater()
             self.toolbar.deleteLater()
             self.canvas.ax.clear()
@@ -1132,8 +1219,8 @@ class General(QWidget):
             self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot_Linear.png")
             self.canvas.draw()
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.figure_Layout.insertWidget(1, self.canvas, 8)
             self.next_button.setText("Slope Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1151,6 +1238,7 @@ class General(QWidget):
             rec_data = pd.concat([rec_data, comb], ignore_index=True, axis=1)
             rec_data.to_csv(self.folder + csv_file_name, mode='a', index=False, encoding='utf-8-sig', header=None)
             self.figure_Layout.removeWidget(self.canvas)
+            self.figure_Layout.removeWidget(self.toolbar)
             self.canvas.deleteLater()
             self.toolbar.deleteLater()
             self.canvas.ax.clear()
@@ -1160,8 +1248,8 @@ class General(QWidget):
             self.canvas.ax.scatter(self.deg_file, self.sig_file, color='tomato')
             self.canvas.figure.savefig(self.folder + "Slope_removal.png")
             self.canvas.draw()
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.figure_Layout.insertWidget(1, self.canvas, 8)
             self.next_button.setText("Negative Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1189,9 +1277,8 @@ class General(QWidget):
             self.canvas.figure.tight_layout()
             self.canvas.figure.savefig(self.folder + "Final_Processed_Data.png")
             self.canvas.draw()
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-
+            self.figure_Layout.insertWidget(1, self.canvas, 8)
 
 
     def Fitting(self):
@@ -1272,9 +1359,12 @@ class General(QWidget):
                 prs = Presentation(self.folder + 'Results.pptx')
                 prs.slide_width = Inches(13.33)
                 prs.slide_height = Inches(7.5)
-
-            SHG_Image = self.folder + "Preview_Figure_at_130_Deg.png"
-            SHG_Signal = self.folder + "Final_Processed_Data.png"
+            if self.shg == 'Temperature Dependence':
+                SHG_Image = self.folder + "Preview_Figure_at_130_Deg.png"
+                SHG_Signal = self.folder + "Final_Processed_Data.png"
+            else:
+                SHG_Image = self.folder + "Preview_Figure_at_130_Deg.png"
+                SHG_Signal = self.folder + "Final_Processed_Data.png"
             blank_slide_layout = prs.slide_layouts[6]
             slide = prs.slides.add_slide(blank_slide_layout)
             SHG_Image_img = slide.shapes.add_picture(SHG_Image, Inches(0.32), Inches(1.42), Inches(6.39))
@@ -1393,29 +1483,45 @@ class General(QWidget):
                 bkg_pixel = (large_sum - small_sum) / (512 ** 2 - self.region_size ** 2)
                 # print('Temp: ' + str(temp) + 'K bg: ' + str(bkg_pixel) + " " + str(small_sum) + " " + str(bkg_pixel*region_size**2) )
                 sig = small_sum - bkg_pixel * self.region_size ** 2
-                self.sig_file = np.append(self.sig_file, sig)
+                if self.warming_temp:
+                    self.sig_file = np.append(self.sig_file, sig)
+                elif self.cooling_temp:
+                    self.sig_file_Cooling = np.append(self.sig_file_Cooling, sig)
 
             sig_df = pd.DataFrame(columns=['Temperature', 'Signal'])
-            sig_df_comb = pd.DataFrame(list(zip(self.temp_file, self.sig_file)))
-            spilt_df = pd.concat([sig_df, sig_df_comb], ignore_index=True, axis=1)
-            spilt_df.to_csv(self.folder + '/Temp_Dep_Warming_Up.csv', index=False, header=False)
+            if self.warming_temp:
+                sig_df_comb = pd.DataFrame(list(zip(self.temp_file, self.sig_file)))
+                spilt_df = pd.concat([sig_df, sig_df_comb], ignore_index=True, axis=1)
+                spilt_df.to_csv(self.folder + '/Temp_Dep_Warming_Up.csv', index=False, header=False)
+
+            elif self.cooling_temp:
+                sig_df_comb = pd.DataFrame(list(zip(self.temp_file, self.sig_file_Cooling)))
+                spilt_df = pd.concat([sig_df, sig_df_comb], ignore_index=True, axis=1)
+                spilt_df.to_csv(self.folder + '/Temp_Dep_Cooling_Down.csv', index=False, header=False)
 
             self.figure_Layout.removeWidget(self.canvas)
+            self.figure_Layout.removeWidget(self.toolbar)
             self.canvas.deleteLater()
             self.toolbar.deleteLater()
             self.canvas.ax.clear()
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
             self.toolbar = NavigationToolbar(self.canvas, self)
-            self.canvas.ax.plot(self.temp_file, self.sig_file, linewidth=3, color='tomato', label="Warm Up Process")
-            self.canvas.ax.scatter(self.temp_file, self.sig_file, color='tomato')
+            if self.warming_temp:
+                self.canvas.ax.plot(self.temp_file, self.sig_file, linewidth=3, color='tomato', label="Warm Up Process")
+                self.canvas.ax.scatter(self.temp_file, self.sig_file, color='tomato')
+            elif self.cooling_temp:
+                self.canvas.ax.plot(self.temp_file, self.sig_file_Cooling, linewidth=3, color='tomato', label="Cooling Down Process")
+                self.canvas.ax.scatter(self.temp_file, self.sig_file_Cooling, color='tomato')
             self.canvas.ax.set_xlabel('Temperature (K)')
             self.canvas.ax.set_ylabel(f'SHG Intensity (counts/{self.exp_time}s)')
-            self.canvas.figure.legend()
+            self.canvas.ax.legend()
             self.canvas.ax.set_title(self.title, pad=10, wrap=True, fontsize=10)
-            self.canvas.figure.savefig(self.folder + "Temp_Dep_Warm_Up.png")
+            if self.warming_temp:
+                self.canvas.figure.savefig(self.folder + "Temp_Dep_Warm_Up.png")
+            elif self.cooling_temp:
+                self.canvas.figure.savefig(self.folder + "Temp_Dep_Cooling_Down.png")
             self.canvas.draw()
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-
+            self.figure_Layout.insertWidget(1, self.canvas, 8)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))

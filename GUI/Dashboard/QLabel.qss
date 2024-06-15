@@ -1,9 +1,8 @@
  QLabel {
             border: none;
             border-radius: 5px;
-            padding: 10px;
             margin: 5px;
-            font-size: 54px;
+            font-size: 45px;
             color:   #ffffff  ;
             font-weight: bold;
             font-style: italic;

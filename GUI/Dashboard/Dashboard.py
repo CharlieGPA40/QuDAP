@@ -342,7 +342,7 @@ class Dash(QMainWindow):
         GPIB_layout.addLayout(GPIB_icon_connection_layout)
 
         GPIB_connection_layout = QVBoxLayout()
-        self.GPIB_Label = QLabel('GPIB Connections:')
+        self.GPIB_Label = QLabel('GPIB :')
         self.GPIB_number_Label = QLabel('0')
         self.GPIB_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         GPIB_connection_layout.addWidget(self.GPIB_Label, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -350,7 +350,7 @@ class Dash(QMainWindow):
 
         GPIB_layout.addLayout(GPIB_connection_layout)
         self.GPIB_ccntainer = QWidget()
-        self.GPIB_ccntainer.setFixedSize(widget_size, 150)
+        self.GPIB_ccntainer.setFixedSize(widget_size, 100)
         self.GPIB_ccntainer.setStyleSheet(
                                           """ 
                                           QWidget{background-color: #d1f2eb ; border-radius: 20px;}
@@ -379,15 +379,15 @@ class Dash(QMainWindow):
         ASLR_icon_connection_layout.addWidget(ASLR_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         ASLR_layout.addLayout(ASLR_icon_connection_layout)
         ASLR_connection_layout = QVBoxLayout()
-        self.ASLR_Label = QLabel('ASLR Connections:')
+        self.ASLR_Label = QLabel('ASLR:')
         self.ASLR_number_Label = QLabel('0')
         self.ASLR_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         ASLR_connection_layout.addWidget(self.ASLR_Label, alignment=Qt.AlignmentFlag.AlignLeft)
-        ASLR_connection_layout.addWidget(self.ASLR_number_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        ASLR_connection_layout.addWidget(self.ASLR_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
         ASLR_layout.addWidget(ASLR_icon_label)
         ASLR_layout.addLayout(ASLR_connection_layout)
         self.ASLR_ccntainer = QWidget()
-        self.ASLR_ccntainer.setFixedSize(widget_size, 150)
+        self.ASLR_ccntainer.setFixedSize(widget_size, 100)
         self.ASLR_ccntainer.setStyleSheet(
                                           """ 
                                           QWidget{background-color:lightblue; border-radius: 20px;}
@@ -415,7 +415,7 @@ class Dash(QMainWindow):
         USB_icon_connection_layout.addWidget(USB_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         USB_layout.addLayout(USB_icon_connection_layout)
         USB_connection_layout = QVBoxLayout()
-        self.USB_Label = QLabel('USB Connections:')
+        self.USB_Label = QLabel('USB:')
         self.USB_number_Label = QLabel('0')
         self.USB_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         USB_connection_layout.addWidget(self.USB_Label, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -423,7 +423,7 @@ class Dash(QMainWindow):
         USB_layout.addWidget(USB_icon_label)
         USB_layout.addLayout(USB_connection_layout)
         self.USB_ccntainer = QWidget()
-        self.USB_ccntainer.setFixedSize(widget_size, 150)
+        self.USB_ccntainer.setFixedSize(widget_size, 100)
         self.USB_ccntainer.setStyleSheet(""" 
                                           QWidget{background-color: #e8daef; border-radius: 20px;}
                                            QWidget:hover {
@@ -451,17 +451,17 @@ class Dash(QMainWindow):
         TCPIP_icon_connection_layout.addWidget(TCPIP_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         TCPIP_layout.addLayout(TCPIP_icon_connection_layout)
         TCPIP_connection_layout = QVBoxLayout()
-        self.TCPIP_Label = QLabel('Ethernet Connections:')
+        self.TCPIP_Label = QLabel('Ethernet:')
         self.TCPIP_number_Label = QLabel('0')
         self.TCPIP_number_Label.setStyleSheet(self.IOLabel_stylesheet)
         TCPIP_connection_layout.addWidget(self.TCPIP_Label, alignment=Qt.AlignmentFlag.AlignLeft)
         TCPIP_connection_layout.addWidget(self.TCPIP_number_Label, alignment=Qt.AlignmentFlag.AlignRight)
 
 
-        TCPIP_layout.addWidget(TCPIP_icon_label)
+        TCPIP_layout.addWidget(TCPIP_icon_label, alignment=Qt.AlignmentFlag.AlignLeft)
         TCPIP_layout.addLayout(TCPIP_connection_layout)
         self.TCPIP_container = QWidget()
-        self.TCPIP_container.setFixedSize(widget_size, 150)
+        self.TCPIP_container.setFixedSize(widget_size, 100)
         self.TCPIP_container.setStyleSheet(""" 
                                           QWidget{background-color: peachpuff; border-radius: 20px;}
                                            QWidget:hover {
