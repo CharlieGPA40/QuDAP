@@ -272,6 +272,7 @@ class MainWindow(QMainWindow):
             self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
             self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
             self.right_sidebar.addItem(QListWidgetItem("Measure"))
+            self.right_sidebar.addItem(QListWidgetItem("Quick Test"))
             self.right_sidebar.currentRowChanged.connect(self.update_exp_processing)
             self.right_sidebar.setCurrentRow(7)
             self.pages.setCurrentIndex(0)
