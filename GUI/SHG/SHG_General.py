@@ -695,7 +695,6 @@ class General(QWidget):
                 self.degree = 130
                 if self.shg == 'Temperature Dependence':
                     try:
-                        print(self.folder + file_name + '_0deg_{}K_Warm_Up'.format(self.Start_temp) + ".txt")
                         self.SHG_Raw = np.loadtxt(self.folder + file_name + '_0deg_{}K_Warm_Up'.format(self.Start_temp) + ".txt",
                                             dtype=int, delimiter=',')
                         self.warming_temp = True
@@ -709,6 +708,17 @@ class General(QWidget):
                         self.cooling_temp = True
                     except FileNotFoundError:
                         print('Cooling File not find')
+
+                    self.temp_file_cooling = []
+                    self.sig_file_Cooling = []
+                    self.temp_file_warming = []
+                    self.sig_file_warming = []
+
+
+                    if self.cooling_temp and self.warming_temp:
+                        self.SHG_Raw = np.loadtxt(
+                            self.folder + file_name + '_0deg_{}K_Warm_Up'.format(self.Start_temp) + ".txt",
+                            dtype=int, delimiter=',')
 
                 else:
                     self.SHG_Raw = np.loadtxt(self.folder + file_name + "_{}deg".format(self.degree) + ".txt", dtype=int,
@@ -811,7 +821,6 @@ class General(QWidget):
                         self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
 
                     self.canvas.draw()
-
                 else:
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
@@ -853,6 +862,11 @@ class General(QWidget):
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.prev_button.setEnabled(False)
                     self.next_button.setText("Submit")
+
+                if self.warming_temp:
+                    self.temp_dep_warm_process('Warm')
+                if self.cooling_temp:
+                    self.temp_dep_warm_process('Cool')
             else:
                 QMessageBox.warning(self, "Please try again!", "Select all the required option")
         except Exception as e:
@@ -861,7 +875,6 @@ class General(QWidget):
             return
 
     def show_previous_plot(self):
-        print(f'Previous{self.plot_index}')
         self.plot_index -= 1
         if self.plot_index < 0:
             self.plot_index = 0
@@ -908,9 +921,9 @@ class General(QWidget):
                     self.figure_Layout.insertWidget(1, self.canvas, 8)
                     self.prev_button.setEnabled(False)
                     self.next_button.setText("Reselect")
+
             elif self.plot_index == 1:
                 if self.auto == 'Manual':
-                    print(f'Enter{self.plot_index}')
                     # self.next_button.setText("Reselect")
                     self.box_size_entry.setPlaceholderText("Enter Box Size")
                     self.figure_Layout.removeWidget(self.canvas)
@@ -997,7 +1010,6 @@ class General(QWidget):
                     self.next_button.setText("Submit")
 
             elif self.plot_index == 1:
-
                 self.plot_index -= 2
                 self.prev_button.setText('Reset')
                 # self.next_button.setText("Submit")
@@ -1010,10 +1022,8 @@ class General(QWidget):
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
-
-
     def show_next_plot(self):
-        print(self.plot_index)
+        print(self.shg, self.auto, self.plot_index)
         try:
             if self.plot_index == 0:
                 if self.auto == 'Auto':
@@ -1064,16 +1074,18 @@ class General(QWidget):
                     self.prev_button.setEnabled(True)
                     self.prev_button.setText("Reset")
                 self.plot_index += 1
+
             elif self.plot_index == 1:
                 if self.auto == 'Auto':
                     if self.shg == 'Temperature Dependence':
                         if self.cooling_temp:
-                            self.temp_dep_warm_process('Cool')
+                            self.temp_dep_process_plotting('Cool')
                             self.next_button.setText('Combine')
-                            self.plot_index += 1
+                            # self.plot_index += 1
                         else:
-                            self.plot_index += 1
+                            # self.plot_index += 1
                             self.next_button.setText('Combine')
+                    else:
                         self.polar_plot_linear()
                 else:
                     if self.shg == 'Temperature Dependence':
@@ -1086,30 +1098,7 @@ class General(QWidget):
                 if self.auto == 'Auto':
                     if self.shg == 'Temperature Dependence':
                         if self.shg == 'Temperature Dependence':
-                            self.figure_Layout.removeWidget(self.canvas)
-                            self.figure_Layout.removeWidget(self.toolbar)
-                            self.canvas.deleteLater()
-                            self.toolbar.deleteLater()
-                            self.canvas.ax.clear()
-                            self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
-                            self.toolbar = NavigationToolbar(self.canvas, self)
-                            if self.warming_temp:
-                                self.canvas.ax.plot(self.temp_file, self.sig_file, linewidth=3, color='tomato',
-                                                    label="Warm Up Process")
-                                self.canvas.ax.scatter(self.temp_file, self.sig_file, color='tomato')
-                            elif self.cooling_temp:
-                                self.canvas.ax.plot(self.temp_file, self.sig_file_Cooling, linewidth=3, color='tomato',
-                                                    label="Cooling Down Process")
-                                self.canvas.ax.scatter(self.temp_file, self.sig_file_Cooling, color='tomato')
-
-                            self.canvas.ax.set_xlabel('Temperature (K)')
-                            self.canvas.ax.set_ylabel(f'SHG Intensity (counts/{self.exp_time}s)')
-                            self.canvas.ax.legend()
-                            self.canvas.ax.set_title(self.title, pad=10, wrap=True, fontsize=10)
-                            self.canvas.figure.savefig(self.folder + "Temp_Dep_Combined.png")
-                            self.canvas.draw()
-                            self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                            self.figure_Layout.insertWidget(1, self.canvas, 8)
+                            self.temp_dep_process_plotting('combine')
                         self.plot_index = 6
                         self.next_button.setText('Exp. PPT')
                     else:
@@ -1124,13 +1113,13 @@ class General(QWidget):
                         self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
                         self.toolbar = NavigationToolbar(self.canvas, self)
                         if self.warming_temp:
-                            self.canvas.ax.plot(self.temp_file, self.sig_file, linewidth=3, color='tomato',
+                            self.canvas.ax.plot(self.temp_file_warming, self.sig_file_warming, linewidth=3, color='tomato',
                                                 label="Warm Up Process")
-                            self.canvas.ax.scatter(self.temp_file, self.sig_file, color='tomato')
+                            self.canvas.ax.scatter(self.temp_file_warming, self.sig_file_warming, color='tomato')
                         elif self.cooling_temp:
-                            self.canvas.ax.plot(self.temp_file, self.sig_file_Cooling, linewidth=3, color='tomato',
+                            self.canvas.ax.plot(self.temp_file_cooling, self.sig_file_Cooling, linewidth=3, color='tomato',
                                                 label="Cooling Down Process")
-                            self.canvas.ax.scatter(self.temp_file, self.sig_file_Cooling, color='tomato')
+                            self.canvas.ax.scatter(self.temp_file_cooling, self.sig_file_Cooling, color='tomato')
 
                         self.canvas.ax.set_xlabel('Temperature (K)')
                         self.canvas.ax.set_ylabel(f'SHG Intensity (counts/{self.exp_time}s)')
@@ -1179,28 +1168,29 @@ class General(QWidget):
             elif self.plot_index == 6:
                 self.export_PPT()
                 self.plot_index = 0
-
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
     def polar_plot_extraction(self):
+        print("enter polar extraction")
         try:
+            self.deg_file = []
+            self.sig_file = []
             if self.shg == 'Temperature Dependence':
                 self.prev_button.setEnabled(True)
                 self.prev_button.setText("Reset")
-                self.deg_file = []
-                self.sig_file = []
-                self.temp_file = []
-                self.sig_file_Cooling = []
+
                 if self.warming_temp:
-                    self.temp_dep_warm_process('Warm')
+                    self.temp_dep_process_plotting('Warm')
                     if self.cooling_temp:
                         self.next_button.setText('Cooling Process')
                     else:
-                        self.next_button.setText('Exp. PPT')
+                        self.next_button.setText('Combine')
+                        self.plot_index += 1
                 elif self.cooling_temp:
-                    self.temp_dep_warm_process('Cool')
-                    self.next_button.setText('Exp. PPT')
+                    # self.temp_dep_warm_process('Cool')
+                    self.next_button.setText('Combine')
+                    self.plot_index += 1
             else:
                 self.prev_button.setEnabled(True)
                 self.prev_button.setText("Reset")
@@ -1237,11 +1227,12 @@ class General(QWidget):
                 self.toolbar = NavigationToolbar(self.canvas, self)
                 self.canvas.ax.plot(self.deg_file, self.sig_file, color='tomato')
                 self.canvas.ax.set_ylim(bottom=min_lim, top=max_lim)
+                self.canvas.figure.tight_layout()
                 self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot.png")
                 self.canvas.draw()
 
                 self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                self.figure_Layout.insertWidget(1, self.canvas, 8)
+                self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
                 csv_file_name = 'Processed_First_Data.csv'
                 comb = pd.DataFrame(list(zip(self.deg_file, self.sig_file)))
                 rec_data = pd.DataFrame()
@@ -1503,7 +1494,7 @@ class General(QWidget):
     def temp_dep_warm_process(self, mode):
         try:
             for temp in range(self.Start_temp, self.End_temp + self.Step_temp, self.Step_temp):
-                self.temp_file = np.append(self.temp_file, temp)
+
                 if self.warming_temp and mode == 'Warm':
                     SHG_Raw = np.loadtxt(
                         self.folder + self.file_name + '_0deg_{}K_Warm_Up'.format(temp) + ".txt",
@@ -1511,7 +1502,7 @@ class General(QWidget):
                         delimiter=',')
                 elif self.cooling_temp and mode == 'Cool':
                     SHG_Raw = np.loadtxt(
-                        self.folder + self.file_name + '_0deg_{}K_Warm_Up'.format(temp) + ".txt",
+                        self.folder + self.file_name + '_0deg_{}K_Cooling_Down'.format(temp) + ".txt",
                         dtype=int,
                         delimiter=',')
                 if self.auto == 'Manual':
@@ -1527,22 +1518,27 @@ class General(QWidget):
                 bkg_pixel = (large_sum - small_sum) / (512 ** 2 - self.region_size ** 2)
                 # print('Temp: ' + str(temp) + 'K bg: ' + str(bkg_pixel) + " " + str(small_sum) + " " + str(bkg_pixel*region_size**2) )
                 sig = small_sum - bkg_pixel * self.region_size ** 2
-                if self.warming_temp:
-                    self.sig_file = np.append(self.sig_file, sig)
-                elif self.cooling_temp:
+                if self.warming_temp and mode == 'Warm':
+                    self.temp_file_warming = np.append(self.temp_file_warming, temp)
+                    self.sig_file_warming = np.append(self.sig_file_warming, sig)
+                if self.cooling_temp and mode == 'Cool':
+                    self.temp_file_cooling = np.append(self.temp_file_cooling, temp)
                     self.sig_file_Cooling = np.append(self.sig_file_Cooling, sig)
 
             sig_df = pd.DataFrame(columns=['Temperature', 'Signal'])
             if self.warming_temp and mode == 'Warm':
-                sig_df_comb = pd.DataFrame(list(zip(self.temp_file, self.sig_file)))
+                sig_df_comb = pd.DataFrame(list(zip(self.temp_file_warming, self.sig_file_warming)))
                 spilt_df = pd.concat([sig_df, sig_df_comb], ignore_index=True, axis=1)
-                spilt_df.to_csv(self.folder + '/Temp_Dep_Warming_Up.csv', index=False, header=False)
+                spilt_df.to_csv(self.folder + 'Temp_Dep_Warming_Up.csv', index=False, header=False)
 
-            elif self.cooling_temp and mode == 'Cool':
-                sig_df_comb = pd.DataFrame(list(zip(self.temp_file, self.sig_file_Cooling)))
+            if self.cooling_temp and mode == 'Cool':
+                sig_df_comb = pd.DataFrame(list(zip(self.temp_file_cooling, self.sig_file_Cooling)))
                 spilt_df = pd.concat([sig_df, sig_df_comb], ignore_index=True, axis=1)
-                spilt_df.to_csv(self.folder + '/Temp_Dep_Cooling_Down.csv', index=False, header=False)
+                spilt_df.to_csv(self.folder + 'Temp_Dep_Cooling_Down.csv', index=False, header=False)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
 
+    def temp_dep_process_plotting(self, mode):
             self.figure_Layout.removeWidget(self.canvas)
             self.figure_Layout.removeWidget(self.toolbar)
             self.canvas.deleteLater()
@@ -1551,24 +1547,36 @@ class General(QWidget):
             self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
             self.toolbar = NavigationToolbar(self.canvas, self)
             if self.warming_temp and mode == 'Warm':
-                self.canvas.ax.plot(self.temp_file, self.sig_file, linewidth=3, color='tomato', label="Warm Up Process")
-                self.canvas.ax.scatter(self.temp_file, self.sig_file, color='tomato')
+                self.canvas.ax.plot(self.temp_file_warming, self.sig_file_warming, linewidth=3, color='red', label="Warm Up Process")
+                self.canvas.ax.scatter(self.temp_file_warming, self.sig_file_warming, color='red')
             elif self.cooling_temp and mode == 'Cool':
-                self.canvas.ax.plot(self.temp_file, self.sig_file_Cooling, linewidth=3, color='tomato', label="Cooling Down Process")
-                self.canvas.ax.scatter(self.temp_file, self.sig_file_Cooling, color='tomato')
+                self.canvas.ax.plot(self.temp_file_cooling, self.sig_file_Cooling, linewidth=3, color='black', label="Cooling Down Process")
+                self.canvas.ax.scatter(self.temp_file_cooling, self.sig_file_Cooling, color='black')
+            else:
+                if self.warming_temp:
+                    self.canvas.ax.plot(self.temp_file_warming, self.sig_file_warming, linewidth=3, color='tomato',
+                                        label="Warm Up Process")
+                    self.canvas.ax.scatter(self.temp_file_warming, self.sig_file_warming, color='tomato')
+                if self.cooling_temp:
+                    self.canvas.ax.plot(self.temp_file_cooling, self.sig_file_Cooling, linewidth=3, color='black',
+                                        label="Cooling Down Process")
+                    self.canvas.ax.scatter(self.temp_file_cooling, self.sig_file_Cooling, color='black')
+
             self.canvas.ax.set_xlabel('Temperature (K)')
             self.canvas.ax.set_ylabel(f'SHG Intensity (counts/{self.exp_time}s)')
             self.canvas.ax.legend()
+            self.canvas.figure.tight_layout()
             self.canvas.ax.set_title(self.title, pad=10, wrap=True, fontsize=10)
             if self.warming_temp and mode == 'Warm':
                 self.canvas.figure.savefig(self.folder + "Temp_Dep_Warm_Up.png")
             elif self.cooling_temp and mode == 'Cool':
                 self.canvas.figure.savefig(self.folder + "Temp_Dep_Cooling_Down.png")
+            else:
+                self.canvas.figure.savefig(self.folder + "Temp_Dep_Combined.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
+
 
     def heatmap_plotting(self):
         return
