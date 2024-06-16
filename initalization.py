@@ -314,6 +314,11 @@ class MainWindow(QMainWindow):
 
         elif current_row == 3:  # RF
             self.right_sidebar.setCurrentRow(3)
+            self.pages.setCurrentIndex(4)
+            self.currentqdindex = 3
+
+        elif current_row == 4:  # RF
+            self.right_sidebar.setCurrentRow(3)
             self.pages.setCurrentIndex(12)
             self.currentqdindex = 3
 

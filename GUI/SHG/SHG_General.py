@@ -35,6 +35,7 @@ class DragDropWidget(QWidget):
         with open("GUI/SHG/QButtonWidget.qss", "r") as file:
             self.Browse_Button_stylesheet = file.read()
         self.setAcceptDrops(True)
+        self.previous_folder_path = None
         self.setStyleSheet("background-color: #F5F6FA; border: none;")
 
         self.label = QLabel("Drag and drop a folder here", self)
@@ -55,6 +56,8 @@ class DragDropWidget(QWidget):
         try:
             if event.mimeData().hasUrls():
                 event.acceptProposedAction()
+            else:
+                event.ignore()
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -63,9 +66,12 @@ class DragDropWidget(QWidget):
             urls = event.mimeData().urls()
             if urls:
                 folder_path = urls[0].toLocalFile()
-                # self.label.setText(f"Selected folder: {folder_path}")
-                # print(folder_path)
-                self.main_window.display_files(folder_path + '/')
+                if self.previous_folder_path != folder_path:
+                    self.previous_folder_path = folder_path
+                    # Proceed with the next step
+                    self.main_window.display_files(folder_path + '/')
+                else:
+                    event.ignore()
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -131,6 +137,7 @@ class General(QWidget):
             self.isInit = False
             self.warming_temp = False
             self.cooling_temp = False
+            self.auto = None
             # self.SHGSelected = False
             self.plot_index = 0
             self.init_ui()
@@ -161,7 +168,7 @@ class General(QWidget):
                 self.SHG_data_Processing_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
                 #  ---------------------------- PART 1 --------------------------------
-                self.SHG_General_label = QLabel("SHG Data Processing")
+                self.SHG_General_label = QLabel("SHG Data Processing (UNO Lab)")
                 self.SHG_General_label.setFont(titlefont)
                 self.SHG_General_label.setStyleSheet("""
                                                     QLabel{
@@ -206,26 +213,23 @@ class General(QWidget):
 
                 # # Create the file browser area
                 self.file_tree = QTreeWidget()
-                self.file_tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                # self.file_tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 self.file_tree_layout = QHBoxLayout()
 
                 self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
                 self.file_tree_layout.addWidget(self.file_tree)
-                self.file_tree.setStyleSheet("""
-                QTreeWidget {
-                                                font-size: 16px;
-                                            }
-                                            QTreeWidget:item {
-                                                font-size: 25px;
-                                            }
-                                        """)
+                with open("GUI/SHG/QTreeWidget.qss", "r") as file:
+                    self.QTree_stylesheet = file.read()
+                self.file_tree.setStyleSheet( self.QTree_stylesheet)
                 self.file_view_group_box.setLayout(self.file_tree_layout)
                 self.fileUpload_layout.addWidget(self.file_selection_group_box,1)
                 self.fileUpload_layout.addWidget(self.file_view_group_box,1)
-
+                self.fileupload_container = QWidget(self)
+                self.fileupload_container.setLayout(self.fileUpload_layout)
+                self.fileupload_container.setFixedSize(1180,160)
 
                 self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
-                self.SHG_data_Processing_main_layout.addLayout(self.fileUpload_layout)
+                self.SHG_data_Processing_main_layout.addWidget(self.fileupload_container)
                 self.SHG_data_Processing_main_layout.addStretch(1)
                 self.rstpage()
                 # self.scrollArea.setWidget(self.scrollContent)
@@ -262,8 +266,6 @@ class General(QWidget):
         # self.file_tree.resizeColumnToContents(1)
         self.file_tree.resizeColumnToContents(2)
 
-
-
     def showDialog(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder:
@@ -273,6 +275,18 @@ class General(QWidget):
             self.auto_fitting()
 
     def auto_fitting(self):
+        if self.processWidget == True:
+            self.processWidget = False
+            self.clearLayout(self.data_processing_layout)
+            self.SHG_data_Processing_main_layout.removeItem(self.data_processing_layout)
+        if self.autofittingWidget == True:
+            self.autofittingWidget = False
+            self.clearLayout(self.auto_fitting_selection_layout)
+            self.SHG_data_Processing_main_layout.removeItem(self.auto_fitting_selection_layout)
+        if self.processbuttonWidget == True:
+            self.processbuttonWidget = False
+            self.clearLayout(self.process_layout)
+            self.SHG_data_Processing_main_layout.removeItem(self.process_layout)
         if self.SHG_data_Processing_main_layout.count() > 0:
             item = self.SHG_data_Processing_main_layout.itemAt(self.SHG_data_Processing_main_layout.count() - 1)
             if item.spacerItem():
@@ -289,6 +303,7 @@ class General(QWidget):
         #  ---------------------------- PART 3 --------------------------------
         self.general_mode_layout = QVBoxLayout()
         self.general_mode_RA_SHG_radio_buttom = QRadioButton("RA-SHG")
+        self.shg = 'RA-SHG'
         self.general_mode_RA_SHG_radio_buttom.setFont(self.font)
         self.general_mode_RA_SHG_radio_buttom.setChecked(True)
         self.general_mode_temp_dep_radio_buttom = QRadioButton("Temperature Dependence")
@@ -314,10 +329,10 @@ class General(QWidget):
         self.auto_mode_layout = QVBoxLayout()
         self.auto_mode_yes_radio_buttom = QRadioButton("Auto")
         self.auto_mode_yes_radio_buttom.setFont(self.font)
-        self.auto_mode_yes_radio_buttom.setChecked(True)
+
         self.auto_mode_no_radio_buttom = QRadioButton("Manual")
         self.auto_mode_no_radio_buttom.setFont(self.font)
-
+        self.auto_mode_yes_radio_buttom.setChecked(True)
         self.auto_mode_layout.addWidget(self.auto_mode_yes_radio_buttom)
         self.auto_mode_layout.addWidget(self.auto_mode_no_radio_buttom)
 
@@ -445,41 +460,43 @@ class General(QWidget):
 
     def PresetModel(self):
         self.current_model = self.fitting_mode_predef_combo.currentText()
-        print(self.current_model)
 
 
     def updateGeneralSelection(self):
-        selectedSHGButton = self.SHGbuttonGroup.checkedButton()
-        if selectedSHGButton:
-            self.SHGSelected = True
-            self.shg = str(selectedSHGButton.text())
-            if self.shg == 'Imaging Mode':
-                self.auto_mode_no_radio_buttom.setChecked(True)
-                self.auto_mode_no_radio_buttom.setEnabled(False)
-                self.auto_mode_yes_radio_buttom.setEnabled(False)
-                self.fitting_mode_no_radio_buttom.setEnabled(True)
-                self.fitting_mode_predef_radio_buttom.setEnabled(True)
-                self.fitting_mode_usr_radio_buttom.setEnabled(True)
-            elif self.shg == 'Temperature Dependence':
-                self.fitting_mode_no_radio_buttom.setChecked(True)
-                self.fitting_mode_no_radio_buttom.setEnabled(False)
-                self.fitting_mode_predef_radio_buttom.setEnabled(False)
-                self.fitting_mode_usr_radio_buttom.setEnabled(False)
-                self.auto_mode_no_radio_buttom.setEnabled(True)
-                self.auto_mode_yes_radio_buttom.setEnabled(True)
-            else:
-                if self.auto == 'Auto':
-                    self.auto_mode_yes_radio_buttom.setChecked(True)
-                else:
+        try:
+            selectedSHGButton = self.SHGbuttonGroup.checkedButton()
+            if selectedSHGButton:
+                self.SHGSelected = True
+                self.shg = str(selectedSHGButton.text())
+                if self.shg == 'Imaging Mode':
+                    self.auto_mode_no_radio_buttom.setChecked(True)
+                    self.auto_mode_no_radio_buttom.setEnabled(False)
+                    self.auto_mode_yes_radio_buttom.setEnabled(False)
+                    self.fitting_mode_no_radio_buttom.setEnabled(True)
+                    self.fitting_mode_predef_radio_buttom.setEnabled(True)
+                    self.fitting_mode_usr_radio_buttom.setEnabled(True)
+                elif self.shg == 'Temperature Dependence':
+                    self.fitting_mode_no_radio_buttom.setChecked(True)
+                    self.fitting_mode_no_radio_buttom.setEnabled(False)
+                    self.fitting_mode_predef_radio_buttom.setEnabled(False)
+                    self.fitting_mode_usr_radio_buttom.setEnabled(False)
                     self.auto_mode_no_radio_buttom.setEnabled(True)
-                self.auto_mode_no_radio_buttom.setEnabled(True)
-                self.auto_mode_yes_radio_buttom.setEnabled(True)
-                self.fitting_mode_no_radio_buttom.setEnabled(True)
-                self.fitting_mode_predef_radio_buttom.setEnabled(True)
-                self.fitting_mode_usr_radio_buttom.setEnabled(True)
-        else:
-            self.SHGSelected = False
-            self.shg = 'None'
+                    self.auto_mode_yes_radio_buttom.setEnabled(True)
+                else:
+                    if self.auto == 'Auto':
+                        self.auto_mode_yes_radio_buttom.setChecked(True)
+                    else:
+                        self.auto_mode_no_radio_buttom.setEnabled(True)
+                    self.auto_mode_no_radio_buttom.setEnabled(True)
+                    self.auto_mode_yes_radio_buttom.setEnabled(True)
+                    self.fitting_mode_no_radio_buttom.setEnabled(True)
+                    self.fitting_mode_predef_radio_buttom.setEnabled(True)
+                    self.fitting_mode_usr_radio_buttom.setEnabled(True)
+            else:
+                self.SHGSelected = False
+                self.shg = 'None'
+        except Exception as e:
+            QMessageBox.warning(self, 'Warning', str(e))
 
     def updateModeSelection(self):
         selectedModeButton = self.buttonGroup.checkedButton()
@@ -494,7 +511,7 @@ class General(QWidget):
         selectedButton = self.fitting_buttonGroup.checkedButton()
         if selectedButton:
             self.fitSelected = True
-            self.FitSeleciton = selectedButton.text()
+            self.FitSeleciton = str(selectedButton.text())
             if self.FitSeleciton == 'Pre-defined':
                 self.fitting_mode_predef_combo.setEnabled(True)
                 self.fitting_mode_predef_button.setEnabled(True)
@@ -1428,7 +1445,6 @@ class General(QWidget):
     def rstpage(self):
         try:
             try:
-
                 self.Process_button.setEnabled(True)
                 self.file_tree.clear()
             except Exception as e:
@@ -1553,3 +1569,6 @@ class General(QWidget):
             self.figure_Layout.insertWidget(1, self.canvas, 8)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
+
+    def heatmap_plotting(self):
+        return
