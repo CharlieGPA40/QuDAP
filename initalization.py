@@ -73,6 +73,8 @@ class MainWindow(QMainWindow):
         Data_processing = QListWidgetItem(QIcon("GUI/Icon/codesandbox.svg"), "Data Processing")
         experiment = QListWidgetItem(QIcon("GUI/Icon/cpu.svg"), 'Experiment')
 
+        with open("GUI/QSS/QSideWidget.qss", "r") as file:
+            self.SideWidget_stylesheet = file.read()
 
         self.left_sidebar.addItem(dashboard)
         self.left_sidebar.addItem(Data_processing)
@@ -213,10 +215,8 @@ class MainWindow(QMainWindow):
 
     def hide_show_right_sidebar(self):
         self.show = self.right_sidebar.isVisible()
-        print(self.show)
         if not self.show:
             try:
-                print(self.currentindex)
                 if self.currentindex == 1 or self.currentindex == 2:
                     self.right_sidebar.show()
                     self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))

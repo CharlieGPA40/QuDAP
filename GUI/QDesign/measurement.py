@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+    QSizePolicy, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit, QScrollArea, QFrame, QRadioButton)
 from PyQt6.QtGui import QIcon, QFont, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
@@ -17,8 +17,11 @@ from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 
 
 class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=4, dpi=300):
+    def __init__(self, parent=None, width=100, height=4, dpi=300):
         fig = Figure(figsize=(width, height), dpi=dpi)
+        # self.canvas = FigureCanvas(self.figure)
+        # self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # self.canvas.updateGeometry()
 
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
@@ -46,7 +49,7 @@ class Measurement(QWidget):
         # self.scroll_area.setLayout(self.main_layout)
 
         #  ---------------------------- PART 1 --------------------------------
-        self.current_intrument_label = QLabel("Select Measurement")
+        self.current_intrument_label = QLabel("Start Measurement")
         self.current_intrument_label.setFont(titlefont)
         self.current_intrument_label.setStyleSheet("""
                                                     QLabel{
@@ -55,70 +58,47 @@ class Measurement(QWidget):
                                                         """)
 
         #  ---------------------------- PART 2 --------------------------------
+        with (open("GUI/QSS/QButtonWidget.qss", "r") as file):
+            self.Button_stylesheet = file.read()
         self.Preset_group_box = QGroupBox("Preseted Measure")
+
         self.ETO_radio_buttom = QRadioButton("ETO")
         self.ETO_radio_buttom.setFont(self.font)
         self.FMR_radio_buttom = QRadioButton("FMR")
         self.FMR_radio_buttom.setFont(self.font)
         self.reset_preset_buttom = QPushButton("Reset")
         self.select_preset_buttom = QPushButton("Select")
-        self.select_preset_buttom.setStyleSheet("""
-                           QPushButton {
-                               background-color: #3498DB; /* Green background */
-                               color: white; /* White text */
-                               border-style: solid;
-                               border-color: #3498DB;
-                               border-width: 2px;
-                               border-radius: 10px; /* Rounded corners */
-                               padding: 5px;
-                               min-height: 2px;
-                               min-width: 50px;
-                           }
-                           QPushButton:hover {
-                               background-color: #2874A6  ; /* Slightly darker green */
-                           }
-                           QPushButton:pressed {
-                               background-color: #85C1E9; /* Even darker green */
-                           }
-                       """)
+        self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
 
-        self.reset_preset_buttom.setStyleSheet("""
-                                           QPushButton {
-                                               background-color: #CAC9Cb; /* Green background */
-                                               color: black; /* White text */
-                                               border-style: solid;
-                                               border-color: #CAC9Cb;
-                                               border-width: 2px;
-                                               border-radius: 10px; /* Rounded corners */
-                                               padding: 5px;
-                                               min-height: 1px;
-                                               min-width: 50px;
-                                           }
-                                           QPushButton:hover {
-                                               background-color: #5F6A6A; /* Slightly darker green */
-                                           }
-                                           QPushButton:pressed {
-                                               background-color: #979A9A; /* Even darker green */
-                                           }
-                                       """)
+        self.reset_preset_buttom.setStyleSheet(self.Button_stylesheet)
 
         self.reset_preset_buttom.clicked.connect(self.preset_reset)
         self.select_preset_buttom.clicked.connect(self.preset_select)
 
+        self.preset_layout = QVBoxLayout()
         self.radio_btn_layout = QHBoxLayout(self)
         self.radio_btn_layout.addStretch(2)
         self.radio_btn_layout.addWidget(self.ETO_radio_buttom)
         self.radio_btn_layout.addStretch(1)
         self.radio_btn_layout.addWidget(self.FMR_radio_buttom)
         self.radio_btn_layout.addStretch(2)
-        self.radio_btn_layout.addWidget(self.reset_preset_buttom)
-        self.radio_btn_layout.addWidget(self.select_preset_buttom)
 
-        self.Preset_group_box.setLayout(self.radio_btn_layout)
+        self.select_preset_btn_layout = QHBoxLayout(self)
+        self.select_preset_btn_layout.addWidget(self.reset_preset_buttom)
+        self.select_preset_btn_layout.addWidget(self.select_preset_buttom)
+
+        self.preset_layout.addLayout(self.radio_btn_layout)
+        self.preset_layout.addLayout(self.select_preset_btn_layout)
+        self.Preset_group_box.setLayout(self.preset_layout)
+        self.preset_container = QWidget(self)
+        self.preset_container.setFixedSize(400, 110)
+        self.preset_layout = QHBoxLayout()
+        self.preset_layout.addWidget(self.Preset_group_box)
+        self.preset_container.setLayout(self.preset_layout)
 
         self.ETO_instru_content_layout = QVBoxLayout()
         self.main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
-        self.main_layout.addWidget(self.Preset_group_box)
+        self.main_layout.addWidget(self.preset_container)
         self.main_layout.addLayout(self.ETO_instru_content_layout)
 
     def preset_reset(self):
@@ -139,6 +119,7 @@ class Measurement(QWidget):
 
     def ETO_Preset(self):
         #--------------------------------------- Part connection ----------------------------
+
         self.connection_group_box = QGroupBox("Select Instruments")
         self.connection_box_layout = QVBoxLayout()
         # --------------------------------------- Part connection_PPMS ----------------------------
@@ -265,7 +246,12 @@ class Measurement(QWidget):
         self.connection_box_layout.addLayout(ppms_connection)
         self.connection_box_layout.addLayout(Instru_main_layout)
         self.connection_group_box.setLayout(self.connection_box_layout)
-        self.ETO_instru_content_layout.addWidget(self.connection_group_box)
+        self.connection_layout = QHBoxLayout()
+        self.connection_container = QWidget(self)
+        # self.connection_container.setFixedSize(1180, 130)
+        self.connection_layout.addWidget(self.connection_group_box)
+        self.connection_container.setLayout(self.connection_layout)
+        self.ETO_instru_content_layout.addWidget(self.connection_container)
 
         # --------------------------------------- Part PPMS_layout Init ----------------------------
         self.PPMS_measurement_setup_layout = QHBoxLayout()
@@ -306,7 +292,7 @@ class Measurement(QWidget):
         # #  ---------------------------- Figure Layout --------------------------------
         figure_group_box = QGroupBox("Graph")
         figure_Layout = QVBoxLayout()
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
         toolbar = NavigationToolbar(self.canvas, self)
         toolbar.setStyleSheet("""
                                          QWidget {
@@ -316,111 +302,25 @@ class Measurement(QWidget):
         figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
         figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
         figure_group_box.setLayout(figure_Layout)
-
-        self.main_layout.addWidget(figure_group_box)
+        self.figure_container_layout = QHBoxLayout()
+        self.figure_container = QWidget(self)
+        # self.figure_container.setFixedSize(1180, 400)
+        self.figure_container_layout.addWidget(figure_group_box)
+        self.figure_container.setLayout(self.figure_container_layout)
+        self.main_layout.addWidget(self.figure_container)
         # graphing_layout.addWidget(plotting_control_group_box)
         # graphing_layout.addWidget(figure_group_box)
         # #  ---------------------------- Main Layout --------------------------------
         self.setLayout(self.main_layout)
 
         #  ---------------------------- Style Sheet --------------------------------
-        self.select_preset_buttom.setStyleSheet("""
-                   QPushButton {
-                       background-color: #3498DB; /* Green background */
-                       color: white; /* White text */
-                       border-style: solid;
-                       border-color: #3498DB;
-                       border-width: 2px;
-                       border-radius: 10px; /* Rounded corners */
-                       padding: 5px;
-                       min-height: 2px;
-                       min-width: 50px;
-                   }
-                   QPushButton:hover {
-                       background-color: #2874A6  ; /* Slightly darker green */
-                   }
-                   QPushButton:pressed {
-                       background-color: #85C1E9; /* Even darker green */
-                   }
-               """)
+        self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
 
-        self.instru_connect_btn.setStyleSheet("""
-                                           QPushButton {
-                                               background-color: #CAC9Cb; /* Green background */
-                                               color: black; /* White text */
-                                               border-style: solid;
-                                               border-color: #CAC9Cb;
-                                               border-width: 2px;
-                                               border-radius: 10px; /* Rounded corners */
-                                               padding: 5px;
-                                               min-height: 1px;
-                                               min-width: 50px;
-                                           }
-                                           QPushButton:hover {
-                                               background-color: #5F6A6A; /* Slightly darker green */
-                                           }
-                                           QPushButton:pressed {
-                                               background-color: #979A9A; /* Even darker green */
-                                           }
-                                       """)
+        self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
 
-        self.refresh_btn.setStyleSheet("""
-                                                  QPushButton {
-                                                      background-color: #CAC9Cb; /* Green background */
-                                                      color: black; /* White text */
-                                                      border-style: solid;
-                                                      border-color: #CAC9Cb;
-                                                      border-width: 2px;
-                                                      border-radius: 10px; /* Rounded corners */
-                                                      padding: 5px;
-                                                      min-height: 1px;
-                                                      min-width: 50px;
-                                                  }
-                                                  QPushButton:hover {
-                                                      background-color: #5F6A6A; /* Slightly darker green */
-                                                  }
-                                                  QPushButton:pressed {
-                                                      background-color: #979A9A; /* Even darker green */
-                                                  }
-                                              """)
-        self.server_btn.setStyleSheet("""
-                                                   QPushButton {
-                                                       background-color: #CAC9Cb; /* Green background */
-                                                       color: black; /* White text */
-                                                       border-style: solid;
-                                                       border-color: #CAC9Cb;
-                                                       border-width: 2px;
-                                                       border-radius: 10px; /* Rounded corners */
-                                                       padding: 5px;
-                                                       min-height: 1px;
-                                                       min-width: 50px;
-                                                   }
-                                                   QPushButton:hover {
-                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                   }
-                                                   QPushButton:pressed {
-                                                       background-color: #979A9A; /* Even darker green */
-                                                   }
-                                               """)
-        self.connect_btn.setStyleSheet("""
-                                                   QPushButton {
-                                                       background-color: #CAC9Cb; /* Green background */
-                                                       color: black; /* White text */
-                                                       border-style: solid;
-                                                       border-color: #CAC9Cb;
-                                                       border-width: 2px;
-                                                       border-radius: 10px; /* Rounded corners */
-                                                       padding: 5px;
-                                                       min-height: 1px;
-                                                       min-width: 50px;
-                                                   }
-                                                   QPushButton:hover {
-                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                   }
-                                                   QPushButton:pressed {
-                                                       background-color: #979A9A; /* Even darker green */
-                                                   }
-                                               """)
+        self.refresh_btn.setStyleSheet(self.Button_stylesheet)
+        self.server_btn.setStyleSheet(self.Button_stylesheet)
+        self.connect_btn.setStyleSheet(self.Button_stylesheet)
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA

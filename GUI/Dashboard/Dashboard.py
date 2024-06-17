@@ -135,6 +135,7 @@ class Dash(QMainWindow):
             self.IOLabel_stylesheet = file.read()
         with open("GUI/Dashboard/QLabel_1.qss", "r") as file:
             self.IOLabel_1_stylesheet = file.read()
+
         self.widget_layout = QHBoxLayout()
         self.IO_widget_layout = QHBoxLayout()
 
@@ -574,7 +575,6 @@ class Dash(QMainWindow):
 
 
     def applyShadowEffect(self, widget):
-        print(widget.objectName())
         if widget.objectName() == 'shg':
             self.page_index = 12
             self.left_index = 1

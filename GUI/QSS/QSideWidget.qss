@@ -1,22 +1,16 @@
-QListWidget {
-            outline: none;  /* Removes focus outline */
-            background: white
-        }
-QListWidget::item {
-    border: none;
-    padding: 10px;
-}
-QListWidget::item:selected {
-    background-color: #E0E0E0;  /* Background color for selected item */
-    border-left: 5px solid #ff5733 ;  /* Blue color bar on the left */
-    border-radius: 15px;
-    color: #F26E00 ;
-}
-QListWidget::item:hover {
-    background-color: #F0F0F0;  /* Light grey background on hover */
-    border-radius: 15px
-}
- QScrollBar:vertical {
+ QlistWidget {
+                                                font-size: 16px;
+                                            }
+                                            QTreeWidget:item {
+                                                font-size: 25px;
+                                            }
+                                                 QScrollBar:vertical {
+                border: none;
+                background: #E0E0E0;
+                width: 12px;
+                margin: 0px 0px 0px 0px;
+            }
+             QScrollBar:vertical {
                 border: none;
                 background: transparent;
                 width: 12px;

@@ -107,6 +107,7 @@ class UserDefineFittingWindow(QWidget):
     def initUI(self):
         self.setWindowTitle('User Defined Fitting Window')
         self.setGeometry(500, 500, 500, 500)
+        self.setStyleSheet("background-color: white;")
         self.layout = QVBoxLayout()
         self.label = QLabel('Enter some text:', self)
         self.layout.addWidget(self.label)
@@ -1043,7 +1044,6 @@ class General(QWidget):
             QMessageBox.warning(self, "Error", str(e))
 
     def show_next_plot(self):
-        print(self.shg, self.auto, self.plot_index)
         try:
             if self.plot_index == -1:
                 self.figure_Layout.removeWidget(self.canvas)
