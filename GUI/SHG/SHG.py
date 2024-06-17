@@ -10,7 +10,7 @@ class SHG(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("PyQt6 Tab Example")
+        # self.setWindowTitle("PyQt6 Tab Example")
         self.setGeometry(100, 100, 800, 600)
 
         # Create a QTabWidget

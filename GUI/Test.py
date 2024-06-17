@@ -13,8 +13,8 @@ from tkinter import filedialog
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.shapes.autoshape import Shape as shape
-from lmfit import Model
-import lmfit
+# from lmfit import Model
+# import lmfit
 # from skimage import filters, measure, morphology, restoration
 
 
