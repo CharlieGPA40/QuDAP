@@ -6,7 +6,7 @@
                                        border-width: 2px;
                                        border-radius: 5px; /* Rounded corners */
                                        padding: 2px;
-                                       min-height: 2px;
+                                       min-height: 25px;
                                        max-width: 150px;
                                        font-size: 16px;;
                                    }

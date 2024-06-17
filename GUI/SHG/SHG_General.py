@@ -1105,7 +1105,7 @@ class General(QWidget):
                 if self.shg == 'Temperature Dependence':
                     if self.shg == 'Temperature Dependence':
                         self.temp_dep_process_plotting('combine')
-                    self.plot_index = 5
+                    self.plot_index = 4
                     self.next_button.setText('Exp. PPT')
                 else:
                     self.polar_plot_linear_correction()
@@ -1353,8 +1353,8 @@ class General(QWidget):
                 prs.slide_width = Inches(13.33)
                 prs.slide_height = Inches(7.5)
             if self.shg == 'Temperature Dependence':
-                SHG_Image = self.folder + "Preview_Figure_at_130_Deg.png"
-                SHG_Signal = self.folder + "Final_Processed_Data.png"
+                SHG_Image = self.folder + "Preview_Figure_at_{}_K.png".format(self.Start_temp)
+                SHG_Signal = self.folder + "Temp_Dep_Combined.png"
             else:
                 SHG_Image = self.folder + "Preview_Figure_at_130_Deg.png"
                 SHG_Signal = self.folder + "Final_Processed_Data.png"
@@ -1369,6 +1369,7 @@ class General(QWidget):
             p = text_frame.paragraphs[0]
             d = Data_frame.paragraphs[0]
             run = p.add_run()
+            self.folder = self.folder[0:-1]
             for i in range(len(self.folder) - 1, 0, -1):
                 if self.folder[i] == '/':
                     folder_name_pptx = self.folder[i + 1:]
@@ -1384,7 +1385,7 @@ class General(QWidget):
             font_d = run_d.font
             font_d.name = 'Calibri'
             font_d.size = Pt(18)
-            prs.save(self.folder + 'Results.pptx')
+            prs.save(self.folder + '/Results.pptx')
             self.next_button.setText("Finished")
             self.next_button.setEnabled(False)
         except Exception as e:
@@ -1527,8 +1528,8 @@ class General(QWidget):
             self.canvas.ax.set_xlabel('Temperature (K)')
             self.canvas.ax.set_ylabel(f'SHG Intensity (counts/{self.exp_time}s)')
             self.canvas.ax.legend()
-            self.canvas.figure.tight_layout()
             self.canvas.ax.set_title(self.title, pad=10, wrap=True, fontsize=10)
+            self.canvas.figure.tight_layout()
             if self.warming_temp and mode == 'Warm':
                 self.canvas.figure.savefig(self.folder + "Temp_Dep_Warm_Up.png")
             elif self.cooling_temp and mode == 'Cool':
