@@ -1,8 +1,9 @@
 import mimetypes
 
 from PyQt6.QtWidgets import (
-    QTreeWidgetItem, QMessageBox, QButtonGroup, QWidget, QRadioButton, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout
-, QDialog, QPushButton, QComboBox, QLineEdit, QScrollArea, QTreeWidget, QSplitter)
+    QTreeWidgetItem, QMessageBox, QButtonGroup, QWidget, QRadioButton, QGroupBox, QFileDialog, QVBoxLayout, QLabel,
+    QHBoxLayout
+, QDialog, QPushButton, QComboBox, QLineEdit, QScrollArea, QTreeWidget, QSplitter, QMainWindow)
 from PyQt6.QtGui import QIcon, QFont, QDragEnterEvent, QDropEvent
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QMimeData
 import sys
@@ -91,11 +92,13 @@ class DragDropWidget(QWidget):
         self.previous_folder_path = None
         print(self.previous_folder_path)
 
-class UserDefineFittingWindow(QDialog):
-    def __init__(self):
+class UserDefineFittingWindow(QWidget):
+    def __init__(self, x, y):
         super().__init__()
-        try:
 
+        self.x = x
+        self.y = y
+        try:
             self.initUI()
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -103,18 +106,28 @@ class UserDefineFittingWindow(QDialog):
 
     def initUI(self):
         self.setWindowTitle('User Defined Fitting Window')
-        self.setGeometry(150, 150, 300, 200)
-
+        self.setGeometry(500, 500, 500, 500)
         self.layout = QVBoxLayout()
-
         self.label = QLabel('Enter some text:', self)
         self.layout.addWidget(self.label)
 
         self.textbox = QLineEdit(self)
         self.layout.addWidget(self.textbox)
 
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=True)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+
+        self.layout.addWidget(self.toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.canvas.ax.plot(self.x, self.y, color='tomato')
+        # self.canvas.ax.set_ylim(bottom=0, top=5000)
+        self.canvas.ax.set_title('Data Fitting Widget', pad=10, wrap=True,
+                                 fontsize=10)
+        self.canvas.figure.tight_layout()
+        self.canvas.draw()
+
         self.btn_close = QPushButton('Close', self)
-        self.btn_close.clicked.connect(self.close)
+        # self.btn_close.clicked.connect(self.close)
         self.layout.addWidget(self.btn_close)
 
         self.setLayout(self.layout)
@@ -417,7 +430,6 @@ class General(QWidget):
         # self.fitting_mode_usrdef_button.setEnabled(True)
         self.fitting_mode_usrdef_layout.addWidget(self.fitting_mode_usr_radio_buttom)
         self.fitting_mode_usrdef_layout.addWidget(self.fitting_mode_usrdef_button)
-
         self.fitting_mode_layout.addLayout(self.fitting_mode_predef_layout)
         self.fitting_mode_layout.addLayout(self.fitting_mode_usrdef_layout)
         self.fitting_mode_layout.addWidget(self.fitting_mode_no_radio_buttom)
@@ -571,7 +583,10 @@ class General(QWidget):
 
                                                         """)
                 #  ---------------------------- PART 3 --------------------------------
-                self.Parameter = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
+                try:
+                    self.Parameter = pd.read_csv(self.folder + "Experimental_Parameters.txt", header=None, sep=':', engine='c')
+                except FileNotFoundError as e:
+                    QMessageBox.warning(self, 'Warning', str(e))
                 Date = self.Parameter.iat[0, 1]
                 self.date_label = QLabel('Date: ' + str(Date))
                 self.date_label.setFont(self.font)
@@ -869,7 +884,7 @@ class General(QWidget):
                     self.canvas.figure.tight_layout()
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(False)
                     self.next_button.setText("Submit")
             else:
@@ -923,7 +938,7 @@ class General(QWidget):
                     connection_id = self.canvas.figure.canvas.mpl_connect('button_press_event', onclick)
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(False)
                     self.next_button.setText("Reselect")
 
@@ -972,7 +987,7 @@ class General(QWidget):
                         self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(True)
 
 
@@ -1010,7 +1025,7 @@ class General(QWidget):
                         self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                     self.canvas.draw()
                     self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                    self.figure_Layout.insertWidget(1, self.canvas, 8)
+                    self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
                     self.prev_button.setEnabled(False)
                     self.next_button.setText("Submit")
 
@@ -1068,7 +1083,7 @@ class General(QWidget):
                     self.canvas.figure.savefig(self.folder + "Preview_Figure_at_130_Deg.png")
                 self.canvas.draw()
                 self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-                self.figure_Layout.insertWidget(1, self.canvas, 8)
+                self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
 
                 self.prev_button.setEnabled(True)
                 self.prev_button.setText("Reset")
@@ -1118,9 +1133,12 @@ class General(QWidget):
                     self.next_button.setText("Fit")
                 else:
                     self.plot_index = 5
+
                     self.next_button.setText("Exp. PPT.")
 
             elif self.plot_index == 4:
+                if self.FitSeleciton == 'User-defined':
+                    self.showFittingPopup()
                 self.Fitting()
                 self.plot_index += 1
 
@@ -1213,7 +1231,7 @@ class General(QWidget):
             self.canvas.figure.savefig(self.folder + "Raw_Polar_Plot_Linear.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
             self.next_button.setText("Slope Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1242,7 +1260,7 @@ class General(QWidget):
             self.canvas.figure.savefig(self.folder + "Slope_removal.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
             self.next_button.setText("Negative Correction")
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -1271,7 +1289,7 @@ class General(QWidget):
             self.canvas.figure.savefig(self.folder + "Final_Processed_Data.png")
             self.canvas.draw()
             self.figure_Layout.insertWidget(0, self.toolbar, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-            self.figure_Layout.insertWidget(1, self.canvas, 8)
+            self.figure_Layout.insertWidget(1, self.canvas, 8, alignment=Qt.AlignmentFlag.AlignCenter)
 
 
     def Fitting(self):
@@ -1428,20 +1446,22 @@ class General(QWidget):
 
     def clear_layout(self, layout):
         if layout is not None:
-            print(f"Clearing layout with {layout.count()} items.")
             while layout.count():
                 child = layout.takeAt(0)
                 if child.widget() is not None:
-                    print(f"Deleting widget: {child.widget()}")
                     child.widget().deleteLater()
-                print(f"Precheck layout layout... {child.widget()}")
                 if child.layout() is not None:
-                    print(f"Clearing nested layout... {child.widget()}")
                     self.clear_layout(child.layout())
-        print('cleared')
+
     def showFittingPopup(self):
-        self.popup = UserDefineFittingWindow()
-        self.popup.exec()
+        try:
+            data_x = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            y = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            # self.popup = UserDefineFittingWindow(self.deg_file, self.sig_file)
+            self.popup = UserDefineFittingWindow(data_x, y)
+            self.popup.show()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
 
     def clearLayout(self, layout):
         if layout is not None:
