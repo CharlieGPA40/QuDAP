@@ -31,6 +31,8 @@ class Measurement(QWidget):
         super().__init__()
         try:
             self.isConnect = False
+            self.field_zone_2_enabled = False
+            self.enter_Zone_3_enabled = False
             self.init_ui()
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -108,10 +110,10 @@ class Measurement(QWidget):
 
     def preset_reset(self):
         try:
-                self.clear_Layout(self.ETO_instru_content_layout)
-                self.main_layout.removeItem(self.ETO_instru_content_layout)
-                self.clear_Layout(self.ppms_zone_field_layout)
-                self.main_layout.removeItem(self.ppms_zone_field_layout)
+            self.clear_Layout(self.ETO_instru_content_layout)
+            self.main_layout.removeItem(self.ETO_instru_content_layout)
+            self.clear_Layout(self.ppms_zone_field_layout)
+            self.main_layout.removeItem(self.ppms_zone_field_layout)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -202,19 +204,19 @@ class Measurement(QWidget):
 
         self.Instruments_port_label = QLabel("Channel:")
         self.Instruments_port_label.setFont(self.font)
-        self.gpib_combo = QComboBox()
-        self.gpib_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.gpib_combo.setFont(self.font)
-        self.refresh_gpib_list()
+        self.connection_combo = QComboBox()
+        self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.connection_combo.setFont(self.font)
+        self.refresh_Connection_List()
         self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
-        self.refresh_btn.clicked.connect(self.refresh_gpib_list)
+        self.refresh_btn.clicked.connect(self.refresh_Connection_List)
         self.instru_connect_btn = QPushButton('Connect')
         self.instru_connect_btn.clicked.connect(self.connect_current_gpib)
         self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
         self.instru_select_layout.addWidget(self.Instruments_combo, 2)
 
         self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
-        self.instru_connection_layout.addWidget(self.gpib_combo, 3)
+        self.instru_connection_layout.addWidget(self.connection_combo, 3)
 
         self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
         self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
@@ -238,31 +240,30 @@ class Measurement(QWidget):
 
         self.main_layout.addLayout(self.ETO_instru_content_layout)
         # --------------------------------------- Part PPMS_layout Init ----------------------------
-        # graphing_layout = QHBoxLayout()
-        # selection_Layout = QHBoxLayout()
-        # plotting_x_axis_group_box = QGroupBox("x Axis Selection")
-        # plotting_y_axis_group_box = QGroupBox("x Axis Selection")
-        # # self.checkbox1 = QCheckBox("Channel 1")
-        # # self.checkbox1.setFont(self.font)
-        # # self.checkbox2 = QCheckBox("Channel 2")
-        # # self.checkbox2.setFont(self.font)
+        self.graphing_layout = QHBoxLayout()
         #
-        # plot_btn = QPushButton('Plot')
-        # plot_btn.clicked.connect(self.plot_selection)
-        # stop_btn = QPushButton('Stop')
-        # stop_btn.clicked.connect(self.stop)
-        # rst_btn = QPushButton('Reset')
-        # rst_btn.clicked.connect(self.rst)
-        # selection_Layout.addWidget(plot_btn)
-        # selection_Layout.addWidget(stop_btn)
-        # selection_Layout.addWidget(rst_btn)
+        # self.plotting_x_axis_group_box = QGroupBox("x Axis Selection")
+        # self.plotting_x_axis_select_layout = QVBoxLayout()
+        # self.checkbox1 = QCheckBox("Channel 1")
+        # self.checkbox1.setFont(self.font)
+        # self.checkbox2 = QCheckBox("Channel 2")
+        # self.checkbox2.setFont(self.font)
+        # self.plotting_x_axis_select_layout.addWidget(self.checkbox1)
+        # self.plotting_x_axis_select_layout.addWidget(self.checkbox2)
+        # self.plotting_x_axis_group_box.setLayout(self.plotting_x_axis_select_layout)
+        # self.graphing_layout.addWidget(self.plotting_x_axis_group_box)
         #
-        # # Arrange radio buttons horizontally
-        # radio_layout = QVBoxLayout()
-        # radio_layout.addWidget(self.checkbox1)
-        # radio_layout.addWidget(self.checkbox2)
-        # radio_layout.addLayout(selection_Layout)
-        # plotting_control_group_box.setLayout(radio_layout)
+        # self.plotting_y_axis_group_box = QGroupBox("y Axis Selection")
+        # self.plotting_y_axis_select_layout = QVBoxLayout()
+        # self.checkbox1 = QCheckBox("Channel 1")
+        # self.checkbox1.setFont(self.font)
+        # self.checkbox2 = QCheckBox("Channel 2")
+        # self.checkbox2.setFont(self.font)
+        # self.plotting_y_axis_select_layout.addWidget(self.checkbox1)
+        # self.plotting_y_axis_select_layout.addWidget(self.checkbox2)
+        # self.plotting_y_axis_group_box.setLayout(self.plotting_y_axis_select_layout)
+        # self.graphing_layout.addWidget(self.plotting_y_axis_group_box)
+
 
         # #  ---------------------------- Figure Layout --------------------------------
         figure_group_box = QGroupBox("Graph")
@@ -280,9 +281,26 @@ class Measurement(QWidget):
         self.figure_container_layout = QHBoxLayout()
         self.figure_container = QWidget(self)
         # self.figure_container.setFixedSize(1180, 400)
+        self.buttons_layout = QHBoxLayout()
+        self.start_measurement_btn = QPushButton('Start')
+        # self.start_measurement_btn.clicked.connect(self.plot_selection)
+        self.stop_btn = QPushButton('Stop')
+        # self.stop_btn.clicked.connect(self.stop)
+        self.rst_btn = QPushButton('Reset')
+        # self.rst_btn.clicked.connect(self.rst)
+        self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
+        self.stop_btn.setStyleSheet(self.Button_stylesheet)
+        self.rst_btn.setStyleSheet(self.Button_stylesheet)
+        self.buttons_layout.addStretch(4)
+        self.buttons_layout.addWidget(self.rst_btn)
+        self.buttons_layout.addWidget(self.stop_btn)
+        self.buttons_layout.addWidget(self.start_measurement_btn)
+
         self.figure_container_layout.addWidget(figure_group_box)
         self.figure_container.setLayout(self.figure_container_layout)
-        self.main_layout.addWidget(self.figure_container)
+        self.graphing_layout.addWidget(self.figure_container)
+        self.main_layout.addLayout(self.graphing_layout)
+        self.main_layout.addLayout(self.buttons_layout)
         # graphing_layout.addWidget(plotting_control_group_box)
         # graphing_layout.addWidget(figure_group_box)
         # #  ---------------------------- Main Layout --------------------------------
@@ -297,15 +315,15 @@ class Measurement(QWidget):
         self.server_btn.setStyleSheet(self.Button_stylesheet)
         self.connect_btn.setStyleSheet(self.Button_stylesheet)
 
-    def refresh_gpib_list(self):
+    def refresh_Connection_List(self):
         # Access GPIB ports using PyVISA
         rm = visa.ResourceManager('@sim')
         instruments = rm.list_resources()
-        self.gpib_ports = [instr for instr in instruments if 'GPIB' in instr]
+        self.connection_ports = [instr for instr in instruments]
         # Clear existing items and add new ones
-        self.gpib_combo.clear()
-        self.gpib_combo.addItems(["None"])
-        self.gpib_combo.addItems(self.gpib_ports)
+        self.connection_combo.clear()
+        self.connection_combo.addItems(["None"])
+        self.connection_combo.addItems(self.connection_ports)
 
     def check_validator(self, validator_model, entry):
         try:
@@ -433,7 +451,7 @@ class Measurement(QWidget):
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
         self.current_connection_index = self.Instruments_combo.currentIndex()
-        self.current_connection = self.gpib_combo.currentText()
+        self.current_connection = self.connection_combo.currentText()
         try:
             if self.current_connection == 'None':
                 return None
@@ -465,6 +483,7 @@ class Measurement(QWidget):
             self.enter_Zone_1 = False
             self.enter_Zone_2 = True
             self.enter_Zone_3 = False
+            self.enter_Zone_2 = True
             self.field_two_zone()
             self.ppms_field_Two_zone_radio.setChecked(False)
         elif self.ppms_field_Three_zone_radio.isChecked() and self.enter_Zone_3 == False:
@@ -472,10 +491,21 @@ class Measurement(QWidget):
             self.enter_Zone_1 = False
             self.enter_Zone_2 = False
             self.enter_Zone_3 = True
+
             self.field_three_zone()
             self.ppms_field_Three_zone_radio.setChecked(False)
     def field_one_zone(self):
-        self.clear_layout(self.ppms_zone_field_layout)
+        # if self.enter_Zone_3_enabled:
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone3_field_range_layout)
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone3_field_step_layout)
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone3_field_layout)
+        #     self.enter_Zone_2_enabled = False
+        # if self.enter_Zone_2_enabled:
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone2_field_range_layout)
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone2_field_step_layout)
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone2_field_layout)
+        #     self.enter_Zone_3_enabled = False
+        # self.clear_layout(self.ppms_zone_field_layout)
         # self.clear_layout(self.ppms_zone2_field_layout)
         # self.clear_layout(self.ppms_zone3_field_layout)
         self.ppms_zone1_field_layout = QVBoxLayout()
@@ -516,7 +546,12 @@ class Measurement(QWidget):
 
 
     def field_two_zone(self):
-        self.clear_layout(self.ppms_zone_field_layout)
+        # if self.enter_Zone_3_enabled:
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone3_field_range_layout)
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone3_field_step_layout)
+        #     self.ppms_zone_field_layout.removeItem(self.ppms_zone3_field_layout)
+        #     self.enter_Zone_3_enabled = False
+            # self.clear_layout(self.ppms_zone_field_layout)
         # self.clear_layout(self.ppms_zone1_field_layout)
         # self.clear_layout(self.ppms_zone3_field_layout)
         self.field_one_zone()
@@ -549,9 +584,11 @@ class Measurement(QWidget):
         self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_step_layout)
         self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_layout)
         # self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_step_layout)
+        # self.enter_Zone_2_enabled = True
+        # self.enter_Zone_3_enabled = True
 
     def field_three_zone(self):
-        self.clear_layout(self.ppms_zone_field_layout)
+        # self.clear_layout(self.ppms_zone_field_layout)
         # self.clear_layout(self.ppms_zone1_field_layout)
         # self.clear_layout(self.ppms_zone2_field_layout)
         # self.clear_layout(self.ppms_zone3_field_layout)
@@ -586,6 +623,8 @@ class Measurement(QWidget):
         self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_step_layout)
 
         self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_layout)
+        # self.enter_Zone_2_enabled = True
+        # self.enter_Zone_3_enabled = True
 
 
     def update_plot(self):
