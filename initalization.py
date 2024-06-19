@@ -19,6 +19,7 @@ import GUI.QDesign.Keithley6221 as cs
 import GUI.QDesign.BNC845RF as rf
 import GUI.QDesign.measurement as m
 import GUI.Dashboard.Dashboard as Dashboard
+import GUI.Plot.plotting as pt
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)
@@ -186,7 +187,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(rf.BNC845RF())  # 10
         self.pages.addWidget(m.Measurement())  # 11
         self.pages.addWidget(shg_general.General())  # 12
-        self.pages.addWidget(shg_tempdep.Tempdep())  # 13
+        self.pages.addWidget(pt.plotting())  # 13
         self.pages.addWidget(shg_imaging.Imaging())  # 14
 
         # self.toggle_dark_mode()
@@ -318,9 +319,9 @@ class MainWindow(QMainWindow):
             self.currentqdindex = 3
 
         elif current_row == 4:  # RF
-            self.right_sidebar.setCurrentRow(3)
-            self.pages.setCurrentIndex(12)
-            self.currentqdindex = 3
+            self.right_sidebar.setCurrentRow(4)
+            self.pages.setCurrentIndex(13)
+            self.currentqdindex = 4
 
 
     def update_exp_processing(self, current_row):
@@ -351,7 +352,7 @@ class MainWindow(QMainWindow):
 
         elif current_row == 5:  # Imaging
             self.right_sidebar.setCurrentRow(5)
-            self.pages.setCurrentIndex(11)
+            self.pages.setCurrentIndex(13)
             self.currentqdindex = 5
 
     def update_tool_bar(self, current_row):
