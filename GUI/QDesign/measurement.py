@@ -47,7 +47,7 @@ class Measurement(QWidget):
         # self.scroll_area = QScrollArea()
         # self.scroll_area.setWidgetResizable(True)
         # self.scroll_area.setLayout(self.main_layout)
-
+        self.instrument_connection_layout = QHBoxLayout()
         #  ---------------------------- PART 1 --------------------------------
         self.current_intrument_label = QLabel("Start Measurement")
         self.current_intrument_label.setFont(titlefont)
@@ -95,15 +95,22 @@ class Measurement(QWidget):
         self.preset_layout = QHBoxLayout()
         self.preset_layout.addWidget(self.Preset_group_box)
         self.preset_container.setLayout(self.preset_layout)
+        self.instrument_connection_layout.addWidget(self.preset_container)
 
         self.ETO_instru_content_layout = QVBoxLayout()
         self.main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
-        self.main_layout.addWidget(self.preset_container)
+        self.main_layout.addWidget(self.instrument_connection_layout)
         self.main_layout.addLayout(self.ETO_instru_content_layout)
 
     def preset_reset(self):
-        self.clear_layout(self.ETO_instru_content_layout)
-        self.clear_layout(self.ppms_zone_field_layout)
+        try:
+                self.clear_Layout(self.ETO_instru_content_layout)
+                self.main_layout.removeItem(self.ETO_instru_content_layout)
+                self.clear_Layout(self.ppms_zone_field_layout)
+                self.main_layout.removeItem(self.ppms_zone_field_layout)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
 
     def preset_select(self):
         try:
@@ -118,12 +125,18 @@ class Measurement(QWidget):
             QMessageBox.warning(self, "Error", str(e))
 
     def ETO_Preset(self):
+        with open("GUI/QSS/QComboWidget.qss", "r") as file:
+            self.QCombo_stylesheet = file.read()
         #--------------------------------------- Part connection ----------------------------
-
-        self.connection_group_box = QGroupBox("Select Instruments")
+        self.ppms_container = QWidget()
+        self.ppms_main_layout = QHBoxLayout()
+        self.connection_group_box = QGroupBox("PPMS Connection")
         self.connection_box_layout = QVBoxLayout()
         # --------------------------------------- Part connection_PPMS ----------------------------
-        ppms_connection = QHBoxLayout()
+        self.ppms_connection = QVBoxLayout()
+        self.ppms_host_connection_layout = QHBoxLayout()
+        self.ppms_port_connection_layout = QHBoxLayout()
+        self.ppms_connection_button_layout = QHBoxLayout()
         self.host_label = QLabel("PPMS Host:")
         self.host_label.setFont(self.font)
         self.host_entry_box = QLineEdit("127.0.0.1")
@@ -139,55 +152,44 @@ class Measurement(QWidget):
         self.connect_btn.setEnabled(False)
         self.connect_btn_clicked = False
         self.connect_btn.clicked.connect(self.connect_client)
-        ppms_connection.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ppms_connection.addWidget(self.host_label, 1)
-        ppms_connection.addWidget(self.host_entry_box, 2)
-        ppms_connection.addStretch(1)
-        ppms_connection.addWidget(self.port_label, 1)
-        ppms_connection.addWidget(self.port_entry_box, 2)
-        ppms_connection.addStretch(1)
-        ppms_connection.addWidget(self.server_btn, 2)
-        ppms_connection.addWidget(self.connect_btn, 2)
+
+        self.ppms_host_connection_layout.addWidget(self.host_label, 1)
+        self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+
+        self.ppms_port_connection_layout.addWidget(self.port_label, 1)
+        self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+
+        self.ppms_connection_button_layout.addWidget(self.server_btn, 2)
+        self.ppms_connection_button_layout.addWidget(self.connect_btn, 2)
+
+        self.ppms_connection.addLayout(self.ppms_host_connection_layout)
+        self.ppms_connection.addLayout(self.ppms_port_connection_layout)
+        self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+
+        self.connection_group_box.setLayout(self.ppms_connection)
+        self.ppms_main_layout.addWidget(self.connection_group_box)
+        self.ppms_container.setFixedSize(400, 110)
+        self.ppms_container.setLayout(self.ppms_main_layout)
+
+        self.instrument_connection_layout.addWidget(self.ppms_container)
+
         # self.preseted_content.addLayout(ppms_connection)
         # --------------------------------------- Part connection_otherGPIB ----------------------------
-        Instru_main_layout = QHBoxLayout()
+        self.instrument_container = QWidget()
+        self.instrument_main_layout = QHBoxLayout()
+        self.instrument_connection_group_box = QGroupBox("Select Instruments")
+        self.instrument_connection_box_layout = QVBoxLayout()
 
+
+        self.Instru_main_layout = QVBoxLayout()
+        self.instru_select_layout = QHBoxLayout()
+        self.instru_connection_layout = QHBoxLayout()
+        self.instru_cnt_btn_layout = QHBoxLayout()
         self.Instruments_sel_label = QLabel("Select Instruments:")
         self.Instruments_sel_label.setFont(self.font)
-
-
         self.Instruments_combo = QComboBox()
         self.Instruments_combo.setFont(self.font)
-        self.Instruments_combo.setStyleSheet("""
-                                                            QComboBox {
-                                                                padding: 4px;
-                                                                background-color: white;
-                                                                border: 2px solid #c0c0c0;
-                                                                border-radius: 4px;
-                                                                }
-                                                            QComboBox::item:selected {
-                                                                background-color: #FFFFFF;  /* Background color for selected item */
-                                                                color: #7CACEC
-                                                            }
-
-                                                            QComboBox::drop-down {
-                                                                subcontrol-origin: padding;
-                                                                subcontrol-position: top right;
-                                                                width: 38px;   /* Width of the arrow button */
-                                                                border-left-width: 1px;
-                                                                border-left-color: darkgray;
-                                                                border-left-style: solid; /* just a single line at the left */
-                                                                border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                                                border-bottom-right-radius: 3px;
-                                                            }
-                                                            QComboBox::down-arrow {
-                                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                                                            }
-                                                            QComboBox::down-arrow:on { /* When the combo box is open */
-                                                                top: 1px;
-                                                                left: 1px;
-                                                            }
-                                                        """)
+        self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
         self.Instruments_combo.addItems(["Select Instruments"])  # 0
         self.Instruments_combo.addItems(["Keithley 2182 nv"])  # 1
         self.Instruments_combo.addItems(["Keithley 6221"])  # 2
@@ -197,61 +199,30 @@ class Measurement(QWidget):
         self.Instruments_port_label = QLabel("Channel:")
         self.Instruments_port_label.setFont(self.font)
         self.gpib_combo = QComboBox()
-        self.gpib_combo.setStyleSheet("""
-                            QComboBox {
-                                padding: 5px;
-                                background-color: white;
-                                border: 2px solid #c0c0c0;
-                                border-radius: 4px;
-                                }
-                            QComboBox::item:selected {
-                                background-color: #FFFFFF;  /* Background color for selected item */
-                                color: #7CACEC
-                            }
-
-                            QComboBox::drop-down {
-                                subcontrol-origin: padding;
-                                subcontrol-position: top right;
-                                width: 20px;   /* Width of the arrow button */
-                                border-left-width: 1px;
-                                border-left-color: darkgray;
-                                border-left-style: solid; /* just a single line at the left */
-                                border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                border-bottom-right-radius: 3px;
-                            }
-                            QComboBox::down-arrow {
-                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                            }
-                            QComboBox::down-arrow:on { /* When the combo box is open */
-                                top: 1px;
-                                left: 1px;
-                            }
-                        """)
+        self.gpib_combo.setStyleSheet(self.QCombo_stylesheet)
         self.gpib_combo.setFont(self.font)
         self.refresh_gpib_list()
         self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
         self.refresh_btn.clicked.connect(self.refresh_gpib_list)
         self.instru_connect_btn = QPushButton('Connect')
         self.instru_connect_btn.clicked.connect(self.connect_current_gpib)
-        Instru_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        Instru_main_layout.addWidget(self.Instruments_sel_label, 1)
-        Instru_main_layout.addWidget(self.Instruments_combo, 2)
-        Instru_main_layout.addStretch(1)
-        Instru_main_layout.addWidget(self.Instruments_port_label, 1)
-        Instru_main_layout.addWidget(self.gpib_combo, 3)
-        Instru_main_layout.addStretch(1)
-        Instru_main_layout.addWidget(self.refresh_btn, 2)
-        Instru_main_layout.addWidget(self.instru_connect_btn, 2)
+        self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
+        self.instru_select_layout.addWidget(self.Instruments_combo, 2)
 
-        self.connection_box_layout.addLayout(ppms_connection)
-        self.connection_box_layout.addLayout(Instru_main_layout)
-        self.connection_group_box.setLayout(self.connection_box_layout)
-        self.connection_layout = QHBoxLayout()
-        self.connection_container = QWidget(self)
-        # self.connection_container.setFixedSize(1180, 130)
-        self.connection_layout.addWidget(self.connection_group_box)
-        self.connection_container.setLayout(self.connection_layout)
-        self.ETO_instru_content_layout.addWidget(self.connection_container)
+        self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
+        self.instru_connection_layout.addWidget(self.gpib_combo, 3)
+
+        self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
+        self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
+        self.Instru_main_layout.addLayout(self.instru_select_layout)
+        self.Instru_main_layout.addLayout(self.instru_connection_layout)
+        self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
+        self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
+        self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
+        self.instrument_container.setFixedSize(400, 110)
+        self.instrument_container.setLayout(self.instrument_main_layout)
+        self.instrument_connection_layout.addWidget(self.instrument_container)
+
 
         # --------------------------------------- Part PPMS_layout Init ----------------------------
         self.PPMS_measurement_setup_layout = QHBoxLayout()
@@ -345,11 +316,13 @@ class Measurement(QWidget):
             return False
 
     def clear_layout(self, layout):
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        if layout is not None:
+            while layout.count():
+                child = layout.takeAt(0)
+                if child.widget() is not None:
+                    child.widget().deleteLater()
+                if child.layout() is not None:
+                    self.clear_layout(child.layout())
 
     def start_server(self):
         if self.server_btn_clicked == False:

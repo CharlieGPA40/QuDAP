@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         Data_processing = QListWidgetItem(QIcon("GUI/Icon/codesandbox.svg"), "Data Processing")
         experiment = QListWidgetItem(QIcon("GUI/Icon/cpu.svg"), 'Experiment')
 
-        with open("GUI/QSS/QSideWidget.qss", "r") as file:
+        with open("GUI/QSS/QComboWidget.qss", "r") as file:
             self.SideWidget_stylesheet = file.read()
 
         self.left_sidebar.addItem(dashboard)
