@@ -352,8 +352,14 @@ class MainWindow(QMainWindow):
 
         elif current_row == 5:  # Imaging
             self.right_sidebar.setCurrentRow(5)
-            self.pages.setCurrentIndex(13)
+            self.pages.setCurrentIndex(11)
             self.currentqdindex = 5
+
+        elif current_row == 6:  # Imaging
+            self.right_sidebar.setCurrentRow(6)
+            self.pages.setCurrentIndex(11)
+            self.currentqdindex = 6
+
 
     def update_tool_bar(self, current_row):
         self.whichSideBar = 2

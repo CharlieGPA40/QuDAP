@@ -103,7 +103,7 @@ class MplCanvas(FigureCanvas):
         #     self.ax = self.fig.add_subplot(111)
         super(MplCanvas, self).__init__(self.fig)
 
-class plotting(QWidget):
+class plotting(QMainWindow):
     def __init__(self):
         super().__init__()
         try:
@@ -114,85 +114,83 @@ class plotting(QWidget):
 
     def init_ui(self):
         try:
-            if self.isInit == False:
-                self.isInit = True
-                with open("GUI/SHG/QButtonWidget.qss", "r") as file:
-                    self.Browse_Button_stylesheet = file.read()
-                titlefont = QFont("Arial", 20)
-                self.font = QFont("Arial", 12)
-                self.setStyleSheet("background-color: white;")
-                self.SHG_data_Processing_main_layout = QVBoxLayout(self)
-                self.SHG_data_Processing_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            with open("GUI/SHG/QButtonWidget.qss", "r") as file:
+                self.Browse_Button_stylesheet = file.read()
+            titlefont = QFont("Arial", 20)
+            self.font = QFont("Arial", 12)
+            self.setStyleSheet("background-color: white;")
+            self.SHG_data_Processing_main_layout = QVBoxLayout(self)
+            self.SHG_data_Processing_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-                #  ---------------------------- PART 1 --------------------------------
-                self.SHG_General_label = QLabel("Plotting Widget")
-                self.SHG_General_label.setFont(titlefont)
-                self.SHG_General_label.setStyleSheet("""
-                                                    QLabel{
-                                                        background-color: white;
-                                                        }
-                                                        """)
-                #  ---------------------------- PART 2 --------------------------------
-                self.fileUpload_layout = QHBoxLayout()
-                self.drag_drop_layout = QVBoxLayout()
-                self.file_selection_group_box = QGroupBox("Upload Directory")
-                self.file_view_group_box = QGroupBox("View Files")
-                self.file_selection_group_box.setStyleSheet("""
-                            QGroupBox {
+            #  ---------------------------- PART 1 --------------------------------
+            self.SHG_General_label = QLabel("Plotting Widget")
+            self.SHG_General_label.setFont(titlefont)
+            self.SHG_General_label.setStyleSheet("""
+                                                QLabel{
+                                                    background-color: white;
+                                                    }
+                                                    """)
+            #  ---------------------------- PART 2 --------------------------------
+            self.fileUpload_layout = QHBoxLayout()
+            self.drag_drop_layout = QVBoxLayout()
+            self.file_selection_group_box = QGroupBox("Upload Directory")
+            self.file_view_group_box = QGroupBox("View Files")
+            self.file_selection_group_box.setStyleSheet("""
+                        QGroupBox {
 
-                                max-width: 600px;
-                                max-height: 230px;
-                            }
+                            max-width: 600px;
+                            max-height: 230px;
+                        }
 
-                        """)
-                self.file_view_group_box.setStyleSheet("""
-                                            QGroupBox {
+                    """)
+            self.file_view_group_box.setStyleSheet("""
+                                        QGroupBox {
 
-                                                max-width: 650px;
-                                                max-height: 230px;
-                                            }
+                                            max-width: 650px;
+                                            max-height: 230px;
+                                        }
 
-                                        """)
-                self.file_selection_display_label = QLabel('Please Upload Directory')
-                self.file_selection_display_label.setStyleSheet("""
-                                   color: white; 
-                                   font-size: 12px;
-                                   background-color:  #f38d76 ; 
-                                    border-radius: 5px; 
-                                   padding: 5px;
-                               """)
-                # self.file_selection_display_label.setWordWrap(True)
-                self.drag_drop_widget = DragDropWidget(self)
-                self.drag_drop_layout.addWidget(self.drag_drop_widget,4)
-                self.drag_drop_layout.addWidget(self.file_selection_display_label,1, alignment=Qt.AlignmentFlag.AlignCenter)
-                self.file_selection_group_box.setLayout(self.drag_drop_layout)
+                                    """)
+            self.file_selection_display_label = QLabel('Please Upload Directory')
+            self.file_selection_display_label.setStyleSheet("""
+                               color: white; 
+                               font-size: 12px;
+                               background-color:  #f38d76 ; 
+                                border-radius: 5px; 
+                               padding: 5px;
+                           """)
+            # self.file_selection_display_label.setWordWrap(True)
+            self.drag_drop_widget = DragDropWidget(self)
+            self.drag_drop_layout.addWidget(self.drag_drop_widget,4)
+            self.drag_drop_layout.addWidget(self.file_selection_display_label,1, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.file_selection_group_box.setLayout(self.drag_drop_layout)
 
 
-                # # Create the file browser area
-                self.file_tree = QTreeWidget()
-                # self.file_tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-                self.file_tree_layout = QHBoxLayout()
+            # # Create the file browser area
+            self.file_tree = QTreeWidget()
+            # self.file_tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.file_tree_layout = QHBoxLayout()
 
-                self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
-                self.file_tree_layout.addWidget(self.file_tree)
-                with open("GUI/SHG/QTreeWidget.qss", "r") as file:
-                    self.QTree_stylesheet = file.read()
-                self.file_tree.setStyleSheet( self.QTree_stylesheet)
-                self.file_view_group_box.setLayout(self.file_tree_layout)
-                self.fileUpload_layout.addWidget(self.file_selection_group_box,1)
-                self.fileUpload_layout.addWidget(self.file_view_group_box,1)
-                self.fileupload_container = QWidget(self)
-                self.fileupload_container.setLayout(self.fileUpload_layout)
-                self.fileupload_container.setFixedSize(1180,160)
+            self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
+            self.file_tree_layout.addWidget(self.file_tree)
+            with open("GUI/SHG/QTreeWidget.qss", "r") as file:
+                self.QTree_stylesheet = file.read()
+            self.file_tree.setStyleSheet( self.QTree_stylesheet)
+            self.file_view_group_box.setLayout(self.file_tree_layout)
+            self.fileUpload_layout.addWidget(self.file_selection_group_box,1)
+            self.fileUpload_layout.addWidget(self.file_view_group_box,1)
+            self.fileupload_container = QWidget(self)
+            self.fileupload_container.setLayout(self.fileUpload_layout)
+            self.fileupload_container.setFixedSize(1180,160)
 
-                self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
-                self.SHG_data_Processing_main_layout.addWidget(self.fileupload_container)
-                self.SHG_data_Processing_main_layout.addStretch(1)
-                # self.rstpage()
-                # self.scrollArea.setWidget(self.scrollContent)
+            self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
+            self.SHG_data_Processing_main_layout.addWidget(self.fileupload_container)
+            self.SHG_data_Processing_main_layout.addStretch(1)
+            # self.rstpage()
+            # self.scrollArea.setWidget(self.scrollContent)
 
-                # Add the scroll area to the main layout
-                # self.master_layout.addWidget(self.scrollArea)
+            # Add the scroll area to the main layout
+            # self.master_layout.addWidget(self.scrollArea)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -231,3 +229,9 @@ class plotting(QWidget):
             self.file_selection_display_label.setText("Current Folder: {}".format(self.folder))
 
 
+# if __name__ == "__main__":
+#     from PyQt6.QtWidgets import QApplication
+#     app = QApplication(sys.argv)
+#     main_window = plotting()
+#     main_window.show()
+#     sys.exit(app.exec())

@@ -66,3 +66,15 @@ scaffolding (-s ppms, for example).
 2024-06-17 01:16:32,990     MultiVuServer        DEBUG    ;to ('127.0.0.1', 51696); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 51696)"}'
 2024-06-17 01:16:32,990     MultiVuClient        DEBUG    ;from ('127.0.0.1', 51696); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 51696)"}
 2024-06-17 01:16:32,991     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 51696)
+2024-06-19 02:07:17,394     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '37840')
+2024-06-19 02:07:17,397     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-19 02:07:17,397     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-19 02:07:17,403     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-19 02:07:17,403     MultiVuServer        INFO     Press ESC to exit.
+2024-06-19 02:07:17,812     MultiVuClient        INFO     Starting connection to ('127.0.0.1', 5000)
+2024-06-19 02:07:17,817     MultiVuServer        INFO     Accepted connection from ('127.0.0.1', 60744)
+2024-06-19 02:07:18,114     MultiVuClient        DEBUG    ;to ('127.0.0.1', 60744); Sending b'\x00g{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 46}{"action": "START", "query": "", "result": ""}'
+2024-06-19 02:07:18,318     MultiVuServer        DEBUG    ;from ('127.0.0.1', 60744); Received request {'action': 'START', 'query': '', 'result': ''}
+2024-06-19 02:07:18,318     MultiVuServer        DEBUG    ;to ('127.0.0.1', 60744); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 60744)"}'
+2024-06-19 02:07:18,318     MultiVuClient        DEBUG    ;from ('127.0.0.1', 60744); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 60744)"}
+2024-06-19 02:07:18,319     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 60744)

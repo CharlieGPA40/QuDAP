@@ -47,7 +47,7 @@ class Measurement(QWidget):
         # self.scroll_area = QScrollArea()
         # self.scroll_area.setWidgetResizable(True)
         # self.scroll_area.setLayout(self.main_layout)
-        self.instrument_connection_layout = QHBoxLayout()
+
         #  ---------------------------- PART 1 --------------------------------
         self.current_intrument_label = QLabel("Start Measurement")
         self.current_intrument_label.setFont(titlefont)
@@ -90,16 +90,20 @@ class Measurement(QWidget):
         self.preset_layout.addLayout(self.radio_btn_layout)
         self.preset_layout.addLayout(self.select_preset_btn_layout)
         self.Preset_group_box.setLayout(self.preset_layout)
+
         self.preset_container = QWidget(self)
-        self.preset_container.setFixedSize(400, 110)
-        self.preset_layout = QHBoxLayout()
-        self.preset_layout.addWidget(self.Preset_group_box)
-        self.preset_container.setLayout(self.preset_layout)
+        self.preset_container.setFixedSize(400, 200)
+
+        self.preset_container_layout = QHBoxLayout()
+        self.preset_container_layout.addWidget(self.Preset_group_box, 1)
+        self.preset_container.setLayout(self.preset_container_layout)
+
+        self.instrument_connection_layout = QHBoxLayout()
         self.instrument_connection_layout.addWidget(self.preset_container)
 
         self.ETO_instru_content_layout = QVBoxLayout()
         self.main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
-        self.main_layout.addWidget(self.instrument_connection_layout)
+        self.main_layout.addLayout(self.instrument_connection_layout)
         self.main_layout.addLayout(self.ETO_instru_content_layout)
 
     def preset_reset(self):
@@ -159,8 +163,8 @@ class Measurement(QWidget):
         self.ppms_port_connection_layout.addWidget(self.port_label, 1)
         self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
 
-        self.ppms_connection_button_layout.addWidget(self.server_btn, 2)
-        self.ppms_connection_button_layout.addWidget(self.connect_btn, 2)
+        self.ppms_connection_button_layout.addWidget(self.server_btn)
+        self.ppms_connection_button_layout.addWidget(self.connect_btn)
 
         self.ppms_connection.addLayout(self.ppms_host_connection_layout)
         self.ppms_connection.addLayout(self.ppms_port_connection_layout)
@@ -168,7 +172,7 @@ class Measurement(QWidget):
 
         self.connection_group_box.setLayout(self.ppms_connection)
         self.ppms_main_layout.addWidget(self.connection_group_box)
-        self.ppms_container.setFixedSize(400, 110)
+        self.ppms_container.setFixedSize(400, 200)
         self.ppms_container.setLayout(self.ppms_main_layout)
 
         self.instrument_connection_layout.addWidget(self.ppms_container)
@@ -219,7 +223,7 @@ class Measurement(QWidget):
         self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
         self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
         self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-        self.instrument_container.setFixedSize(400, 110)
+        self.instrument_container.setFixedSize(400, 200)
         self.instrument_container.setLayout(self.instrument_main_layout)
         self.instrument_connection_layout.addWidget(self.instrument_container)
 
@@ -610,3 +614,11 @@ class Measurement(QWidget):
         self.timer.stop()
         self.canvas.axes.cla()
         self.canvas.draw()
+
+
+# if __name__ == "__main__":
+#     from PyQt6.QtWidgets import QApplication
+#     app = QApplication(sys.argv)
+#     main_window = Measurement()
+#     main_window.show()
+#     sys.exit(app.exec())
