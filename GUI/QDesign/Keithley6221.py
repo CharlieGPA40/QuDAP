@@ -525,6 +525,7 @@ class CurrentSource6221(QWidget):
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
                     self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
+                    time.sleep(2)
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
                     self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")

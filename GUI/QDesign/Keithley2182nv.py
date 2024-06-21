@@ -15,7 +15,6 @@ import random
 import time
 
 
-
 class THREAD(QThread):
     update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
 
@@ -30,8 +29,12 @@ class THREAD(QThread):
             try:
                 self.server.write("SENS:CHAN 1")
                 Chan_1_voltage = float(self.server.query("FETCH?"))  # Read the measurement result
+                error = self.server.query("SYST:ERR?")
+                print(str(error))
                 self.server.write("SENS:CHAN 2")
                 Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
+                error = self.server.query("SYST:ERR?")
+                print(str(error))
                 self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
                 time.sleep(1)  # Update every second
             except Exception as e:
@@ -387,6 +390,7 @@ class NV(QWidget):
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
                     self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
+                    time.sleep(2)
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
                     # self.keithley_2182A_NV.write("SENS:CHAN 1")
@@ -495,5 +499,3 @@ class NV(QWidget):
         self.timer.stop()
         self.canvas.axes.cla()
         self.canvas.draw()
-
-
