@@ -210,17 +210,17 @@ class Measurement(QWidget):
         self.connection_combo = QComboBox()
         self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
         self.connection_combo.setFont(self.font)
-        self.refresh_Connection_List()
+
         self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
         self.refresh_btn.clicked.connect(self.refresh_Connection_List)
         self.instru_connect_btn = QPushButton('Connect')
-        self.instru_connect_btn.clicked.connect(self.conect_devices)
+        self.instru_connect_btn.clicked.connect(self.connect_devices)
         self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
         self.instru_select_layout.addWidget(self.Instruments_combo, 2)
 
         self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
         self.instru_connection_layout.addWidget(self.connection_combo, 3)
-
+        self.refresh_Connection_List()
         self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
         self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
         self.Instru_main_layout.addLayout(self.instru_select_layout)
@@ -320,9 +320,16 @@ class Measurement(QWidget):
 
     def refresh_Connection_List(self):
         # Access GPIB ports using PyVISA
+        try:
+            self.clear_layout(self.Instruments_measurement_setup_layout)
+        except Exception as e:
+            print(e)
         rm = visa.ResourceManager('@sim')
         instruments = rm.list_resources()
         self.connection_ports = [instr for instr in instruments]
+        self.Keithley_2182_Connected = False
+        self.Ketihley_6221_Connected = False
+        self.instru_connect_btn.setText('Connect')
         # Clear existing items and add new ones
         self.connection_combo.clear()
         self.connection_combo.addItems(["None"])
@@ -353,7 +360,10 @@ class Measurement(QWidget):
     def start_server(self):
         if self.server_btn_clicked == False:
             # import Data_Processing_Suite.GUI.QDesign.run_server as s
-            self.server = mpv.Server()
+            try:
+                self.server = mpv.Server()
+            except MultiPyVuError:
+                QMessageBox.critical('Check MutltiVu', 'Run MultiVu without Admin or open MultiVu correctly!')
             # user_flags = ['-ip=172.19.159.4']
             # self.server = mpv.Server(user_flags, keep_server_open=True)
             self.server_btn.setText('Stop Server')
@@ -456,13 +466,12 @@ class Measurement(QWidget):
             self.server_btn.setEnabled(True)
 
 
-    def conect_devices(self):
+    def connect_devices(self):
         self.rm = visa.ResourceManager('@sim')
         self.current_connection_index = self.Instruments_combo.currentIndex()
-
         self.current_connection = self.connection_combo.currentText()
         try:
-            if self.current_connection == 'None':
+            if self.current_connection_index == 0:
                 return None
             elif self.current_connection_index == 1:
                 try:
@@ -484,6 +493,202 @@ class Measurement(QWidget):
                 self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
         except visa.errors.VisaIOError:
             QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+    
+
+            
+    def connect_keithley_2182(self):
+        if self.Keithley_2182_Connected == False:
+            try:
+                self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
+                time.sleep(2)
+                self.Keithley_2182_Connected = True
+                self.instru_connect_btn.setText('Disconnect')
+                # self.instru_connect_btn.clicked.connect(self.close_keithley_2182)
+                self.keithley2182_Window()
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+        else:
+            self.instru_connect_btn.setText('Connect')
+            self.close_keithley_2182()
+            self.Keithley_2182_Connected = False
+
+    def connect_keithley_6221(self):
+        if self.Ketihley_6221_Connected == False:
+            try:
+                self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
+                time.sleep(2)
+                self.Ketihley_6221_Connected = True
+                self.instru_connect_btn.setText('Disconnect')
+                # self.instru_connect_btn.clicked.connect(self.close_keithley_6221)
+                self.keithley6221_Window()
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+                self.Ketihley_6221_Connected = False
+        else:
+            self.instru_connect_btn.setText('Connect')
+            self.close_keithley_6221()
+            self.Ketihley_6221_Connected = False
+
+    def close_keithley_2182(self):
+        try:
+            self.keithley_2182nv.close()
+            self.Keithley_2182_Connected = False
+            self.clear_layout(self.keithley_2182_contain_layout)
+            # self.Instruments_measurement_setup_layout.removeItem(self.keithley_2182_contain_layout)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+
+    def close_keithley_6221(self):
+        try:
+            self.keithley_6221.close()
+            self.Ketihley_6221_Connected = False
+            self.clear_layout(self.keithley_6221_contain_layout)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+
+    def instru_combo_index_change(self):
+        self.current_connection_index = self.Instruments_combo.currentIndex()
+        if self.current_connection_index == 1:
+            if self.Keithley_2182_Connected:
+                self.instru_connect_btn.setText('Disconnect')
+            else:
+                self.instru_connect_btn.setText('Connect')
+
+        elif self.current_connection_index == 2:
+            if self.Ketihley_6221_Connected:
+                self.instru_connect_btn.setText('Disconnect')
+            else:
+                self.instru_connect_btn.setText('Connect')
+
+    def keithley2182_Window(self):
+        self.Keithley_2182_Container = QWidget(self)
+        self.keithley_2182_groupbox = QGroupBox('Keithley 2182nv')
+        self.NPLC_layout = QHBoxLayout()
+        self.NPLC_Label = QLabel('NPLC:')
+        self.NPLC_Label.setFont(self.font)
+        self.NPLC_entry = QLineEdit()
+        self.NPLC_entry.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.NPLC_entry.setFont(self.font)
+        self.NPLC_entry.setText('1.2')
+        self.NPLC_layout.addWidget(self.NPLC_Label)
+        self.NPLC_layout.addStretch(1)
+        self.NPLC_layout.addWidget(self.NPLC_entry)
+        self.NPLC_layout.addStretch(1)
+
+        self.keithley_2182_channel_1_layout = QHBoxLayout()
+        self.keithley_2182_channel_1_checkbox = QCheckBox('Channel 1:')
+        self.keithley_2182_channel_1_checkbox.setFont(self.font)
+        self.keithley_2182_channel_1_reading_label = QLabel('N/A')
+        self.keithley_2182_channel_1_reading_label.setFont(self.font)
+        self.keithley_2182_channel_1_layout.addWidget(self.keithley_2182_channel_1_checkbox)
+        self.keithley_2182_channel_1_layout.addWidget(self.keithley_2182_channel_1_reading_label)
+
+        self.keithley_2182_channel_2_layout = QHBoxLayout()
+        self.keithley_2182_channel_2_checkbox = QCheckBox('Channel 2:')
+        self.keithley_2182_channel_2_checkbox.setFont(self.font)
+        self.keithley_2182_channel_2_reading_label = QLabel('N/A')
+        self.keithley_2182_channel_2_reading_label.setFont(self.font)
+        self.keithley_2182_channel_2_layout.addWidget(self.keithley_2182_channel_2_checkbox)
+        self.keithley_2182_channel_2_layout.addWidget(self.keithley_2182_channel_2_reading_label)
+
+        self.keithley_2182_main_layout = QVBoxLayout()
+        self.keithley_2182_main_layout.addLayout(self.NPLC_layout)
+        self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
+        self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
+        self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
+        self.keithley_2182_groupbox.setFixedSize(380,150)
+        self.keithley_2182_contain_layout = QHBoxLayout()
+        self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
+
+    def keithley6221_Window(self):
+        self.Keithley_6221_Container = QWidget(self)
+        self.keithley_6221_groupbox = QGroupBox('Keithley 6221')
+
+        self.Keithey_6221_main_layout = QVBoxLayout()
+        self.keithley_6221_DC_radio = QRadioButton("DC")
+        self.keithley_6221_DC_radio.setFont(self.font)
+        self.keithley_6221_DC_radio.toggled.connect(self.Keithley_6221_DC)
+        self.keithley_6221_AC_radio = QRadioButton("AC")
+        self.keithley_6221_AC_radio.setFont(self.font)
+        self.keithley_6221_AC_radio.toggled.connect(self.Keithley_6221_AC)
+        self.keithley_6221_radio_button_layout = QHBoxLayout()
+        self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_DC_radio)
+        self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_AC_radio)
+        self.Keithey_6221_main_layout.addLayout(self.keithley_6221_radio_button_layout)
+
+        self.Keithey_curSour_layout = QVBoxLayout()
+        self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
+        self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
+        self.keithley_6221_groupbox.setFixedSize(600, 150)
+        self.keithley_6221_contain_layout = QHBoxLayout()
+        self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
+
+    def Keithley_6221_DC(self):
+        try:
+            self.clear_layout(self.Keithey_curSour_layout)
+        except Exception as e:
+            print(e)
+        self.keithley_6221_DC_range_single_layout= QVBoxLayout()
+        self.keithley_6221_DC_range_layout = QHBoxLayout()
+        self.keithley_6221_DC_range_checkbox = QCheckBox('Range')
+        self.keithley_6221_DC_range_checkbox.setFont(self.font)
+        self.keithley_6221_DC_range_from_label = QLabel('From:')
+        self.keithley_6221_DC_range_from_label.setFont(self.font)
+        self.keithley_6221_DC_range_init_entry = QLineEdit()
+        self.keithley_6221_DC_range_init_entry.setFont(self.font)
+        self.keithley_6221_DC_range_to_label = QLabel('to')
+        self.keithley_6221_DC_range_to_label.setFont(self.font)
+        self.keithley_6221_DC_range_final_entry = QLineEdit()
+        self.keithley_6221_DC_range_final_entry.setFont(self.font)
+        self.keithley_6221_DC_range_step_label = QLabel('Step Size:')
+        self.keithley_6221_DC_range_step_label.setFont(self.font)
+        self.keithley_6221_DC_range_step_entry = QLineEdit()
+        self.keithley_6221_DC_range_step_entry.setFont(self.font)
+        self.keithley_6221_DC_range_combobox = QComboBox()
+        self.keithley_6221_DC_range_combobox.setFont(self.font)
+        self.keithley_6221_DC_range_combobox.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_DC_range_combobox.addItems(["Select Units"])  # 0
+        self.keithley_6221_DC_range_combobox.addItems(["mA"])  # 1
+        self.keithley_6221_DC_range_combobox.addItems(["µA"])  # 2
+        self.keithley_6221_DC_range_combobox.addItems(["nA"])  # 3
+        self.keithley_6221_DC_range_combobox.addItems(["pA"])  # 3
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_checkbox)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_from_label)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_init_entry)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_to_label)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_final_entry)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_step_label)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_step_entry)
+        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_combobox)
+        self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_range_layout)
+        self.keithley_6221_DC_single_layout = QHBoxLayout()
+        self.keithley_6221_DC_single_checkbox = QCheckBox('Single')
+        self.keithley_6221_DC_single_checkbox.setFont(self.font)
+        self.keithley_6221_DC_single_entry = QLineEdit()
+        self.keithley_6221_DC_single_entry.setFont(self.font)
+        self.keithley_6221_DC_single_combobox = QComboBox()
+        self.keithley_6221_DC_single_combobox.setFont(self.font)
+        self.keithley_6221_DC_single_combobox.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_DC_single_combobox.addItems(["Select Units"])  # 0
+        self.keithley_6221_DC_single_combobox.addItems(["mA"])  # 1
+        self.keithley_6221_DC_single_combobox.addItems(["µA"])  # 2
+        self.keithley_6221_DC_single_combobox.addItems(["nA"])  # 3
+        self.keithley_6221_DC_single_combobox.addItems(["pA"])  # 4
+        self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_checkbox)
+        self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_entry)
+        self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_combobox)
+        self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_single_layout)
+        self.Keithey_curSour_layout.addLayout(self.keithley_6221_DC_range_single_layout)
+
+    def Keithley_6221_AC(self):
+        self.keithley_6221_AC_layout = QHBoxLayout()
+        self.keithley_6221_DC = QCheckBox('Channel 2:')
+        try:
+            self.clear_layout(self.Keithey_curSour_layout)
+        except Exception as e:
+            print(e)
 
     def field_zone_selection(self):
         if self.ppms_field_One_zone_radio.isChecked() and self.Field_setup_Zone_1 == False:
@@ -746,196 +951,10 @@ class Measurement(QWidget):
         self.canvas.axes.cla()
         self.canvas.draw()
 
-    def keithley2182_Window(self):
-        self.Keithley_2182_Container = QWidget(self)
-        self.keithley_2182_groupbox = QGroupBox('Keithley 2182nv')
-        self.NPLC_layout = QHBoxLayout()
-        self.NPLC_Label = QLabel('NPLC:')
-        self.NPLC_Label.setFont(self.font)
-        self.NPLC_entry = QLineEdit()
-        self.NPLC_entry.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.NPLC_entry.setFont(self.font)
-        self.NPLC_entry.setText('1.2')
-        self.NPLC_layout.addWidget(self.NPLC_Label)
-        self.NPLC_layout.addStretch(1)
-        self.NPLC_layout.addWidget(self.NPLC_entry)
-        self.NPLC_layout.addStretch(1)
-
-        self.keithley_2182_channel_1_layout = QHBoxLayout()
-        self.keithley_2182_channel_1_checkbox = QCheckBox('Channel 1:')
-        self.keithley_2182_channel_1_checkbox.setFont(self.font)
-        self.keithley_2182_channel_1_reading_label = QLabel('N/A')
-        self.keithley_2182_channel_1_reading_label.setFont(self.font)
-        self.keithley_2182_channel_1_layout.addWidget(self.keithley_2182_channel_1_checkbox)
-        self.keithley_2182_channel_1_layout.addWidget(self.keithley_2182_channel_1_reading_label)
-
-        self.keithley_2182_channel_2_layout = QHBoxLayout()
-        self.keithley_2182_channel_2_checkbox = QCheckBox('Channel 2:')
-        self.keithley_2182_channel_2_checkbox.setFont(self.font)
-        self.keithley_2182_channel_2_reading_label = QLabel('N/A')
-        self.keithley_2182_channel_2_reading_label.setFont(self.font)
-        self.keithley_2182_channel_2_layout.addWidget(self.keithley_2182_channel_2_checkbox)
-        self.keithley_2182_channel_2_layout.addWidget(self.keithley_2182_channel_2_reading_label)
-
-        self.keithley_2182_main_layout = QVBoxLayout()
-        self.keithley_2182_main_layout.addLayout(self.NPLC_layout)
-        self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
-        self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
-        self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
-        self.keithley_2182_groupbox.setFixedSize(380,150)
-        self.keithley_2182_contain_layout = QHBoxLayout()
-        self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
-        self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
-
-    def keithley6221_Window(self):
-        self.Keithley_6221_Container = QWidget(self)
-        self.keithley_6221_groupbox = QGroupBox('Keithley 6221')
-
-        self.Keithey_main_layout = QVBoxLayout()
-        self.keithley_6221_DC_radio = QRadioButton("DC")
-        self.keithley_6221_DC_radio.setFont(self.font)
-        self.keithley_6221_DC_radio.toggled.connect(self.Keithley_6221_DC)
-        self.keithley_6221_AC_radio = QRadioButton("AC")
-        self.keithley_6221_AC_radio.setFont(self.font)
-        self.keithley_6221_AC_radio.toggled.connect(self.Keithley_6221_AC)
-        self.keithley_2182_radio_button_layout = QHBoxLayout()
-        self.keithley_2182_radio_button_layout.addWidget(self.keithley_6221_DC_radio)
-        self.keithley_2182_radio_button_layout.addWidget(self.keithley_6221_AC_radio)
-        self.Keithey_main_layout.addLayout(self.keithley_2182_radio_button_layout)
-
-        self.Keithey_curSour_layout = QVBoxLayout()
-        self.Keithey_main_layout.addLayout(self.Keithey_curSour_layout)
-        self.keithley_6221_groupbox.setLayout(self.Keithey_main_layout)
-        self.keithley_6221_groupbox.setFixedSize(600, 150)
-        self.keithley_6221_contain_layout = QHBoxLayout()
-        self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
-        self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
-
-    def Keithley_6221_DC(self):
-        self.keithley_6221_DC_range_single_layout= QVBoxLayout()
-        self.keithley_6221_DC_range_layout = QHBoxLayout()
-        self.keithley_6221_DC_range_checkbox = QCheckBox('Range')
-        self.keithley_6221_DC_range_checkbox.setFont(self.font)
-        self.keithley_6221_DC_range_from_label = QLabel('From:')
-        self.keithley_6221_DC_range_from_label.setFont(self.font)
-        self.keithley_6221_DC_range_init_entry = QLineEdit()
-        self.keithley_6221_DC_range_init_entry.setFont(self.font)
-        self.keithley_6221_DC_range_to_label = QLabel('to')
-        self.keithley_6221_DC_range_to_label.setFont(self.font)
-        self.keithley_6221_DC_range_final_entry = QLineEdit()
-        self.keithley_6221_DC_range_final_entry.setFont(self.font)
-        self.keithley_6221_DC_range_step_label = QLabel('Step Size:')
-        self.keithley_6221_DC_range_step_label.setFont(self.font)
-        self.keithley_6221_DC_range_step_entry = QLineEdit()
-        self.keithley_6221_DC_range_step_entry.setFont(self.font)
-        self.keithley_6221_DC_range_combobox = QComboBox()
-        self.keithley_6221_DC_range_combobox.setFont(self.font)
-        self.keithley_6221_DC_range_combobox.setStyleSheet(self.QCombo_stylesheet)
-        self.keithley_6221_DC_range_combobox.addItems(["Select Units"])  # 0
-        self.keithley_6221_DC_range_combobox.addItems(["mA"])  # 1
-        self.keithley_6221_DC_range_combobox.addItems(["µA"])  # 2
-        self.keithley_6221_DC_range_combobox.addItems(["nA"])  # 3
-        self.keithley_6221_DC_range_combobox.addItems(["pA"])  # 3
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_checkbox)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_from_label)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_init_entry)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_to_label)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_final_entry)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_step_label)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_step_entry)
-        self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_combobox)
-        self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_range_layout)
-        self.keithley_6221_DC_single_layout = QHBoxLayout()
-        self.keithley_6221_DC_single_checkbox = QCheckBox('Single')
-        self.keithley_6221_DC_single_checkbox.setFont(self.font)
-        self.keithley_6221_DC_single_entry = QLineEdit()
-        self.keithley_6221_DC_single_entry.setFont(self.font)
-        self.keithley_6221_DC_single_combobox = QComboBox()
-        self.keithley_6221_DC_single_combobox.setFont(self.font)
-        self.keithley_6221_DC_single_combobox.setStyleSheet(self.QCombo_stylesheet)
-        self.keithley_6221_DC_single_combobox.addItems(["Select Units"])  # 0
-        self.keithley_6221_DC_single_combobox.addItems(["mA"])  # 1
-        self.keithley_6221_DC_single_combobox.addItems(["µA"])  # 2
-        self.keithley_6221_DC_single_combobox.addItems(["nA"])  # 3
-        self.keithley_6221_DC_single_combobox.addItems(["pA"])  # 4
-        self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_checkbox)
-        self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_entry)
-        self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_combobox)
-        self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_single_layout)
-        self.Keithey_curSour_layout.addLayout(self.keithley_6221_DC_range_single_layout)
-
-    def Keithley_6221_AC(self):
-        self.keithley_6221_AC_layout = QHBoxLayout()
-        self.keithley_6221_DC = QCheckBox('Channel 2:')
 
 
-    def connect_keithley_2182(self):
-        if self.Keithley_2182_Connected == False:
-            try:
-                self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
-                self.Keithley_2182_Connected = True
-                self.instru_connect_btn.setText('Disconnect')
-                self.instru_connect_btn.clicked.connect(self.close_keithley_2182)
-                self.keithley2182_Window()
-            except visa.errors.VisaIOError:
-                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-        else:
-            self.instru_connect_btn.setText('Disconnect')
-            self.Keithley_2182_Connected = True
 
-    def close_keithley_2182(self):
-        try:
-            self.keithley_2182nv.close()
-            self.Keithley_2182_Connected = False
-            self.instru_connect_btn.setText('Connect')
-            self.instru_connect_btn.clicked.connect(self.connect_keithley_2182)
-            self.clear_layout(self.Instruments_measurement_setup_layout)
-            self.Instruments_measurement_setup_layout.removeItem(self.keithley_2182_contain_layout)
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
 
-    def connect_keithley_6221(self):
-        if self.Ketihley_6221_Connected == False:
-            try:
-                self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
-                self.Ketihley_6221_Connected = True
-                self.instru_connect_btn.setText('Disconnect')
-                # self.instru_connect_btn.clicked.connect(self.close_keithley_6221)
-                self.keithley6221_Window()
-            except visa.errors.VisaIOError:
-                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-        else:
-            self.instru_connect_btn.setText('Disconnect')
-            self.Ketihley_6221_Connected = True
-
-    def close_keithley_6221(self):
-        try:
-            self.keithley_6221.close()
-            self.Ketihley_6221_Connected = False
-            # self.instru_connect_btn.setText('Connect')
-            # self.instru_connect_btn.clicked.connect(self.connect_keithley_6221)
-            self.clear_layout(self.Instruments_measurement_setup_layout)
-            self.Instruments_measurement_setup_layout.removeItem(self.keithley_6221_contain_layout)
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-
-    def instru_combo_index_change(self):
-        self.current_connection_index = self.Instruments_combo.currentIndex()
-        if self.current_connection_index == 1:
-            if self.Keithley_2182_Connected:
-                self.instru_connect_btn.setText('Disconnect')
-                self.instru_connect_btn.clicked.connect(self.close_keithley_2182)
-            else:
-                self.instru_connect_btn.setText('Connect')
-                self.instru_connect_btn.clicked.connect(self.connect_keithley_2182)
-
-        elif self.current_connection_index == 2:
-            if self.Ketihley_6221_Connected:
-                self.instru_connect_btn.setText('Disconnect')
-                self.instru_connect_btn.clicked.connect(self.close_keithley_6221)
-            else:
-                self.instru_connect_btn.setText('Connect')
-                self.instru_connect_btn.clicked.connect(self.connect_keithley_6221)
 # if __name__ == "__main__":
 #     from PyQt6.QtWidgets import QApplication
 #     app = QApplication(sys.argv)

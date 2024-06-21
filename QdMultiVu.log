@@ -216,3 +216,15 @@ scaffolding (-s ppms, for example).
 2024-06-21 01:49:04,091     MultiVuServer        DEBUG    ;to ('127.0.0.1', 59231); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 59231)"}'
 2024-06-21 01:49:04,092     MultiVuClient        DEBUG    ;from ('127.0.0.1', 59231); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 59231)"}
 2024-06-21 01:49:04,093     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 59231)
+2024-06-21 14:38:52,015     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-21 14:41:44,698     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-21 14:54:21,278     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-21 14:55:01,633     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
