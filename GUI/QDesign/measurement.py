@@ -116,7 +116,13 @@ class Measurement(QWidget):
             try:
                 self.clear_layout(self.graphing_layout)
                 self.clear_layout(self.buttons_layout)
-                self.clear_layout(self.instrument_connection_layout)
+                self.instrument_connection_layout.removeWidget(self.ppms_container)
+                self.ppms_container.deleteLater()
+                self.instrument_connection_layout.removeWidget(self.instrument_container)
+                self.instrument_container.deleteLater()
+                # self.ppms_container.setParent(None)
+
+
             except Exception as e:
                 print(e)
         except Exception as e:
@@ -354,6 +360,15 @@ class Measurement(QWidget):
                     child.widget().deleteLater()
                 if child.layout() is not None:
                     self.clear_layout(child.layout())
+
+    def clear_widget(self, widget):
+        if widget is not None:
+            while widget.count():
+                child = widget.takeAt(0)
+                if child.widget() is not None:
+                    child.widget().deleteLater()
+                if child.layout() is not None:
+                    self.clear_widget(child.layout())
 
     def start_server(self):
         if self.server_btn_clicked == False:
