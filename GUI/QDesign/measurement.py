@@ -30,9 +30,11 @@ class Measurement(QWidget):
     def __init__(self):
         super().__init__()
         try:
-            self.isConnect = False
+            self.preseted = False
             self.Keithley_2182_Connected = False
             self.Ketihley_6221_Connected = False
+            self.BNC845RF_Connected = False
+            self.DSP7265_Connected = False
             self.init_ui()
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -102,221 +104,215 @@ class Measurement(QWidget):
 
         self.instrument_connection_layout = QHBoxLayout()
         self.instrument_connection_layout.addWidget(self.preset_container)
-
-
-
-        self.ETO_instru_content_layout = QVBoxLayout()
+        self.Instruments_Content_Layout = QVBoxLayout()
         self.main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
         self.main_layout.addLayout(self.instrument_connection_layout)
-        self.main_layout.addLayout(self.ETO_instru_content_layout)
+        self.main_layout.addLayout(self.Instruments_Content_Layout)
 
     def preset_reset(self):
         try:
-            self.clear_Layout(self.ETO_instru_content_layout)
-            self.main_layout.removeItem(self.ETO_instru_content_layout)
-            self.clear_Layout(self.ppms_zone_field_layout)
-            self.main_layout.removeItem(self.ppms_zone_field_layout)
+            self.preseted = False
+            self.clear_layout(self.Instruments_Content_Layout)
+            try:
+                self.clear_layout(self.graphing_layout)
+                self.clear_layout(self.buttons_layout)
+                self.clear_layout(self.instrument_connection_layout)
+            except Exception as e:
+                print(e)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
 
     def preset_select(self):
-        try:
+        if self.preseted == False:
+            self.preseted = True
+            with open("GUI/QSS/QComboWidget.qss", "r") as file:
+                self.QCombo_stylesheet = file.read()
+            #--------------------------------------- Part connection ----------------------------
+            self.ppms_container = QWidget()
+            self.ppms_main_layout = QHBoxLayout()
+            self.connection_group_box = QGroupBox("PPMS Connection")
+            self.connection_box_layout = QVBoxLayout()
+            # --------------------------------------- Part connection_PPMS ----------------------------
+            self.ppms_connection = QVBoxLayout()
+            self.ppms_host_connection_layout = QHBoxLayout()
+            self.ppms_port_connection_layout = QHBoxLayout()
+            self.ppms_connection_button_layout = QHBoxLayout()
+            self.host_label = QLabel("PPMS Host:")
+            self.host_label.setFont(self.font)
+            self.host_entry_box = QLineEdit("127.0.0.1")
+            self.host_entry_box.setFixedHeight(30)
+            self.port_label = QLabel("PPMS Port:")
+            self.port_label.setFont(self.font)
+            self.port_entry_box = QLineEdit("5000")
+            self.port_entry_box.setFixedHeight(30)
+            self.server_btn = QPushButton('Start Server')
+            self.server_btn_clicked = False
+            self.server_btn.clicked.connect(self.start_server)
+            self.connect_btn = QPushButton('Client Connect')
+            self.connect_btn.setEnabled(False)
+            self.connect_btn_clicked = False
+            self.connect_btn.clicked.connect(self.connect_client)
+
+            self.ppms_host_connection_layout.addWidget(self.host_label, 1)
+            self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+
+            self.ppms_port_connection_layout.addWidget(self.port_label, 1)
+            self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+
+            self.ppms_connection_button_layout.addWidget(self.server_btn)
+            self.ppms_connection_button_layout.addWidget(self.connect_btn)
+
+            self.ppms_connection.addLayout(self.ppms_host_connection_layout)
+            self.ppms_connection.addLayout(self.ppms_port_connection_layout)
+            self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+
+            self.connection_group_box.setLayout(self.ppms_connection)
+            self.ppms_main_layout.addWidget(self.connection_group_box)
+            self.ppms_container.setFixedSize(400, 180)
+            self.ppms_container.setLayout(self.ppms_main_layout)
+
+            self.instrument_connection_layout.addWidget(self.ppms_container)
+
+            # self.preseted_content.addLayout(ppms_connection)
+            # --------------------------------------- Part connection_otherGPIB ----------------------------
+            self.instrument_container = QWidget()
+            self.instrument_main_layout = QHBoxLayout()
+            self.instrument_connection_group_box = QGroupBox("Select Instruments")
+            self.instrument_connection_box_layout = QVBoxLayout()
+
+
+            self.Instru_main_layout = QVBoxLayout()
+            self.instru_select_layout = QHBoxLayout()
+            self.instru_connection_layout = QHBoxLayout()
+            self.instru_cnt_btn_layout = QHBoxLayout()
+            self.Instruments_sel_label = QLabel("Select Instruments:")
+            self.Instruments_sel_label.setFont(self.font)
+            self.Instruments_combo = QComboBox()
+            self.Instruments_combo.setFont(self.font)
+            self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
             if self.ETO_radio_buttom.isChecked():
-                # self.FMR_radio_buttom.setChecked(False)
-                self.ETO_Preset()
+                self.Instruments_combo.addItems(["Select Instruments"])  # 0
+                self.Instruments_combo.addItems(["Keithley 2182 nv"])  # 1
+                self.Instruments_combo.addItems(["Keithley 6221"])  # 2
+                self.Instruments_combo.addItems(["DSP 7265 Lock-in"])  # 4
+            elif self.FMR_radio_buttom.isChecked():
+                self.Instruments_combo.addItems(["BNC 845 RF"])  # 3
+                self.Instruments_combo.addItems(["DSP 7265 Lock-in"])  # 4
+            self.Instruments_combo.currentIndexChanged.connect(self.instru_combo_index_change)
 
-            if self.FMR_radio_buttom.isChecked():
-                # self.ETO_radio_buttom.setChecked(False)
-                return
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            self.Instruments_port_label = QLabel("Channel:")
+            self.Instruments_port_label.setFont(self.font)
+            self.connection_combo = QComboBox()
+            self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.connection_combo.setFont(self.font)
 
-    def ETO_Preset(self):
-        with open("GUI/QSS/QComboWidget.qss", "r") as file:
-            self.QCombo_stylesheet = file.read()
-        #--------------------------------------- Part connection ----------------------------
-        self.ppms_container = QWidget()
-        self.ppms_main_layout = QHBoxLayout()
-        self.connection_group_box = QGroupBox("PPMS Connection")
-        self.connection_box_layout = QVBoxLayout()
-        # --------------------------------------- Part connection_PPMS ----------------------------
-        self.ppms_connection = QVBoxLayout()
-        self.ppms_host_connection_layout = QHBoxLayout()
-        self.ppms_port_connection_layout = QHBoxLayout()
-        self.ppms_connection_button_layout = QHBoxLayout()
-        self.host_label = QLabel("PPMS Host:")
-        self.host_label.setFont(self.font)
-        self.host_entry_box = QLineEdit("127.0.0.1")
-        self.host_entry_box.setFixedHeight(30)
-        self.port_label = QLabel("PPMS Port:")
-        self.port_label.setFont(self.font)
-        self.port_entry_box = QLineEdit("5000")
-        self.port_entry_box.setFixedHeight(30)
-        self.server_btn = QPushButton('Start Server')
-        self.server_btn_clicked = False
-        self.server_btn.clicked.connect(self.start_server)
-        self.connect_btn = QPushButton('Client Connect')
-        self.connect_btn.setEnabled(False)
-        self.connect_btn_clicked = False
-        self.connect_btn.clicked.connect(self.connect_client)
+            self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
+            self.refresh_btn.clicked.connect(self.refresh_Connection_List)
+            self.instru_connect_btn = QPushButton('Connect')
+            self.instru_connect_btn.clicked.connect(self.connect_devices)
+            self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
+            self.instru_select_layout.addWidget(self.Instruments_combo, 2)
 
-        self.ppms_host_connection_layout.addWidget(self.host_label, 1)
-        self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
-
-        self.ppms_port_connection_layout.addWidget(self.port_label, 1)
-        self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
-
-        self.ppms_connection_button_layout.addWidget(self.server_btn)
-        self.ppms_connection_button_layout.addWidget(self.connect_btn)
-
-        self.ppms_connection.addLayout(self.ppms_host_connection_layout)
-        self.ppms_connection.addLayout(self.ppms_port_connection_layout)
-        self.ppms_connection.addLayout(self.ppms_connection_button_layout)
-
-        self.connection_group_box.setLayout(self.ppms_connection)
-        self.ppms_main_layout.addWidget(self.connection_group_box)
-        self.ppms_container.setFixedSize(400, 180)
-        self.ppms_container.setLayout(self.ppms_main_layout)
-
-        self.instrument_connection_layout.addWidget(self.ppms_container)
-
-        # self.preseted_content.addLayout(ppms_connection)
-        # --------------------------------------- Part connection_otherGPIB ----------------------------
-        self.instrument_container = QWidget()
-        self.instrument_main_layout = QHBoxLayout()
-        self.instrument_connection_group_box = QGroupBox("Select Instruments")
-        self.instrument_connection_box_layout = QVBoxLayout()
+            self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
+            self.instru_connection_layout.addWidget(self.connection_combo, 3)
+            self.refresh_Connection_List()
+            self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
+            self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
+            self.Instru_main_layout.addLayout(self.instru_select_layout)
+            self.Instru_main_layout.addLayout(self.instru_connection_layout)
+            self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
+            self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
+            self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
+            self.instrument_container.setFixedSize(400, 180)
+            self.instrument_container.setLayout(self.instrument_main_layout)
+            self.instrument_connection_layout.addWidget(self.instrument_container)
 
 
-        self.Instru_main_layout = QVBoxLayout()
-        self.instru_select_layout = QHBoxLayout()
-        self.instru_connection_layout = QHBoxLayout()
-        self.instru_cnt_btn_layout = QHBoxLayout()
-        self.Instruments_sel_label = QLabel("Select Instruments:")
-        self.Instruments_sel_label.setFont(self.font)
-        self.Instruments_combo = QComboBox()
-        self.Instruments_combo.setFont(self.font)
-        self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.Instruments_combo.addItems(["Select Instruments"])  # 0
-        self.Instruments_combo.addItems(["Keithley 2182 nv"])  # 1
-        self.Instruments_combo.addItems(["Keithley 6221"])  # 2
-        self.Instruments_combo.addItems(["RF"])  # 3
-        self.Instruments_combo.addItems(["Locked_in"])  # 4
-        self.Instruments_combo.currentIndexChanged.connect(self.instru_combo_index_change)
+            # --------------------------------------- Part PPMS_layout Init ----------------------------
+            self.PPMS_measurement_setup_layout = QHBoxLayout()
+            self.Instruments_Content_Layout.addLayout(self.PPMS_measurement_setup_layout)
 
-        self.Instruments_port_label = QLabel("Channel:")
-        self.Instruments_port_label.setFont(self.font)
-        self.connection_combo = QComboBox()
-        self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.connection_combo.setFont(self.font)
+            # --------------------------------------- Part PPMS_layout Init ----------------------------
+            self.Instruments_measurement_setup_layout = QHBoxLayout()
+            self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
-        self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
-        self.refresh_btn.clicked.connect(self.refresh_Connection_List)
-        self.instru_connect_btn = QPushButton('Connect')
-        self.instru_connect_btn.clicked.connect(self.connect_devices)
-        self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
-        self.instru_select_layout.addWidget(self.Instruments_combo, 2)
-
-        self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
-        self.instru_connection_layout.addWidget(self.connection_combo, 3)
-        self.refresh_Connection_List()
-        self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
-        self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
-        self.Instru_main_layout.addLayout(self.instru_select_layout)
-        self.Instru_main_layout.addLayout(self.instru_connection_layout)
-        self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
-        self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
-        self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-        self.instrument_container.setFixedSize(400, 180)
-        self.instrument_container.setLayout(self.instrument_main_layout)
-        self.instrument_connection_layout.addWidget(self.instrument_container)
+            self.main_layout.addLayout(self.Instruments_Content_Layout)
+            # --------------------------------------- Part PPMS_layout Init ----------------------------
+            self.graphing_layout = QHBoxLayout()
+            #
+            # self.plotting_x_axis_group_box = QGroupBox("x Axis Selection")
+            # self.plotting_x_axis_select_layout = QVBoxLayout()
+            # self.checkbox1 = QCheckBox("Channel 1")
+            # self.checkbox1.setFont(self.font)
+            # self.checkbox2 = QCheckBox("Channel 2")
+            # self.checkbox2.setFont(self.font)
+            # self.plotting_x_axis_select_layout.addWidget(self.checkbox1)
+            # self.plotting_x_axis_select_layout.addWidget(self.checkbox2)
+            # self.plotting_x_axis_group_box.setLayout(self.plotting_x_axis_select_layout)
+            # self.graphing_layout.addWidget(self.plotting_x_axis_group_box)
+            #
+            # self.plotting_y_axis_group_box = QGroupBox("y Axis Selection")
+            # self.plotting_y_axis_select_layout = QVBoxLayout()
+            # self.checkbox1 = QCheckBox("Channel 1")
+            # self.checkbox1.setFont(self.font)
+            # self.checkbox2 = QCheckBox("Channel 2")
+            # self.checkbox2.setFont(self.font)
+            # self.plotting_y_axis_select_layout.addWidget(self.checkbox1)
+            # self.plotting_y_axis_select_layout.addWidget(self.checkbox2)
+            # self.plotting_y_axis_group_box.setLayout(self.plotting_y_axis_select_layout)
+            # self.graphing_layout.addWidget(self.plotting_y_axis_group_box)
 
 
-        # --------------------------------------- Part PPMS_layout Init ----------------------------
-        self.PPMS_measurement_setup_layout = QHBoxLayout()
-        self.ETO_instru_content_layout.addLayout(self.PPMS_measurement_setup_layout)
+            # #  ---------------------------- Figure Layout --------------------------------
+            figure_group_box = QGroupBox("Graph")
+            figure_Layout = QVBoxLayout()
+            self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
+            toolbar = NavigationToolbar(self.canvas, self)
+            toolbar.setStyleSheet("""
+                                             QWidget {
+                                                 border: None;
+                                             }
+                                         """)
+            figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+            figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+            figure_group_box.setLayout(figure_Layout)
+            self.figure_container_layout = QHBoxLayout()
+            self.figure_container = QWidget(self)
+            # self.figure_container.setFixedSize(1180, 400)
+            self.buttons_layout = QHBoxLayout()
+            self.start_measurement_btn = QPushButton('Start')
+            # self.start_measurement_btn.clicked.connect(self.plot_selection)
+            self.stop_btn = QPushButton('Stop')
+            # self.stop_btn.clicked.connect(self.stop)
+            self.rst_btn = QPushButton('Reset')
+            # self.rst_btn.clicked.connect(self.rst)
+            self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
+            self.stop_btn.setStyleSheet(self.Button_stylesheet)
+            self.rst_btn.setStyleSheet(self.Button_stylesheet)
+            self.buttons_layout.addStretch(4)
+            self.buttons_layout.addWidget(self.rst_btn)
+            self.buttons_layout.addWidget(self.stop_btn)
+            self.buttons_layout.addWidget(self.start_measurement_btn)
 
-        # --------------------------------------- Part PPMS_layout Init ----------------------------
-        self.Instruments_measurement_setup_layout = QHBoxLayout()
-        self.ETO_instru_content_layout.addLayout(self.Instruments_measurement_setup_layout)
+            self.figure_container_layout.addWidget(figure_group_box)
+            self.figure_container.setLayout(self.figure_container_layout)
+            self.graphing_layout.addWidget(self.figure_container)
+            self.main_layout.addLayout(self.graphing_layout)
+            self.main_layout.addLayout(self.buttons_layout)
+            # graphing_layout.addWidget(plotting_control_group_box)
+            # graphing_layout.addWidget(figure_group_box)
+            # #  ---------------------------- Main Layout --------------------------------
+            self.setLayout(self.main_layout)
 
-        self.main_layout.addLayout(self.ETO_instru_content_layout)
-        # --------------------------------------- Part PPMS_layout Init ----------------------------
-        self.graphing_layout = QHBoxLayout()
-        #
-        # self.plotting_x_axis_group_box = QGroupBox("x Axis Selection")
-        # self.plotting_x_axis_select_layout = QVBoxLayout()
-        # self.checkbox1 = QCheckBox("Channel 1")
-        # self.checkbox1.setFont(self.font)
-        # self.checkbox2 = QCheckBox("Channel 2")
-        # self.checkbox2.setFont(self.font)
-        # self.plotting_x_axis_select_layout.addWidget(self.checkbox1)
-        # self.plotting_x_axis_select_layout.addWidget(self.checkbox2)
-        # self.plotting_x_axis_group_box.setLayout(self.plotting_x_axis_select_layout)
-        # self.graphing_layout.addWidget(self.plotting_x_axis_group_box)
-        #
-        # self.plotting_y_axis_group_box = QGroupBox("y Axis Selection")
-        # self.plotting_y_axis_select_layout = QVBoxLayout()
-        # self.checkbox1 = QCheckBox("Channel 1")
-        # self.checkbox1.setFont(self.font)
-        # self.checkbox2 = QCheckBox("Channel 2")
-        # self.checkbox2.setFont(self.font)
-        # self.plotting_y_axis_select_layout.addWidget(self.checkbox1)
-        # self.plotting_y_axis_select_layout.addWidget(self.checkbox2)
-        # self.plotting_y_axis_group_box.setLayout(self.plotting_y_axis_select_layout)
-        # self.graphing_layout.addWidget(self.plotting_y_axis_group_box)
+            #  ---------------------------- Style Sheet --------------------------------
+            self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
 
+            self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
 
-        # #  ---------------------------- Figure Layout --------------------------------
-        figure_group_box = QGroupBox("Graph")
-        figure_Layout = QVBoxLayout()
-        self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
-        toolbar = NavigationToolbar(self.canvas, self)
-        toolbar.setStyleSheet("""
-                                         QWidget {
-                                             border: None;
-                                         }
-                                     """)
-        figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-        figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-        figure_group_box.setLayout(figure_Layout)
-        self.figure_container_layout = QHBoxLayout()
-        self.figure_container = QWidget(self)
-        # self.figure_container.setFixedSize(1180, 400)
-        self.buttons_layout = QHBoxLayout()
-        self.start_measurement_btn = QPushButton('Start')
-        # self.start_measurement_btn.clicked.connect(self.plot_selection)
-        self.stop_btn = QPushButton('Stop')
-        # self.stop_btn.clicked.connect(self.stop)
-        self.rst_btn = QPushButton('Reset')
-        # self.rst_btn.clicked.connect(self.rst)
-        self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
-        self.stop_btn.setStyleSheet(self.Button_stylesheet)
-        self.rst_btn.setStyleSheet(self.Button_stylesheet)
-        self.buttons_layout.addStretch(4)
-        self.buttons_layout.addWidget(self.rst_btn)
-        self.buttons_layout.addWidget(self.stop_btn)
-        self.buttons_layout.addWidget(self.start_measurement_btn)
-
-        self.figure_container_layout.addWidget(figure_group_box)
-        self.figure_container.setLayout(self.figure_container_layout)
-        self.graphing_layout.addWidget(self.figure_container)
-        self.main_layout.addLayout(self.graphing_layout)
-        self.main_layout.addLayout(self.buttons_layout)
-        # graphing_layout.addWidget(plotting_control_group_box)
-        # graphing_layout.addWidget(figure_group_box)
-        # #  ---------------------------- Main Layout --------------------------------
-        self.setLayout(self.main_layout)
-
-        #  ---------------------------- Style Sheet --------------------------------
-        self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
-
-        self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
-
-        self.refresh_btn.setStyleSheet(self.Button_stylesheet)
-        self.server_btn.setStyleSheet(self.Button_stylesheet)
-        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+            self.refresh_btn.setStyleSheet(self.Button_stylesheet)
+            self.server_btn.setStyleSheet(self.Button_stylesheet)
+            self.connect_btn.setStyleSheet(self.Button_stylesheet)
 
     def refresh_Connection_List(self):
         # Access GPIB ports using PyVISA
@@ -329,6 +325,8 @@ class Measurement(QWidget):
         self.connection_ports = [instr for instr in instruments]
         self.Keithley_2182_Connected = False
         self.Ketihley_6221_Connected = False
+        self.BNC845RF_Connected = False
+        self.DSP7265_Connected = False
         self.instru_connect_btn.setText('Connect')
         # Clear existing items and add new ones
         self.connection_combo.clear()
@@ -470,30 +468,53 @@ class Measurement(QWidget):
         self.rm = visa.ResourceManager('@sim')
         self.current_connection_index = self.Instruments_combo.currentIndex()
         self.current_connection = self.connection_combo.currentText()
-        try:
-            if self.current_connection_index == 0:
-                return None
-            elif self.current_connection_index == 1:
-                try:
-                    self.connect_keithley_2182()
-                except Exception as e:
-                    self.Keithley_2182_Connected = False
-                    QMessageBox.warning(self, 'Error', str(e))
-                    self.instru_connect_btn.setText('Connect')
-            elif self.current_connection_index == 2:
-                try:
-                    self.connect_keithley_6221()
-                except Exception as e:
-                    self.Ketihley_6221_Connected = False
-                    QMessageBox.warning(self, 'Error', str(e))
-                    self.instru_connect_btn.setText('Connect')
-            elif self.current_connection_index == 3:
-                self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
-            elif self.current_connection_index == 4:
-                self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
-        except visa.errors.VisaIOError:
-            QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-    
+        if self.ETO_radio_buttom.isChecked():
+            try:
+                if self.current_connection_index == 0:
+                    return None
+                elif self.current_connection_index == 1:
+                    try:
+                        self.connect_keithley_2182()
+                    except Exception as e:
+                        self.Keithley_2182_Connected = False
+                        QMessageBox.warning(self, 'Error', str(e))
+                        self.instru_connect_btn.setText('Connect')
+                elif self.current_connection_index == 2:
+                    try:
+                        self.connect_keithley_6221()
+                    except Exception as e:
+                        self.Ketihley_6221_Connected = False
+                        QMessageBox.warning(self, 'Error', str(e))
+                        self.instru_connect_btn.setText('Connect')
+                elif self.current_connection_index == 3:
+                    try:
+                        self.connect_dsp7265()
+                    except Exception as e:
+                        self.DSP7265_Connected = False
+                        QMessageBox.warning(self, 'Error', str(e))
+                        self.instru_connect_btn.setText('Connect')
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+        elif self.FMR_radio_buttom.isChecked():
+            try:
+                if self.current_connection_index == 0:
+                    return None
+                elif self.current_connection_index == 1:
+                    try:
+                        self.connect_keithley_2182()
+                    except Exception as e:
+                        self.Keithley_2182_Connected = False
+                        QMessageBox.warning(self, 'Error', str(e))
+                        self.instru_connect_btn.setText('Connect')
+                elif self.current_connection_index == 2:
+                    try:
+                        self.connect_keithley_6221()
+                    except Exception as e:
+                        self.Ketihley_6221_Connected = False
+                        QMessageBox.warning(self, 'Error', str(e))
+                        self.instru_connect_btn.setText('Connect')
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
 
             
     def connect_keithley_2182(self):
@@ -529,6 +550,21 @@ class Measurement(QWidget):
             self.close_keithley_6221()
             self.Ketihley_6221_Connected = False
 
+    def connect_dsp7265(self):
+        if self.DSP7265_Connected == False:
+            try:
+                self.DSP7265 = self.rm.open_resource(self.current_connection, timeout=10000)
+                time.sleep(2)
+                self.DSP7265_Connected = True
+                self.instru_connect_btn.setText('Disconnect')
+                self.keithley2182_Window()
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+        else:
+            self.instru_connect_btn.setText('Connect')
+            self.close_keithley_2182()
+            self.DSP7265_Connected = False
+
     def close_keithley_2182(self):
         try:
             self.keithley_2182nv.close()
@@ -556,6 +592,12 @@ class Measurement(QWidget):
 
         elif self.current_connection_index == 2:
             if self.Ketihley_6221_Connected:
+                self.instru_connect_btn.setText('Disconnect')
+            else:
+                self.instru_connect_btn.setText('Connect')
+
+        elif self.current_connection_index == 3:
+            if self.DSP7265_Connected:
                 self.instru_connect_btn.setText('Disconnect')
             else:
                 self.instru_connect_btn.setText('Connect')
@@ -633,6 +675,7 @@ class Measurement(QWidget):
         self.keithley_6221_DC_range_single_layout= QVBoxLayout()
         self.keithley_6221_DC_range_layout = QHBoxLayout()
         self.keithley_6221_DC_range_checkbox = QCheckBox('Range')
+        self.keithley_6221_DC_range_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
         self.keithley_6221_DC_range_checkbox.setFont(self.font)
         self.keithley_6221_DC_range_from_label = QLabel('From:')
         self.keithley_6221_DC_range_from_label.setFont(self.font)
@@ -665,6 +708,7 @@ class Measurement(QWidget):
         self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_range_layout)
         self.keithley_6221_DC_single_layout = QHBoxLayout()
         self.keithley_6221_DC_single_checkbox = QCheckBox('Single')
+        self.keithley_6221_DC_single_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
         self.keithley_6221_DC_single_checkbox.setFont(self.font)
         self.keithley_6221_DC_single_entry = QLineEdit()
         self.keithley_6221_DC_single_entry.setFont(self.font)
@@ -941,6 +985,29 @@ class Measurement(QWidget):
         self.counter += 1
         self.counter_array.append(self.counter)
 
+    def on_6221_DC_toggle(self):
+        if self.keithley_6221_DC_range_checkbox.isChecked():
+            self.keithley_6221_DC_single_checkbox.setEnabled(False)
+            self.keithley_6221_DC_single_entry.setEnabled(False)
+            self.keithley_6221_DC_single_combobox.setEnabled(False)
+        else:
+            self.keithley_6221_DC_single_checkbox.setEnabled(True)
+            self.keithley_6221_DC_single_entry.setEnabled(True)
+            self.keithley_6221_DC_single_combobox.setEnabled(True)
+
+        if self.keithley_6221_DC_single_checkbox.isChecked():
+            self.keithley_6221_DC_range_checkbox.setEnabled(False)
+            self.keithley_6221_DC_range_init_entry.setEnabled(False)
+            self.keithley_6221_DC_range_final_entry.setEnabled(False)
+            self.keithley_6221_DC_range_step_entry.setEnabled(False)
+            self.keithley_6221_DC_range_combobox.setEnabled(False)
+        else:
+            self.keithley_6221_DC_range_checkbox.setEnabled(True)
+            self.keithley_6221_DC_range_init_entry.setEnabled(True)
+            self.keithley_6221_DC_range_final_entry.setEnabled(True)
+            self.keithley_6221_DC_range_step_entry.setEnabled(True)
+            self.keithley_6221_DC_range_combobox.setEnabled(True)
+            
     def stop(self):
         self.timer.stop()
 
