@@ -1,32 +1,161 @@
-from PyQt6.QtWidgets import (
-    QSizePolicy, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QCheckBox, QPushButton, QComboBox, QLineEdit, QScrollArea, QFrame, QRadioButton)
-from PyQt6.QtGui import QIcon, QFont, QDoubleValidator
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import sys
+from PyQt6.QtWidgets import (
+    QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
+    QCheckBox, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow, QDialogButtonBox
+)
+from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import pyvisa as visa
 import matplotlib
+
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import random
 import time
-import MultiPyVu as mpv # Uncommented it on the/thesever computer
+import MultiPyVu as mpv  # Uncommented it on the server computer
 from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
+from datetime import datetime
 
+class LogWindow(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.font = QFont("Arial", 13)
+        self.ID = None
+        self.Measurement = None
+        self.run = None
+        self.folder_path = None
+        self.setStyleSheet('Background: white')
+        with open("GUI/SHG/QButtonWidget.qss", "r") as file:
+            self.Browse_Button_stylesheet = file.read()
+        self.layout = QVBoxLayout()
+        self.output_folder_layout = QHBoxLayout()
+        self.output_folder_label = QLabel('Output Folder: ')
+        self.output_folder_label.setFont(self.font)
+        self.folder_entry_box = QLineEdit(self)
+        self.folder_entry_box.setFont(self.font)
+        self.folder_entry_box.setEnabled(False)
+        self.browse_button = QPushButton('Browse')
+        self.browse_button.setStyleSheet(self.Browse_Button_stylesheet)
+        self.browse_button.clicked.connect(self.open_folder_dialog)
+        self.output_folder_layout.addWidget(self.output_folder_label)
+        self.output_folder_layout.addWidget(self.folder_entry_box)
+        self.output_folder_layout.addWidget(self.browse_button)
+
+        today = datetime.today()
+        self.formatted_date = today.strftime("%m%d%Y")
+        self.Date_layout = QHBoxLayout()
+        self.Date_label = QLabel("Today's Date:")
+        self.Date_label.setFont(self.font)
+        self.Date_entry_box = QLineEdit(self)
+        self.Date_entry_box.setFont(self.font)
+        self.Date_entry_box.setEnabled(False)
+        self.Date_entry_box.setText(str(self.formatted_date))
+        self.Date_layout.addWidget(self.Date_label)
+        self.Date_layout.addWidget(self.Date_entry_box)
+
+        self.Sample_ID_layout = QHBoxLayout()
+        self.Sample_ID_label = QLabel("Sample ID:")
+        self.Sample_ID_label.setFont(self.font)
+        self.Sample_ID_entry_box = QLineEdit(self)
+        self.Sample_ID_entry_box.setFont(self.font)
+        self.Sample_ID_entry_box.textChanged.connect(self.update_ID)
+        self.Sample_ID_layout.addWidget(self.Sample_ID_label)
+        self.Sample_ID_layout.addWidget(self.Sample_ID_entry_box)
+
+        self.Measurement_type_layout = QHBoxLayout()
+        self.Measurement_type_label = QLabel("Measurement Type:")
+        self.Measurement_type_label.setFont(self.font)
+        self.Measurement_type_entry_box = QLineEdit(self)
+        self.Measurement_type_entry_box.setFont(self.font)
+        self.Measurement_type_entry_box.textChanged.connect(self.update_measurement)
+        self.Measurement_type_layout.addWidget(self.Measurement_type_label)
+        self.Measurement_type_layout.addWidget(self.Measurement_type_entry_box)
+
+        self.run_number_layout = QHBoxLayout()
+        self.run_number_label = QLabel("Run Number:")
+        self.run_number_label.setFont(self.font)
+        self.run_number_entry_box = QLineEdit(self)
+        self.run_number_entry_box.setFont(self.font)
+        self.run_number_entry_box.textChanged.connect(self.update_run_number)
+        self.run_number_layout.addWidget(self.run_number_label)
+        self.run_number_layout.addWidget(self.run_number_entry_box)
+
+        self.comment_layout = QHBoxLayout()
+        self.comment_label = QLabel("Comment:")
+        self.comment_label.setFont(self.font)
+        self.comment_entry_box = QLineEdit(self)
+        self.comment_entry_box.setFont(self.font)
+        self.comment_layout.addWidget(self.comment_label)
+        self.comment_layout.addWidget(self.comment_entry_box)
+
+        self.example_file_name = QLabel()
+
+        self.random_number = random.randint(100000, 999999)
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        self.button_box.setStyleSheet(self.Browse_Button_stylesheet)
+        self.example_file_name.setText(self.file_name)
+        self.layout.addLayout(self.output_folder_layout)
+        self.layout.addLayout(self.Date_layout)
+        self.layout.addLayout(self.Sample_ID_layout)
+        self.layout.addLayout(self.Measurement_type_layout)
+        self.layout.addLayout(self.run_number_layout)
+        self.layout.addLayout(self.comment_layout)
+        self.layout.addWidget(self.button_box)
+        self.layout.addWidget(self.example_file_name)
+
+        self.setLayout(self.layout)
+
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+    def update_ID(self, text):
+        # Replace spaces with underscores in the text
+        self.ID = self.Sample_ID_entry_box.text()
+        self.ID = text.replace(" ", "_")
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
+        self.example_file_name.setText(self.file_name)
+
+    def update_measurement(self, text):
+        # Replace spaces with underscores in the text
+        self.Measurement = self.Measurement_type_entry_box.text()
+        self.Measurement = text.replace(" ", "_")
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
+        self.example_file_name.setText(self.file_name)
+
+    def update_run_number(self, text):
+        # Replace spaces with underscores in the text
+        self.run = self.run_number_entry_box.text()
+        self.run = text.replace(" ", "_")
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
+        self.example_file_name.setText(self.file_name)
+
+    def open_folder_dialog(self):
+        self.folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if self.folder_path:
+            self.folder_path = self.folder_path +'/'
+            self.folder_entry_box.setText(self.folder_path)
+
+    def accept(self):
+        self.commemt = self.comment_entry_box.text()
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}"
+        # Call the inherited accept method to close the dialog
+        super().accept()
+
+    def get_text(self):
+        return self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=100, height=4, dpi=300):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        # self.canvas = FigureCanvas(self.figure)
-        # self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # self.canvas.updateGeometry()
-
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
-class Measurement(QWidget):
+
+class Measurement(QMainWindow):
     def __init__(self):
         super().__init__()
         try:
@@ -44,13 +173,24 @@ class Measurement(QWidget):
         titlefont = QFont("Arial", 20)
         self.font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
+        with open("GUI/QSS/QScrollbar.qss", "r") as file:
+            self.scrollbar_stylesheet = file.read()
+        # Create a QScrollArea
+        self.scroll_area = QScrollArea()
+        # self.scroll_area.setFixedSize(1200,920)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setStyleSheet(self.scrollbar_stylesheet)
+        # Create a widget to hold the main layout
+        self.content_widget = QWidget()
+        self.scroll_area.setWidget(self.content_widget)
 
         # Create main vertical layout with centered alignment
-        self.main_layout = QVBoxLayout(self)
+        self.main_layout = QVBoxLayout(self.content_widget)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # self.scroll_area = QScrollArea()
-        # self.scroll_area.setWidgetResizable(True)
-        # self.scroll_area.setLayout(self.main_layout)
+
+        # Set the content widget to expand
+        self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         #  ---------------------------- PART 1 --------------------------------
         self.current_intrument_label = QLabel("Start Measurement")
@@ -62,7 +202,7 @@ class Measurement(QWidget):
                                                         """)
 
         #  ---------------------------- PART 2 --------------------------------
-        with (open("GUI/QSS/QButtonWidget.qss", "r") as file):
+        with open("GUI/QSS/QButtonWidget.qss", "r") as file:
             self.Button_stylesheet = file.read()
         self.Preset_group_box = QGroupBox("Preseted Measure")
 
@@ -73,21 +213,20 @@ class Measurement(QWidget):
         self.reset_preset_buttom = QPushButton("Reset")
         self.select_preset_buttom = QPushButton("Select")
         self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
-
         self.reset_preset_buttom.setStyleSheet(self.Button_stylesheet)
 
         self.reset_preset_buttom.clicked.connect(self.preset_reset)
         self.select_preset_buttom.clicked.connect(self.preset_select)
 
         self.preset_layout = QVBoxLayout()
-        self.radio_btn_layout = QHBoxLayout(self)
+        self.radio_btn_layout = QHBoxLayout()
         self.radio_btn_layout.addStretch(2)
         self.radio_btn_layout.addWidget(self.ETO_radio_buttom)
         self.radio_btn_layout.addStretch(1)
         self.radio_btn_layout.addWidget(self.FMR_radio_buttom)
         self.radio_btn_layout.addStretch(2)
 
-        self.select_preset_btn_layout = QHBoxLayout(self)
+        self.select_preset_btn_layout = QHBoxLayout()
         self.select_preset_btn_layout.addWidget(self.reset_preset_buttom)
         self.select_preset_btn_layout.addWidget(self.select_preset_buttom)
 
@@ -95,8 +234,8 @@ class Measurement(QWidget):
         self.preset_layout.addLayout(self.select_preset_btn_layout)
         self.Preset_group_box.setLayout(self.preset_layout)
 
-        self.preset_container = QWidget(self)
-        self.preset_container.setFixedSize(400, 180)
+        self.preset_container = QWidget()
+        self.preset_container.setFixedSize(380, 180)
 
         self.preset_container_layout = QHBoxLayout()
         self.preset_container_layout.addWidget(self.Preset_group_box, 1)
@@ -109,6 +248,9 @@ class Measurement(QWidget):
         self.main_layout.addLayout(self.instrument_connection_layout)
         self.main_layout.addLayout(self.Instruments_Content_Layout)
 
+        # Set the scroll area as the central widget of the main window
+        self.setCentralWidget(self.scroll_area)
+
     def preset_reset(self):
         try:
             self.preseted = False
@@ -120,8 +262,8 @@ class Measurement(QWidget):
                 self.ppms_container.deleteLater()
                 self.instrument_connection_layout.removeWidget(self.instrument_container)
                 self.instrument_container.deleteLater()
-                # self.ppms_container.setParent(None)
-
+                self.main_layout.removeWidget(self.button_container)
+                self.button_container.deleteLater()
 
             except Exception as e:
                 print(e)
@@ -134,7 +276,7 @@ class Measurement(QWidget):
             self.preseted = True
             with open("GUI/QSS/QComboWidget.qss", "r") as file:
                 self.QCombo_stylesheet = file.read()
-            #--------------------------------------- Part connection ----------------------------
+            # --------------------------------------- Part connection ----------------------------
             self.ppms_container = QWidget()
             self.ppms_main_layout = QHBoxLayout()
             self.connection_group_box = QGroupBox("PPMS Connection")
@@ -175,18 +317,15 @@ class Measurement(QWidget):
 
             self.connection_group_box.setLayout(self.ppms_connection)
             self.ppms_main_layout.addWidget(self.connection_group_box)
-            self.ppms_container.setFixedSize(400, 180)
+            self.ppms_container.setFixedSize(380, 180)
             self.ppms_container.setLayout(self.ppms_main_layout)
 
             self.instrument_connection_layout.addWidget(self.ppms_container)
 
-            # self.preseted_content.addLayout(ppms_connection)
-            # --------------------------------------- Part connection_otherGPIB ----------------------------
             self.instrument_container = QWidget()
             self.instrument_main_layout = QHBoxLayout()
             self.instrument_connection_group_box = QGroupBox("Select Instruments")
             self.instrument_connection_box_layout = QVBoxLayout()
-
 
             self.Instru_main_layout = QVBoxLayout()
             self.instru_select_layout = QHBoxLayout()
@@ -198,13 +337,10 @@ class Measurement(QWidget):
             self.Instruments_combo.setFont(self.font)
             self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
             if self.ETO_radio_buttom.isChecked():
-                self.Instruments_combo.addItems(["Select Instruments"])  # 0
-                self.Instruments_combo.addItems(["Keithley 2182 nv"])  # 1
-                self.Instruments_combo.addItems(["Keithley 6221"])  # 2
-                self.Instruments_combo.addItems(["DSP 7265 Lock-in"])  # 4
+                self.Instruments_combo.addItems(
+                    ["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
             elif self.FMR_radio_buttom.isChecked():
-                self.Instruments_combo.addItems(["BNC 845 RF"])  # 3
-                self.Instruments_combo.addItems(["DSP 7265 Lock-in"])  # 4
+                self.Instruments_combo.addItems(["BNC 845 RF", "DSP 7265 Lock-in"])
             self.Instruments_combo.currentIndexChanged.connect(self.instru_combo_index_change)
 
             self.Instruments_port_label = QLabel("Channel:")
@@ -230,47 +366,20 @@ class Measurement(QWidget):
             self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
             self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
             self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-            self.instrument_container.setFixedSize(400, 180)
+            self.instrument_container.setFixedSize(380, 180)
             self.instrument_container.setLayout(self.instrument_main_layout)
             self.instrument_connection_layout.addWidget(self.instrument_container)
 
-
-            # --------------------------------------- Part PPMS_layout Init ----------------------------
             self.PPMS_measurement_setup_layout = QHBoxLayout()
             self.Instruments_Content_Layout.addLayout(self.PPMS_measurement_setup_layout)
 
-            # --------------------------------------- Part PPMS_layout Init ----------------------------
             self.Instruments_measurement_setup_layout = QHBoxLayout()
             self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
             self.main_layout.addLayout(self.Instruments_Content_Layout)
-            # --------------------------------------- Part PPMS_layout Init ----------------------------
+
             self.graphing_layout = QHBoxLayout()
-            #
-            # self.plotting_x_axis_group_box = QGroupBox("x Axis Selection")
-            # self.plotting_x_axis_select_layout = QVBoxLayout()
-            # self.checkbox1 = QCheckBox("Channel 1")
-            # self.checkbox1.setFont(self.font)
-            # self.checkbox2 = QCheckBox("Channel 2")
-            # self.checkbox2.setFont(self.font)
-            # self.plotting_x_axis_select_layout.addWidget(self.checkbox1)
-            # self.plotting_x_axis_select_layout.addWidget(self.checkbox2)
-            # self.plotting_x_axis_group_box.setLayout(self.plotting_x_axis_select_layout)
-            # self.graphing_layout.addWidget(self.plotting_x_axis_group_box)
-            #
-            # self.plotting_y_axis_group_box = QGroupBox("y Axis Selection")
-            # self.plotting_y_axis_select_layout = QVBoxLayout()
-            # self.checkbox1 = QCheckBox("Channel 1")
-            # self.checkbox1.setFont(self.font)
-            # self.checkbox2 = QCheckBox("Channel 2")
-            # self.checkbox2.setFont(self.font)
-            # self.plotting_y_axis_select_layout.addWidget(self.checkbox1)
-            # self.plotting_y_axis_select_layout.addWidget(self.checkbox2)
-            # self.plotting_y_axis_group_box.setLayout(self.plotting_y_axis_select_layout)
-            # self.graphing_layout.addWidget(self.plotting_y_axis_group_box)
 
-
-            # #  ---------------------------- Figure Layout --------------------------------
             figure_group_box = QGroupBox("Graph")
             figure_Layout = QVBoxLayout()
             self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
@@ -283,16 +392,15 @@ class Measurement(QWidget):
             figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
             figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
             figure_group_box.setLayout(figure_Layout)
+            figure_group_box.setFixedSize(1140,400)
             self.figure_container_layout = QHBoxLayout()
             self.figure_container = QWidget(self)
-            # self.figure_container.setFixedSize(1180, 400)
             self.buttons_layout = QHBoxLayout()
             self.start_measurement_btn = QPushButton('Start')
-            # self.start_measurement_btn.clicked.connect(self.plot_selection)
+            self.start_measurement_btn.clicked.connect(self.start_measurement)
             self.stop_btn = QPushButton('Stop')
-            # self.stop_btn.clicked.connect(self.stop)
             self.rst_btn = QPushButton('Reset')
-            # self.rst_btn.clicked.connect(self.rst)
+            self.rst_btn.clicked.connect(self.preset_reset)
             self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
             self.stop_btn.setStyleSheet(self.Button_stylesheet)
             self.rst_btn.setStyleSheet(self.Button_stylesheet)
@@ -301,27 +409,25 @@ class Measurement(QWidget):
             self.buttons_layout.addWidget(self.stop_btn)
             self.buttons_layout.addWidget(self.start_measurement_btn)
 
+            self.button_container = QWidget()
+            self.button_container.setLayout(self.buttons_layout)
+            self.button_container.setFixedSize(1150,80)
+
             self.figure_container_layout.addWidget(figure_group_box)
             self.figure_container.setLayout(self.figure_container_layout)
             self.graphing_layout.addWidget(self.figure_container)
             self.main_layout.addLayout(self.graphing_layout)
-            self.main_layout.addLayout(self.buttons_layout)
-            # graphing_layout.addWidget(plotting_control_group_box)
-            # graphing_layout.addWidget(figure_group_box)
-            # #  ---------------------------- Main Layout --------------------------------
-            self.setLayout(self.main_layout)
+            self.main_layout.addWidget(self.button_container)
 
-            #  ---------------------------- Style Sheet --------------------------------
+            self.setCentralWidget(self.scroll_area)
+
             self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
-
             self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
-
             self.refresh_btn.setStyleSheet(self.Button_stylesheet)
             self.server_btn.setStyleSheet(self.Button_stylesheet)
             self.connect_btn.setStyleSheet(self.Button_stylesheet)
 
     def refresh_Connection_List(self):
-        # Access GPIB ports using PyVISA
         try:
             self.clear_layout(self.Instruments_measurement_setup_layout)
         except Exception as e:
@@ -334,11 +440,9 @@ class Measurement(QWidget):
         self.BNC845RF_Connected = False
         self.DSP7265_Connected = False
         self.instru_connect_btn.setText('Connect')
-        # Clear existing items and add new ones
         self.connection_combo.clear()
         self.connection_combo.addItems(["None"])
         self.connection_combo.addItems(self.connection_ports)
-
 
     def check_validator(self, validator_model, entry):
         try:
@@ -349,7 +453,6 @@ class Measurement(QWidget):
                 QMessageBox.warning(self, "Error", "Input Out of range")
                 return False
         except:
-            # QMessageBox.warning(self, "Error", "Input Out of range 2")
             return False
 
     def clear_layout(self, layout):
@@ -372,19 +475,16 @@ class Measurement(QWidget):
 
     def start_server(self):
         if self.server_btn_clicked == False:
-            # import Data_Processing_Suite.GUI.QDesign.run_server as s
             try:
                 self.server = mpv.Server()
             except MultiPyVuError:
                 QMessageBox.critical('Check MutltiVu', 'Run MultiVu without Admin or open MultiVu correctly!')
-            # user_flags = ['-ip=172.19.159.4']
-            # self.server = mpv.Server(user_flags, keep_server_open=True)
             self.server_btn.setText('Stop Server')
             self.server_btn_clicked = True
             self.connect_btn.setEnabled(True)
             self.server.open()
         elif self.server_btn_clicked == True:
-            self.server.close()  # Uncommented it on the sever computer
+            self.server.close()
             self.server_btn.setText('Start Server')
             self.server_btn_clicked = False
             self.connect_btn.setEnabled(False)
@@ -402,22 +502,27 @@ class Measurement(QWidget):
             self.ppms_reading_group_box = QGroupBox('PPMS Reading')
             self.ppms_Temp_group_box = QGroupBox('Setup Experiment Temperature')
             self.ppms_Field_group_box = QGroupBox('Setup Experiment Field')
-            # --------------------------------------- Part PPMS_Reading ----------------------------
             self.ppms_reading_layout = QVBoxLayout()
             self.ppms_temp_layout = QHBoxLayout()
             self.ppms_temp_label = QLabel('Temperature (K):')
+            self.ppms_temp_label.setFont(self.font)
             self.ppms_reading_temp_label = QLabel('N/A K')
+            self.ppms_reading_temp_label.setFont(self.font)
             self.ppms_temp_layout.addWidget(self.ppms_temp_label)
             self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
             self.ppms_field_layout = QHBoxLayout()
             self.ppms_field_label = QLabel('Field (Oe):')
+            self.ppms_field_label.setFont(self.font)
             self.ppms_reading_field_label = QLabel('N/A Oe')
+            self.ppms_reading_field_label.setFont(self.font)
             self.ppms_field_layout.addWidget(self.ppms_field_label)
             self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
 
             self.ppms_chamber_layout = QHBoxLayout()
             self.ppms_chamber_label = QLabel('Chamber Status:')
+            self.ppms_chamber_label.setFont(self.font)
             self.ppms_reading_chamber_label = QLabel('N/A')
+            self.ppms_reading_chamber_label.setFont(self.font)
             self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
             self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
 
@@ -426,7 +531,6 @@ class Measurement(QWidget):
             self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
 
             self.ppms_reading_group_box.setLayout(self.ppms_reading_layout)
-            # --------------------------------------- Part PPMS Temp Setup ----------------------------
             self.ppms_temp_setting_layout = QVBoxLayout()
             self.ppms_temp_radio_buttom_layout = QHBoxLayout()
             self.ppms_zone_temp_layout = QVBoxLayout()
@@ -434,10 +538,13 @@ class Measurement(QWidget):
             self.Temp_setup_Zone_2 = False
             self.Temp_setup_Zone_3 = False
             self.ppms_temp_One_zone_radio = QRadioButton("1 Zone")
+            self.ppms_temp_One_zone_radio.setFont(self.font)
             self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
             self.ppms_temp_Two_zone_radio = QRadioButton("2 Zones")
+            self.ppms_temp_Two_zone_radio.setFont(self.font)
             self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
             self.ppms_temp_Three_zone_radio = QRadioButton("3 Zones")
+            self.ppms_temp_Three_zone_radio.setFont(self.font)
             self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
@@ -445,8 +552,7 @@ class Measurement(QWidget):
             self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
             self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
             self.ppms_Temp_group_box.setLayout(self.ppms_temp_setting_layout)
-      
-            # --------------------------------------- Part PPMS Field Setup ----------------------------
+
             self.ppms_field_setting_layout = QVBoxLayout()
             self.ppms_field_radio_buttom_layout = QHBoxLayout()
             self.ppms_zone_field_layout = QVBoxLayout()
@@ -455,10 +561,13 @@ class Measurement(QWidget):
             self.Field_setup_Zone_2 = False
             self.Field_setup_Zone_3 = False
             self.ppms_field_One_zone_radio = QRadioButton("1 Zone")
+            self.ppms_field_One_zone_radio.setFont(self.font)
             self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
             self.ppms_field_Two_zone_radio = QRadioButton("2 Zones")
+            self.ppms_field_Two_zone_radio.setFont(self.font)
             self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
             self.ppms_field_Three_zone_radio = QRadioButton("3 Zones")
+            self.ppms_field_Three_zone_radio.setFont(self.font)
             self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
@@ -477,7 +586,6 @@ class Measurement(QWidget):
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
             self.server_btn.setEnabled(True)
-
 
     def connect_devices(self):
         self.rm = visa.ResourceManager('@sim')
@@ -531,7 +639,6 @@ class Measurement(QWidget):
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
 
-            
     def connect_keithley_2182(self):
         if self.Keithley_2182_Connected == False:
             try:
@@ -539,7 +646,6 @@ class Measurement(QWidget):
                 time.sleep(2)
                 self.Keithley_2182_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
-                # self.instru_connect_btn.clicked.connect(self.close_keithley_2182)
                 self.keithley2182_Window()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
@@ -555,7 +661,6 @@ class Measurement(QWidget):
                 time.sleep(2)
                 self.Ketihley_6221_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
-                # self.instru_connect_btn.clicked.connect(self.close_keithley_6221)
                 self.keithley6221_Window()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
@@ -585,7 +690,6 @@ class Measurement(QWidget):
             self.keithley_2182nv.close()
             self.Keithley_2182_Connected = False
             self.clear_layout(self.keithley_2182_contain_layout)
-            # self.Instruments_measurement_setup_layout.removeItem(self.keithley_2182_contain_layout)
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
 
@@ -653,7 +757,7 @@ class Measurement(QWidget):
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
         self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
-        self.keithley_2182_groupbox.setFixedSize(380,150)
+        self.keithley_2182_groupbox.setFixedSize(365, 150)
         self.keithley_2182_contain_layout = QHBoxLayout()
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
@@ -677,7 +781,7 @@ class Measurement(QWidget):
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
         self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.keithley_6221_groupbox.setFixedSize(600, 150)
+        self.keithley_6221_groupbox.setFixedSize(740, 150)
         self.keithley_6221_contain_layout = QHBoxLayout()
         self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
@@ -687,7 +791,7 @@ class Measurement(QWidget):
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
             print(e)
-        self.keithley_6221_DC_range_single_layout= QVBoxLayout()
+        self.keithley_6221_DC_range_single_layout = QVBoxLayout()
         self.keithley_6221_DC_range_layout = QHBoxLayout()
         self.keithley_6221_DC_range_checkbox = QCheckBox('Range')
         self.keithley_6221_DC_range_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
@@ -707,11 +811,7 @@ class Measurement(QWidget):
         self.keithley_6221_DC_range_combobox = QComboBox()
         self.keithley_6221_DC_range_combobox.setFont(self.font)
         self.keithley_6221_DC_range_combobox.setStyleSheet(self.QCombo_stylesheet)
-        self.keithley_6221_DC_range_combobox.addItems(["Select Units"])  # 0
-        self.keithley_6221_DC_range_combobox.addItems(["mA"])  # 1
-        self.keithley_6221_DC_range_combobox.addItems(["µA"])  # 2
-        self.keithley_6221_DC_range_combobox.addItems(["nA"])  # 3
-        self.keithley_6221_DC_range_combobox.addItems(["pA"])  # 3
+        self.keithley_6221_DC_range_combobox.addItems(["Select Units", "mA", "µA", "nA", "pA"])
         self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_checkbox)
         self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_from_label)
         self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_init_entry)
@@ -730,11 +830,7 @@ class Measurement(QWidget):
         self.keithley_6221_DC_single_combobox = QComboBox()
         self.keithley_6221_DC_single_combobox.setFont(self.font)
         self.keithley_6221_DC_single_combobox.setStyleSheet(self.QCombo_stylesheet)
-        self.keithley_6221_DC_single_combobox.addItems(["Select Units"])  # 0
-        self.keithley_6221_DC_single_combobox.addItems(["mA"])  # 1
-        self.keithley_6221_DC_single_combobox.addItems(["µA"])  # 2
-        self.keithley_6221_DC_single_combobox.addItems(["nA"])  # 3
-        self.keithley_6221_DC_single_combobox.addItems(["pA"])  # 4
+        self.keithley_6221_DC_single_combobox.addItems(["Select Units", "mA", "µA", "nA", "pA"])
         self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_checkbox)
         self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_entry)
         self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_combobox)
@@ -770,10 +866,9 @@ class Measurement(QWidget):
             self.Field_setup_Zone_1 = False
             self.Field_setup_Zone_2 = False
             self.Field_setup_Zone_3 = True
-
             self.field_three_zone()
             self.ppms_field_Three_zone_radio.setChecked(False)
-            
+
     def field_one_zone(self):
         self.ppms_zone1_field_layout = QVBoxLayout()
         self.ppms_zone1_field_range_layout = QHBoxLayout()
@@ -798,17 +893,14 @@ class Measurement(QWidget):
         self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_label)
         self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_entry)
 
-
         self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_range_layout)
         self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_step_layout)
         self.clear_layout(self.ppms_zone_field_layout)
         self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_layout)
-        # self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_step_layout)
 
     def field_two_zone(self):
         self.field_one_zone()
         self.ppms_zone2_field_layout = QVBoxLayout()
-        # self.ppms_zone3_field_layout = QVBoxLayout()
         self.ppms_zone2_field_range_layout = QHBoxLayout()
         self.ppms_zone2_from_label = QLabel('Field Range 2 (Oe): From')
         self.ppms_zone2_from_label.setFont(self.font)
@@ -831,7 +923,6 @@ class Measurement(QWidget):
         self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_label)
         self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_entry)
 
-
         self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_range_layout)
         self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_step_layout)
         self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_layout)
@@ -839,7 +930,6 @@ class Measurement(QWidget):
     def field_three_zone(self):
         self.field_two_zone()
         self.ppms_zone3_field_layout = QVBoxLayout()
-
         self.ppms_zone3_field_range_layout = QHBoxLayout()
         self.ppms_zone3_from_label = QLabel('Field Range 3 (Oe): From')
         self.ppms_zone3_from_label.setFont(self.font)
@@ -864,7 +954,6 @@ class Measurement(QWidget):
 
         self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_range_layout)
         self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_step_layout)
-
         self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_layout)
 
     def temp_zone_selection(self):
@@ -888,7 +977,6 @@ class Measurement(QWidget):
             self.Temp_setup_Zone_1 = False
             self.Temp_setup_Zone_2 = False
             self.Temp_setup_Zone_3 = True
-
             self.temp_three_zone()
             self.ppms_temp_Three_zone_radio.setChecked(False)
 
@@ -920,12 +1008,10 @@ class Measurement(QWidget):
         self.ppms_zone1_temp_layout.addLayout(self.ppms_zone1_temp_step_layout)
         self.clear_layout(self.ppms_zone_temp_layout)
         self.ppms_zone_temp_layout.addLayout(self.ppms_zone1_temp_layout)
-        # self.ppms_zone_temp_layout.addLayout(self.ppms_zone1_temp_step_layout)
 
     def temp_two_zone(self):
         self.temp_one_zone()
         self.ppms_zone2_temp_layout = QVBoxLayout()
-        # self.ppms_zone3_temp_layout = QVBoxLayout()
         self.ppms_zone2_temp_range_layout = QHBoxLayout()
         self.ppms_zone2_temp_from_label = QLabel('Temperature Range 2 (K): From')
         self.ppms_zone2_temp_from_label.setFont(self.font)
@@ -955,7 +1041,6 @@ class Measurement(QWidget):
     def temp_three_zone(self):
         self.temp_two_zone()
         self.ppms_zone3_temp_layout = QVBoxLayout()
-
         self.ppms_zone3_temp_range_layout = QHBoxLayout()
         self.ppms_zone3_temp_from_label = QLabel('Temperature Range 3 (K): From')
         self.ppms_zone3_temp_from_label.setFont(self.font)
@@ -980,21 +1065,17 @@ class Measurement(QWidget):
 
         self.ppms_zone3_temp_layout.addLayout(self.ppms_zone3_temp_range_layout)
         self.ppms_zone3_temp_layout.addLayout(self.ppms_zone3_temp_step_layout)
-
         self.ppms_zone_temp_layout.addLayout(self.ppms_zone3_temp_layout)
-    
+
     def update_plot(self):
-        # self.canvas.axes.cla()  # Clear the canvas.
         if self.isCheckedBox1 == True:
             self.isPlotting = True
             self.channel1_Volt_Array.append(self.Chan_1_voltage)
-            # # Drop off the first y element, append a new one.
             self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
             self.canvas.draw()
         if self.isCheckedBox2 == True:
             self.isPlotting = True
             self.channel2_Volt_Array.append(self.Chan_2_voltage)
-            # # Drop off the first y element, append a new one.
             self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
             self.canvas.draw()
         self.counter += 1
@@ -1022,23 +1103,406 @@ class Measurement(QWidget):
             self.keithley_6221_DC_range_final_entry.setEnabled(True)
             self.keithley_6221_DC_range_step_entry.setEnabled(True)
             self.keithley_6221_DC_range_combobox.setEnabled(True)
-            
+
     def stop(self):
         self.timer.stop()
 
     def rst(self):
-        # This method updates the label based on the checkbox states
         self.timer = QTimer()
         self.timer.stop()
         self.canvas.axes.cla()
         self.canvas.draw()
 
+    def start_measurement(self):
+        dialog = LogWindow()
+        if dialog.exec():
+            try:
+                self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt = dialog.get_text()
+            except Exception as e:
+                QMessageBox.warning(self, 'Warning', str(e))
+            try:
+                self.run_ETO()
+            except Exception as e:
+                QMessageBox.warning(self, 'Warning', str(e))
+
+    def run_ETO(self):
+        start_time = time.time()
+        zeroField = 0
+        fieldRate = 220
+        fieldRateSlow = 10
+        tempRate = 50
+        TempList = []
+        if self.ppms_temp_One_zone_radio.isChecked():
+            zone_1_start = int(self.ppms_zone1_temp_from_entry.text())
+            zone_1_end = int(self.ppms_zone1_temp_to_entry.text()) + int(self.ppms_zone1_temp_step_entry.text())
+            zone_1_step = int(self.ppms_zone1_temp_step_entry.text())
+            TempList = [int(i) for i in range(zone_1_start, zone_1_end, zone_1_step)]
+        elif self.ppms_temp_Two_zone_radio.isChecked():
+            zone_1_start = int(self.ppms_zone1_temp_from_entry.text())
+            zone_1_end = int(self.ppms_zone1_temp_to_entry.text())
+            zone_1_step = int(self.ppms_zone1_temp_step_entry.text())
+            TempList = [int(i) for i in range(zone_1_start, zone_1_end, zone_1_step)]
+            zone_2_start = int(self.ppms_zone2_temp_from_entry.text())
+            zone_2_end = int(self.ppms_zone2_temp_to_entry.text()) + int(self.ppms_zone2_temp_step_entry.text())
+            zone_2_step = int(self.ppms_zone2_temp_step_entry.text())
+            TempList += [int(i) for i in range(zone_2_start, zone_2_end, zone_2_step)]
+        elif self.ppms_temp_Three_zone_radio.isChecked():
+            zone_1_start = int(self.ppms_zone1_temp_from_entry.text())
+            zone_1_end = int(self.ppms_zone1_temp_to_entry.text())
+            zone_1_step = int(self.ppms_zone1_temp_step_entry.text())
+            TempList = [int(i) for i in range(zone_1_start, zone_1_end, zone_1_step)]
+            zone_2_start = int(self.ppms_zone2_temp_from_entry.text())
+            zone_2_end = int(self.ppms_zone2_temp_to_entry.text())
+            zone_2_step = int(self.ppms_zone2_temp_step_entry.text())
+            TempList += [int(i) for i in range(zone_2_start, zone_2_end, zone_2_step)]
+            zone_3_start = int(self.ppms_zone3_temp_from_entry.text())
+            zone_3_end = int(self.ppms_zone3_temp_to_entry.text()) + int(self.ppms_zone3_temp_step_entry.text())
+            zone_3_step = int(self.ppms_zone3_temp_step_entry.text())
+            TempList += [int(i) for i in range(zone_3_start, zone_3_end, zone_3_step)]
+
+        if self.ppms_field_One_zone_radio.isChecked():
+            self.zone1_bot_field = float(self.ppms_zone1_from_entry.text())
+            self.zone1_top_field = float(self.ppms_zone1_to_entry.text())
+            self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+            number_of_field = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+        elif self.ppms_field_Two_zone_radio.isChecked():
+            self.zone1_bot_field = float(self.ppms_zone1_from_entry.text())
+            self.zone1_top_field = float(self.ppms_zone1_to_entry.text())
+            self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+        elif self.ppms_field_Three_zone_radio.isChecked():
+            self.zone1_bot_field = float(self.ppms_zone1_from_entry.text())
+            self.zone1_top_field = float(self.ppms_zone1_to_entry.text())
+            self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+
+        # =============================== Set the current ==================================== #
+        current = [f"{i}e-6" for i in range(40, 60, 20)]  # Set the current to 20 µA
+        number_of_current = len(current)
+        number_of_temp = len(TempList)
+
+        # =============================== Setup the Field ==================================== #
+
+        # ||-----deltaH_large------||--deltaH_med---||--------------deltaH_small-----------------||------deltaH_med---||-------deltaH_large---||
+        # botField ------------ -B2 ----------- -B1 ------------- zeroField --------------- +B1 ---------------- +B2--------------- topField
 
 
+        number_of_field = 2 * (topField - botField) / deltaH
 
+        # ---------------- Set the File Name -----------------------#
+        def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
+            if (currentField <= LowerB2 or currentField >= UpperB2):
+                deltaH = deltaH_large
+
+            elif (currentField > LowerB2 and currentField <= LowerB1):
+                deltaH = deltaH_med
+
+            elif (currentField < UpperB2 and currentField >= UpperB1):
+                deltaH = deltaH_med
+
+            elif (currentField > LowerB1 and currentField < UpperB1):
+                deltaH = deltaH_small
+
+            return deltaH
+
+        def save_temp_field_chamber():
+            T, sT = self.client.get_temperature()
+            F, sF = client.get_field()
+            C = client.get_chamber()
+            print(f'{T:{7}.{3}f} {sT:{10}} {F:{7}} {sF:{20}} {C:{15}}')
+
+        # def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
+        #     if (currentField <= LowerB2 or currentField >= UpperB2):
+        #         deltaH = deltaH_large
+        #
+        #     elif (currentField > LowerB2 and currentField <= LowerB1):
+        #         deltaH = deltaH_med
+        #
+        #     elif (currentField < UpperB2 and currentField >= UpperB1):
+        #         deltaH = deltaH_med
+        #
+        #     elif (currentField > LowerB1 and currentField < UpperB1):
+        #         deltaH = deltaH_small
+        #
+        #     return deltaH
+
+        # ---------------- Start Measurement -----------------------#
+        # Start the server.
+                # Allow the connection to complete initialization
+        time.sleep(5)
+
+        # -------------Temp Status---------------------
+        temperature, status = client.get_temperature()
+        tempUnits = client.temperature.units
+        print(f'\nTemperature = {temperature} {tempUnits}')
+
+        # ------------Field Status----------------------
+        field, status = client.get_field()
+        fieldUnits = client.field.units
+        print(f'Field = {field} {fieldUnits}')
+
+        # ------------Purge/Seal------------------------
+        if temperature == 300 and field == 0:
+            # Purge/Seal the chamber; wait to continue
+            print('Change the chamber state to Purge/Seal')
+            client.set_chamber(client.chamber.mode.purge_seal)
+            # client.wait_for(10, 0, client.subsystem.chamber)
+
+        # ---------------print a header----------------
+        print('')
+        hdr = '______ T ______     __________ H __________\t______ Chamber Status ______'
+        print(hdr)
+        save_temp_field_chamber()
+
+        # # ----------------------- Set Temperature-------------------------------------
+        # CurrentTemp, sT = client.get_temperature()
+        # #points = 10
+        #
+        # setpoint = 1.775 #1.7 K Setpoint
+        # tempRate = 50
+        #
+        # wait = abs(CurrentTemp-setpoint)/tempRate*60
+        # message = f'Set the temperature {setpoint} K at {tempRate} K rate '
+        # message += f'wait {wait} seconds'
+        # print('')
+        # print(message)
+        # print('')
+        # client.set_temperature(setpoint,
+        #                        tempRate,
+        #                        client.temperature.approach_mode.fast_settle) #fast_settle/no_overshoot
+        # #for t in range(points):
+        # save_temp_field_chamber()
+        # #time.sleep(wait)
+        # client.wait_for(wait, 0, client.temperature.waitfor)
+        # save_temp_field_chamber()
+
+        # ----------------------------------------------------------------------------------#
+        # -------------------------------- Main Field Loop ---------------------------------#
+        # currentField = 0
+        # MaxField = 2000 #Oe
+        # i = 0
+
+        rm = visa.ResourceManager()
+        keithley_2182A_NV = rm.open_resource("GPIB1::7::INSTR", timeout=10000)
+        print(f'\n Waiting for {zeroField} Oe Field \n')
+        time.sleep(10)
+        # client.wait_for(30,
+        #                 timeout_sec=100,
+        #                 bitmask=client.field.waitfor)
+        # save_temp_field_chamber()
+
+        # ----------------- Loop Down ----------------------#
+        Curlen = len(current)
+        templen = len(TempList)
+
+        for i in range(templen):
+            # number_of_temp = number_of_temp - 1
+            print(f'\n Loop is at {TempList[i]} K Temperature\n')
+            Tempsetpoint = TempList[i]
+            client.set_temperature(Tempsetpoint,
+                                   tempRate,
+                                   client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+            print(f'Waiting for {Tempsetpoint} K Temperature')
+            time.sleep(4)
+
+            MyTemp, sT = client.get_temperature()
+            while True:
+                time.sleep(1)
+                MyTemp, sT = client.get_temperature()
+                print(f'Status: {sT}')
+                if sT == 'Stable':
+                    break
+
+            for j in range(Curlen):
+                # number_of_current = number_of_current - 1
+
+                client.set_field(topField,
+                                 fieldRate,
+                                 client.field.approach_mode.linear,  # linear/oscillate
+                                 client.field.driven_mode.driven)
+                print(f'\n Waiting for {zeroField} Oe Field \n')
+                time.sleep(10)
+                while True:
+                    time.sleep(15)
+                    F, sF = client.get_field()
+                    print(f'Status: {sF}')
+                    if sF == 'Holding (driven)':
+                        break
+
+                client.set_field(zeroField,
+                                 fieldRate,
+                                 client.field.approach_mode.oscillate,  # linear/oscillate
+                                 client.field.driven_mode.driven)
+                print(f'\n Waiting for {zeroField} Oe Field \n')
+                time.sleep(10)
+                while True:
+                    time.sleep(15)
+                    F, sF = client.get_field()
+                    print(f'Status: {sF}')
+                    if sF == 'Holding (driven)':
+                        break
+
+                current_in_uA = round(float(current[j]) / 1e-6, 1)
+                current_in_mA = round(float(current[j]) / 1e-3, 1)
+                keithley_6221_Curr_Src.write(":OUTP OFF")  # Set source function to current
+                keithley_6221_Curr_Src.write("CURRent:RANGe:AUTO ON \n")
+                keithley_6221_Curr_Src.write(f'CURR {current[j]} \n')
+                # keithley_6221_Curr_Src.write(":SOUR:CURR:LEV {current}")  # Set current level to 20 µA
+                # keithley_6221_Curr_Src.write(f':SOUR:CURR:LEV {current}')  # Set current level to 20 µA
+                keithley_6221_Curr_Src.write(":OUTP ON")  # Turn on the output
+                print(f'DC current is set to: {current_in_uA} mA')
+                csv_filename = f"061524_THE_Fe_WSe2_0607-02_03_ETO_Rxy_Rxx_{current_in_uA}_uA_{TempList[i]}_K_Room_temp_Temp_Dep_Run_5.csv"
+                # csv_filename = f"053024_TTU_MOS2_ThinFilm_5nm_ETO_Rxy_{current_in_uA}_uA_{CurTemp}_K_Run_Test.csv"
+                pts = 0
+                currentField = topField
+                number_of_field_update = number_of_field
+                while currentField >= botField:
+                    single_measurement_start = time.time()
+                    print(f'\n Loop is at {currentField} Oe Field Up \n')
+                    Fieldsetpoint = currentField
+                    print(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
+                    client.set_field(Fieldsetpoint,
+                                     fieldRate,
+                                     client.field.approach_mode.linear,
+                                     client.field.driven_mode.driven)
+                    print(f'\n Waiting for {Fieldsetpoint} Oe Field \n')
+                    time.sleep(4)
+                    MyField, sF = client.get_field()
+                    while True:
+                        time.sleep(1)
+                        MyField, sF = client.get_field()
+                        print(f'Status: {sF}')
+                        if sF == 'Holding (driven)':
+                            break
+
+                    MyField, sF = client.get_field()
+                    # ----------------------------- Measure NV voltage -------------------
+                    print(f'\n Saving data for {MyField} Oe \n')
+                    import NV_Read_Function
+
+                    NV_Read_Function.NV_Read(keithley_2182A_NV, MyField, CurTemp, csv_filename,
+                                             float(current[j]))
+
+                    # ----------------------------- Measure NV voltage -------------------
+                    deltaH = deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField)
+
+                    print(f'deltaH = {deltaH}')
+                    # Update currentField for the next iteration
+                    currentField -= deltaH
+                    pts += 1  # Number of pts count
+                    single_measurement_end = time.time()
+                    Single_loop = single_measurement_end - single_measurement_start
+                    number_of_field_update = number_of_field_update - 1
+                    print('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop))
+                    print('Estimated Single measurement (in hrs):  {} s \n'.format(
+                        Single_loop * number_of_field / 60 / 60))
+                    total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
+                                number_of_temp - i)
+                    totoal_time_in_minutes = total_time_in_seconds / 60
+                    total_time_in_hours = totoal_time_in_minutes / 60
+                    total_time_in_days = total_time_in_hours / 24
+                    print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                        total_time_in_seconds))
+                    print(
+                        'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                            totoal_time_in_minutes))
+                    print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                        total_time_in_hours))
+                    print(
+                        'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
+                            total_time_in_days))
+
+                # ----------------- Loop Up ----------------------#
+                currentField = botField
+                while currentField <= topField:
+                    single_measurement_start = time.time()
+                    print(f'\n Loop is at {currentField} Oe Field Up \n')
+                    Fieldsetpoint = currentField
+
+                    print(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
+                    client.set_field(Fieldsetpoint,
+                                     fieldRate,
+                                     client.field.approach_mode.linear,
+                                     client.field.driven_mode.driven)
+
+                    print(f'\n Waiting for {Fieldsetpoint} Oe Field \n')
+                    time.sleep(4)
+
+                    MyField, sF = client.get_field()
+                    while True:
+                        time.sleep(1)
+                        MyField, sF = client.get_field()
+                        print(f'Status: {sF}')
+                        if sF == 'Holding (driven)':
+                            break
+
+                    MyField, sF = client.get_field()
+
+                    # ----------------------------- Measure NV voltage -------------------
+                    print(f'Saving data for  {MyField} Oe')
+                    import NV_Read_Function
+
+                    NV_Read_Function.NV_Read(keithley_2182A_NV, MyField, CurTemp, csv_filename,
+                                             float(current[j]))
+
+                    # ----------------------------- Measure NV voltage -------------------
+                    deltaH = deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField)
+
+                    print(f'deltaH = {deltaH}')
+                    # Update currentField for the next iteration
+                    currentField += deltaH
+                    pts += 1  # Number of pts count
+                    single_measurement_end = time.time()
+                    Single_loop = single_measurement_end - single_measurement_start
+                    number_of_field_update = number_of_field_update - 1
+                    total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
+                                number_of_temp - i)
+                    totoal_time_in_minutes = total_time_in_seconds / 60
+                    total_time_in_hours = totoal_time_in_minutes / 60
+                    total_time_in_days = total_time_in_hours / 24
+                    print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                        total_time_in_seconds))
+                    print(
+                        'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                            totoal_time_in_minutes))
+                    print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                        total_time_in_hours))
+                    print(
+                        'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
+                            total_time_in_days))
+
+        client.set_field(zeroField,
+                         fieldRate,
+                         client.field.approach_mode.oscillate,  # linear/oscillate
+                         client.field.driven_mode.driven)
+        print('Waiting for Zero Field')
+
+        client.set_temperature(CurTemp,
+                               tempRate,
+                               client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+        print(f'Waiting for {CurTemp} K Temperature')
+        time.sleep(4)
+        # client.wait_for(10,
+        #                 100,
+        #                 client.field.waitfor)
+
+        temperature, status = client.get_temperature()
+        print(f'Temperature = {temperature} {tempUnits}')
+
+        field, status = client.get_field()
+        fieldUnits = client.field.units
+        print(f'Field = {field} {fieldUnits}')
+
+        keithley_6221_Curr_Src.write(":SOR:CURR:LEV 0")  # Set current level to zero
+        keithley_6221_Curr_Src.write(":OUTP OFF")  # Turn off the output
+        print("DC current is set to: 0.00 A")
+        keithley_6221_Curr_Src.close()
+
+        # Calculate the total runtime
+        end_time = time.time()
+        total_runtime = (end_time - start_time) / 3600
+        print(f"Total runtime: {total_runtime} hours")
+        print(f'Total data points: {pts} pts')
 
 # if __name__ == "__main__":
-#     from PyQt6.QtWidgets import QApplication
 #     app = QApplication(sys.argv)
 #     main_window = Measurement()
 #     main_window.show()

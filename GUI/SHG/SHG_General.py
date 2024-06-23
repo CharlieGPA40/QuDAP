@@ -133,8 +133,6 @@ class UserDefineFittingWindow(QWidget):
 
         self.setLayout(self.layout)
 
-
-
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=8, height=10, dpi=1000, polar=False):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -146,7 +144,6 @@ class MplCanvas(FigureCanvas):
         #     self.fig.clear()
         #     self.ax = self.fig.add_subplot(111)
         super(MplCanvas, self).__init__(self.fig)
-
 
 class General(QWidget):
 

@@ -14,6 +14,7 @@ import math
 
 import MultiPyVu as mpv
 
+
 # ========================================================= #
 # ---------Open Dynacool MuliVu (Don't run as Admin)-------- #
 # ========================================================= #
@@ -21,19 +22,21 @@ start_time = time.time()
 rm = visa.ResourceManager()  # Open a VISA resource manager pointing to the installation folder for the Keysight Visa libraries.
 # Nanovoltmeter
 keithley_2182A_NV = rm.open_resource("GPIB1::7::INSTR", timeout=10000)
+time.sleep(2)
 # Current Source
 keithley_6221_Curr_Src = rm.open_resource('GPIB1::13::INSTR')
+time.sleep(2)
 # PPMS
 host = "127.0.0.1"
 port = 5000
 
 # =============================== Set the current ==================================== #
-current = [f"{i}e-6" for i in range(20, 40, 5)]  # Set the current to 20 µA
+current = [f"{i}e-6" for i in range(40, 60, 20)]   # Set the current to 20 µA
 number_of_current = len(current)
 
 # =============================== Set Temperature ==================================== #
-TempList = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300]
-CurTemp = 5
+TempList = [10, 50, 100, 150, 200, 250, 300]
+CurTemp = 10
 StepTemp = 10
 FinalTemp = 300  # Next temperature set in the end
 number_of_temp = len(TempList)
@@ -43,17 +46,17 @@ number_of_temp = len(TempList)
 # ||-----deltaH_large------||--deltaH_med---||--------------deltaH_small-----------------||------deltaH_med---||-------deltaH_large---||
 # botField ------------ -B2 ----------- -B1 ------------- zeroField --------------- +B1 ---------------- +B2--------------- topField
 
-topField = 20000
+topField = 6000
 zeroField = 0
-botField = -20000
-deltaH = 50
+botField = -6000
+deltaH = 40
 fieldRate = 220
 fieldRateSlow = 10
 tempRate = 50
-number_of_field = 2 * (topField - botField) / deltaH
-
+number_of_field = 2*(topField-botField)/deltaH
 
 # ---------------- Set the File Name -----------------------#
+
 
 
 def save_temp_field_chamber():
@@ -61,7 +64,6 @@ def save_temp_field_chamber():
     F, sF = client.get_field()
     C = client.get_chamber()
     print(f'{T:{7}.{3}f} {sT:{10}} {F:{7}} {sF:{20}} {C:{15}}')
-
 
 # def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
 #     if (currentField <= LowerB2 or currentField >= UpperB2):
@@ -137,6 +139,8 @@ with mpv.Server() as server:
         # MaxField = 2000 #Oe
         # i = 0
 
+        rm = visa.ResourceManager()
+        keithley_2182A_NV = rm.open_resource("GPIB1::7::INSTR", timeout=10000)
         print(f'\n Waiting for {zeroField} Oe Field \n')
         time.sleep(10)
         # client.wait_for(30,
@@ -147,14 +151,14 @@ with mpv.Server() as server:
         # ----------------- Loop Down ----------------------#
         Curlen = len(current)
         templen = len(TempList)
-
+        
         for i in range(templen):
-
+            # number_of_temp = number_of_temp - 1
             print(f'\n Loop is at {TempList[i]} K Temperature\n')
             Tempsetpoint = TempList[i]
             client.set_temperature(Tempsetpoint,
-                                   tempRate,
-                                   client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+                                    tempRate,
+                                    client.temperature.approach_mode.fast_settle) #fast_settle/no_overshoot
             print(f'Waiting for {Tempsetpoint} K Temperature')
             time.sleep(4)
 
@@ -167,8 +171,9 @@ with mpv.Server() as server:
                     break
 
             for j in range(Curlen):
-
-                single_measurement_start = time.time()
+                # number_of_current = number_of_current - 1
+                    
+                
                 client.set_field(topField,
                                  fieldRate,
                                  client.field.approach_mode.linear,  # linear/oscillate
@@ -195,20 +200,22 @@ with mpv.Server() as server:
                     if sF == 'Holding (driven)':
                         break
 
-                current_in_uA = round(float(current[i]) / 1e-6, 1)
-                current_in_mA = round(float(current[i]) / 1e-3, 1)
+                current_in_uA = round(float(current[j]) / 1e-6, 1)
+                current_in_mA = round(float(current[j]) / 1e-3, 1)
                 keithley_6221_Curr_Src.write(":OUTP OFF")  # Set source function to current
                 keithley_6221_Curr_Src.write("CURRent:RANGe:AUTO ON \n")
-                keithley_6221_Curr_Src.write(f'CURR {current[i]} \n')
+                keithley_6221_Curr_Src.write(f'CURR {current[j]} \n')
                 # keithley_6221_Curr_Src.write(":SOUR:CURR:LEV {current}")  # Set current level to 20 µA
                 # keithley_6221_Curr_Src.write(f':SOUR:CURR:LEV {current}')  # Set current level to 20 µA
                 keithley_6221_Curr_Src.write(":OUTP ON")  # Turn on the output
                 print(f'DC current is set to: {current_in_uA} mA')
-                csv_filename = f"051224_THE_Mengqi_SIT_Fe_WSe2_0506_01_ETO_Rxy_Rxx_{current_in_uA}_uA_{CurTemp}_K_Run_2.csv"
-
+                csv_filename = f"061524_THE_Fe_WSe2_0607-02_03_ETO_Rxy_Rxx_{current_in_uA}_uA_{TempList[i]}_K_Room_temp_Temp_Dep_Run_5.csv"
+                # csv_filename = f"053024_TTU_MOS2_ThinFilm_5nm_ETO_Rxy_{current_in_uA}_uA_{CurTemp}_K_Run_Test.csv"
                 pts = 0
                 currentField = topField
+                number_of_field_update = number_of_field
                 while currentField >= botField:
+                    single_measurement_start = time.time()
                     print(f'\n Loop is at {currentField} Oe Field Up \n')
                     Fieldsetpoint = currentField
                     print(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
@@ -225,17 +232,13 @@ with mpv.Server() as server:
                         print(f'Status: {sF}')
                         if sF == 'Holding (driven)':
                             break
-                    # client.wait_for(30,
-                    #                 timeout_sec=100,
-                    #                 bitmask=client.field.waitfor)
-
-                    # temperature, status = client.get_temperature()
+    
                     MyField, sF = client.get_field()
                     # ----------------------------- Measure NV voltage -------------------
                     print(f'\n Saving data for {MyField} Oe \n')
                     import NV_Read_Function
 
-                    NV_Read_Function.NV_Read(MyField, CurTemp, csv_filename, float(current[i]))
+                    NV_Read_Function.NV_Read(keithley_2182A_NV, MyField, CurTemp, csv_filename, float(current[j]))
 
                     # ----------------------------- Measure NV voltage -------------------
 
@@ -243,10 +246,24 @@ with mpv.Server() as server:
                     # Update currentField for the next iteration
                     currentField -= deltaH
                     pts += 1  # Number of pts count
+                    single_measurement_end = time.time()
+                    Single_loop = single_measurement_end - single_measurement_start
+                    number_of_field_update = number_of_field_update -1
+                    print('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop))
+                    print('Estimated Single measurement (in hrs):  {} s \n'.format(Single_loop*number_of_field/60/60))
+                    total_time_in_seconds =  Single_loop * (number_of_field_update) *(number_of_current - j)*(number_of_temp - i)
+                    totoal_time_in_minutes = total_time_in_seconds /60
+                    total_time_in_hours = totoal_time_in_minutes /60
+                    total_time_in_days = total_time_in_hours / 24
+                    print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(total_time_in_seconds))
+                    print('Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(totoal_time_in_minutes))
+                    print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(total_time_in_hours))
+                    print('Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(total_time_in_days))
 
                 # ----------------- Loop Up ----------------------#
                 currentField = botField
                 while currentField <= topField:
+                    single_measurement_start = time.time()
                     print(f'\n Loop is at {currentField} Oe Field Up \n')
                     Fieldsetpoint = currentField
 
@@ -273,7 +290,7 @@ with mpv.Server() as server:
                     print(f'Saving data for  {MyField} Oe')
                     import NV_Read_Function
 
-                    NV_Read_Function.NV_Read(MyField, CurTemp, csv_filename, float(current[i]))
+                    NV_Read_Function.NV_Read(keithley_2182A_NV, MyField, CurTemp, csv_filename, float(current[j]))
 
                     # ----------------------------- Measure NV voltage -------------------
 
@@ -281,21 +298,19 @@ with mpv.Server() as server:
                     # Update currentField for the next iteration
                     currentField += deltaH
                     pts += 1  # Number of pts count
-
-                single_measurement_end = time.time()
-                Single_loop = single_measurement_start - single_measurement_end
-                total_time_in_seconds = Single_loop * (number_of_current - j) * (number_of_temp - i) - Single_loop
-                totoal_time_in_minutes = total_time_in_seconds / 60
-                total_time_in_hours = totoal_time_in_minutes / 60
-                total_time_in_days = total_time_in_hours / 24
-                print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                    total_time_in_seconds))
-                print('Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                    totoal_time_in_minutes))
-                print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                    total_time_in_hours))
-                print('Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
-                    total_time_in_days))
+                    single_measurement_end = time.time()
+                    Single_loop = single_measurement_end - single_measurement_start
+                    number_of_field_update = number_of_field_update -1
+                    total_time_in_seconds =  Single_loop * (number_of_field_update) *(number_of_current - j)*(number_of_temp - i)
+                    totoal_time_in_minutes = total_time_in_seconds /60
+                    total_time_in_hours = totoal_time_in_minutes /60
+                    total_time_in_days = total_time_in_hours / 24
+                    print('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(total_time_in_seconds))
+                    print('Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(totoal_time_in_minutes))
+                    print('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(total_time_in_hours))
+                    print('Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(total_time_in_days))
+               
+                
 
         client.set_field(zeroField,
                          fieldRate,
