@@ -1185,8 +1185,6 @@ class Measurement(QMainWindow):
         # botField ------------ -B2 ----------- -B1 ------------- zeroField --------------- +B1 ---------------- +B2--------------- topField
 
 
-        number_of_field = 2 * (topField - botField) / deltaH
-
         # ---------------- Set the File Name -----------------------#
         def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
             if (currentField <= LowerB2 or currentField >= UpperB2):
@@ -1205,33 +1203,16 @@ class Measurement(QMainWindow):
 
         def save_temp_field_chamber():
             T, sT = self.client.get_temperature()
-            F, sF = client.get_field()
-            C = client.get_chamber()
+            F, sF = self.client.get_field()
+            C = self.client.get_chamber()
             print(f'{T:{7}.{3}f} {sT:{10}} {F:{7}} {sF:{20}} {C:{15}}')
 
-        # def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
-        #     if (currentField <= LowerB2 or currentField >= UpperB2):
-        #         deltaH = deltaH_large
-        #
-        #     elif (currentField > LowerB2 and currentField <= LowerB1):
-        #         deltaH = deltaH_med
-        #
-        #     elif (currentField < UpperB2 and currentField >= UpperB1):
-        #         deltaH = deltaH_med
-        #
-        #     elif (currentField > LowerB1 and currentField < UpperB1):
-        #         deltaH = deltaH_small
-        #
-        #     return deltaH
 
-        # ---------------- Start Measurement -----------------------#
-        # Start the server.
-                # Allow the connection to complete initialization
         time.sleep(5)
 
         # -------------Temp Status---------------------
-        temperature, status = client.get_temperature()
-        tempUnits = client.temperature.units
+        temperature, status = self.client.get_temperature()
+        tempUnits = self.client.temperature.units
         print(f'\nTemperature = {temperature} {tempUnits}')
 
         # ------------Field Status----------------------
