@@ -10,3 +10,4 @@ setuptools
 pillow
 matplotlib
 psutil
+numpy

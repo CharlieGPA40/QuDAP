@@ -1,12 +1,14 @@
 import sys
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
-    QCheckBox, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow, QDialogButtonBox
+    QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
+    QDialogButtonBox, QProgressBar, QButtonGroup
 )
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
 import pyvisa as visa
 import matplotlib
+import numpy as np
 
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -264,6 +266,10 @@ class Measurement(QMainWindow):
                 self.instrument_container.deleteLater()
                 self.main_layout.removeWidget(self.button_container)
                 self.button_container.deleteLater()
+                self.main_layout.removeWidget(self.log_box)
+                self.log_box.deleteLater()
+                self.main_layout.removeWidget(self.progress_bar)
+                self.progress_bar.deleteLater()
 
             except Exception as e:
                 print(e)
@@ -464,15 +470,6 @@ class Measurement(QMainWindow):
                 if child.layout() is not None:
                     self.clear_layout(child.layout())
 
-    def clear_widget(self, widget):
-        if widget is not None:
-            while widget.count():
-                child = widget.takeAt(0)
-                if child.widget() is not None:
-                    child.widget().deleteLater()
-                if child.layout() is not None:
-                    self.clear_widget(child.layout())
-
     def start_server(self):
         if self.server_btn_clicked == False:
             try:
@@ -537,6 +534,7 @@ class Measurement(QMainWindow):
             self.Temp_setup_Zone_1 = False
             self.Temp_setup_Zone_2 = False
             self.Temp_setup_Zone_3 = False
+            self.Temp_setup_Zone_Cus = False
             self.ppms_temp_One_zone_radio = QRadioButton("1 Zone")
             self.ppms_temp_One_zone_radio.setFont(self.font)
             self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
@@ -546,20 +544,37 @@ class Measurement(QMainWindow):
             self.ppms_temp_Three_zone_radio = QRadioButton("3 Zones")
             self.ppms_temp_Three_zone_radio.setFont(self.font)
             self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
+            self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
+            self.ppms_temp_Customize_zone_radio.setFont(self.font)
+            self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
+            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
             self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
             self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
             self.ppms_Temp_group_box.setLayout(self.ppms_temp_setting_layout)
 
             self.ppms_field_setting_layout = QVBoxLayout()
+            self.ppms_field_mode_buttom_layout = QHBoxLayout()
             self.ppms_field_radio_buttom_layout = QHBoxLayout()
             self.ppms_zone_field_layout = QVBoxLayout()
 
             self.Field_setup_Zone_1 = False
             self.Field_setup_Zone_2 = False
             self.Field_setup_Zone_3 = False
+
+            self.ppms_field_mode_fast_radio = QRadioButton("Fast Sweep")
+            self.ppms_field_mode_fast_radio.setFont(self.font)
+            self.ppms_field_mode_fast_radio.setChecked(True)
+            self.ppms_field_mode_fixed_radio = QRadioButton("Fixed Field")
+            self.ppms_field_mode_fixed_radio.setFont(self.font)
+            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fast_radio)
+            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fixed_radio)
+            self.ppms_field_mode_buttom_group = QButtonGroup()
+            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fast_radio)
+            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fixed_radio)
+
             self.ppms_field_One_zone_radio = QRadioButton("1 Zone")
             self.ppms_field_One_zone_radio.setFont(self.font)
             self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
@@ -572,6 +587,7 @@ class Measurement(QMainWindow):
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
+            self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
             self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
             self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
             self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
@@ -858,7 +874,6 @@ class Measurement(QMainWindow):
             self.Field_setup_Zone_1 = False
             self.Field_setup_Zone_2 = True
             self.Field_setup_Zone_3 = False
-            self.Field_setup_Zone_2 = True
             self.field_two_zone()
             self.ppms_field_Two_zone_radio.setChecked(False)
         elif self.ppms_field_Three_zone_radio.isChecked() and self.Field_setup_Zone_3 == False:
@@ -890,8 +905,15 @@ class Measurement(QMainWindow):
         self.ppms_zone1_field_step_label.setFont(self.font)
         self.ppms_zone1_field_step_entry = QLineEdit()
         self.ppms_zone1_field_step_entry.setFont(self.font)
+        self.ppms_zone1_field_rate_label = QLabel('Field Rate (Oe/sec): ')
+        self.ppms_zone1_field_rate_label.setFont(self.font)
+        self.ppms_zone1_field_rate_entry = QLineEdit()
+        self.ppms_zone1_field_rate_entry.setFont(self.font)
+        self.ppms_zone1_field_rate_entry.setText('220')
         self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_label)
         self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_entry)
+        self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_label)
+        self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_entry)
 
         self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_range_layout)
         self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_step_layout)
@@ -920,8 +942,16 @@ class Measurement(QMainWindow):
         self.ppms_zone2_field_step_label.setFont(self.font)
         self.ppms_zone2_field_step_entry = QLineEdit()
         self.ppms_zone2_field_step_entry.setFont(self.font)
+
+        self.ppms_zone2_field_rate_label = QLabel('Field Rate (Oe/sec): ')
+        self.ppms_zone2_field_rate_label.setFont(self.font)
+        self.ppms_zone2_field_rate_entry = QLineEdit()
+        self.ppms_zone2_field_rate_entry.setFont(self.font)
+        self.ppms_zone2_field_rate_entry.setText('220')
         self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_label)
         self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_entry)
+        self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_label)
+        self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_entry)
 
         self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_range_layout)
         self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_step_layout)
@@ -949,8 +979,17 @@ class Measurement(QMainWindow):
         self.ppms_zone3_field_step_label.setFont(self.font)
         self.ppms_zone3_field_step_entry = QLineEdit()
         self.ppms_zone3_field_step_entry.setFont(self.font)
+
+        self.ppms_zone3_field_rate_label = QLabel('Field Rate (Oe/sec): ')
+        self.ppms_zone3_field_rate_label.setFont(self.font)
+        self.ppms_zone3_field_rate_entry = QLineEdit()
+        self.ppms_zone3_field_rate_entry.setFont(self.font)
+        self.ppms_zone3_field_rate_entry.setText('220')
+
         self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_label)
         self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_entry)
+        self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_rate_label)
+        self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_rate_entry)
 
         self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_range_layout)
         self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_step_layout)
@@ -962,6 +1001,7 @@ class Measurement(QMainWindow):
             self.Temp_setup_Zone_1 = True
             self.Temp_setup_Zone_2 = False
             self.Temp_setup_Zone_3 = False
+            self.Temp_setup_Zone_Cus = False
             self.temp_one_zone()
             self.ppms_temp_One_zone_radio.setChecked(False)
         elif self.ppms_temp_Two_zone_radio.isChecked() and self.Temp_setup_Zone_2 == False:
@@ -969,7 +1009,7 @@ class Measurement(QMainWindow):
             self.Temp_setup_Zone_1 = False
             self.Temp_setup_Zone_2 = True
             self.Temp_setup_Zone_3 = False
-            self.Temp_setup_Zone_2 = True
+            self.Temp_setup_Zone_Cus = False
             self.temp_two_zone()
             self.ppms_temp_Two_zone_radio.setChecked(False)
         elif self.ppms_temp_Three_zone_radio.isChecked() and self.Temp_setup_Zone_3 == False:
@@ -977,8 +1017,17 @@ class Measurement(QMainWindow):
             self.Temp_setup_Zone_1 = False
             self.Temp_setup_Zone_2 = False
             self.Temp_setup_Zone_3 = True
+            self.Temp_setup_Zone_Cus = False
             self.temp_three_zone()
             self.ppms_temp_Three_zone_radio.setChecked(False)
+        elif self.ppms_temp_Customize_zone_radio.isChecked() and self.Temp_setup_Zone_Cus == False:
+            self.ppms_temp_Customize_zone_radio.setChecked(False)
+            self.Temp_setup_Zone_1 = False
+            self.Temp_setup_Zone_2 = False
+            self.Temp_setup_Zone_3 = False
+            self.Temp_setup_Zone_Cus = True
+            self.temp_customize_zone()
+            self.ppms_temp_Customize_zone_radio.setChecked(False)
 
     def temp_one_zone(self):
         self.ppms_zone1_temp_layout = QVBoxLayout()
@@ -1001,8 +1050,17 @@ class Measurement(QMainWindow):
         self.ppms_zone1_temp_step_label.setFont(self.font)
         self.ppms_zone1_temp_step_entry = QLineEdit()
         self.ppms_zone1_temp_step_entry.setFont(self.font)
+
+        self.ppms_zone1_temp_rate_label = QLabel('Temp Rate (K/min): ')
+        self.ppms_zone1_temp_rate_label.setFont(self.font)
+        self.ppms_zone1_temp_rate_entry = QLineEdit()
+        self.ppms_zone1_temp_rate_entry.setFont(self.font)
+        self.ppms_zone1_temp_rate_entry.setText('5')
+
         self.ppms_zone1_temp_step_layout.addWidget(self.ppms_zone1_temp_step_label)
         self.ppms_zone1_temp_step_layout.addWidget(self.ppms_zone1_temp_step_entry)
+        self.ppms_zone1_temp_step_layout.addWidget(self.ppms_zone1_temp_rate_label)
+        self.ppms_zone1_temp_step_layout.addWidget(self.ppms_zone1_temp_rate_entry)
 
         self.ppms_zone1_temp_layout.addLayout(self.ppms_zone1_temp_range_layout)
         self.ppms_zone1_temp_layout.addLayout(self.ppms_zone1_temp_step_layout)
@@ -1031,8 +1089,17 @@ class Measurement(QMainWindow):
         self.ppms_zone2_temp_step_label.setFont(self.font)
         self.ppms_zone2_temp_step_entry = QLineEdit()
         self.ppms_zone2_temp_step_entry.setFont(self.font)
+
+        # self.ppms_zone2_temp_rate_label = QLabel('Temp Rate (K/min): ')
+        # self.ppms_zone2_temp_rate_label.setFont(self.font)
+        # self.ppms_zone2_temp_rate_entry = QLineEdit()
+        # self.ppms_zone2_temp_rate_entry.setFont(self.font)
+        # self.ppms_zone2_temp_rate_entry.setText('50')
+
         self.ppms_zone2_temp_step_layout.addWidget(self.ppms_zone2_temp_step_label)
         self.ppms_zone2_temp_step_layout.addWidget(self.ppms_zone2_temp_step_entry)
+        # self.ppms_zone2_temp_step_layout.addWidget(self.ppms_zone2_temp_rate_label)
+        # self.ppms_zone2_temp_step_layout.addWidget(self.ppms_zone2_temp_rate_entry)
 
         self.ppms_zone2_temp_layout.addLayout(self.ppms_zone2_temp_range_layout)
         self.ppms_zone2_temp_layout.addLayout(self.ppms_zone2_temp_step_layout)
@@ -1060,12 +1127,49 @@ class Measurement(QMainWindow):
         self.ppms_zone3_temp_step_label.setFont(self.font)
         self.ppms_zone3_temp_step_entry = QLineEdit()
         self.ppms_zone3_temp_step_entry.setFont(self.font)
+
+        # self.ppms_zone3_temp_rate_label = QLabel('Temp Rate (K/min): ')
+        # self.ppms_zone3_temp_rate_label.setFont(self.font)
+        # self.ppms_zone3_temp_rate_entry = QLineEdit()
+        # self.ppms_zone3_temp_rate_entry.setFont(self.font)
+        # self.ppms_zone3_temp_rate_entry.setText('50')
+
         self.ppms_zone3_temp_step_layout.addWidget(self.ppms_zone3_temp_step_label)
         self.ppms_zone3_temp_step_layout.addWidget(self.ppms_zone3_temp_step_entry)
+        # self.ppms_zone3_temp_step_layout.addWidget(self.ppms_zone3_temp_rate_label)
+        # self.ppms_zone3_temp_step_layout.addWidget(self.ppms_zone3_temp_rate_entry)
 
         self.ppms_zone3_temp_layout.addLayout(self.ppms_zone3_temp_range_layout)
         self.ppms_zone3_temp_layout.addLayout(self.ppms_zone3_temp_step_layout)
         self.ppms_zone_temp_layout.addLayout(self.ppms_zone3_temp_layout)
+
+    def temp_customize_zone(self):
+        self.ppms_zone_cus_temp_layout = QVBoxLayout()
+        self.ppms_zone_cus_temp_list_layout = QHBoxLayout()
+        self.ppms_zone_cus_temp_list_from_label = QLabel('Temperature List (K): [')
+        self.ppms_zone_cus_temp_list_from_label.setFont(self.font)
+        self.ppms_zone_cus_temp_list_entry = QLineEdit()
+        self.ppms_zone_cus_temp_list_entry.setFont(self.font)
+        self.ppms_zone_cus_temp_end_label = QLabel(']')
+        self.ppms_zone_cus_temp_end_label.setFont(self.font)
+        self.ppms_zone_cus_temp_list_layout.addWidget(self.ppms_zone_cus_temp_list_from_label)
+        self.ppms_zone_cus_temp_list_layout.addWidget(self.ppms_zone_cus_temp_list_entry)
+        self.ppms_zone_cus_temp_list_layout.addWidget(self.ppms_zone_cus_temp_end_label)
+
+        self.ppms_zone_cus_temp_rate_layout = QHBoxLayout()
+        self.ppms_zone_cus_temp_rate_label = QLabel('Temp Rate (K/min): ')
+        self.ppms_zone_cus_temp_rate_label.setFont(self.font)
+        self.ppms_zone_cus_temp_rate_entry = QLineEdit()
+        self.ppms_zone_cus_temp_rate_entry.setFont(self.font)
+        self.ppms_zone_cus_temp_rate_entry.setText('5')
+
+        self.ppms_zone_cus_temp_rate_layout.addWidget(self.ppms_zone_cus_temp_rate_label)
+        self.ppms_zone_cus_temp_rate_layout.addWidget(self.ppms_zone_cus_temp_rate_entry)
+
+        self.ppms_zone_cus_temp_layout.addLayout(self.ppms_zone_cus_temp_list_layout)
+        self.ppms_zone_cus_temp_layout.addLayout(self.ppms_zone_cus_temp_rate_layout)
+        self.clear_layout(self.ppms_zone_temp_layout)
+        self.ppms_zone_temp_layout.addLayout(self.ppms_zone_cus_temp_layout)
 
     def update_plot(self):
         if self.isCheckedBox1 == True:
@@ -1118,74 +1222,203 @@ class Measurement(QMainWindow):
         if dialog.exec():
             try:
                 self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt = dialog.get_text()
+                self.log_box = QTextEdit(self)
+                self.log_box.setReadOnly(True)  # Make the log box read-only
+                self.progress_bar = QProgressBar(self)
+                self.progress_bar.setMinimum(0)
+                self.progress_bar.setMaximum(100)
+                self.progress_value = 50
+                self.progress_bar.setValue(self.progress_value)
+                self.progress_bar.setStyleSheet("""
+                            QProgressBar {
+                                border: 1px solid #8f8f91;
+                                border-radius: 5px;
+                                background-color: #e0e0e0;
+                                text-align: center;
+                            }
+
+                            QProgressBar::chunk {
+                                background-color:  #3498db;
+                                width: 5px;
+                            }
+                        """)
+                self.main_layout.addWidget(self.log_box)
+                self.main_layout.addWidget(self.progress_bar)
+
             except Exception as e:
                 QMessageBox.warning(self, 'Warning', str(e))
+
             try:
                 self.run_ETO()
             except Exception as e:
                 QMessageBox.warning(self, 'Warning', str(e))
 
     def run_ETO(self):
-        start_time = time.time()
-        zeroField = 0
-        fieldRate = 220
-        fieldRateSlow = 10
-        tempRate = 50
-        TempList = []
-        if self.ppms_temp_One_zone_radio.isChecked():
-            zone_1_start = int(self.ppms_zone1_temp_from_entry.text())
-            zone_1_end = int(self.ppms_zone1_temp_to_entry.text()) + int(self.ppms_zone1_temp_step_entry.text())
-            zone_1_step = int(self.ppms_zone1_temp_step_entry.text())
-            TempList = [int(i) for i in range(zone_1_start, zone_1_end, zone_1_step)]
-        elif self.ppms_temp_Two_zone_radio.isChecked():
-            zone_1_start = int(self.ppms_zone1_temp_from_entry.text())
-            zone_1_end = int(self.ppms_zone1_temp_to_entry.text())
-            zone_1_step = int(self.ppms_zone1_temp_step_entry.text())
-            TempList = [int(i) for i in range(zone_1_start, zone_1_end, zone_1_step)]
-            zone_2_start = int(self.ppms_zone2_temp_from_entry.text())
-            zone_2_end = int(self.ppms_zone2_temp_to_entry.text()) + int(self.ppms_zone2_temp_step_entry.text())
-            zone_2_step = int(self.ppms_zone2_temp_step_entry.text())
-            TempList += [int(i) for i in range(zone_2_start, zone_2_end, zone_2_step)]
-        elif self.ppms_temp_Three_zone_radio.isChecked():
-            zone_1_start = int(self.ppms_zone1_temp_from_entry.text())
-            zone_1_end = int(self.ppms_zone1_temp_to_entry.text())
-            zone_1_step = int(self.ppms_zone1_temp_step_entry.text())
-            TempList = [int(i) for i in range(zone_1_start, zone_1_end, zone_1_step)]
-            zone_2_start = int(self.ppms_zone2_temp_from_entry.text())
-            zone_2_end = int(self.ppms_zone2_temp_to_entry.text())
-            zone_2_step = int(self.ppms_zone2_temp_step_entry.text())
-            TempList += [int(i) for i in range(zone_2_start, zone_2_end, zone_2_step)]
-            zone_3_start = int(self.ppms_zone3_temp_from_entry.text())
-            zone_3_end = int(self.ppms_zone3_temp_to_entry.text()) + int(self.ppms_zone3_temp_step_entry.text())
-            zone_3_step = int(self.ppms_zone3_temp_step_entry.text())
-            TempList += [int(i) for i in range(zone_3_start, zone_3_end, zone_3_step)]
+        self.log_box.clear()
+        self.log_box.append('Check Connection of Keithley 6221....')
+        # try:
+        #     self.keithley_6221.query('*IDN?')
+        # except visa.errors.VisaIOError as e:
+        #     QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
+        #     return
+        self.log_box.append('Keithley 6221 connected!')
+        self.log_box.append('Check Connection of Keithley 2182....')
+        # try:
+        #     self.keithley_2182nv.query('*IDN?')
+        # except visa.errors.VisaIOError as e:
+        #     QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
+        #     return
+        self.log_box.append('Keithley 2182 connected!')
+        def float_range(start, stop, step):
+            current = start
+            while current < stop:
+                yield current
+                current += step
+        try:
+            TempList = []
+            if self.ppms_temp_One_zone_radio.isChecked():
+                # if len(self.ppms_zone1_temp_from_entry.text()) == 0 or len(self.ppms_zone1_temp_to_entry.text()) == 0 or len(self.ppms_zone1_temp_step_entry.text()) == 0:
+                #     QMessageBox.warning(self, 'Warning', 'Please enter all required box')
+                zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
+                zone_1_end = float(self.ppms_zone1_temp_to_entry.text()) + float(self.ppms_zone1_temp_step_entry.text())
+                zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+                TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
+            elif self.ppms_temp_Two_zone_radio.isChecked():
+                zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
+                zone_1_end = float(self.ppms_zone1_temp_to_entry.text())
+                zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+                zone_2_start = float(self.ppms_zone2_temp_from_entry.text())
+                zone_2_end = float(self.ppms_zone2_temp_to_entry.text())
+                zone_2_step = float(self.ppms_zone2_temp_step_entry.text())
+                if zone_1_end == zone_2_start:
+                    zone_1_end = zone_1_end
+                else:
+                    zone_1_end = zone_1_end + zone_1_step
+                TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                TempList += [round(float(i), 2) for i in float_range(zone_2_start, zone_2_end + zone_2_step, zone_2_step)]
+                tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
+            elif self.ppms_temp_Three_zone_radio.isChecked():
+                zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
+                zone_1_end = float(self.ppms_zone1_temp_to_entry.text())
+                zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
 
+                zone_2_start = float(self.ppms_zone2_temp_from_entry.text())
+                zone_2_end = float(self.ppms_zone2_temp_to_entry.text())
+                zone_2_step = float(self.ppms_zone2_temp_step_entry.text())
+
+                zone_3_start = float(self.ppms_zone3_temp_from_entry.text())
+                zone_3_end = float(self.ppms_zone3_temp_to_entry.text()) + float(self.ppms_zone3_temp_step_entry.text())
+                zone_3_step = float(self.ppms_zone3_temp_step_entry.text())
+
+                if zone_1_end == zone_2_start:
+                    zone_1_end = zone_1_end
+                else:
+                    zone_1_end = zone_1_end + zone_1_step
+
+                if zone_2_end == zone_3_start:
+                    zone_2_end = zone_2_end
+                else:
+                    zone_2_end = zone_2_end + zone_2_step
+
+                TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                TempList += [round(float(i), 2) for i in float_range(zone_2_start, zone_2_end, zone_2_step)]
+                TempList += [round(float(i), 2) for i in float_range(zone_3_start, zone_3_end, zone_3_step)]
+                tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
+            elif self.ppms_temp_Customize_zone_radio.isChecked():
+                templist = self.ppms_zone_cus_temp_list_entry.text()
+                templist = templist.replace(" ", "")
+                TempList = [round(float(item), 2) for item in templist.split(',')]
+                tempRate = round(float(self.ppms_zone_cus_temp_rate_entry.text()),2)
+        except Exception as e:
+            QMessageBox.warning(self, 'Error', str(e))
+        self.log_box.append('Measurement Temperature '+ TempList)
+        # =============================== Set the Field ==================================== #
         if self.ppms_field_One_zone_radio.isChecked():
             self.zone1_bot_field = float(self.ppms_zone1_from_entry.text())
             self.zone1_top_field = float(self.ppms_zone1_to_entry.text())
             self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
-            number_of_field = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+            number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+            number_of_field = np.abs(number_of_field_zone1)
         elif self.ppms_field_Two_zone_radio.isChecked():
             self.zone1_bot_field = float(self.ppms_zone1_from_entry.text())
             self.zone1_top_field = float(self.ppms_zone1_to_entry.text())
             self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+            self.zone2_bot_field = float(self.ppms_zone2_from_entry.text())
+            self.zone2_top_field = float(self.ppms_zone2_to_entry.text())
+            self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+            self.zone2_field_rate = float(self.ppms_zone2_field_rate_entry.text())
+            # Need to think about it
+            number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+            number_of_field_zone2 = 2 * (self.zone2_top_field - self.zone2_bot_field) / self.zone2_step_field
+            number_of_field = np.abs(number_of_field_zone1) + np.abs(number_of_field_zone2)
         elif self.ppms_field_Three_zone_radio.isChecked():
             self.zone1_bot_field = float(self.ppms_zone1_from_entry.text())
             self.zone1_top_field = float(self.ppms_zone1_to_entry.text())
             self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
-
+            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+            self.zone2_bot_field = float(self.ppms_zone2_from_entry.text())
+            self.zone2_top_field = float(self.ppms_zone2_to_entry.text())
+            self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+            self.zone3_bot_field = float(self.ppms_zone3_from_entry.text())
+            self.zone3_top_field = float(self.ppms_zone3_to_entry.text())
+            self.zone3_step_field = float(self.ppms_zone3_field_step_entry.text())
+            self.zone3_field_rate = float(self.ppms_zone3_field_rate_entry.text())
+            # Need to think about it
+            number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+            number_of_field_zone2 = 2 * (self.zone2_top_field - self.zone2_bot_field) / self.zone2_step_field
+            number_of_field_zone3 = 2 * (self.zone3_top_field - self.zone3_bot_field) / self.zone3_step_field
+            number_of_field = np.abs(number_of_field_zone1) + np.abs(number_of_field_zone2) + np.abs(number_of_field_zone3)
         # =============================== Set the current ==================================== #
-        current = [f"{i}e-6" for i in range(40, 60, 20)]  # Set the current to 20 µA
+        if self.keithley_6221_DC_radio.isChecked():
+            if self.keithley_6221_DC_range_checkbox.isChecked():
+                init_current = float(self.keithley_6221_DC_range_init_entry.text())
+                final_current = float(self.keithley_6221_DC_range_final_entry.text())
+                step_current = float(self.keithley_6221_DC_range_step_entry.text())
+                self.DC_Range_unit = self.keithley_6221_DC_range_combobox.currentIndex()
+                if self.DC_Range_unit != 0:
+                    if self.DC_Range_unit == 1:  # mA
+                        DC_range_selected_unit = 'e-3'
+                    elif self.DC_Range_unit == 2:  # uA
+                        DC_range_selected_unit = 'e-6'
+                    elif self.DC_Range_unit == 3:  # nA
+                        DC_range_selected_unit = 'e-9'
+                    elif self.DC_Range_unit == 4:  # pA
+                        DC_range_selected_unit = 'e-12'
+                current = [f"{i}{DC_range_selected_unit}" for i in range(init_current, final_current+step_current, step_current)]
+            elif self.keithley_6221_DC_single_checkbox.isChecked():
+                self.single_DC_current = self.keithley_6221_DC_single_entry.text()
+                self.DC_Single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
+                if self.DC_Single_unit != 0:
+                    if self.DC_Range_unit == 1:  # mA
+                        DC_single_selected_unit = 'e-3'
+                    elif self.DC_Range_unit == 2:  # uA
+                        DC_single_selected_unit = 'e-6'
+                    elif self.DC_Range_unit == 3:  # nA
+                        DC_single_selected_unit = 'e-9'
+                    elif self.DC_Range_unit == 4:  # pA
+                        DC_single_selected_unit = 'e-12'
+                current = [f"{i}{DC_single_selected_unit}"]
+            else:
+                QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                return
+        elif self.keithley_6221_DC_radio.isChecked():
+            QMessageBox.warning(self, "New Feature is coming", 'Abort')
+            return
+
+
         number_of_current = len(current)
         number_of_temp = len(TempList)
+        tempRate_init = 50
+        zeroField = 0
+        start_time = time.time()
 
-        # =============================== Setup the Field ==================================== #
+        # fieldRate = 220
+        # fieldRateSweeping = 10
 
-        # ||-----deltaH_large------||--deltaH_med---||--------------deltaH_small-----------------||------deltaH_med---||-------deltaH_large---||
-        # botField ------------ -B2 ----------- -B1 ------------- zeroField --------------- +B1 ---------------- +B2--------------- topField
-
-
-        # ---------------- Set the File Name -----------------------#
         def deltaH_chk(deltaH_small, deltaH_med, deltaH_large, currentField):
             if (currentField <= LowerB2 or currentField >= UpperB2):
                 deltaH = deltaH_large
@@ -1278,7 +1511,7 @@ class Measurement(QMainWindow):
             # number_of_temp = number_of_temp - 1
             print(f'\n Loop is at {TempList[i]} K Temperature\n')
             Tempsetpoint = TempList[i]
-            client.set_temperature(Tempsetpoint,
+            self.client.set_temperature(Tempsetpoint,
                                    tempRate,
                                    client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
             print(f'Waiting for {Tempsetpoint} K Temperature')
