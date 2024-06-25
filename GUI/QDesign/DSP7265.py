@@ -53,7 +53,7 @@ class MplCanvas(FigureCanvas):
         super(MplCanvas, self).__init__(fig)
 
 
-class NV(QWidget):
+class Lockin(QWidget):
 
     def __init__(self):
         super().__init__()
@@ -77,7 +77,7 @@ class NV(QWidget):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         #  ---------------------------- PART 1 --------------------------------
-        self.current_intrument_label = QLabel("Keithley 2182 Nanovoltmeter")
+        self.current_intrument_label = QLabel("Signal Recovery 7265 DSP Lock-in Amplifier")
         self.current_intrument_label.setFont(titlefont)
         self.current_intrument_label.setStyleSheet("""
                                             QLabel{

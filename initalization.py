@@ -12,7 +12,7 @@ import GUI.VSM.VSM as vsm
 import GUI.ETO.ETO as eto
 import GUI.SHG.SHG as shg
 import GUI.SHG.SHG_General as shg_general
-import GUI.SHG.SHG_Temp_Dep as shg_tempdep
+import GUI.QDesign.DSP7265 as dsp
 import GUI.SHG.SHG_Imaging as shg_imaging
 import GUI.QDesign.Keithley2182nv as nv
 import GUI.QDesign.Keithley6221 as cs
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(m.Measurement())  # 11
         self.pages.addWidget(shg_general.General())  # 12
         self.pages.addWidget(pt.plotting())  # 13
-        self.pages.addWidget(shg_imaging.Imaging())  # 14
+        self.pages.addWidget(dsp.Lockin())  # 14
 
         # self.toggle_dark_mode()
         # Main Layout
@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
 
         elif current_row == 4:  # Imaging
             self.right_sidebar.setCurrentRow(4)
-            self.pages.setCurrentIndex(11)
+            self.pages.setCurrentIndex(14)
             self.currentqdindex = 4
 
         elif current_row == 5:  # Imaging

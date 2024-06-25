@@ -211,7 +211,7 @@ class Measurement(QMainWindow):
         #  ---------------------------- PART 2 --------------------------------
         with open("GUI/QSS/QButtonWidget.qss", "r") as file:
             self.Button_stylesheet = file.read()
-        self.Preset_group_box = QGroupBox("Preseted Measure")
+        self.Preset_group_box = QGroupBox("Experiment Preset")
 
         self.ETO_radio_buttom = QRadioButton("ETO")
         self.ETO_radio_buttom.setFont(self.font)
@@ -404,7 +404,7 @@ class Measurement(QMainWindow):
             figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
             figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
             figure_group_box.setLayout(figure_Layout)
-            figure_group_box.setFixedSize(1140,400)
+            figure_group_box.setFixedSize(1150,400)
             self.figure_container_layout = QHBoxLayout()
             self.figure_container = QWidget(self)
             self.buttons_layout = QHBoxLayout()
@@ -502,9 +502,9 @@ class Measurement(QMainWindow):
             self.client_keep_going = True
             self.client = mpv.Client(host=self.host, port=5000)
             self.client.open()
-            self.ppms_reading_group_box = QGroupBox('PPMS Reading')
-            self.ppms_Temp_group_box = QGroupBox('Setup Experiment Temperature')
-            self.ppms_Field_group_box = QGroupBox('Setup Experiment Field')
+            self.ppms_reading_group_box = QGroupBox('PPMS Status')
+            self.ppms_Temp_group_box = QGroupBox('Temperature Setup')
+            self.ppms_Field_group_box = QGroupBox('Field Setup')
             self.ppms_reading_layout = QVBoxLayout()
             self.ppms_temp_layout = QHBoxLayout()
             self.ppms_temp_label = QLabel('Temperature (K):')
@@ -541,13 +541,15 @@ class Measurement(QMainWindow):
             self.Temp_setup_Zone_2 = False
             self.Temp_setup_Zone_3 = False
             self.Temp_setup_Zone_Cus = False
-            self.ppms_temp_One_zone_radio = QRadioButton("1 Zone")
+            self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.ppms_temp_zone_number_label.setFont(self.font)
+            self.ppms_temp_One_zone_radio = QRadioButton("1")
             self.ppms_temp_One_zone_radio.setFont(self.font)
             self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Two_zone_radio = QRadioButton("2 Zones")
+            self.ppms_temp_Two_zone_radio = QRadioButton("2")
             self.ppms_temp_Two_zone_radio.setFont(self.font)
             self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Three_zone_radio = QRadioButton("3 Zones")
+            self.ppms_temp_Three_zone_radio = QRadioButton("3")
             self.ppms_temp_Three_zone_radio.setFont(self.font)
             self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
             self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
@@ -557,6 +559,7 @@ class Measurement(QMainWindow):
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
             self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
+            self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
             self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
             self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
             self.ppms_Temp_group_box.setLayout(self.ppms_temp_setting_layout)
@@ -570,7 +573,7 @@ class Measurement(QMainWindow):
             self.Field_setup_Zone_2 = False
             self.Field_setup_Zone_3 = False
 
-            self.ppms_field_mode_fast_radio = QRadioButton("Fast Sweep")
+            self.ppms_field_mode_fast_radio = QRadioButton("Continuous Sweep")
             self.ppms_field_mode_fast_radio.setFont(self.font)
             self.ppms_field_mode_fast_radio.setChecked(True)
             self.ppms_field_mode_fixed_radio = QRadioButton("Fixed Field")
@@ -581,19 +584,22 @@ class Measurement(QMainWindow):
             self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fast_radio)
             self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fixed_radio)
 
-            self.ppms_field_One_zone_radio = QRadioButton("1 Zone")
+            self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.ppms_field_zone_number_label.setFont(self.font)
+            self.ppms_field_One_zone_radio = QRadioButton("1")
             self.ppms_field_One_zone_radio.setFont(self.font)
             self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_Two_zone_radio = QRadioButton("2 Zones")
+            self.ppms_field_Two_zone_radio = QRadioButton("2")
             self.ppms_field_Two_zone_radio.setFont(self.font)
             self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_Three_zone_radio = QRadioButton("3 Zones")
+            self.ppms_field_Three_zone_radio = QRadioButton("3")
             self.ppms_field_Three_zone_radio.setFont(self.font)
             self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
             self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
             self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
+            self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
             self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
             self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
             self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
@@ -893,7 +899,7 @@ class Measurement(QMainWindow):
     def field_one_zone(self):
         self.ppms_zone1_field_layout = QVBoxLayout()
         self.ppms_zone1_field_range_layout = QHBoxLayout()
-        self.ppms_zone1_from_label = QLabel('Field Range (Oe): Top')
+        self.ppms_zone1_from_label = QLabel('Range (Oe): Top')
         self.ppms_zone1_from_label.setFont(self.font)
         self.ppms_zone1_from_entry = QLineEdit()
         self.ppms_zone1_from_entry.setFont(self.font)
@@ -913,7 +919,7 @@ class Measurement(QMainWindow):
         self.ppms_zone1_field_step_label.setFont(self.font)
         self.ppms_zone1_field_step_entry = QLineEdit()
         self.ppms_zone1_field_step_entry.setFont(self.font)
-        self.ppms_zone1_field_rate_label = QLabel('Field Rate (Oe/sec): ')
+        self.ppms_zone1_field_rate_label = QLabel('Rate (Oe/sec): ')
         self.ppms_zone1_field_rate_label.setFont(self.font)
         self.ppms_zone1_field_rate_entry = QLineEdit()
         self.ppms_zone1_field_rate_entry.setFont(self.font)
@@ -934,7 +940,7 @@ class Measurement(QMainWindow):
         self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
         self.ppms_zone2_field_layout = QVBoxLayout()
         self.ppms_zone2_field_range_layout = QHBoxLayout()
-        self.ppms_zone2_from_label = QLabel('Field Range 2 (Oe): Top')
+        self.ppms_zone2_from_label = QLabel('Range 2 (Oe): Top')
         self.ppms_zone2_from_label.setFont(self.font)
         self.ppms_zone2_from_entry = QLineEdit()
         self.ppms_zone2_from_entry.setFont(self.font)
@@ -956,7 +962,7 @@ class Measurement(QMainWindow):
         self.ppms_zone2_field_step_entry = QLineEdit()
         self.ppms_zone2_field_step_entry.setFont(self.font)
 
-        self.ppms_zone2_field_rate_label = QLabel('Field Rate (Oe/sec): ')
+        self.ppms_zone2_field_rate_label = QLabel('Rate (Oe/sec): ')
         self.ppms_zone2_field_rate_label.setFont(self.font)
         self.ppms_zone2_field_rate_entry = QLineEdit()
         self.ppms_zone2_field_rate_entry.setFont(self.font)
@@ -980,7 +986,7 @@ class Measurement(QMainWindow):
         self.ppms_zone2_to_entry.setEnabled(True)
         self.ppms_zone3_field_layout = QVBoxLayout()
         self.ppms_zone3_field_range_layout = QHBoxLayout()
-        self.ppms_zone3_from_label = QLabel('Field Range 3 (Oe): Top')
+        self.ppms_zone3_from_label = QLabel('Range 3 (Oe): Top')
         self.ppms_zone3_from_label.setFont(self.font)
         self.ppms_zone3_from_entry = QLineEdit()
         self.ppms_zone3_from_entry.setFont(self.font)
@@ -1002,7 +1008,7 @@ class Measurement(QMainWindow):
         self.ppms_zone3_field_step_entry = QLineEdit()
         self.ppms_zone3_field_step_entry.setFont(self.font)
 
-        self.ppms_zone3_field_rate_label = QLabel('Field Rate (Oe/sec): ')
+        self.ppms_zone3_field_rate_label = QLabel('Rate (Oe/sec): ')
         self.ppms_zone3_field_rate_label.setFont(self.font)
         self.ppms_zone3_field_rate_entry = QLineEdit()
         self.ppms_zone3_field_rate_entry.setFont(self.font)
@@ -1054,7 +1060,7 @@ class Measurement(QMainWindow):
     def temp_one_zone(self):
         self.ppms_zone1_temp_layout = QVBoxLayout()
         self.ppms_zone1_temp_range_layout = QHBoxLayout()
-        self.ppms_zone1_temp_from_label = QLabel('Temperature Range (K): From')
+        self.ppms_zone1_temp_from_label = QLabel('Range (K): From')
         self.ppms_zone1_temp_from_label.setFont(self.font)
         self.ppms_zone1_temp_from_entry = QLineEdit()
         self.ppms_zone1_temp_from_entry.setFont(self.font)
@@ -1073,7 +1079,7 @@ class Measurement(QMainWindow):
         self.ppms_zone1_temp_step_entry = QLineEdit()
         self.ppms_zone1_temp_step_entry.setFont(self.font)
 
-        self.ppms_zone1_temp_rate_label = QLabel('Temp Rate (K/min): ')
+        self.ppms_zone1_temp_rate_label = QLabel('Rate (K/min): ')
         self.ppms_zone1_temp_rate_label.setFont(self.font)
         self.ppms_zone1_temp_rate_entry = QLineEdit()
         self.ppms_zone1_temp_rate_entry.setFont(self.font)
@@ -1093,7 +1099,7 @@ class Measurement(QMainWindow):
         self.temp_one_zone()
         self.ppms_zone2_temp_layout = QVBoxLayout()
         self.ppms_zone2_temp_range_layout = QHBoxLayout()
-        self.ppms_zone2_temp_from_label = QLabel('Temperature Range 2 (K): From')
+        self.ppms_zone2_temp_from_label = QLabel('Range 2 (K): From')
         self.ppms_zone2_temp_from_label.setFont(self.font)
         self.ppms_zone2_temp_from_entry = QLineEdit()
         self.ppms_zone2_temp_from_entry.setFont(self.font)
@@ -1131,7 +1137,7 @@ class Measurement(QMainWindow):
         self.temp_two_zone()
         self.ppms_zone3_temp_layout = QVBoxLayout()
         self.ppms_zone3_temp_range_layout = QHBoxLayout()
-        self.ppms_zone3_temp_from_label = QLabel('Temperature Range 3 (K): From')
+        self.ppms_zone3_temp_from_label = QLabel('Range 3 (K): From')
         self.ppms_zone3_temp_from_label.setFont(self.font)
         self.ppms_zone3_temp_from_entry = QLineEdit()
         self.ppms_zone3_temp_from_entry.setFont(self.font)
@@ -1179,7 +1185,7 @@ class Measurement(QMainWindow):
         self.ppms_zone_cus_temp_list_layout.addWidget(self.ppms_zone_cus_temp_end_label)
 
         self.ppms_zone_cus_temp_rate_layout = QHBoxLayout()
-        self.ppms_zone_cus_temp_rate_label = QLabel('Temp Rate (K/min): ')
+        self.ppms_zone_cus_temp_rate_label = QLabel('Rate (K/min): ')
         self.ppms_zone_cus_temp_rate_label.setFont(self.font)
         self.ppms_zone_cus_temp_rate_entry = QLineEdit()
         self.ppms_zone_cus_temp_rate_entry.setFont(self.font)
@@ -1240,6 +1246,12 @@ class Measurement(QMainWindow):
         self.canvas.draw()
     def stop_measurement(self):
         self.running = False
+        self.canvas.axes.cla()
+        self.canvas.draw()
+        self.main_layout.removeWidget(self.log_box)
+        self.log_box.deleteLater()
+        self.main_layout.removeWidget(self.progress_bar)
+        self.progress_bar.deleteLater()
 
     def start_measurement(self):
         self.client.set_temperature(50, 10, self.client.temperature.approach_mode.fast_settle)
@@ -1248,12 +1260,13 @@ class Measurement(QMainWindow):
             try:
                 self.running = True
                 self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt = dialog.get_text()
+
                 self.log_box = QTextEdit(self)
                 self.log_box.setReadOnly(True)  # Make the log box read-only
                 self.progress_bar = QProgressBar(self)
                 self.progress_bar.setMinimum(0)
                 self.progress_bar.setMaximum(100)
-                self.progress_value = 50
+                self.progress_value = 0
                 self.progress_bar.setValue(self.progress_value)
                 self.progress_bar.setStyleSheet("""
                             QProgressBar {
@@ -1268,8 +1281,11 @@ class Measurement(QMainWindow):
                                 width: 5px;
                             }
                         """)
-                self.main_layout.addWidget(self.log_box)
+                self.log_box.setFixedSize(1140, 100)
                 self.main_layout.addWidget(self.progress_bar)
+                self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
+
+
 
             except Exception as e:
                 QMessageBox.warning(self, 'Warning', str(e))
@@ -1280,6 +1296,9 @@ class Measurement(QMainWindow):
             except Exception as e:
                 self.stop_measurement()
                 QMessageBox.warning(self, 'Warning', str(e))
+
+    def append_text(self, text, color):
+        self.log_box.append(f'<span style="color:{color}">{text}</span>')
 
     def run_ETO(self):
         self.log_box.clear()
@@ -1292,7 +1311,7 @@ class Measurement(QMainWindow):
         #     QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
         #     self.stop_measurement()
         #     return
-        self.log_box.append('Keithley 6221 connected!\n')
+        self.append_text('Keithley 6221 connected!\n', 'green')
         self.log_box.append('Check Connection of Keithley 2182....\n')
         # try:
         #     model_2182self.keithley_2182nv.query('*IDN?')
@@ -1305,13 +1324,15 @@ class Measurement(QMainWindow):
         #     QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
         #     self.stop_measurement()
         #     return
-        self.log_box.append('Keithley 2182 connected!\n')
+        self.append_text('Keithley 2182 connected!\n', 'green')
         def float_range(start, stop, step):
             current = start
             while current < stop:
                 yield current
                 current += step
         try:
+            self.append_text('Start initializing parameters...!\n', 'orange')
+            self.append_text('Start initializing Temperatures...!\n','blue')
             TempList = []
             if self.ppms_temp_One_zone_radio.isChecked():
                 zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
@@ -1368,9 +1389,10 @@ class Measurement(QMainWindow):
         except Exception as e:
             self.stop_measurement()
             QMessageBox.warning(self, 'Error', str(e))
-        temp_log = ','.join(map(str, TempList))
-        self.log_box.append('Measurement Temperature '+ temp_log +'\n')
+        # temp_log = ','.join(map(str, TempList))
+        # self.log_box.append('Measurement Temperature '+ temp_log +'\n')
         # =============================== Set the Field ==================================== #
+        self.append_text('Start initializing Field...!\n', 'blue')
         if self.ppms_field_One_zone_radio.isChecked():
             self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
             self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
@@ -1412,6 +1434,8 @@ class Measurement(QMainWindow):
 
         topField = self.zone1_top_field
         botField = -1 * self.zone1_top_field
+
+        self.append_text('Start initializing Current...!\n', 'blue')
         # =============================== Set the current ==================================== #
         if self.keithley_6221_DC_radio.isChecked():
             if self.keithley_6221_DC_range_checkbox.isChecked():
@@ -1460,8 +1484,9 @@ class Measurement(QMainWindow):
                     QMessageBox.warning(self,"Missing Items", "Please select all the required parameter - missing current unit")
                     self.stop_measurement()
                     return
-                current = [f"{self.single_DC_current[i]}{DC_single_selected_unit}" for i in len(self.single_DC_current)]
-                current_mag = [f"{self.single_DC_current[i]}" for i in len(self.single_DC_current)]
+                print("enter here")
+                current = [f"{self.single_DC_current[i]}{DC_single_selected_unit}" for i in range(len(self.single_DC_current))]
+                current_mag = [f"{self.single_DC_current[i]}" for i in range(len(self.single_DC_current))]
             else:
                 QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
                 self.stop_measurement()
@@ -1470,8 +1495,7 @@ class Measurement(QMainWindow):
             QMessageBox.warning(self, "New Feature is coming", 'Abort')
             self.stop_measurement()
             return
-        current_log = ','.join(map(str, TempList))
-        self.log_box.append('Measurement Current ' + current_log + '\n')
+
         number_of_current = len(current)
         number_of_temp = len(TempList)
         fieldRate = 220
@@ -1479,6 +1503,27 @@ class Measurement(QMainWindow):
         zeroField = 0
         start_time = time.time()
         self.log_box.append('Measurement Start....\n')
+
+        # Function to convert
+        def listToString(s):
+            # initialize an empty string
+            str1 = " "
+            # return string
+            return (str1.join(s))
+
+        self.append_text('Create Log...!\n', 'green')
+        f = open(self.folder_path + 'Experiment_Log.txt', "a")
+        today = datetime.today()
+        self.formatted_date_csv = today.strftime("%m/%d/%Y")
+        f.write(f"Today's Date: {self.formatted_date_csv}\n")
+        f.write(f"Sample ID: {self.ID}\n")
+        f.write(f"Measurement Type: {self.Measurement}\n")
+        f.write(f"Run: {self.run}\n")
+        f.write(f"Comment: {self.commemt}\n")
+        f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
+        f.write(f"Experiment Temperature (K): {listToString(TempList)}\n")
+        f.write(f"Experiment Current: {listToString(current)}\n")
+        f.close()
 
         # fieldRate = 220
         # fieldRateSweeping = 10
@@ -1501,18 +1546,12 @@ class Measurement(QMainWindow):
 
             return deltaH
 
-        def save_temp_field_chamber():
-            T, sT = self.client.get_temperature()
-            F, sF = self.client.get_field()
-            C = self.client.get_chamber()
-            self.log_box.append(f'Temperature: {T:{7}.{3}f} Temp Status:{sT:{10}} Field:{F:{7}} Field Status:{sF:{20}} Chamber:{C:{15}}\n')
-
         time.sleep(5)
 
         # -------------Temp Status---------------------
         temperature, status = self.client.get_temperature()
         tempUnits = self.client.temperature.units
-        self.log_box.append(f'Temperature = {temperature} {tempUnits}\n')
+        self.append_text(f'Temperature = {temperature} {tempUnits}\n', 'purple')
         self.ppms_reading_temp_label.setText(f'{temperature} {tempUnits}')
         # ------------Field Status----------------------
         field, status = self.client.get_field()
@@ -1523,12 +1562,11 @@ class Measurement(QMainWindow):
         # ----------------- Loop Down ----------------------#
         Curlen = len(current)
         templen = len(TempList)
-
+        totoal_progress = Curlen*templen
         for i in range(templen):
-            # number_of_temp = number_of_temp - 1
-            self.log_box.append(f'\n Loop is at {TempList[i]} K Temperature\n')
+
+            self.log_box.append(f'Loop is at {TempList[i]} K Temperature\n')
             Tempsetpoint = TempList[i]
-            self.log_box.append(f'\n Loop is at {TempList[i]} K Temperature\n')
             if i == 0:
                 self.client.set_temperature(Tempsetpoint,tempRate_init,self.client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
             else:
@@ -1552,12 +1590,17 @@ class Measurement(QMainWindow):
                 time.sleep(300)
 
             for j in range(Curlen):
+                cT = self.client.get_chamber()
+                self.ppms_reading_chamber_label.setText(f'{cT}')
+
+                current_progress = int(i*j/totoal_progress)
+                self.progress_bar.setValue(current_progress)
                 # number_of_current = number_of_current - 1
                 self.client.set_field(topField,
                                       fieldRate,
                                       self.client.field.approach_mode.linear,  # linear/oscillate
                                       self.client.field.driven_mode.driven)
-                self.log_box.append(f'\n Waiting for {zeroField} Oe Field \n')
+                self.log_box.append(f'Waiting for {zeroField} Oe Field \n')
                 time.sleep(10)
                 while True:
                     time.sleep(15)
@@ -1571,7 +1614,7 @@ class Measurement(QMainWindow):
                                  fieldRate,
                                  self.client.field.approach_mode.oscillate,  # linear/oscillate
                                  self.client.field.driven_mode.driven)
-                self.log_box.append(f'\n Waiting for {zeroField} Oe Field \n')
+                self.log_box.append(f'Waiting for {zeroField} Oe Field \n')
                 time.sleep(10)
                 while True:
                     time.sleep(15)
@@ -1581,9 +1624,6 @@ class Measurement(QMainWindow):
                     if sF == 'Holding (driven)':
                         break
 
-
-                # current_in_uA = round(float(current[j]) / 1e-6, 1)
-                # current_in_mA = round(float(current[j]) / 1e-3, 1)
                 self.keithley_6221.write(":OUTP OFF")  # Set source function to current
                 self.keithley_6221.write("CURRent:RANGe:AUTO ON \n")
                 self.keithley_6221.write(f'CURR {current[j]} \n')
@@ -1594,17 +1634,20 @@ class Measurement(QMainWindow):
                 pts = 0
                 currentField = topField
                 number_of_field_update = number_of_field
-                if self.ppms_field_mode_fast_radio.isChecked():
+                self.field_array = []
+                self.channel1_array = []
+                self.channel2_array = []
+                if self.ppms_field_mode_fixed_radio.isChecked():
                     while currentField >= botField:
                         single_measurement_start = time.time()
-                        self.log_box.append(f'\n Loop is at {currentField} Oe Field Up \n')
+                        self.log_box.append(f'Loop is at {currentField} Oe Field Up \n')
                         Fieldsetpoint = currentField
-                        self.log_box.append(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
+                        self.log_box.append(f'Set the field to {Fieldsetpoint} Oe and then collect data \n')
                         self.client.set_field(Fieldsetpoint,
                                             fieldRate,
                                             self.client.field.approach_mode.linear,
                                             self.client.field.driven_mode.driven)
-                        self.log_box.append(f'\n Waiting for {Fieldsetpoint} Oe Field \n')
+                        self.log_box.append(f'Waiting for {Fieldsetpoint} Oe Field \n')
                         time.sleep(4)
                         MyField, sF = self.client.get_field()
                         self.ppms_reading_field_label.setText(f'{MyField} Oe')
@@ -1619,38 +1662,39 @@ class Measurement(QMainWindow):
                         MyField, sF = self.client.get_field()
                         self.ppms_reading_field_label.setText(f'{MyField} Oe')
                         # ----------------------------- Measure NV voltage -------------------
-                        self.log_box.append(f'\n Saving data for {MyField} Oe \n')
-
-                        total_voltage_chan1 = 0.0
-                        total_voltage_chan2 = 0.0
-                        num_samples = 0
+                        self.log_box.append(f'Saving data for {MyField} Oe \n')
 
                         self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                         self.keithley_2182nv.write("VOLT:DC:NPLC 1.2")
                         time.sleep(2)  # Wait for the configuration to complete
+                        Chan_1_voltage = 0
+                        Chan_2_voltage = 0
+                        self.field_array.append(MyField)
                         if self.keithley_2182_channel_1_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 1")
                             volt = self.keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_1_voltage} V\n")
-                        elif self.keithley_2182_channel_1_checkbox.isChecked():
+                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
+                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+
+                            self.channel1_array.append(Chan_1_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
+                            self.canvas.draw()
+                        if self.keithley_2182_channel_2_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = self.keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_2_voltage} V\n")
-                        else:
-                            Chan_1_voltage = 0
-                            Chan_2_voltage = 0
-
-                        total_voltage_chan1 += Chan_1_voltage
-                        total_voltage_chan2 += Chan_2_voltage
+                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
+                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            self.channel2_array.append(Chan_2_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
+                            self.canvas.draw()
 
                         # Calculate the average voltage
-                        average_voltage_chan_1 = total_voltage_chan1 / num_samples
-                        resistance_chan_1 = average_voltage_chan_1 / current
-
-                        average_voltage_chan_2 = total_voltage_chan2 / num_samples
-                        resistance_chan_2 = average_voltage_chan_2 / current
+                        resistance_chan_1 = Chan_1_voltage / float(current[j])
+                        resistance_chan_2 = Chan_2_voltage / float(current[j])
 
                         # Append the data to the CSV file
                         with open(csv_filename, "a", newline="") as csvfile:
@@ -1662,14 +1706,16 @@ class Measurement(QMainWindow):
                                                                                                           "Resistance ("
                                                                                                           "Ohm)",
                                      "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                            MyField, sF = self.client.get_field()
-                            self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                            MyTemp, sT = self.client.get_temperature()
-                            self.ppms_reading_temp_label.setText(f'{MyTemp} K')
-                            csv_writer.writerow([MyField, resistance_chan_1, average_voltage_chan_1, resistance_chan_2,
-                                                 average_voltage_chan_2, MyTemp, current])
+
+                            csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                 Chan_2_voltage, MyTemp, current[j]])
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K')
 
+
+                        MyField, sF = self.client.get_field()
+                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                        MyTemp, sT = self.client.get_temperature()
+                        self.ppms_reading_temp_label.setText(f'{MyTemp} K')
                         # ----------------------------- Measure NV voltage -------------------
                         deltaH = deltaH_chk(currentField)
 
@@ -1706,13 +1752,13 @@ class Measurement(QMainWindow):
                         self.log_box.append(f'\n Loop is at {currentField} Oe Field Up \n')
                         Fieldsetpoint = currentField
 
-                        self.log_box.append(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
+                        self.log_box.append(f'Set the field to {Fieldsetpoint} Oe and then collect data \n')
                         self.client.set_field(Fieldsetpoint,
                                          fieldRate,
                                          self.client.field.approach_mode.linear,
                                          self.client.field.driven_mode.driven)
 
-                        self.log_box.append(f'\n Waiting for {Fieldsetpoint} Oe Field \n')
+                        self.log_box.append(f'Waiting for {Fieldsetpoint} Oe Field \n')
                         time.sleep(4)
 
                         MyField, sF = self.client.get_field()
@@ -1732,34 +1778,34 @@ class Measurement(QMainWindow):
                         self.log_box.append(f'Saving data for  {MyField} Oe\n')
                         total_voltage_chan1 = 0.0
                         total_voltage_chan2 = 0.0
-                        num_samples = 0
-
+                        Chan_1_voltage = 0
+                        Chan_2_voltage = 0
                         self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                         self.keithley_2182nv.write("VOLT:DC:NPLC 1.2")
                         time.sleep(2)  # Wait for the configuration to complete
+                        self.field_array.append(MyField)
                         if self.keithley_2182_channel_1_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 1")
                             volt = self.keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_1_voltage} V\n")
-                        elif self.keithley_2182_channel_1_checkbox.isChecked():
+                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
+                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            self.channel1_array.append(Chan_1_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
+                            self.canvas.draw()
+                        if self.keithley_2182_channel_2_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = self.keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_2_voltage} V\n")
-                        else:
-                            Chan_1_voltage = 0
-                            Chan_2_voltage = 0
-
-                        total_voltage_chan1 += Chan_1_voltage
-                        total_voltage_chan2 += Chan_2_voltage
-
-                        # Calculate the average voltage
-                        average_voltage_chan_1 = total_voltage_chan1 / num_samples
-                        resistance_chan_1 = average_voltage_chan_1 / current
-
-                        average_voltage_chan_2 = total_voltage_chan2 / num_samples
-                        resistance_chan_2 = average_voltage_chan_2 / current
+                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
+                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            self.channel2_array.append(Chan_2_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
+                            self.canvas.draw()
+                        resistance_chan_1 = Chan_1_voltage / float(current[j])
+                        resistance_chan_2 = Chan_2_voltage / float(current[j])
 
                         # Append the data to the CSV file
                         with open(csv_filename, "a", newline="") as csvfile:
@@ -1775,8 +1821,8 @@ class Measurement(QMainWindow):
                             self.ppms_reading_field_label.setText(f'{MyField} Oe')
                             MyTemp, sT = self.client.get_temperature()
                             self.ppms_reading_temp_label.setText(f'{MyTemp} K')
-                            csv_writer.writerow([MyField, resistance_chan_1, average_voltage_chan_1, resistance_chan_2,
-                                                 average_voltage_chan_2, MyTemp, current])
+                            csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                 Chan_2_voltage, MyTemp, current[j]])
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
 
                         # ----------------------------- Measure NV voltage -------------------
@@ -1805,52 +1851,67 @@ class Measurement(QMainWindow):
                             'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
                                 total_time_in_days))
                 else:
+
+                    self.client.set_field(topField,
+                                          fieldRate,
+                                          self.client.field.approach_mode.linear,
+                                          self.client.field.driven_mode.driven)
+                    self.log_box.append(f'Set the field to {topField} Oe\n')
+                    MyField, sF = self.client.get_field()
+                    self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                    while True:
+                        time.sleep(1)
+                        MyField, sF = self.client.get_field()
+                        self.ppms_reading_field_label.setText(f'{F} Oe')
+                        self.log_box.append(f'Status: {sF}\n')
+                        if sF == 'Holding (driven)':
+                            break
+                    time.sleep(20)
+
                     while currentField >= botField:
-                        single_measurement_start = time.time()
-                        self.log_box.append(f'\n Loop is at {currentField} Oe Field Up \n')
-                        Fieldsetpoint = currentField
-                        self.log_box.append(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
-                        self.client.set_field(Fieldsetpoint,
+                        self.client.set_field(botField,
                                               fieldRate,
                                               self.client.field.approach_mode.linear,
                                               self.client.field.driven_mode.driven)
-                        self.log_box.append(f'\n Waiting for {Fieldsetpoint} Oe Field \n')
-
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                        # ----------------------------- Measure NV voltage -------------------
-                        self.log_box.append(f'\n Saving data for {MyField} Oe \n')
-
+                        self.log_box.append(f'Set the field to {botField} Oe and then collect data \n')
+                        single_measurement_start = time.time()
                         total_voltage_chan1 = 0.0
                         total_voltage_chan2 = 0.0
-                        num_samples = 0
-
+                        self.NPLC = self.NPLC_entry.text()
                         self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        self.keithley_2182nv.write("VOLT:DC:NPLC 1.2")
-                        time.sleep(2)  # Wait for the configuration to complete
+                        self.keithley_2182nv.write(f"VOLT:DC:NPLC {self.NPLC}")
+                        MyField, sF = self.client.get_field()
+
+                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                        self.log_box.append(f'Saving data for {MyField} Oe \n')
+
+                        Chan_1_voltage = 0
+                        Chan_2_voltage = 0
+                        self.field_array.append(MyField)
                         if self.keithley_2182_channel_1_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 1")
                             volt = self.keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_1_voltage} V\n")
-                        elif self.keithley_2182_channel_1_checkbox.isChecked():
+                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
+                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            self.channel1_array.append(Chan_1_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
+                            self.canvas.draw()
+                        if self.keithley_2182_channel_2_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = self.keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_2_voltage} V\n")
-                        else:
-                            Chan_1_voltage = 0
-                            Chan_2_voltage = 0
-
-                        total_voltage_chan1 += Chan_1_voltage
-                        total_voltage_chan2 += Chan_2_voltage
+                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
+                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            self.channel2_array.append(Chan_2_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
+                            self.canvas.draw()
 
                         # Calculate the average voltage
-                        average_voltage_chan_1 = total_voltage_chan1 / num_samples
-                        resistance_chan_1 = average_voltage_chan_1 / current
-
-                        average_voltage_chan_2 = total_voltage_chan2 / num_samples
-                        resistance_chan_2 = average_voltage_chan_2 / current
+                        resistance_chan_1 = Chan_1_voltage / float(current[j])
+                        resistance_chan_2 = Chan_2_voltage / float(current[j])
 
                         # Append the data to the CSV file
                         with open(csv_filename, "a", newline="") as csvfile:
@@ -1862,12 +1923,9 @@ class Measurement(QMainWindow):
                                                                                                           "Resistance ("
                                                                                                           "Ohm)",
                                      "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                            MyField, sF = self.client.get_field()
-                            self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                            MyTemp, sT = self.client.get_temperature()
-                            self.ppms_reading_temp_label.setText(f'{MyTemp} K')
-                            csv_writer.writerow([MyField, resistance_chan_1, average_voltage_chan_1, resistance_chan_2,
-                                                 average_voltage_chan_2, MyTemp, current])
+
+                            csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                 Chan_2_voltage, MyTemp, current[j]])
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K')
 
                         # ----------------------------- Measure NV voltage -------------------
@@ -1904,49 +1962,64 @@ class Measurement(QMainWindow):
 
                     # ----------------- Loop Up ----------------------#
                     currentField = botField
-                    while currentField <= topField:
-                        single_measurement_start = time.time()
-                        self.log_box.append(f'\n Loop is at {currentField} Oe Field Up \n')
-                        Fieldsetpoint = currentField
-
-                        self.log_box.append(f'\n Set the field to {Fieldsetpoint} Oe and then collect data \n')
-
+                    self.client.set_field(currentField,
+                                          fieldRate,
+                                          self.client.field.approach_mode.linear,
+                                          self.client.field.driven_mode.driven)
+                    self.log_box.append(f'Set the field to {Fieldsetpoint} Oe and then collect data \n')
+                    MyField, sF = self.client.get_field()
+                    self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                    while True:
+                        time.sleep(1)
                         MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
-
-                        # ----------------------------- Measure NV voltage -------------------
-                        self.log_box.append(f'Saving data for  {MyField} Oe\n')
+                        self.ppms_reading_field_label.setText(f'{F} Oe')
+                        self.log_box.append(f'Status: {sF}\n')
+                        if sF == 'Holding (driven)':
+                            break
+                    time.sleep(20)
+                    while currentField <= topField:
+                        self.client.set_field(topField,
+                                              fieldRate,
+                                              self.client.field.approach_mode.linear,
+                                              self.client.field.driven_mode.driven)
+                        self.log_box.append(f'Set the field to {botField} Oe and then collect data \n')
+                        single_measurement_start = time.time()
                         total_voltage_chan1 = 0.0
                         total_voltage_chan2 = 0.0
-                        num_samples = 0
-
+                        self.NPLC = self.NPLC_entry.text()
                         self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        self.keithley_2182nv.write("VOLT:DC:NPLC 1.2")
-                        time.sleep(2)  # Wait for the configuration to complete
+                        self.keithley_2182nv.write(f"VOLT:DC:NPLC {self.NPLC}")
+                        MyField, sF = self.client.get_field()
+
+                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                        self.log_box.append(f'Saving data for  {MyField} Oe\n')
+
+                        Chan_1_voltage = 0
+                        Chan_2_voltage = 0
+                        self.field_array.append(MyField)
                         if self.keithley_2182_channel_1_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 1")
                             volt = self.keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_1_voltage} V\n")
-                        elif self.keithley_2182_channel_1_checkbox.isChecked():
+                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
+                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            self.channel1_array.append(Chan_1_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
+                            self.canvas.draw()
+                        if self.keithley_2182_channel_2_checkbox.isChecked():
                             self.keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = self.keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.log_box.append(f"Channel 1 Voltage: {Chan_2_voltage} V\n")
-                        else:
-                            Chan_1_voltage = 0
-                            Chan_2_voltage = 0
+                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
+                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            self.channel2_array.append(Chan_2_voltage)
+                            # # Drop off the first y element, append a new one.
+                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
+                            self.canvas.draw()
 
-                        total_voltage_chan1 += Chan_1_voltage
-                        total_voltage_chan2 += Chan_2_voltage
-
-                        # Calculate the average voltage
-                        average_voltage_chan_1 = total_voltage_chan1 / num_samples
-                        resistance_chan_1 = average_voltage_chan_1 / current
-
-                        average_voltage_chan_2 = total_voltage_chan2 / num_samples
-                        resistance_chan_2 = average_voltage_chan_2 / current
-
+                        resistance_chan_1 = Chan_1_voltage / float(current[j])
+                        resistance_chan_2 = Chan_2_voltage / float(current[j])
                         # Append the data to the CSV file
                         with open(csv_filename, "a", newline="") as csvfile:
                             csv_writer = csv.writer(csvfile)
@@ -1957,12 +2030,9 @@ class Measurement(QMainWindow):
                                                                                                           "Resistance ("
                                                                                                           "Ohm)",
                                      "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                            MyField, sF = self.client.get_field()
-                            self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                            MyTemp, sT = self.client.get_temperature()
-                            self.ppms_reading_temp_label.setText(f'{MyTemp} K')
-                            csv_writer.writerow([MyField, resistance_chan_1, average_voltage_chan_1, resistance_chan_2,
-                                                 average_voltage_chan_2, MyTemp, current])
+
+                            csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                 Chan_2_voltage, MyTemp, current[j]])
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
 
                         # ----------------------------- Measure NV voltage -------------------
@@ -1981,16 +2051,16 @@ class Measurement(QMainWindow):
                         total_time_in_hours = totoal_time_in_minutes / 60
                         total_time_in_days = total_time_in_hours / 24
                         self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                            'Estimated Remaining Time for this round of measurement (in secs):  {} s'.format(
                                 total_time_in_seconds))
                         self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                            'Estimated Remaining Time for this round of measurement (in mins):  {} mins'.format(
                                 totoal_time_in_minutes))
                         self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                            'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs'.format(
                                 total_time_in_hours))
                         self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
+                            'Estimated Remaining Time for this round of measurement (in mins):  {} days'.format(
                                 total_time_in_days))
         self.client.set_field(zeroField,
                          fieldRate,
@@ -1998,25 +2068,16 @@ class Measurement(QMainWindow):
                          self.client.field.driven_mode.driven)
         self.log_box.append('Waiting for Zero Field')
 
-        # self.client.set_temperature(CurTemp,
-        #                        tempRate_init,
-        #                        client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
-        # self.log_box.append(f'Waiting for {CurTemp} K Temperature')
-        # time.sleep(4)
-        # # client.wait_for(10,
-        #                 100,
-        #                 client.field.waitfor)
-
         temperature, status = self.client.get_temperature()
         self.log_box.append(f'Finished Temperature = {temperature} {tempUnits}\n')
 
         field, status = self.client.get_field()
         fieldUnits = self.client.field.units
-        self.log_box.append(f'Field = {field} {fieldUnits}\n')
+        self.append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
 
         self.keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
         self.keithley_6221.write(":OUTP OFF")  # Turn off the output
-        self.log_box.append("DC current is set to: 0.00 A\n")
+        self.append_text("DC current is set to: 0.00 A\n", 'red')
         # keithley_6221_Curr_Src.close()
 
         # Calculate the total runtime

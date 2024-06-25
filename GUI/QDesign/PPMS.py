@@ -65,7 +65,7 @@ class PPMS(QWidget):
 
     def init_ui(self):
         titlefont = QFont("Arial", 25)
-        font = QFont("Arial", 15)
+        font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
 
         # Create main vertical layout with centered alignment
@@ -87,24 +87,17 @@ class PPMS(QWidget):
         # Set the layout for the group box
         self.host_label = QLabel("Host:")
         self.host_label.setFont(font)
-        # self.host_label.setStyleSheet("""
-        #                                     QLabel{
-        #                                         background-color: #F8F8F8;
-        #                                         }
-        #                                         """)
+
         self.host_entry_box = QLineEdit("127.0.0.1")
+        self.host_entry_box.setFont(font)
         self.host_entry_box.setFixedHeight(30)
 
         self.port_label = QLabel("Port:")
         self.port_label.setFont(font)
-        # self.port_label.setStyleSheet("""
-        #                                             QLabel{
-        #                                                 background-color: #F8F8F8;
-        #                                                 }
-        #                                                 """)
 
         self.port_entry_box = QLineEdit("5000")
         self.port_entry_box.setFixedHeight(30)
+        self.port_entry_box.setFont(font)
 
         self.server_btn = QPushButton('Start Server')
         self.server_btn_clicked = False
@@ -207,6 +200,7 @@ class PPMS(QWidget):
         self.set_temp_Label = QLabel("Target Temperature:")
         self.set_temp_Label.setFont(font)
         self.cur_temp_entry_box = QLineEdit()
+        self.cur_temp_entry_box.setFont(font)
         self.cur_temp_entry_box.setFixedHeight(30)
         # Create a QDoubleValidator with range 1.8 to 400.0 and precision of 2 decimal places
         self.temp_validator = QDoubleValidator(1.8, 400.0, 2)
@@ -227,6 +221,7 @@ class PPMS(QWidget):
         self.temp_rate_Label.setFont(font)
         self.temp_rate_entry_box = QLineEdit()
         self.temp_rate_entry_box.setFixedHeight(30)
+        self.temp_rate_entry_box.setFont(font)
         self.temp_rate_validator = QDoubleValidator(0, 50.0, 2)
         self.temp_rate_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.temp_rate_entry_box.setValidator(self.temp_rate_validator)
@@ -234,36 +229,9 @@ class PPMS(QWidget):
         self.temp_rate_unit_Label = QLabel("K/s")
         self.temp_rate_unit_Label.setFont(font)
         self.temp_rate_combo = QComboBox()
-        self.temp_rate_combo.setStyleSheet("""
-                    QComboBox {
-                        padding: 5px;
-                        background-color: white;
-                        border: 2px solid #c0c0c0;
-                        border-radius: 4px;
-                        }
-                    QComboBox::item:selected {
-                        background-color: #FFFFFF;  /* Background color for selected item */
-                        color: #7CACEC
-                    }
-
-                    QComboBox::drop-down {
-                        subcontrol-origin: padding;
-                        subcontrol-position: top right;
-                        width: 20px;   /* Width of the arrow button */
-                        border-left-width: 1px;
-                        border-left-color: darkgray;
-                        border-left-style: solid; /* just a single line at the left */
-                        border-top-right-radius: 3px; /* same radius as the QComboBox */
-                        border-bottom-right-radius: 3px;
-                    }
-                    QComboBox::down-arrow {
-                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                    }
-                    QComboBox::down-arrow:on { /* When the combo box is open */
-                        top: 1px;
-                        left: 1px;
-                    }
-                """)
+        with open("GUI/QSS/QComboWidget.qss", "r") as file:
+            self.QCombo_stylesheet = file.read()
+        self.temp_rate_combo.setStyleSheet(self.QCombo_stylesheet)
         self.temp_rate_combo.setFont(font)
         self.temp_rate_combo.addItems([""])
         self.temp_rate_combo.addItems(["Fast Settle"])
@@ -290,6 +258,7 @@ class PPMS(QWidget):
         self.set_field_Label.setFont(font)
         self.cur_field_entry_box = QLineEdit()
         self.cur_field_entry_box.setFixedHeight(30)
+        self.cur_field_entry_box.setFont(font)
         self.field_validator = QDoubleValidator(-90000.00, 90000.0, 2)
         self.field_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.cur_field_entry_box.setValidator(self.field_validator)
@@ -305,6 +274,7 @@ class PPMS(QWidget):
         self.field_rate_Label.setFont(font)
         self.field_rate_entry_box = QLineEdit()
         self.field_rate_entry_box.setFixedHeight(30)
+        self.field_rate_entry_box.setFont(font)
         self.field_rate_validator = QDoubleValidator(0, 220.0, 2)
         self.field_rate_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.field_rate_entry_box.setValidator(self.field_rate_validator)
@@ -312,36 +282,7 @@ class PPMS(QWidget):
         self.field_rate_unit_Label = QLabel("Oe/s")
         self.field_rate_unit_Label.setFont(font)
         self.field_rate_combo = QComboBox()
-        self.field_rate_combo.setStyleSheet("""
-                            QComboBox {
-                                padding: 5px;
-                                background-color: white;
-                                border: 2px solid #c0c0c0;
-                                border-radius: 4px;
-                                }
-                            QComboBox::item:selected {
-                                background-color: #FFFFFF;  /* Background color for selected item */
-                                color: #7CACEC
-                            }
-
-                            QComboBox::drop-down {
-                                subcontrol-origin: padding;
-                                subcontrol-position: top right;
-                                width: 20px;   /* Width of the arrow button */
-                                border-left-width: 1px;
-                                border-left-color: darkgray;
-                                border-left-style: solid; /* just a single line at the left */
-                                border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                border-bottom-right-radius: 3px;
-                            }
-                            QComboBox::down-arrow {
-                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                            }
-                            QComboBox::down-arrow:on { /* When the combo box is open */
-                                top: 1px;
-                                left: 1px;
-                            }
-                        """)
+        self.field_rate_combo.setStyleSheet(self.QCombo_stylesheet)
         self.field_rate_combo.setFont(font)
         self.field_rate_combo.addItems([""])
         self.field_rate_combo.addItems(["Linear"])
@@ -367,41 +308,7 @@ class PPMS(QWidget):
         self.chamber_set_Label = QLabel("Set Status:")
         self.chamber_set_Label.setFont(font)
         self.chamber_set_combo = QComboBox()
-        self.chamber_set_combo.setStyleSheet("""
-                                    QComboBox {
-                                        padding: 5px;
-                                        background-color: white;
-                                        border: 2px solid #c0c0c0;
-                                        border-radius: 4px;
-                                        }
-                                    QComboBox::item:selected {
-                                        background-color: #FFFFFF;  /* Background color for selected item */
-                                        color: #7CACEC
-                                    }
-
-                                    QComboBox::drop-down {
-                                        subcontrol-origin: padding;
-                                        subcontrol-position: top right;
-                                        width: 35px;   /* Width of the arrow button */
-                                        border-left-width: 1px;
-                                        border-left-color: darkgray;
-                                        border-left-style: solid; /* just a single line at the left */
-                                        border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                        border-bottom-right-radius: 3px;
-                                    }
-                                    QComboBox::down-arrow {
-                                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                                    }
-                                    QComboBox::down-arrow:on { /* When the combo box is open */
-                                        top: 1px;
-                                        left: 1px;
-                                    }
-                                """)
-        # self.setStyleSheet("""
-        #                                     QLabel{
-        #                                         background-color: #F8F8F8;
-        #                                         }
-        #                                         """)
+        self.chamber_set_combo.setStyleSheet(self.QCombo_stylesheet)
         self.chamber_set_combo.setFont(font)
         self.chamber_set_combo.addItems([""])
         self.chamber_set_combo.addItems(["Seal"])
@@ -442,104 +349,13 @@ class PPMS(QWidget):
         self.setLayout(main_layout)
 
         #  ---------------------------- Style Sheet --------------------------------
-        self.connect_btn.setStyleSheet("""
-                                   QPushButton {
-                                       background-color: #CAC9Cb; /* Green background */
-                                       color: black; /* White text */
-                                       border-style: solid;
-                                       border-color: #CAC9Cb;
-                                       border-width: 2px;
-                                       border-radius: 10px; /* Rounded corners */
-                                       padding: 5px;
-                                       min-height: 1px;
-                                       min-width: 90px;
-                                   }
-                                   QPushButton:hover {
-                                       background-color: #5F6A6A; /* Slightly darker green */
-                                   }
-                                   QPushButton:pressed {
-                                       background-color: #979A9A; /* Even darker green */
-                                   }
-                               """)
-        self.server_btn.setStyleSheet("""
-                                   QPushButton {
-                                       background-color: #CAC9Cb; /* Green background */
-                                       color: black; /* White text */
-                                       border-style: solid;
-                                       border-color: #CAC9Cb;
-                                       border-width: 2px;
-                                       border-radius: 10px; /* Rounded corners */
-                                       padding: 5px;
-                                       min-height: 1px;
-                                       min-width: 80px;
-                                   }
-                                   QPushButton:hover {
-                                       background-color: #5F6A6A; /* Slightly darker green */
-                                   }
-                                   QPushButton:pressed {
-                                       background-color: #979A9A; /* Even darker green */
-                                   }
-                               """)
-
-        self.set_temp_btn.setStyleSheet("""
-                                           QPushButton {
-                                               background-color: #CAC9Cb; /* Green background */
-                                               color: black; /* White text */
-                                               border-style: solid;
-                                               border-color: #CAC9Cb;
-                                               border-width: 2px;
-                                               border-radius: 10px; /* Rounded corners */
-                                               padding: 5px;
-                                               min-height: 1px;
-                                               min-width: 80px;
-                                           }
-                                           QPushButton:hover {
-                                               background-color: #5F6A6A; /* Slightly darker green */
-                                           }
-                                           QPushButton:pressed {
-                                               background-color: #979A9A; /* Even darker green */
-                                           }
-                                       """)
-
-        self.set_field_btn.setStyleSheet("""
-                                                   QPushButton {
-                                                       background-color: #CAC9Cb; /* Green background */
-                                                       color: black; /* White text */
-                                                       border-style: solid;
-                                                       border-color: #CAC9Cb;
-                                                       border-width: 2px;
-                                                       border-radius: 10px; /* Rounded corners */
-                                                       padding: 5px;
-                                                       min-height: 1px;
-                                                       min-width: 80px;
-                                                   }
-                                                   QPushButton:hover {
-                                                       background-color: #5F6A6A; /* Slightly darker green */
-                                                   }
-                                                   QPushButton:pressed {
-                                                       background-color: #979A9A; /* Even darker green */
-                                                   }
-                                               """)
-
-        self.set_chamber_btn.setStyleSheet("""
-                                                           QPushButton {
-                                                               background-color: #CAC9Cb; /* Green background */
-                                                               color: black; /* White text */
-                                                               border-style: solid;
-                                                               border-color: #CAC9Cb;
-                                                               border-width: 2px;
-                                                               border-radius: 10px; /* Rounded corners */
-                                                               padding: 5px;
-                                                               min-height: 1px;
-                                                               min-width: 80px;
-                                                           }
-                                                           QPushButton:hover {
-                                                               background-color: #5F6A6A; /* Slightly darker green */
-                                                           }
-                                                           QPushButton:pressed {
-                                                               background-color: #979A9A; /* Even darker green */
-                                                           }
-                                                       """)
+        with open("GUI/QSS/QButtonWidget.qss", "r") as file:
+            self.Button_stylesheet = file.read()
+        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+        self.server_btn.setStyleSheet(self.Button_stylesheet)
+        self.set_temp_btn.setStyleSheet(self.Button_stylesheet)
+        self.set_field_btn.setStyleSheet(self.Button_stylesheet)
+        self.set_chamber_btn.setStyleSheet(self.Button_stylesheet)
 
     def remote_server(self, flags: str = ''):
         user_flags = []

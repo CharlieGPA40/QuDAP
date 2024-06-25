@@ -43,36 +43,9 @@ class CurrentSource6221(QWidget):
         #  ---------------------------- PART 2 --------------------------------
         # GPIB ComboBox
         self.gpib_combo = QComboBox()
-        self.gpib_combo.setStyleSheet("""
-                          QComboBox {
-                              padding: 5px;
-                              background-color: white;
-                              border: 2px solid #c0c0c0;
-                              border-radius: 4px;
-                              }
-                          QComboBox::item:selected {
-                              background-color: #FFFFFF;  /* Background color for selected item */
-                              color: #7CACEC
-                          }
-
-                          QComboBox::drop-down {
-                              subcontrol-origin: padding;
-                              subcontrol-position: top right;
-                              width: 20px;   /* Width of the arrow button */
-                              border-left-width: 1px;
-                              border-left-color: darkgray;
-                              border-left-style: solid; /* just a single line at the left */
-                              border-top-right-radius: 3px; /* same radius as the QComboBox */
-                              border-bottom-right-radius: 3px;
-                          }
-                          QComboBox::down-arrow {
-                              image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                          }
-                          QComboBox::down-arrow:on { /* When the combo box is open */
-                              top: 1px;
-                              left: 1px;
-                          }
-                      """)
+        with open("GUI/QSS/QComboWidget.qss", "r") as file:
+            self.QCombo_stylesheet = file.read()
+        self.gpib_combo.setStyleSheet(self.QCombo_stylesheet)
         self.gpib_combo.setFont(font)
 
         self.current_gpib_label = QLabel("Current GPIB Connection: None")
@@ -115,6 +88,7 @@ class CurrentSource6221(QWidget):
         self.DCSource_label = QLabel("DC Source:")
         self.DCSource_label.setFont(font)
         self.dc_source_entry_box = QLineEdit()
+        self.dc_source_entry_box.setFont(font)
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
         self.current_validator = QDoubleValidator(-105, 105, 3)
         self.current_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -123,36 +97,7 @@ class CurrentSource6221(QWidget):
         self.dc_source_entry_box.setFixedHeight(30)
         self.DCUnitSource_combo = QComboBox()
         self.DCUnitSource_combo.setFont(font)
-        self.DCUnitSource_combo.setStyleSheet("""
-                            QComboBox {
-                                padding: 4px;
-                                background-color: white;
-                                border: 2px solid #c0c0c0;
-                                border-radius: 4px;
-                                }
-                            QComboBox::item:selected {
-                                background-color: #FFFFFF;  /* Background color for selected item */
-                                color: #7CACEC
-                            }
-
-                            QComboBox::drop-down {
-                                subcontrol-origin: padding;
-                                subcontrol-position: top right;
-                                width: 38px;   /* Width of the arrow button */
-                                border-left-width: 1px;
-                                border-left-color: darkgray;
-                                border-left-style: solid; /* just a single line at the left */
-                                border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                border-bottom-right-radius: 3px;
-                            }
-                            QComboBox::down-arrow {
-                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                            }
-                            QComboBox::down-arrow:on { /* When the combo box is open */
-                                top: 1px;
-                                left: 1px;
-                            }
-                        """)
+        self.DCUnitSource_combo.setStyleSheet(self.QCombo_stylesheet)
         self.DCUnitSource_combo.addItems(["Select Units"])  # 0
         self.DCUnitSource_combo.addItems(["mA"])  # 1
         self.DCUnitSource_combo.addItems(["µA"])  # 2
@@ -186,41 +131,8 @@ class CurrentSource6221(QWidget):
         Wave_AMP_setup_layout = QHBoxLayout()
         self.waveform_combo = QComboBox()
         self.waveform_combo.setFont(font)
-        self.waveform_combo.setStyleSheet("""
-                                            QComboBox {
-                                                padding: 4px;
-                                                background-color: white;
-                                                border: 2px solid #c0c0c0;
-                                                border-radius: 4px;
-                                                }
-                                            QComboBox::item:selected {
-                                                background-color: #FFFFFF;  /* Background color for selected item */
-                                                color: #7CACEC
-                                            }
+        self.waveform_combo.setStyleSheet(self.QCombo_stylesheet)
 
-                                            QComboBox::drop-down {
-                                                subcontrol-origin: padding;
-                                                subcontrol-position: top right;
-                                                width: 38px;   /* Width of the arrow button */
-                                                border-left-width: 1px;
-                                                border-left-color: darkgray;
-                                                border-left-style: solid; /* just a single line at the left */
-                                                border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                                border-bottom-right-radius: 3px;
-                                            }
-                                            QComboBox::down-arrow {
-                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                                            }
-                                            QComboBox::down-arrow:on { /* When the combo box is open */
-                                                top: 1px;
-                                                left: 1px;
-                                            }
-                                        """)
-        # self.setStyleSheet("""
-        #                                                             QLabel{
-        #                                                                 background-color: #F8F8F8;
-        #                                                                 }
-        #                                                                 """)
         self.waveform_combo.addItems(["Select Funcs"])  # 0
         self.waveform_combo.addItems(["SINE"])  # 1
         self.waveform_combo.addItems(["SQUARE"])  # 2
@@ -230,6 +142,7 @@ class CurrentSource6221(QWidget):
         self.AC_Amplitude_label = QLabel("Amplitude:")
         self.AC_Amplitude_label.setFont(font)
         self.AC_Amplitude_entry_box = QLineEdit()
+        self.AC_Amplitude_entry_box.setFont(font)
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
         self.AC_Amplitude_validator = QDoubleValidator(0, 105, 10)
         self.AC_Amplitude_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -238,41 +151,7 @@ class CurrentSource6221(QWidget):
         self.AC_Amplitude_entry_box.setFixedHeight(30)
         self.WaveAmpUnitSource_combo = QComboBox()
         self.WaveAmpUnitSource_combo.setFont(font)
-        self.WaveAmpUnitSource_combo.setStyleSheet("""
-                                    QComboBox {
-                                        padding: 4px;
-                                        background-color: white;
-                                        border: 2px solid #c0c0c0;
-                                        border-radius: 4px;
-                                        }
-                                    QComboBox::item:selected {
-                                        background-color: #FFFFFF;  /* Background color for selected item */
-                                        color: #7CACEC
-                                    }
-
-                                    QComboBox::drop-down {
-                                        subcontrol-origin: padding;
-                                        subcontrol-position: top right;
-                                        width: 38px;   /* Width of the arrow button */
-                                        border-left-width: 1px;
-                                        border-left-color: darkgray;
-                                        border-left-style: solid; /* just a single line at the left */
-                                        border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                        border-bottom-right-radius: 3px;
-                                    }
-                                    QComboBox::down-arrow {
-                                        image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                                    }
-                                    QComboBox::down-arrow:on { /* When the combo box is open */
-                                        top: 1px;
-                                        left: 1px;
-                                    }
-                                """)
-        # self.setStyleSheet("""
-        #                                                     QLabel{
-        #                                                         background-color: #F8F8F8;
-        #                                                         }
-        #                                                         """)
+        self.WaveAmpUnitSource_combo.setStyleSheet(self.QCombo_stylesheet)
 
         self.WaveAmpUnitSource_combo.addItems(["Select Units"])  # 0
         self.WaveAmpUnitSource_combo.addItems(["mA"])  # 1
@@ -291,6 +170,7 @@ class CurrentSource6221(QWidget):
         self.AC_Frequency_label = QLabel("Frequency:")
         self.AC_Frequency_label.setFont(font)
         self.AC_Frequency_entry_box = QLineEdit()
+        self.AC_Frequency_entry_box.setFont(font)
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
         self.AC_Frequency_validator = QDoubleValidator(0.00, 100000, 5)
         self.AC_Frequency_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -303,6 +183,7 @@ class CurrentSource6221(QWidget):
         self.AC_Offset_label = QLabel("Offset:")
         self.AC_Offset_label.setFont(font)
         self.AC_Offset_entry_box = QLineEdit()
+        self.AC_Offset_entry_box.setFont(font)
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
         self.AC_Offset_validator = QDoubleValidator(-105, 105, 10)
         self.AC_Offset_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -311,41 +192,7 @@ class CurrentSource6221(QWidget):
         self.AC_Offset_entry_box.setFixedHeight(30)
         self.WaveOffsetUnitSource_combo = QComboBox()
         self.WaveOffsetUnitSource_combo.setFont(font)
-        self.WaveOffsetUnitSource_combo.setStyleSheet("""
-                                            QComboBox {
-                                                padding: 4px;
-                                                background-color: white;
-                                                border: 2px solid #c0c0c0;
-                                                border-radius: 4px;
-                                                }
-                                            QComboBox::item:selected {
-                                                background-color: #FFFFFF;  /* Background color for selected item */
-                                                color: #7CACEC
-                                            }
-
-                                            QComboBox::drop-down {
-                                                subcontrol-origin: padding;
-                                                subcontrol-position: top right;
-                                                width: 38px;   /* Width of the arrow button */
-                                                border-left-width: 1px;
-                                                border-left-color: darkgray;
-                                                border-left-style: solid; /* just a single line at the left */
-                                                border-top-right-radius: 3px; /* same radius as the QComboBox */
-                                                border-bottom-right-radius: 3px;
-                                            }
-                                            QComboBox::down-arrow {
-                                                image: url(GUI/Icon/chevron-down.svg); /* Set your own icon for the arrow */
-                                            }
-                                            QComboBox::down-arrow:on { /* When the combo box is open */
-                                                top: 1px;
-                                                left: 1px;
-                                            }
-                                        """)
-        # self.setStyleSheet("""
-        #                                                             QLabel{
-        #                                                                 background-color: #F8F8F8;
-        #                                                                 }
-        #                                                                 """)
+        self.WaveOffsetUnitSource_combo.setStyleSheet(self.QCombo_stylesheet)
 
         self.WaveOffsetUnitSource_combo.addItems(["Select Units"])  # 0
         self.WaveOffsetUnitSource_combo.addItems(["mA"])  # 1
@@ -356,12 +203,6 @@ class CurrentSource6221(QWidget):
         self.Wave_Range_checkbox = QCheckBox("Best Range")
         self.Wave_Range_checkbox.setFont(font)
         self.Wave_Range_checkbox.setChecked(True)
-        # self.Wave_Range_checkbox.setStyleSheet("""
-        #                                                 QCheckBox{
-        #                                                     background-color: #F8F8F8;
-        #                                                     }
-        #                                                             """)
-
         Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_label)
         Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_entry_box)
         Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_Unit_label)
@@ -393,45 +234,10 @@ class CurrentSource6221(QWidget):
         self.setLayout(main_layout)
 
         #  ---------------------------- Style Sheet --------------------------------
-        # self.arm_btn.setStyleSheet("""
-        #            QPushButton {
-        #                background-color: #3498DB; /* Green background */
-        #                color: white; /* White text */
-        #                border-style: solid;
-        #                border-color: #3498DB;
-        #                border-width: 2px;
-        #                border-radius: 10px; /* Rounded corners */
-        #                padding: 5px;
-        #                min-height: 2px;
-        #                min-width: 50px;
-        #            }
-        #            QPushButton:hover {
-        #                background-color: #2874A6  ; /* Slightly darker green */
-        #            }
-        #            QPushButton:pressed {
-        #                background-color: #85C1E9; /* Even darker green */
-        #            }
-        #        """)
 
-        self.connect_btn.setStyleSheet("""
-                                   QPushButton {
-                                       background-color: #CAC9Cb; /* Green background */
-                                       color: black; /* White text */
-                                       border-style: solid;
-                                       border-color: #CAC9Cb;
-                                       border-width: 2px;
-                                       border-radius: 10px; /* Rounded corners */
-                                       padding: 5px;
-                                       min-height: 1px;
-                                       min-width: 50px;
-                                   }
-                                   QPushButton:hover {
-                                       background-color: #5F6A6A; /* Slightly darker green */
-                                   }
-                                   QPushButton:pressed {
-                                       background-color: #979A9A; /* Even darker green */
-                                   }
-                               """)
+        with open("GUI/QSS/QButtonWidget.qss", "r") as file:
+            self.Button_stylesheet = file.read()
+        self.connect_btn.setStyleSheet(self.Button_stylesheet)
         self.send_btn.setStyleSheet("""
                                    QPushButton {
                                        background-color: #CAC9Cb; /* Green background */
@@ -470,25 +276,7 @@ class CurrentSource6221(QWidget):
                                        background-color: #979A9A; /* Even darker green */
                                    }
                                """)
-        refresh_btn.setStyleSheet("""
-                                          QPushButton {
-                                              background-color: #CAC9Cb; /* Green background */
-                                              color: black; /* White text */
-                                              border-style: solid;
-                                              border-color: #CAC9Cb;
-                                              border-width: 2px;
-                                              border-radius: 10px; /* Rounded corners */
-                                              padding: 5px;
-                                              min-height: 1px;
-                                              min-width: 50px;
-                                          }
-                                          QPushButton:hover {
-                                              background-color: #5F6A6A; /* Slightly darker green */
-                                          }
-                                          QPushButton:pressed {
-                                              background-color: #979A9A; /* Even darker green */
-                                          }
-                                      """)
+        refresh_btn.setStyleSheet(self.Button_stylesheet)
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
