@@ -11,6 +11,7 @@ import matplotlib
 import numpy as np
 import csv
 
+# for simulation purpose
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -20,6 +21,101 @@ import time
 import MultiPyVu as mpv  # Uncommented it on the server computer
 from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 from datetime import datetime
+import traceback
+
+class Worker(QThread):
+    progress_update = pyqtSignal(int)
+    append_text = pyqtSignal(str, str)
+    stop_measurment = pyqtSignal()
+    update_ppms_temp_reading_label = pyqtSignal(str, str)
+    update_ppms_field_reading_label = pyqtSignal(str, str)
+    update_ppms_chamber_reading_label = pyqtSignal(str)
+    update_nv_channel_1_label = pyqtSignal(str)
+    update_nv_channel_2_label = pyqtSignal(str)
+    clear_plot = pyqtSignal()
+    update_plot = pyqtSignal(list, list, list)
+
+    def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, current, TempList, topField, botField,
+                 folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
+                 field_mode_fixed, nv_channel_1_enabled, nv_channel_2_enabled,nv_NPLC, ppms_field_One_zone_radio_enabled,
+                 ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled, zone1_step_field, zone2_step_field,
+                 zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
+                 zone3_field_rate):
+        super().__init__()
+        self.measurement_instance = measurement_instance
+        self.running = True
+        self.keithley_6221 = keithley_6221
+        self.keithley_2182nv = keithley_2182nv
+        self.current = current
+        self.TempList = TempList
+        self.topField = topField
+        self.botField = botField
+        self.folder_path = folder_path
+        self.client = client
+        self.tempRate = tempRate
+        self.current_mag = current_mag
+        self.current_unit = current_unit
+        self.file_name = file_name
+        self.run = run
+        self.number_of_field = number_of_field
+        self.field_mode_fixed = field_mode_fixed
+        self.nv_channel_1_enabled = nv_channel_1_enabled
+        self.nv_channel_2_enabled = nv_channel_2_enabled
+        self.nv_NPLC = nv_NPLC
+        self.ppms_field_One_zone_radio_enabled = ppms_field_One_zone_radio_enabled
+        self.ppms_field_Two_zone_radio_enabled = ppms_field_Two_zone_radio_enabled
+        self.ppms_field_Three_zone_radio_enabled = ppms_field_Three_zone_radio_enabled
+        self.zone1_step_field = zone1_step_field
+        self.zone2_step_field = zone2_step_field
+        self.zone3_step_field = zone3_step_field
+        self.zone1_top_field = zone1_top_field
+        self.zone2_top_field = zone2_top_field
+        self.zone3_top_field = zone3_top_field
+        self.zone1_field_rate = zone1_field_rate
+        self.zone2_field_rate = zone2_field_rate
+        self.zone3_field_rate = zone3_field_rate
+
+    def run(self):
+        while self.running:
+            try:
+                self.measurement_instance.run_ETO(self.append_text.emit, self.progress_update.emit,
+                                                  self.stop_measurment.emit, self.update_ppms_temp_reading_label.emit,
+                                                  self.update_ppms_field_reading_label.emit,
+                                                  self.update_ppms_chamber_reading_label.emit,
+                                                  self.update_nv_channel_1_label.emit,
+                                                  self.update_nv_channel_2_label.emit,
+                                                  self.clear_plot.emit, self.update_plot.emit,
+                                                  keithley_6221 =self.keithley_6221,
+                                                  keithley_2182nv=self.keithley_2182nv,
+                                                  current=self.current, TempList=self.TempList, topField=self.topField,
+                                                  botField=self.botField,
+                                                  folder_path=self.folder_path, client=self.client,
+                                                  tempRate=self.tempRate, current_mag=self.current_mag,
+                                                  current_unit=self.current_unit, file_name=self.file_name,
+                                                  run=self.run, number_of_field=self.number_of_field,
+                                                  field_mode_fixed=self.field_mode_fixed,
+                                                  nv_channel_1_enabled=self.nv_channel_1_enabled,
+                                                  nv_channel_2_enabled=self.nv_channel_2_enabled,
+                                                  nv_NPLC=self.nv_NPLC,
+                                                  ppms_field_One_zone_radio_enabled=self.ppms_field_One_zone_radio_enabled,
+                                                  ppms_field_Two_zone_radio_enabled=self.ppms_field_Two_zone_radio_enabled,
+                                                  ppms_field_Three_zone_radio_enabled=self.ppms_field_Three_zone_radio_enabled,
+                                                  zone1_step_field=self.zone1_step_field,
+                                                  zone2_step_field=self.zone2_step_field,
+                                                  zone3_step_field=self.zone3_step_field,
+                                                  zone1_top_field=self.zone1_top_field,
+                                                  zone2_top_field=self.zone2_top_field,
+                                                  zone3_top_field=self.zone3_top_field,
+                                                  zone1_field_rate=self.zone1_field_rate,
+                                                  zone2_field_rate=self.zone2_field_rate,
+                                                  zone3_field_rate=self.zone3_field_rate)
+
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, f'{tb_str} {str(e)}')
+
+    def stop(self):
+        self.running = False
 
 class LogWindow(QDialog):
     def __init__(self):
@@ -161,19 +257,29 @@ class MplCanvas(FigureCanvas):
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
-
 class Measurement(QMainWindow):
     def __init__(self):
         super().__init__()
+
+
         try:
             self.preseted = False
             self.Keithley_2182_Connected = False
             self.Ketihley_6221_Connected = False
             self.BNC845RF_Connected = False
             self.DSP7265_Connected = False
+            self.field_mode_fixed = None
+
+            self.worker = None  # Initialize the worker to None
             self.init_ui()
+            self.ppms_field_One_zone_radio_enabled = False
+            self.ppms_field_Two_zone_radio_enabled = False
+            self.ppms_field_Three_zone_radio_enabled = False
+            self.nv_channel_1_enabled = None
+            self.nv_channel_2_enabled = None
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
             return
 
     def init_ui(self):
@@ -280,7 +386,8 @@ class Measurement(QMainWindow):
             except Exception as e:
                 print(e)
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
             return
 
     def preset_select(self):
@@ -444,9 +551,9 @@ class Measurement(QMainWindow):
     def refresh_Connection_List(self):
         try:
             self.clear_layout(self.Instruments_measurement_setup_layout)
-        except Exception as e:
-            print(e)
-        rm = visa.ResourceManager('@sim')
+        except AttributeError:
+            pass
+        rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
         instruments = rm.list_resources()
         self.connection_ports = [instr for instr in instruments]
         self.Keithley_2182_Connected = False
@@ -618,7 +725,7 @@ class Measurement(QMainWindow):
             self.server_btn.setEnabled(True)
 
     def connect_devices(self):
-        self.rm = visa.ResourceManager('@sim')
+        self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
         self.current_connection_index = self.Instruments_combo.currentIndex()
         self.current_connection = self.connection_combo.currentText()
         if self.ETO_radio_buttom.isChecked():
@@ -630,21 +737,24 @@ class Measurement(QMainWindow):
                         self.connect_keithley_2182()
                     except Exception as e:
                         self.Keithley_2182_Connected = False
-                        QMessageBox.warning(self, 'Error', str(e))
+                        tb_str = traceback.format_exc()
+                        QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
                 elif self.current_connection_index == 2:
                     try:
                         self.connect_keithley_6221()
                     except Exception as e:
                         self.Ketihley_6221_Connected = False
-                        QMessageBox.warning(self, 'Error', str(e))
+                        tb_str = traceback.format_exc()
+                        QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
                 elif self.current_connection_index == 3:
                     try:
                         self.connect_dsp7265()
                     except Exception as e:
                         self.DSP7265_Connected = False
-                        QMessageBox.warning(self, 'Error', str(e))
+                        tb_str = traceback.format_exc()
+                        QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
@@ -657,14 +767,16 @@ class Measurement(QMainWindow):
                         self.connect_keithley_2182()
                     except Exception as e:
                         self.Keithley_2182_Connected = False
-                        QMessageBox.warning(self, 'Error', str(e))
+                        tb_str = traceback.format_exc()
+                        QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
                 elif self.current_connection_index == 2:
                     try:
                         self.connect_keithley_6221()
                     except Exception as e:
                         self.Ketihley_6221_Connected = False
-                        QMessageBox.warning(self, 'Error', str(e))
+                        tb_str = traceback.format_exc()
+                        QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
@@ -673,6 +785,9 @@ class Measurement(QMainWindow):
         if self.Keithley_2182_Connected == False:
             try:
                 self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
+                #  Simulation pysim----------------------------------------------------------
+                self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,  read_termination='\n')
+                # ------------------------------------------------------------------
                 time.sleep(2)
                 self.Keithley_2182_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
@@ -688,6 +803,10 @@ class Measurement(QMainWindow):
         if self.Ketihley_6221_Connected == False:
             try:
                 self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
+                #  Simulation pysim ------------------------------------------------------
+                self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,
+                                                             read_termination='\n')
+                # ---------------------------------------------------------
                 time.sleep(2)
                 self.Ketihley_6221_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
@@ -721,7 +840,8 @@ class Measurement(QMainWindow):
             self.Keithley_2182_Connected = False
             self.clear_layout(self.keithley_2182_contain_layout)
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def close_keithley_6221(self):
         try:
@@ -729,7 +849,8 @@ class Measurement(QMainWindow):
             self.Ketihley_6221_Connected = False
             self.clear_layout(self.keithley_6221_contain_layout)
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def instru_combo_index_change(self):
         self.current_connection_index = self.Instruments_combo.currentIndex()
@@ -1202,20 +1323,6 @@ class Measurement(QMainWindow):
         self.clear_layout(self.ppms_zone_temp_layout)
         self.ppms_zone_temp_layout.addLayout(self.ppms_zone_cus_temp_layout)
 
-    def update_plot(self):
-        if self.isCheckedBox1 == True:
-            self.isPlotting = True
-            self.channel1_Volt_Array.append(self.Chan_1_voltage)
-            self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
-            self.canvas.draw()
-        if self.isCheckedBox2 == True:
-            self.isPlotting = True
-            self.channel2_Volt_Array.append(self.Chan_2_voltage)
-            self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
-            self.canvas.draw()
-        self.counter += 1
-        self.counter_array.append(self.counter)
-
     def on_6221_DC_toggle(self):
         if self.keithley_6221_DC_range_checkbox.isChecked():
             self.keithley_6221_DC_single_checkbox.setEnabled(False)
@@ -1247,8 +1354,23 @@ class Measurement(QMainWindow):
         self.timer.stop()
         self.canvas.axes.cla()
         self.canvas.draw()
+        self.ppms_field_One_zone_radio_enabled = False
+        self.ppms_field_Two_zone_radio_enabled = False
+        self.ppms_field_Three_zone_radio_enabled = False
+        self.nv_channel_1_enabled = None
+        self.nv_channel_2_enabled = None
+
     def stop_measurement(self):
         self.running = False
+        self.ppms_field_One_zone_radio_enabled = False
+        self.ppms_field_Two_zone_radio_enabled = False
+        self.ppms_field_Three_zone_radio_enabled = False
+        self.nv_channel_1_enabled = None
+        self.nv_channel_2_enabled = None
+        try:
+            self.worker.stop()
+        except AttributeError:
+            pass
         self.canvas.axes.cla()
         self.canvas.draw()
         self.main_layout.removeWidget(self.log_box)
@@ -1257,10 +1379,16 @@ class Measurement(QMainWindow):
         self.progress_bar.deleteLater()
 
     def start_measurement(self):
-        self.client.set_temperature(50, 10, self.client.temperature.approach_mode.fast_settle)
         dialog = LogWindow()
         if dialog.exec():
             try:
+                try:
+                    self.main_layout.removeWidget(self.log_box)
+                    self.log_box.deleteLater()
+                    self.main_layout.removeWidget(self.progress_bar)
+                    self.progress_bar.deleteLater()
+                except Exception:
+                    pass
                 self.running = True
                 self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt = dialog.get_text()
 
@@ -1287,418 +1415,530 @@ class Measurement(QMainWindow):
                 self.log_box.setFixedSize(1140, 100)
                 self.main_layout.addWidget(self.progress_bar)
                 self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.log_box.clear()
 
 
+
+                self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
+                try:
+                    model_6221 = self.keithley_6221.query('*IDN?')
+                    self.append_text(str(model_6221), 'green')
+                except visa.errors.VisaIOError as e:
+                    QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
+                    self.stop_measurement()
+                    return
+                self.append_text('Keithley 6221 connected!\n', 'green')
+                self.append_text('Check Connection of Keithley 2182....\n', 'yellow')
+                try:
+                    model_2182 = self.keithley_2182nv.query('*IDN?')
+                    self.keithley_2182nv.write(':SYST:BEEP:STAT 0')
+                    self.log_box.append(str(model_2182))
+                    # Initialize and configure the instrument
+                    self.keithley_2182nv.write("*RST")
+                    self.keithley_2182nv.write("*CLS")
+                    time.sleep(2)  # Wait for the reset to complete
+                except visa.errors.VisaIOError as e:
+                    QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
+                    self.stop_measurement()
+                    return
+                self.append_text('Keithley 2182 connected!\n', 'green')
+
+                def float_range(start, stop, step):
+                    current = start
+                    while current < stop:
+                        yield current
+                        current += step
+
+                try:
+                    self.append_text('Start initializing parameters...!\n', 'orange')
+                    self.append_text('Start initializing Temperatures...!\n', 'blue')
+                    TempList = []
+                    if self.ppms_temp_One_zone_radio.isChecked():
+                        zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
+                        zone_1_end = float(self.ppms_zone1_temp_to_entry.text()) + float(
+                            self.ppms_zone1_temp_step_entry.text())
+                        zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+                        TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                        tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
+                    elif self.ppms_temp_Two_zone_radio.isChecked():
+                        zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
+                        zone_1_end = float(self.ppms_zone1_temp_to_entry.text())
+                        zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+                        zone_2_start = float(self.ppms_zone2_temp_from_entry.text())
+                        zone_2_end = float(self.ppms_zone2_temp_to_entry.text())
+                        zone_2_step = float(self.ppms_zone2_temp_step_entry.text())
+                        if zone_1_end == zone_2_start:
+                            zone_1_end = zone_1_end
+                        else:
+                            zone_1_end = zone_1_end + zone_1_step
+                        TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                        TempList += [round(float(i), 2) for i in
+                                     float_range(zone_2_start, zone_2_end + zone_2_step, zone_2_step)]
+                        tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
+                    elif self.ppms_temp_Three_zone_radio.isChecked():
+                        zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
+                        zone_1_end = float(self.ppms_zone1_temp_to_entry.text())
+                        zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+
+                        zone_2_start = float(self.ppms_zone2_temp_from_entry.text())
+                        zone_2_end = float(self.ppms_zone2_temp_to_entry.text())
+                        zone_2_step = float(self.ppms_zone2_temp_step_entry.text())
+
+                        zone_3_start = float(self.ppms_zone3_temp_from_entry.text())
+                        zone_3_end = float(self.ppms_zone3_temp_to_entry.text()) + float(
+                            self.ppms_zone3_temp_step_entry.text())
+                        zone_3_step = float(self.ppms_zone3_temp_step_entry.text())
+
+                        if zone_1_end == zone_2_start:
+                            zone_1_end = zone_1_end
+                        else:
+                            zone_1_end = zone_1_end + zone_1_step
+
+                        if zone_2_end == zone_3_start:
+                            zone_2_end = zone_2_end
+                        else:
+                            zone_2_end = zone_2_end + zone_2_step
+
+                        TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                        TempList += [round(float(i), 2) for i in float_range(zone_2_start, zone_2_end, zone_2_step)]
+                        TempList += [round(float(i), 2) for i in float_range(zone_3_start, zone_3_end, zone_3_step)]
+                        tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
+                    elif self.ppms_temp_Customize_zone_radio.isChecked():
+                        templist = self.ppms_zone_cus_temp_list_entry.text()
+                        templist = templist.replace(" ", "")
+                        TempList = [round(float(item), 2) for item in templist.split(',')]
+                        tempRate = round(float(self.ppms_zone_cus_temp_rate_entry.text()), 2)
+                except Exception as e:
+                    self.stop_measurement()
+                    tb_str = traceback.format_exc()
+                    QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+                self.append_text('Start initializing Field...!\n', 'blue')
+                if self.ppms_field_One_zone_radio.isChecked():
+                    self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
+                    self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
+                    self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+                    number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+                    number_of_field = np.abs(number_of_field_zone1)
+                elif self.ppms_field_Two_zone_radio.isChecked():
+                    self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
+                    self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
+                    self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+                    self.zone2_top_field = float(self.ppms_zone2_from_entry.text())
+                    self.zone2_bot_field = float(self.ppms_zone2_to_entry.text())
+                    self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+                    self.zone2_field_rate = float(self.ppms_zone2_field_rate_entry.text())
+                    # Need to think about it
+                    number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+                    number_of_field_zone2 = 2 * (self.zone2_top_field - self.zone2_bot_field) / self.zone2_step_field
+                    number_of_field = np.abs(number_of_field_zone1) + np.abs(number_of_field_zone2)
+                elif self.ppms_field_Three_zone_radio.isChecked():
+                    self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
+                    self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
+                    self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+                    self.zone2_top_field = float(self.ppms_zone2_from_entry.text())
+                    self.zone2_bot_field = float(self.ppms_zone2_to_entry.text())
+                    self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+                    self.zone2_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+                    self.zone3_top_field = float(self.ppms_zone3_from_entry.text())
+                    self.zone3_bot_field = float(self.ppms_zone3_to_entry.text())
+                    self.zone3_step_field = float(self.ppms_zone3_field_step_entry.text())
+                    self.zone3_field_rate = float(self.ppms_zone3_field_rate_entry.text())
+                    # Need to think about it
+                    number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
+                    number_of_field_zone2 = 2 * (self.zone2_top_field - self.zone2_bot_field) / self.zone2_step_field
+                    number_of_field_zone3 = 2 * (self.zone3_top_field - self.zone3_bot_field) / self.zone3_step_field
+                    number_of_field = np.abs(number_of_field_zone1) + np.abs(number_of_field_zone2) + np.abs(
+                        number_of_field_zone3)
+
+                topField = self.zone1_top_field
+                botField = -1 * self.zone1_top_field
+
+                self.append_text('Start initializing Current...!\n', 'blue')
+                # =============================== Set the current ==================================== #
+                if self.keithley_6221_DC_radio.isChecked():
+                    if self.keithley_6221_DC_range_checkbox.isChecked():
+                        init_current = float(self.keithley_6221_DC_range_init_entry.text())
+                        final_current = float(self.keithley_6221_DC_range_final_entry.text())
+                        step_current = float(self.keithley_6221_DC_range_step_entry.text())
+                        self.DC_Range_unit = self.keithley_6221_DC_range_combobox.currentIndex()
+                        if self.DC_Range_unit != 0:
+                            if self.DC_Range_unit == 1:  # mA
+                                DC_range_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.DC_Range_unit == 2:  # uA
+                                DC_range_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.DC_Range_unit == 3:  # nA
+                                DC_range_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.DC_Range_unit == 4:  # pA
+                                DC_range_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{i}{DC_range_selected_unit}" for i in
+                                   float_range(init_current, final_current + step_current, step_current)]
+                        current_mag = [f"{i}" for i in
+                                       float_range(init_current, final_current + step_current, step_current)]
+                    elif self.keithley_6221_DC_single_checkbox.isChecked():
+                        self.single_DC_current = self.keithley_6221_DC_single_entry.text()
+                        self.single_DC_current = self.single_DC_current.replace(" ", "")
+                        self.single_DC_current = [float(item) for item in self.single_DC_current.split(',')]
+                        self.DC_Single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
+                        if self.DC_Single_unit != 0:
+                            if self.DC_Single_unit == 1:  # mA
+                                DC_single_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.DC_Single_unit == 2:  # uA
+                                DC_single_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.DC_Single_unit == 3:  # nA
+                                DC_single_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.DC_Single_unit == 4:  # pA
+                                DC_single_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{self.single_DC_current[i]}{DC_single_selected_unit}" for i in
+                                   range(len(self.single_DC_current))]
+                        current_mag = [f"{self.single_DC_current[i]}" for i in range(len(self.single_DC_current))]
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                        self.stop_measurement()
+                        return
+                elif self.keithley_6221_AC_radio.isChecked():
+                    QMessageBox.warning(self, "New Feature is coming", 'Abort')
+                    self.stop_measurement()
+                    return
+
+                nv_NPLC = self.NPLC_entry.text()
+
+                if self.ppms_field_One_zone_radio.isChecked():
+                    self.ppms_field_One_zone_radio_enabled = True
+                    self.ppms_field_Two_zone_radio_enabled = False
+                    self.ppms_field_Three_zone_radio_enabled = False
+                    self.zone2_step_field = self.zone1_step_field
+                    self.zone3_step_field = self.zone1_step_field
+                    self.zone2_field_rate = self.zone1_field_rate
+                    self.zone3_field_rate = self.zone1_field_rate
+                elif self.ppms_field_Two_zone_radio.isChecked():
+                    self.ppms_field_Two_zone_radio_enabled = True
+                    self.ppms_field_One_zone_radio_enabled = False
+                    self.ppms_field_Three_zone_radio_enabled = False
+                    self.zone3_step_field = self.zone2_step_field
+                    self.zone3_field_rate = self.zone2_field_rate
+                elif self.ppms_field_Three_zone_radio.isChecked():
+                    self.ppms_field_Three_zone_radio_enabled = True
+                    self.ppms_field_Two_zone_radio_enabled = False
+                    self.ppms_field_One_zone_radio_enabled = False
+                # Function to convert
+                def listToString(s):
+                    # initialize an empty string
+                    str1 = ""
+                    # return string
+                    return (str1.join(s))
+
+                temp_log = str(TempList)
+                self.append_text('Create Log...!\n', 'green')
+                f = open(self.folder_path + 'Experiment_Log.txt', "a")
+                today = datetime.today()
+                self.formatted_date_csv = today.strftime("%m/%d/%Y")
+                f.write(f"Today's Date: {self.formatted_date_csv}\n")
+                f.write(f"Sample ID: {self.ID}\n")
+                f.write(f"Measurement Type: {self.Measurement}\n")
+                f.write(f"Run: {self.run}\n")
+                f.write(f"Comment: {self.commemt}\n")
+                f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
+                f.write(f"Experiment Temperature (K): {temp_log}\n")
+                f.write(f"Experiment Current: {listToString(current)}\n")
+                f.close()
+
+                if self.ppms_field_mode_fixed_radio.isChecked():
+                    self.field_mode_fixed = True
+                else:
+                    self.field_mode_fixed = False
+
+                if self.keithley_2182_channel_1_checkbox.isChecked():
+                    self.nv_channel_1_enabled = True
+                else:
+                    self.nv_channel_1_enabled = True
+
+                if self.keithley_2182_channel_2_checkbox.isChecked():
+                    self.nv_channel_2_enabled = True
+                else:
+                    self.nv_channel_2_enabled = True
+
+                self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, current, TempList, topField,
+                                     botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
+                                     self.file_name, self.run, number_of_field, self.field_mode_fixed,
+                                     self.nv_channel_1_enabled, self.nv_channel_2_enabled, nv_NPLC,
+                                     self.ppms_field_One_zone_radio_enabled, self.ppms_field_Two_zone_radio_enabled,
+                                     self.ppms_field_Three_zone_radio_enabled, self.zone1_step_field,
+                                     self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
+                                     self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
+                                     self.zone2_field_rate,self.zone3_field_rate)  # Create a worker instance
+                self.worker.progress_update.connect(self.update_progress)
+                self.worker.append_text.connect(self.append_text)
+                self.worker.stop_measurment.connect(self.stop_measurement)
+                self.worker.update_ppms_temp_reading_label.connect(self.update_ppms_temp_reading_label)
+                self.worker.update_ppms_field_reading_label.connect(self.update_ppms_field_reading_label)
+                self.worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
+                self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
+                self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
+                self.worker.update_plot.connect(self.update_plot)
+                self.worker.clear_plot.connect(self.clear_plot)
+                self.worker.finished.connect(self.measurement_finished)
+                self.worker.start()  # Start the worker thread
 
             except Exception as e:
-                QMessageBox.warning(self, 'Warning', str(e))
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
-            try:
-                while self.running:
-                    self.run_ETO()
-            except Exception as e:
-                self.stop_measurement()
-                QMessageBox.warning(self, 'Warning', str(e))
+    def update_plot(self, x_data, y_data, color):
+        self.canvas.axes.plot(x_data, y_data, color)
+        self.canvas.draw()
+
+    def clear_plot(self):
+        self.canvas.axes.cla()
+
+    def update_nv_channel_1_label(self, chanel1):
+        self.keithley_2182_channel_1_reading_label.setText(chanel1)
+
+    def update_nv_channel_2_label(self, chanel2):
+        self.keithley_2182_channel_1_reading_label.setText(chanel2)
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+
+    def show_error_message(self, tb_str, error_str):
+        QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
+
+    def measurement_finished(self):
+        self.worker = None
+        QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):
-        self.log_box.append(f'<span style="color:{color}">{text}</span>')
+        self.log_box.append(f'<span style="color:{color}">{str(text)}</span>')
 
-    def run_ETO(self):
-        self.log_box.clear()
-        self.log_box.append('Check Connection of Keithley 6221....\n')
-        # try:
-        #     model_6221 = self.keithley_6221.query('*IDN?')
-        #     self.log_box.append(model_6221+'\n')
+    def update_ppms_temp_reading_label(self,  temp, tempUnits):
+        self.ppms_reading_temp_label.setText(f'{str(temp)} {str(tempUnits)}')
 
-        # except visa.errors.VisaIOError as e:
-        #     QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
-        #     self.stop_measurement()
-        #     return
-        self.append_text('Keithley 6221 connected!\n', 'green')
-        self.log_box.append('Check Connection of Keithley 2182....\n')
-        # try:
-        #     model_2182self.keithley_2182nv.query('*IDN?')
-        #     self.log_box.append(model_2182 +'\n')
-        # Initialize and configure the instrument
-        #     self.keithley_2182nv.write("*RST")
-        #     self.keithley_2182nv.write("*CLS")
-        #     time.sleep(2)  # Wait for the reset to complete
-        # except visa.errors.VisaIOError as e:
-        #     QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
-        #     self.stop_measurement()
-        #     return
-        self.append_text('Keithley 2182 connected!\n', 'green')
-        def float_range(start, stop, step):
-            current = start
-            while current < stop:
-                yield current
-                current += step
-        try:
-            self.append_text('Start initializing parameters...!\n', 'orange')
-            self.append_text('Start initializing Temperatures...!\n','blue')
-            TempList = []
-            if self.ppms_temp_One_zone_radio.isChecked():
-                zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
-                zone_1_end = float(self.ppms_zone1_temp_to_entry.text()) + float(self.ppms_zone1_temp_step_entry.text())
-                zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
-                TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
-                tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
-            elif self.ppms_temp_Two_zone_radio.isChecked():
-                zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
-                zone_1_end = float(self.ppms_zone1_temp_to_entry.text())
-                zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
-                zone_2_start = float(self.ppms_zone2_temp_from_entry.text())
-                zone_2_end = float(self.ppms_zone2_temp_to_entry.text())
-                zone_2_step = float(self.ppms_zone2_temp_step_entry.text())
-                if zone_1_end == zone_2_start:
-                    zone_1_end = zone_1_end
-                else:
-                    zone_1_end = zone_1_end + zone_1_step
-                TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
-                TempList += [round(float(i), 2) for i in float_range(zone_2_start, zone_2_end + zone_2_step, zone_2_step)]
-                tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
-            elif self.ppms_temp_Three_zone_radio.isChecked():
-                zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
-                zone_1_end = float(self.ppms_zone1_temp_to_entry.text())
-                zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+    def update_ppms_chamber_reading_label(self,  cT):
+        self.ppms_reading_chamber_label.setText(f'{str(cT)}')
 
-                zone_2_start = float(self.ppms_zone2_temp_from_entry.text())
-                zone_2_end = float(self.ppms_zone2_temp_to_entry.text())
-                zone_2_step = float(self.ppms_zone2_temp_step_entry.text())
+    def update_ppms_field_reading_label(self,  field, fieldUnits):
+        self.ppms_reading_field_label.setText(f'{str(field)} {str(fieldUnits)}')
 
-                zone_3_start = float(self.ppms_zone3_temp_from_entry.text())
-                zone_3_end = float(self.ppms_zone3_temp_to_entry.text()) + float(self.ppms_zone3_temp_step_entry.text())
-                zone_3_step = float(self.ppms_zone3_temp_step_entry.text())
-
-                if zone_1_end == zone_2_start:
-                    zone_1_end = zone_1_end
-                else:
-                    zone_1_end = zone_1_end + zone_1_step
-
-                if zone_2_end == zone_3_start:
-                    zone_2_end = zone_2_end
-                else:
-                    zone_2_end = zone_2_end + zone_2_step
-
-                TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
-                TempList += [round(float(i), 2) for i in float_range(zone_2_start, zone_2_end, zone_2_step)]
-                TempList += [round(float(i), 2) for i in float_range(zone_3_start, zone_3_end, zone_3_step)]
-                tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
-            elif self.ppms_temp_Customize_zone_radio.isChecked():
-                templist = self.ppms_zone_cus_temp_list_entry.text()
-                templist = templist.replace(" ", "")
-                TempList = [round(float(item), 2) for item in templist.split(',')]
-                tempRate = round(float(self.ppms_zone_cus_temp_rate_entry.text()),2)
-        except Exception as e:
-            self.stop_measurement()
-            QMessageBox.warning(self, 'Error', str(e))
-        # temp_log = ','.join(map(str, TempList))
-        # self.log_box.append('Measurement Temperature '+ temp_log +'\n')
-        # =============================== Set the Field ==================================== #
-        self.append_text('Start initializing Field...!\n', 'blue')
-        if self.ppms_field_One_zone_radio.isChecked():
-            self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
-            self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
-            self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
-            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
-            number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
-            number_of_field = np.abs(number_of_field_zone1)
-        elif self.ppms_field_Two_zone_radio.isChecked():
-            self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
-            self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
-            self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
-            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
-            self.zone2_top_field = float(self.ppms_zone2_from_entry.text())
-            self.zone2_bot_field = float(self.ppms_zone2_to_entry.text())
-            self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
-            self.zone2_field_rate = float(self.ppms_zone2_field_rate_entry.text())
-            # Need to think about it
-            number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
-            number_of_field_zone2 = 2 * (self.zone2_top_field - self.zone2_bot_field) / self.zone2_step_field
-            number_of_field = np.abs(number_of_field_zone1) + np.abs(number_of_field_zone2)
-        elif self.ppms_field_Three_zone_radio.isChecked():
-            self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
-            self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
-            self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
-            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
-            self.zone2_top_field = float(self.ppms_zone2_from_entry.text())
-            self.zone2_bot_field = float(self.ppms_zone2_to_entry.text())
-            self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
-            self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
-            self.zone3_top_field = float(self.ppms_zone3_from_entry.text())
-            self.zone3_bot_field = float(self.ppms_zone3_to_entry.text())
-            self.zone3_step_field = float(self.ppms_zone3_field_step_entry.text())
-            self.zone3_field_rate = float(self.ppms_zone3_field_rate_entry.text())
-            # Need to think about it
-            number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
-            number_of_field_zone2 = 2 * (self.zone2_top_field - self.zone2_bot_field) / self.zone2_step_field
-            number_of_field_zone3 = 2 * (self.zone3_top_field - self.zone3_bot_field) / self.zone3_step_field
-            number_of_field = np.abs(number_of_field_zone1) + np.abs(number_of_field_zone2) + np.abs(number_of_field_zone3)
-
-        topField = self.zone1_top_field
-        botField = -1 * self.zone1_top_field
-
-        self.append_text('Start initializing Current...!\n', 'blue')
-        # =============================== Set the current ==================================== #
-        if self.keithley_6221_DC_radio.isChecked():
-            if self.keithley_6221_DC_range_checkbox.isChecked():
-                init_current = float(self.keithley_6221_DC_range_init_entry.text())
-                final_current = float(self.keithley_6221_DC_range_final_entry.text())
-                step_current = float(self.keithley_6221_DC_range_step_entry.text())
-                self.DC_Range_unit = self.keithley_6221_DC_range_combobox.currentIndex()
-                if self.DC_Range_unit != 0:
-                    if self.DC_Range_unit == 1:  # mA
-                        DC_range_selected_unit = 'e-3'
-                        self.current_unit = 'mA'
-                    elif self.DC_Range_unit == 2:  # uA
-                        DC_range_selected_unit = 'e-6'
-                        self.current_unit = 'uA'
-                    elif self.DC_Range_unit == 3:  # nA
-                        DC_range_selected_unit = 'e-9'
-                        self.current_unit = 'nA'
-                    elif self.DC_Range_unit == 4:  # pA
-                        DC_range_selected_unit = 'e-12'
-                        self.current_unit = 'pA'
-                else:
-                    QMessageBox.warning(self,"Missing Items", "Please select all the required parameter - missing current unit")
-                    self.stop_measurement()
-                    return
-                current = [f"{i}{DC_range_selected_unit}" for i in float_range(init_current, final_current+step_current, step_current)]
-                current_mag = [f"{i}" for i in float_range(init_current, final_current+step_current, step_current)]
-            elif self.keithley_6221_DC_single_checkbox.isChecked():
-                self.single_DC_current = self.keithley_6221_DC_single_entry.text()
-                self.single_DC_current = self.single_DC_current.replace(" ", "")
-                self.single_DC_current = [float(item) for item in self.single_DC_current.split(',')]
-                self.DC_Single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
-                if self.DC_Single_unit != 0:
-                    if self.DC_Single_unit == 1:  # mA
-                        DC_single_selected_unit = 'e-3'
-                        self.current_unit = 'mA'
-                    elif self.DC_Single_unit == 2:  # uA
-                        DC_single_selected_unit = 'e-6'
-                        self.current_unit = 'uA'
-                    elif self.DC_Single_unit == 3:  # nA
-                        DC_single_selected_unit = 'e-9'
-                        self.current_unit = 'nA'
-                    elif self.DC_Single_unit == 4:  # pA
-                        DC_single_selected_unit = 'e-12'
-                        self.current_unit = 'pA'
-                else:
-                    QMessageBox.warning(self,"Missing Items", "Please select all the required parameter - missing current unit")
-                    self.stop_measurement()
-                    return
-                print("enter here")
-                current = [f"{self.single_DC_current[i]}{DC_single_selected_unit}" for i in range(len(self.single_DC_current))]
-                current_mag = [f"{self.single_DC_current[i]}" for i in range(len(self.single_DC_current))]
-            else:
-                QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
-                self.stop_measurement()
-                return
-        elif self.keithley_6221_DC_radio.isChecked():
-            QMessageBox.warning(self, "New Feature is coming", 'Abort')
-            self.stop_measurement()
-            return
-
+    def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
+                update_ppms_field_reading_label, update_ppms_chamber_reading_label,
+                update_nv_channel_1_label, update_nv_channel_2_label, clear_plot, update_plot,
+                keithley_6221, keithley_2182nv, current, TempList,
+                topField, botField, folder_path, client, tempRate, current_mag, current_unit,
+                file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
+                nv_channel_2_enabled, nv_NPLC, ppms_field_One_zone_radio_enabled,
+                ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled,zone1_step_field,
+                zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
+                zone2_field_rate, zone3_field_rate):
         number_of_current = len(current)
         number_of_temp = len(TempList)
-        fieldRate = 220
+        Fast_fieldRate = 220
         tempRate_init = 20
         zeroField = 0
         start_time = time.time()
-        self.log_box.append('Measurement Start....\n')
-
-        # Function to convert
-        def listToString(s):
-            # initialize an empty string
-            str1 = " "
-            # return string
-            return (str1.join(s))
-
-        self.append_text('Create Log...!\n', 'green')
-        f = open(self.folder_path + 'Experiment_Log.txt', "a")
-        today = datetime.today()
-        self.formatted_date_csv = today.strftime("%m/%d/%Y")
-        f.write(f"Today's Date: {self.formatted_date_csv}\n")
-        f.write(f"Sample ID: {self.ID}\n")
-        f.write(f"Measurement Type: {self.Measurement}\n")
-        f.write(f"Run: {self.run}\n")
-        f.write(f"Comment: {self.commemt}\n")
-        f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
-        f.write(f"Experiment Temperature (K): {listToString(TempList)}\n")
-        f.write(f"Experiment Current: {listToString(current)}\n")
-        f.close()
-
-        # fieldRate = 220
-        # fieldRateSweeping = 10
+        append_text('Measurement Start....\n', 'red')
+        user_field_rate = zone1_field_rate
 
         def deltaH_chk(currentField):
-            if self.ppms_field_One_zone_radio.isChecked():
-                deltaH = self.zone1_step_field
-            elif self.ppms_field_Two_zone_radio.isChecked():
-                if (currentField <= self.zone1_top_field or currentField >= -1 * self.zone1_top_field):
-                    deltaH = self.zone1_step_field
-                elif (currentField > -1*self.zone2_top_field and currentField <= self.zone2_top_field):
-                    deltaH = self.zone2_step_field
-            elif self.ppms_field_Three_zone_radio.isChecked():
-                if (currentField <= self.zone1_top_field or currentField >= -1 * self.zone1_top_field):
-                    deltaH = self.zone1_step_field
-                elif (currentField < self.zone2_top_field and currentField >= -1*self.zone2_top_field):
-                    deltaH = self.zone2_step_field
-                elif (currentField > -1 * self.zone3_top_field and currentField < self.zone3_top_field):
-                    deltaH = self.zone3_step_field
+            if ppms_field_One_zone_radio_enabled:
+                deltaH = zone1_step_field
+                user_field_rate = zone1_field_rate
+            elif ppms_field_Two_zone_radio_enabled:
+                if (currentField <= zone1_top_field or currentField >= -1 * zone1_top_field):
+                    deltaH = zone1_step_field
+                    user_field_rate = zone1_field_rate
+                elif (currentField > -1 * zone2_top_field and currentField <= zone2_top_field):
+                    deltaH = zone2_step_field
+                    user_field_rate = zone2_field_rate
+            elif ppms_field_Three_zone_radio_enabled:
+                if (currentField <= zone1_top_field or currentField >= -1 * zone1_top_field):
+                    deltaH = zone1_step_field
+                    user_field_rate = zone1_field_rate
+                elif (currentField < zone2_top_field and currentField >= -1 * zone2_top_field):
+                    deltaH = zone2_step_field
+                    user_field_rate = zone2_field_rate
+                elif (currentField > -1 * zone3_top_field and currentField < zone3_top_field):
+                    deltaH = zone3_step_field
+                    user_field_rate = zone3_field_rate
 
-            return deltaH
+            return deltaH, user_field_rate
 
         time.sleep(5)
-
         # -------------Temp Status---------------------
-        temperature, status = self.client.get_temperature()
-        tempUnits = self.client.temperature.units
-        self.append_text(f'Temperature = {temperature} {tempUnits}\n', 'purple')
-        self.ppms_reading_temp_label.setText(f'{temperature} {tempUnits}')
+        temperature, status = client.get_temperature()
+        tempUnits = client.temperature.units
+        append_text(f'Temperature = {temperature} {tempUnits}\n', 'purple')
+        update_ppms_temp_reading_label(str(temperature), 'K')
         # ------------Field Status----------------------
         field, status = self.client.get_field()
         fieldUnits = self.client.field.units
-        self.log_box.append(f'Field = {field} {fieldUnits}\n')
-        self.ppms_reading_field_label.setText(f'{field} {fieldUnits}')
-
+        append_text(f'Field = {field} {fieldUnits}\n', 'purple')
+        update_ppms_field_reading_label(str(field), 'Oe')
         # ----------------- Loop Down ----------------------#
         Curlen = len(current)
         templen = len(TempList)
         totoal_progress = Curlen*templen
-        for i in range(templen):
 
-            self.log_box.append(f'Loop is at {TempList[i]} K Temperature\n')
+        cT = client.get_chamber()
+        update_ppms_chamber_reading_label(str(cT))
+
+        for i in range(templen):
+            append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
             Tempsetpoint = TempList[i]
             if i == 0:
-                self.client.set_temperature(Tempsetpoint,tempRate_init,self.client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+                client.set_temperature(Tempsetpoint,
+                                       tempRate_init,
+                                       client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
             else:
-                self.client.set_temperature(Tempsetpoint, tempRate,
-                                            self.client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
-            self.log_box.append(f'Waiting for {Tempsetpoint} K Temperature\n')
+                client.set_temperature(Tempsetpoint,
+                                       tempRate,
+                                       client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+            append_text(f'Waiting for {Tempsetpoint} K Temperature\n', 'red')
             time.sleep(4)
 
-            MyTemp, sT =self.client.get_temperature()
-            self.ppms_reading_temp_label.setText(f'{MyTemp} K')
+            MyTemp, sT = client.get_temperature()
+            update_ppms_temp_reading_label(str(MyTemp), 'K')
             while True:
                 time.sleep(1)
-                MyTemp, sT = self.client.get_temperature()
-                self.ppms_reading_temp_label.setText(f'{MyTemp} K')
-                self.log_box.append(f'Temperature Status: {sT}\n')
+                MyTemp, sT = client.get_temperature()
+                update_ppms_temp_reading_label(str(MyTemp), 'K')
+                append_text(f'Temperature Status: {sT}\n', 'blue')
                 if sT == 'Stable':
                     break
             if i == 0:
+                append_text(f'Stabling the Temperature....', 'orange')
                 time.sleep(60)
+
             else:
+                append_text(f'Stabling the Temperature.....', 'orange')
                 time.sleep(300)
 
             for j in range(Curlen):
-                cT = self.client.get_chamber()
-                self.ppms_reading_chamber_label.setText(f'{cT}')
+                clear_plot()
 
                 current_progress = int(i*j/totoal_progress)
-                self.progress_bar.setValue(current_progress)
+                progress_update(current_progress)
                 # number_of_current = number_of_current - 1
-                self.client.set_field(topField,
-                                      fieldRate,
-                                      self.client.field.approach_mode.linear,  # linear/oscillate
-                                      self.client.field.driven_mode.driven)
-                self.log_box.append(f'Waiting for {zeroField} Oe Field \n')
+                client.set_field(topField,
+                                 Fast_fieldRate,
+                                 client.field.approach_mode.linear,  # linear/oscillate
+                                 client.field.driven_mode.driven)
+                append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                 time.sleep(10)
                 while True:
                     time.sleep(15)
-                    F, sF = self.client.get_field()
-                    self.ppms_reading_field_label.setText(f'{F} Oe')
-                    self.log_box.append(f'Status: {sF}\n')
+                    F, sF = client.get_field()
+                    update_ppms_field_reading_label(str(F), 'Oe')
+                    append_text(f'Status: {sF}\n', 'red')
                     if sF == 'Holding (driven)':
                         break
-
-                self.client.set_field(zeroField,
-                                 fieldRate,
-                                 self.client.field.approach_mode.oscillate,  # linear/oscillate
-                                 self.client.field.driven_mode.driven)
-                self.log_box.append(f'Waiting for {zeroField} Oe Field \n')
+                client.set_field(zeroField,
+                                 Fast_fieldRate,
+                                 client.field.approach_mode.oscillate,  # linear/oscillate
+                                 client.field.driven_mode.driven)
+                append_text(f'Waiting for {zeroField} Oe Field for Demagnetization... \n', 'blue')
                 time.sleep(10)
                 while True:
                     time.sleep(15)
-                    F, sF = self.client.get_field()
-                    self.ppms_reading_field_label.setText(f'{F} Oe')
-                    self.log_box.append(f'Status: {sF}\n')
+                    F, sF = client.get_field()
+                    update_ppms_field_reading_label(str(F), 'Oe')
+                    append_text(f'Status: {sF}\n', 'red')
                     if sF == 'Holding (driven)':
                         break
-
-                self.keithley_6221.write(":OUTP OFF")  # Set source function to current
-                self.keithley_6221.write("CURRent:RANGe:AUTO ON \n")
-                self.keithley_6221.write(f'CURR {current[j]} \n')
-                self.keithley_6221.write(":OUTP ON")  # Turn on the output
-                self.log_box.append(f'DC current is set to: {current_mag[j]} {self.current_unit}')
-                csv_filename = f"{self.folder_path}{self.file_name}_{TempList[i]}_K_{current_mag[j]}_{self.current_unit}_Run_{self.run}.csv"
-                print(csv_filename)
-                pts = 0
+                keithley_6221.write(":OUTP OFF")  # Set source function to current
+                keithley_6221.write("CURRent:RANGe:AUTO ON \n")
+                keithley_6221.write(f'CURR {current[j]} \n')
+                keithley_6221.write(":OUTP ON")  # Turn on the output
+                append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
+                csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
+                self.pts = 0
                 currentField = topField
+                deltaH, user_field_rate = deltaH_chk(currentField)
                 number_of_field_update = number_of_field
                 self.field_array = []
                 self.channel1_array = []
                 self.channel2_array = []
-                if self.ppms_field_mode_fixed_radio.isChecked():
+                if field_mode_fixed:
                     while currentField >= botField:
                         single_measurement_start = time.time()
-                        self.log_box.append(f'Loop is at {currentField} Oe Field Up \n')
+                        append_text(f'Loop is at {currentField} Oe Field Up \n', 'blue')
                         Fieldsetpoint = currentField
-                        self.log_box.append(f'Set the field to {Fieldsetpoint} Oe and then collect data \n')
-                        self.client.set_field(Fieldsetpoint,
-                                            fieldRate,
-                                            self.client.field.approach_mode.linear,
-                                            self.client.field.driven_mode.driven)
-                        self.log_box.append(f'Waiting for {Fieldsetpoint} Oe Field \n')
+                        append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'blue')
+                        client.set_field(Fieldsetpoint,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
                         time.sleep(4)
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
                         while True:
                             time.sleep(1)
-                            MyField, sF = self.client.get_field()
-                            self.ppms_reading_field_label.setText(f'{F} Oe')
-                            self.log_box.append(f'Status: {sF}\n')
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            append_text(f'Status: {sF}\n', 'blue')
                             if sF == 'Holding (driven)':
                                 break
 
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                        # ----------------------------- Measure NV voltage -------------------
-                        self.log_box.append(f'Saving data for {MyField} Oe \n')
 
-                        self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        self.keithley_2182nv.write("VOLT:DC:NPLC 1.2")
+                        # ----------------------------- Measure NV voltage -------------------
+                        append_text(f'Saving data for {MyField} Oe \n', 'green')
+                        keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                        keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
                         time.sleep(2)  # Wait for the configuration to complete
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
                         self.field_array.append(MyField)
-                        if self.keithley_2182_channel_1_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 1")
-                            volt = self.keithley_2182nv.query("READ?")
+                        if nv_channel_1_enabled:
+                            keithley_2182nv.write("SENS:CHAN 1")
+                            volt = keithley_2182nv.query("READ?")
+                            print("Emter", volt)
                             Chan_1_voltage = float(volt)
-                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
-                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            update_nv_channel_1_label(str(Chan_1_voltage))
+                            print(Chan_1_voltage)
+                            append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
 
                             self.channel1_array.append(Chan_1_voltage)
                             # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
-                            self.canvas.draw()
-                        if self.keithley_2182_channel_2_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 2")
-                            volt2 = self.keithley_2182nv.query("READ?")
+                            print(self.field_array, self.channel1_array)
+                            update_plot(self.field_array, self.channel1_array, 'black')
+
+                        if nv_channel_2_enabled:
+                            keithley_2182nv.write("SENS:CHAN 2")
+                            volt2 = keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
-                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            update_nv_channel_2_label(str(Chan_2_voltage))
+                            append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
-                            self.canvas.draw()
+                            update_plot(self.field_array, self.channel2_array, 'red')
 
                         # Calculate the average voltage
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
                         resistance_chan_2 = Chan_2_voltage / float(current[j])
-
+                        print('enter here')
                         # Append the data to the CSV file
                         with open(csv_filename, "a", newline="") as csvfile:
                             csv_writer = csv.writer(csvfile)
@@ -1712,101 +1952,98 @@ class Measurement(QMainWindow):
 
                             csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                  Chan_2_voltage, MyTemp, current[j]])
-                            self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K')
+                            append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
 
                         MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                        update_ppms_field_reading_label(MyField, 'Oe')
                         MyTemp, sT = self.client.get_temperature()
-                        self.ppms_reading_temp_label.setText(f'{MyTemp} K')
+                        update_ppms_temp_reading_label(MyTemp, 'K')
                         # ----------------------------- Measure NV voltage -------------------
-                        deltaH = deltaH_chk(currentField)
+                        print('Test end here')
 
-                        self.log_box.append(f'deltaH = {deltaH}\n')
+                        deltaH, user_field_rate = deltaH_chk(currentField)
+
+                        append_text(f'deltaH = {deltaH}\n', 'orange')
                         # Update currentField for the next iteration
                         currentField -= deltaH
-                        pts += 1  # Number of pts count
+                        self.pts += 1  # Number of self.pts count
                         single_measurement_end = time.time()
                         Single_loop = single_measurement_end - single_measurement_start
                         number_of_field_update = number_of_field_update - 1
-                        self.log_box.append('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop))
-                        self.log_box.append('Estimated Single measurement (in hrs):  {} s \n'.format(
-                            Single_loop * number_of_field / 60 / 60))
+                        append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop), 'purple')
+                        append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                            Single_loop * number_of_field / 60 / 60), 'purple')
                         total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
                                     number_of_temp - i)
                         totoal_time_in_minutes = total_time_in_seconds / 60
                         total_time_in_hours = totoal_time_in_minutes / 60
                         total_time_in_days = total_time_in_hours / 24
-                        self.log_box.append('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                            total_time_in_seconds))
-                        self.log_box.append(
+                        append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                            total_time_in_seconds), 'purple')
+                        append_text(
                             'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                totoal_time_in_minutes))
-                        self.log_box.append('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                            total_time_in_hours))
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
-                                total_time_in_days))
+                                totoal_time_in_minutes), 'purple')
+                        append_text('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                            total_time_in_hours), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                total_time_in_days), 'purple')
 
                     # ----------------- Loop Up ----------------------#
                     currentField = botField
+                    deltaH, user_field_rate = deltaH_chk(currentField)
                     while currentField <= topField:
                         single_measurement_start = time.time()
-                        self.log_box.append(f'\n Loop is at {currentField} Oe Field Up \n')
+                        append_text(f'\n Loop is at {currentField} Oe Field Up \n', 'blue')
                         Fieldsetpoint = currentField
 
-                        self.log_box.append(f'Set the field to {Fieldsetpoint} Oe and then collect data \n')
-                        self.client.set_field(Fieldsetpoint,
-                                         fieldRate,
-                                         self.client.field.approach_mode.linear,
-                                         self.client.field.driven_mode.driven)
+                        append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
+                        client.set_field(Fieldsetpoint,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
 
-                        self.log_box.append(f'Waiting for {Fieldsetpoint} Oe Field \n')
+                        append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
                         time.sleep(4)
 
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
                         while True:
                             time.sleep(1)
-                            MyField, sF = self.client.get_field()
-                            self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                            self.log_box.append(f'Status: {sF}')
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            append_text(f'Status: {sF}\n', 'blue')
                             if sF == 'Holding (driven)':
                                 break
 
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
-
                         # ----------------------------- Measure NV voltage -------------------
-                        self.log_box.append(f'Saving data for  {MyField} Oe\n')
-                        total_voltage_chan1 = 0.0
-                        total_voltage_chan2 = 0.0
+                        append_text(f'Saving data for {MyField} Oe \n', 'green')
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
-                        self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        self.keithley_2182nv.write("VOLT:DC:NPLC 1.2")
+                        keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                        keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
                         time.sleep(2)  # Wait for the configuration to complete
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
                         self.field_array.append(MyField)
-                        if self.keithley_2182_channel_1_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 1")
-                            volt = self.keithley_2182nv.query("READ?")
+                        if nv_channel_1_enabled:
+                            keithley_2182nv.write("SENS:CHAN 1")
+                            volt = keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
-                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            update_nv_channel_1_label(str(Chan_1_voltage))
+                            append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             self.channel1_array.append(Chan_1_voltage)
-                            # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
-                            self.canvas.draw()
-                        if self.keithley_2182_channel_2_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 2")
-                            volt2 = self.keithley_2182nv.query("READ?")
+                            update_plot(self.field_array, self.channel1_array, 'black')
+                        if nv_channel_2_enabled:
+                            keithley_2182nv.write("SENS:CHAN 2")
+                            volt2 = keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
-                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            update_nv_channel_2_label(str(Chan_2_voltage))
+                            append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
-                            self.canvas.draw()
+                            update_plot(self.field_array, self.channel2_array, 'red')
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
                         resistance_chan_2 = Chan_2_voltage / float(current[j])
 
@@ -1820,21 +2057,21 @@ class Measurement(QMainWindow):
                                                                                                           "Resistance ("
                                                                                                           "Ohm)",
                                      "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                            MyField, sF = self.client.get_field()
-                            self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                            MyTemp, sT = self.client.get_temperature()
-                            self.ppms_reading_temp_label.setText(f'{MyTemp} K')
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(MyField, 'Oe')
+                            MyTemp, sT = client.get_temperature()
+                            update_ppms_temp_reading_label(MyTemp, 'K')
                             csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                  Chan_2_voltage, MyTemp, current[j]])
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
 
                         # ----------------------------- Measure NV voltage -------------------
-                        deltaH = deltaH_chk(currentField)
+                        deltaH, user_field_rate = deltaH_chk(currentField)
 
-                        self.log_box.append(f'deltaH = {deltaH}\n')
+                        append_text(f'deltaH = {deltaH}\n', 'orange')
                         # Update currentField for the next iteration
                         currentField += deltaH
-                        pts += 1  # Number of pts count
+                        self.pts += 1  # Number of self.pts count
                         single_measurement_end = time.time()
                         Single_loop = single_measurement_end - single_measurement_start
                         number_of_field_update = number_of_field_update - 1
@@ -1843,74 +2080,69 @@ class Measurement(QMainWindow):
                         totoal_time_in_minutes = total_time_in_seconds / 60
                         total_time_in_hours = totoal_time_in_minutes / 60
                         total_time_in_days = total_time_in_hours / 24
-                        self.log_box.append('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                            total_time_in_seconds))
-                        self.log_box.append(
+                        append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                            total_time_in_seconds), 'purple')
+                        append_text(
                             'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                totoal_time_in_minutes))
-                        self.log_box.append('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                            total_time_in_hours))
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
-                                total_time_in_days))
+                                totoal_time_in_minutes), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                total_time_in_hours), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                total_time_in_days), 'purple')
                 else:
-
-                    self.client.set_field(topField,
-                                          fieldRate,
-                                          self.client.field.approach_mode.linear,
-                                          self.client.field.driven_mode.driven)
-                    self.log_box.append(f'Set the field to {topField} Oe\n')
-                    MyField, sF = self.client.get_field()
-                    self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                    client.set_field(topField,
+                                     Fast_fieldRate,
+                                     client.field.approach_mode.linear,
+                                     client.field.driven_mode.driven)
+                    append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
+                    MyField, sF = client.get_field()
+                    update_ppms_field_reading_label(str(MyField), 'Oe')
                     while True:
                         time.sleep(1)
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{F} Oe')
-                        self.log_box.append(f'Status: {sF}\n')
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
                             break
                     time.sleep(20)
-
+                    deltaH, user_field_rate = deltaH_chk(currentField)
                     while currentField >= botField:
-                        self.client.set_field(botField,
-                                              fieldRate,
-                                              self.client.field.approach_mode.linear,
-                                              self.client.field.driven_mode.driven)
-                        self.log_box.append(f'Set the field to {botField} Oe and then collect data \n')
+                        client.set_field(botField,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         single_measurement_start = time.time()
-                        total_voltage_chan1 = 0.0
-                        total_voltage_chan2 = 0.0
-                        self.NPLC = self.NPLC_entry.text()
-                        self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        self.keithley_2182nv.write(f"VOLT:DC:NPLC {self.NPLC}")
+                        NPLC = nv_NPLC
+                        keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                        keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
                         MyField, sF = self.client.get_field()
 
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                        self.log_box.append(f'Saving data for {MyField} Oe \n')
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        append_text(f'Saving data for {MyField} Oe \n', 'green')
 
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
                         self.field_array.append(MyField)
-                        if self.keithley_2182_channel_1_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 1")
-                            volt = self.keithley_2182nv.query("READ?")
+                        if nv_channel_1_enabled:
+                            keithley_2182nv.write("SENS:CHAN 1")
+                            volt = keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
-                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            update_nv_channel_1_label(str(Chan_1_voltage))
+                            append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             self.channel1_array.append(Chan_1_voltage)
-                            # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
-                            self.canvas.draw()
-                        if self.keithley_2182_channel_2_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 2")
-                            volt2 = self.keithley_2182nv.query("READ?")
+                            update_plot(self.field_array, self.channel1_array, 'black')
+                        if nv_channel_2_enabled:
+                            keithley_2182nv.write("SENS:CHAN 2")
+                            volt2 = keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
-                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            update_nv_channel_2_label(str(Chan_2_voltage))
+                            append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
-                            self.canvas.draw()
+                            update_plot(self.field_array, self.channel2_array, 'red')
 
                         # Calculate the average voltage
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
@@ -1929,97 +2161,94 @@ class Measurement(QMainWindow):
 
                             csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                  Chan_2_voltage, MyTemp, current[j]])
-                            self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K')
+                            append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
                         # ----------------------------- Measure NV voltage -------------------
-                        deltaH = deltaH_chk(currentField)
+                        deltaH, user_field_rate = deltaH_chk(currentField)
 
-                        self.log_box.append(f'deltaH = {deltaH}\n')
+                        append_text(f'deltaH = {deltaH}\n', 'orange')
                         # Update currentField for the next iteration
                         currentField -= deltaH
-                        pts += 1  # Number of pts count
+                        self.pts += 1  # Number of self.pts count
                         single_measurement_end = time.time()
                         Single_loop = single_measurement_end - single_measurement_start
                         number_of_field_update = number_of_field_update - 1
-                        self.log_box.append(
-                            'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop))
-                        self.log_box.append('Estimated Single measurement (in hrs):  {} s \n'.format(
-                            Single_loop * number_of_field / 60 / 60))
+                        append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
+                                    'purple')
+                        append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                            Single_loop * number_of_field / 60 / 60), 'purple')
                         total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
                                 number_of_temp - i)
                         totoal_time_in_minutes = total_time_in_seconds / 60
                         total_time_in_hours = totoal_time_in_minutes / 60
                         total_time_in_days = total_time_in_hours / 24
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                total_time_in_seconds))
-                        self.log_box.append(
+                        append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                            total_time_in_seconds), 'purple')
+                        append_text(
                             'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                totoal_time_in_minutes))
-                        self.log_box.append(
+                                totoal_time_in_minutes), 'purple')
+                        append_text(
                             'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                total_time_in_hours))
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} days \n'.format(
-                                total_time_in_days))
+                                total_time_in_hours), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                total_time_in_days), 'purple')
 
                     # ----------------- Loop Up ----------------------#
                     currentField = botField
-                    self.client.set_field(currentField,
-                                          fieldRate,
-                                          self.client.field.approach_mode.linear,
-                                          self.client.field.driven_mode.driven)
-                    self.log_box.append(f'Set the field to {Fieldsetpoint} Oe and then collect data \n')
-                    MyField, sF = self.client.get_field()
-                    self.ppms_reading_field_label.setText(f'{MyField} Oe')
+                    client.set_field(currentField,
+                                     user_field_rate,
+                                     client.field.approach_mode.linear,
+                                     client.field.driven_mode.driven)
+                    append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
+                    MyField, sF = client.get_field()
+                    update_ppms_field_reading_label(str(MyField), 'Oe')
+
                     while True:
                         time.sleep(1)
-                        MyField, sF = self.client.get_field()
-                        self.ppms_reading_field_label.setText(f'{F} Oe')
-                        self.log_box.append(f'Status: {sF}\n')
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        append_text(f'Status: {sF}\n', 'blue')
                         if sF == 'Holding (driven)':
                             break
+
+                    deltaH, user_field_rate = deltaH_chk(currentField)
                     time.sleep(20)
                     while currentField <= topField:
-                        self.client.set_field(topField,
-                                              fieldRate,
-                                              self.client.field.approach_mode.linear,
-                                              self.client.field.driven_mode.driven)
-                        self.log_box.append(f'Set the field to {botField} Oe and then collect data \n')
+                        client.set_field(topField,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         single_measurement_start = time.time()
-                        total_voltage_chan1 = 0.0
-                        total_voltage_chan2 = 0.0
                         self.NPLC = self.NPLC_entry.text()
-                        self.keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        self.keithley_2182nv.write(f"VOLT:DC:NPLC {self.NPLC}")
+                        keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                        keithley_2182nv.write(f"VOLT:DC:NPLC {self.NPLC}")
                         MyField, sF = self.client.get_field()
 
-                        self.ppms_reading_field_label.setText(f'{MyField} Oe')
-                        self.log_box.append(f'Saving data for  {MyField} Oe\n')
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        append_text(f'Saving data for {MyField} Oe \n', 'green')
 
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
                         self.field_array.append(MyField)
-                        if self.keithley_2182_channel_1_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 1")
-                            volt = self.keithley_2182nv.query("READ?")
+                        if nv_channel_1_enabled:
+                            keithley_2182nv.write("SENS:CHAN 1")
+                            volt = keithley_2182nv.query("READ?")
                             Chan_1_voltage = float(volt)
-                            self.keithley_2182_channel_1_reading_label.setText(Chan_1_voltage)
-                            self.append_text(f"Channel 1 Voltage: {Chan_1_voltage} V\n", 'green')
+                            update_nv_channel_1_label(str(Chan_1_voltage))
+                            append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             self.channel1_array.append(Chan_1_voltage)
-                            # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel1_array, 'black')
-                            self.canvas.draw()
-                        if self.keithley_2182_channel_2_checkbox.isChecked():
-                            self.keithley_2182nv.write("SENS:CHAN 2")
-                            volt2 = self.keithley_2182nv.query("READ?")
+                            update_plot(self.field_array, self.channel1_array, 'black')
+                        if nv_channel_2_enabled:
+                            keithley_2182nv.write("SENS:CHAN 2")
+                            volt2 = keithley_2182nv.query("READ?")
                             Chan_2_voltage = float(volt2)
-                            self.keithley_2182_channel_2_reading_label.setText(Chan_2_voltage)
-                            self.append_text(f"Channel 2 Voltage: {Chan_2_voltage} V\n", 'green')
+                            update_nv_channel_2_label(str(Chan_2_voltage))
+                            append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            self.canvas.axes.plot(self.field_array, self.channel2_array, 'red')
-                            self.canvas.draw()
+                            update_plot(self.field_array, self.channel2_array, 'red')
 
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
                         resistance_chan_2 = Chan_2_voltage / float(current[j])
@@ -2039,12 +2268,12 @@ class Measurement(QMainWindow):
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
 
                         # ----------------------------- Measure NV voltage -------------------
-                        deltaH = deltaH_chk(currentField)
+                        deltaH, user_field_rate = deltaH_chk(currentField)
 
-                        self.log_box.append(f'deltaH = {deltaH}\n')
+                        append_text(f'deltaH = {deltaH}\n', 'orange')
                         # Update currentField for the next iteration
                         currentField += deltaH
-                        pts += 1  # Number of pts count
+                        self.pts += 1  # Number of self.pts count
                         single_measurement_end = time.time()
                         Single_loop = single_measurement_end - single_measurement_start
                         number_of_field_update = number_of_field_update - 1
@@ -2053,42 +2282,44 @@ class Measurement(QMainWindow):
                         totoal_time_in_minutes = total_time_in_seconds / 60
                         total_time_in_hours = totoal_time_in_minutes / 60
                         total_time_in_days = total_time_in_hours / 24
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in secs):  {} s'.format(
-                                total_time_in_seconds))
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} mins'.format(
-                                totoal_time_in_minutes))
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs'.format(
-                                total_time_in_hours))
-                        self.log_box.append(
-                            'Estimated Remaining Time for this round of measurement (in mins):  {} days'.format(
-                                total_time_in_days))
-        self.client.set_field(zeroField,
-                         fieldRate,
-                         self.client.field.approach_mode.oscillate,  # linear/oscillate
-                         self.client.field.driven_mode.driven)
-        self.log_box.append('Waiting for Zero Field')
+                        append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                            total_time_in_seconds), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                totoal_time_in_minutes), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                total_time_in_hours), 'purple')
+                        append_text(
+                            'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                total_time_in_days), 'purple')
+                        
+        client.set_field(zeroField,
+                         Fast_fieldRate,
+                         client.field.approach_mode.oscillate,  # linear/oscillate
+                         client.field.driven_mode.driven)
+        append_text('Waiting for Zero Field', 'red')
 
         temperature, status = self.client.get_temperature()
-        self.log_box.append(f'Finished Temperature = {temperature} {tempUnits}\n')
+        append_text(f'Finished Temperature = {temperature} K', 'green')
+        update_ppms_temp_reading_label(str(temperature), 'K')
 
         field, status = self.client.get_field()
         fieldUnits = self.client.field.units
-        self.append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
+        append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
+        update_ppms_field_reading_label(str(field), 'Oe')
 
-        self.keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
-        self.keithley_6221.write(":OUTP OFF")  # Turn off the output
-        self.append_text("DC current is set to: 0.00 A\n", 'red')
+        keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
+        keithley_6221.write(":OUTP OFF")  # Turn off the output
+        append_text("DC current is set to: 0.00 A\n", 'red')
         # keithley_6221_Curr_Src.close()
 
         # Calculate the total runtime
         end_time = time.time()
         total_runtime = (end_time - start_time) / 3600
         self.log_box.append(f"Total runtime: {total_runtime} hours\n")
-        self.log_box.append(f'Total data points: {pts} pts\n')
-        self.running = False
+        self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
+
 
 # if __name__ == "__main__":
 #     app = QApplication(sys.argv)

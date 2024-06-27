@@ -311,6 +311,7 @@ class NV(QWidget):
                 self.rst()
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current GPIB Connection: None")
+            self.keithley_2182A_NV.close()
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':

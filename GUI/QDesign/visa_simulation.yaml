@@ -1,0 +1,68 @@
+# YAML configuration for pyvisa-sim to simulate Keithley 6221 and Keithley 2182 instruments
+
+spec: "1.0"
+devices:
+  keithley_6221:
+    eom:
+      ASRL INSTR:
+        q: "\r\n"
+        r: "\n"
+    dialogues:
+      - q: "*IDN?"
+        r: "Keithley Instruments Inc., Model 6221, 123456"
+      - q: ":OUTP OFF"
+        r: "OK"
+      - q: ":OUTP ON"
+        r: "OK"
+      - q: "CURR:RANGe:AUTO ON"
+        r: "OK"
+    properties:
+      current_level:
+        default: 0.0
+        getter:
+          q: "CURR?"
+          r: "{:+.8E}"
+        setter:
+          q: "CURR {:.3f}"
+          r: "OK"
+        specs:
+          min: -0.105
+          max: 0.105
+          type: float
+
+  keithley_2182:
+    eom:
+      ASRL INSTR:
+        q: "\r\n"
+        r: "\n"
+    dialogues:
+      - q: "*IDN?"
+        r: "Keithley Instruments Inc., Model 2182, 123456"
+      - q: "SENS:FUNC 'VOLT:DC'"
+        r: "OK"
+      - q: "VOLT:DC:NPLC *"
+        r: "OK"
+      - q: "SENS:CHAN 1"
+        r: "OK"
+      - q: "SENS:CHAN 2"
+        r: "OK"
+      - q: ":SYST:BEEP:STAT 0"
+        r: "OK"
+      - q: "READ?"
+        r: "{RANDOM(0, 10, 1):.5f}"
+    properties:
+      voltage:
+        default: 0.0
+        getter:
+          q: "READ?"
+          r: "{RANDOM(-10, 10, 1):.5f}"
+        specs:
+          min: -10
+          max: 10
+          type: float
+
+resources:
+  ASRL3::INSTR:
+    device: keithley_6221
+  ASRL4::INSTR:
+    device: keithley_2182

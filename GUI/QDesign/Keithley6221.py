@@ -303,6 +303,7 @@ class CurrentSource6221(QWidget):
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current GPIB Connection: None")
             self.connect_btn_clicked = False
+            self.keithley_6221.close()
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
             self.isConnect = False

@@ -1,0 +1,16 @@
+spec: "1.0"
+devices:
+  device 1:
+    eom:
+      GPIB INSTR:
+        q: "\r"  # MAKE SURE! that this matches the terminator of the driver!
+        r: "\r"
+    error: ERROR
+    dialogues:
+      - q: "*IDN?"
+        r: "QCoDeS, Weinschel 8320 (Simulated), 1337, 0.0.01"
+
+
+resources:
+  GPIB::1::INSTR:
+    device: device 1
