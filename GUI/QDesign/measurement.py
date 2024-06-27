@@ -22,6 +22,11 @@ import MultiPyVu as mpv  # Uncommented it on the server computer
 from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 from datetime import datetime
 import traceback
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import requests
 
 class Worker(QThread):
     progress_update = pyqtSignal(int)
@@ -33,7 +38,8 @@ class Worker(QThread):
     update_nv_channel_1_label = pyqtSignal(str)
     update_nv_channel_2_label = pyqtSignal(str)
     clear_plot = pyqtSignal()
-    update_plot = pyqtSignal(list, list, list)
+    update_plot = pyqtSignal(list, list, str)
+    measurement_finished = pyqtSignal()
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
@@ -85,6 +91,7 @@ class Worker(QThread):
                                                   self.update_nv_channel_1_label.emit,
                                                   self.update_nv_channel_2_label.emit,
                                                   self.clear_plot.emit, self.update_plot.emit,
+                                                  self.measurement_finished.emit,
                                                   keithley_6221 =self.keithley_6221,
                                                   keithley_2182nv=self.keithley_2182nv,
                                                   current=self.current, TempList=self.TempList, topField=self.topField,
@@ -116,6 +123,7 @@ class Worker(QThread):
 
     def stop(self):
         self.running = False
+        self.worker.stop()
 
 class LogWindow(QDialog):
     def __init__(self):
@@ -553,7 +561,8 @@ class Measurement(QMainWindow):
             self.clear_layout(self.Instruments_measurement_setup_layout)
         except AttributeError:
             pass
-        rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
+        # rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
+        rm = visa.ResourceManager()
         instruments = rm.list_resources()
         self.connection_ports = [instr for instr in instruments]
         self.Keithley_2182_Connected = False
@@ -725,7 +734,8 @@ class Measurement(QMainWindow):
             self.server_btn.setEnabled(True)
 
     def connect_devices(self):
-        self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
+        # self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
+        self.rm = visa.ResourceManager()
         self.current_connection_index = self.Instruments_combo.currentIndex()
         self.current_connection = self.connection_combo.currentText()
         if self.ETO_radio_buttom.isChecked():
@@ -786,7 +796,7 @@ class Measurement(QMainWindow):
             try:
                 self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
                 #  Simulation pysim----------------------------------------------------------
-                self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,  read_termination='\n')
+                # self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,  read_termination='\n')
                 # ------------------------------------------------------------------
                 time.sleep(2)
                 self.Keithley_2182_Connected = True
@@ -804,8 +814,8 @@ class Measurement(QMainWindow):
             try:
                 self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
                 #  Simulation pysim ------------------------------------------------------
-                self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,
-                                                             read_termination='\n')
+                # self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,
+                #                                              read_termination='\n')
                 # ---------------------------------------------------------
                 time.sleep(2)
                 self.Ketihley_6221_Connected = True
@@ -1417,7 +1427,7 @@ class Measurement(QMainWindow):
                 self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.log_box.clear()
 
-
+                # self.send_email('Measurement Started', "start", 'czt0036@auburn.edu')
 
                 self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
                 try:
@@ -1632,12 +1642,15 @@ class Measurement(QMainWindow):
                     self.zone3_step_field = self.zone1_step_field
                     self.zone2_field_rate = self.zone1_field_rate
                     self.zone3_field_rate = self.zone1_field_rate
+                    self.zone2_top_field = self.zone1_top_field
+                    self.zone3_top_field = self.zone1_top_field
                 elif self.ppms_field_Two_zone_radio.isChecked():
                     self.ppms_field_Two_zone_radio_enabled = True
                     self.ppms_field_One_zone_radio_enabled = False
                     self.ppms_field_Three_zone_radio_enabled = False
                     self.zone3_step_field = self.zone2_step_field
                     self.zone3_field_rate = self.zone2_field_rate
+                    self.zone3_top_field = self.zone2_top_field
                 elif self.ppms_field_Three_zone_radio.isChecked():
                     self.ppms_field_Three_zone_radio_enabled = True
                     self.ppms_field_Two_zone_radio_enabled = False
@@ -1698,7 +1711,7 @@ class Measurement(QMainWindow):
                 self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
                 self.worker.update_plot.connect(self.update_plot)
                 self.worker.clear_plot.connect(self.clear_plot)
-                self.worker.finished.connect(self.measurement_finished)
+                self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.start()  # Start the worker thread
 
             except Exception as e:
@@ -1706,7 +1719,7 @@ class Measurement(QMainWindow):
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def update_plot(self, x_data, y_data, color):
-        self.canvas.axes.plot(x_data, y_data, color)
+        self.canvas.axes.plot(x_data, y_data, color, marker='s')
         self.canvas.draw()
 
     def clear_plot(self):
@@ -1716,7 +1729,7 @@ class Measurement(QMainWindow):
         self.keithley_2182_channel_1_reading_label.setText(chanel1)
 
     def update_nv_channel_2_label(self, chanel2):
-        self.keithley_2182_channel_1_reading_label.setText(chanel2)
+        self.keithley_2182_channel_2_reading_label.setText(chanel2)
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
@@ -1725,6 +1738,7 @@ class Measurement(QMainWindow):
         QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
 
     def measurement_finished(self):
+        self.worker.stop()
         self.worker = None
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
@@ -1743,6 +1757,7 @@ class Measurement(QMainWindow):
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, clear_plot, update_plot,
+                measurement_finished,
                 keithley_6221, keithley_2182nv, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
@@ -1750,14 +1765,15 @@ class Measurement(QMainWindow):
                 ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled,zone1_step_field,
                 zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
                 zone2_field_rate, zone3_field_rate):
-        number_of_current = len(current)
-        number_of_temp = len(TempList)
-        Fast_fieldRate = 220
-        tempRate_init = 20
-        zeroField = 0
-        start_time = time.time()
-        append_text('Measurement Start....\n', 'red')
-        user_field_rate = zone1_field_rate
+        def send_telegram_notification(message):
+            bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
+            chat_id = "5733353343"
+            url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+            print(requests.get(url).json())
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            data = {"chat_id": chat_id, "text": message}
+            response = requests.post(url, data=data)
+            return response.json()
 
         def deltaH_chk(currentField):
             if ppms_field_One_zone_radio_enabled:
@@ -1783,6 +1799,15 @@ class Measurement(QMainWindow):
 
             return deltaH, user_field_rate
 
+        send_telegram_notification("The measurement has been started successfully.")
+        number_of_current = len(current)
+        number_of_temp = len(TempList)
+        Fast_fieldRate = 220
+        tempRate_init = 20
+        zeroField = 0
+        start_time = time.time()
+        append_text('Measurement Start....\n', 'red')
+        user_field_rate = zone1_field_rate
         time.sleep(5)
         # -------------Temp Status---------------------
         temperature, status = client.get_temperature()
@@ -1790,8 +1815,8 @@ class Measurement(QMainWindow):
         append_text(f'Temperature = {temperature} {tempUnits}\n', 'purple')
         update_ppms_temp_reading_label(str(temperature), 'K')
         # ------------Field Status----------------------
-        field, status = self.client.get_field()
-        fieldUnits = self.client.field.units
+        field, status = client.get_field()
+        fieldUnits = client.field.units
         append_text(f'Field = {field} {fieldUnits}\n', 'purple')
         update_ppms_field_reading_label(str(field), 'Oe')
         # ----------------- Loop Down ----------------------#
@@ -1911,19 +1936,19 @@ class Measurement(QMainWindow):
                         MyField, sF = client.get_field()
                         update_ppms_field_reading_label(str(MyField), 'Oe')
                         self.field_array.append(MyField)
-                        if nv_channel_1_enabled:
-                            keithley_2182nv.write("SENS:CHAN 1")
-                            volt = keithley_2182nv.query("READ?")
-                            print("Emter", volt)
-                            Chan_1_voltage = float(volt)
-                            update_nv_channel_1_label(str(Chan_1_voltage))
-                            print(Chan_1_voltage)
-                            append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                        try:
+                            if nv_channel_1_enabled:
+                                keithley_2182nv.write("SENS:CHAN 1")
+                                volt = keithley_2182nv.query("READ?")
+                                Chan_1_voltage = float(volt)
+                                update_nv_channel_1_label(str(Chan_1_voltage))
+                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
 
-                            self.channel1_array.append(Chan_1_voltage)
-                            # # Drop off the first y element, append a new one.
-                            print(self.field_array, self.channel1_array)
-                            update_plot(self.field_array, self.channel1_array, 'black')
+                                self.channel1_array.append(Chan_1_voltage)
+                                # # Drop off the first y element, append a new one.
+                                update_plot(self.field_array, self.channel1_array, 'black')
+                        except Exception as e:
+                            QMessageBox.warning(self, 'Warning', str(e))
 
                         if nv_channel_2_enabled:
                             keithley_2182nv.write("SENS:CHAN 2")
@@ -1938,7 +1963,7 @@ class Measurement(QMainWindow):
                         # Calculate the average voltage
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
                         resistance_chan_2 = Chan_2_voltage / float(current[j])
-                        print('enter here')
+
                         # Append the data to the CSV file
                         with open(csv_filename, "a", newline="") as csvfile:
                             csv_writer = csv.writer(csvfile)
@@ -1955,13 +1980,11 @@ class Measurement(QMainWindow):
                             append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
 
-                        MyField, sF = self.client.get_field()
-                        update_ppms_field_reading_label(MyField, 'Oe')
-                        MyTemp, sT = self.client.get_temperature()
-                        update_ppms_temp_reading_label(MyTemp, 'K')
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        MyTemp, sT = client.get_temperature()
+                        update_ppms_temp_reading_label(str(MyTemp), 'K')
                         # ----------------------------- Measure NV voltage -------------------
-                        print('Test end here')
-
                         deltaH, user_field_rate = deltaH_chk(currentField)
 
                         append_text(f'deltaH = {deltaH}\n', 'orange')
@@ -2058,9 +2081,9 @@ class Measurement(QMainWindow):
                                                                                                           "Ohm)",
                                      "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
                             MyField, sF = client.get_field()
-                            update_ppms_field_reading_label(MyField, 'Oe')
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
                             MyTemp, sT = client.get_temperature()
-                            update_ppms_temp_reading_label(MyTemp, 'K')
+                            update_ppms_temp_reading_label(str(MyTemp), 'K')
                             csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                  Chan_2_voltage, MyTemp, current[j]])
                             self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
@@ -2118,7 +2141,7 @@ class Measurement(QMainWindow):
                         NPLC = nv_NPLC
                         keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                         keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
-                        MyField, sF = self.client.get_field()
+                        MyField, sF = client.get_field()
 
                         update_ppms_field_reading_label(str(MyField), 'Oe')
                         append_text(f'Saving data for {MyField} Oe \n', 'green')
@@ -2221,10 +2244,10 @@ class Measurement(QMainWindow):
                                          client.field.driven_mode.driven)
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         single_measurement_start = time.time()
-                        self.NPLC = self.NPLC_entry.text()
+
                         keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                        keithley_2182nv.write(f"VOLT:DC:NPLC {self.NPLC}")
-                        MyField, sF = self.client.get_field()
+                        keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                        MyField, sF = client.get_field()
 
                         update_ppms_field_reading_label(str(MyField), 'Oe')
                         append_text(f'Saving data for {MyField} Oe \n', 'green')
@@ -2293,19 +2316,19 @@ class Measurement(QMainWindow):
                         append_text(
                             'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                 total_time_in_days), 'purple')
-                        
+
         client.set_field(zeroField,
                          Fast_fieldRate,
                          client.field.approach_mode.oscillate,  # linear/oscillate
                          client.field.driven_mode.driven)
         append_text('Waiting for Zero Field', 'red')
 
-        temperature, status = self.client.get_temperature()
+        temperature, status = client.get_temperature()
         append_text(f'Finished Temperature = {temperature} K', 'green')
         update_ppms_temp_reading_label(str(temperature), 'K')
 
-        field, status = self.client.get_field()
-        fieldUnits = self.client.field.units
+        field, status = client.get_field()
+        fieldUnits = client.field.units
         append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
         update_ppms_field_reading_label(str(field), 'Oe')
 
@@ -2319,6 +2342,38 @@ class Measurement(QMainWindow):
         total_runtime = (end_time - start_time) / 3600
         self.log_box.append(f"Total runtime: {total_runtime} hours\n")
         self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
+        send_telegram_notification("The measurement has been completed successfully.")
+        measurement_finished()
+
+
+
+
+
+    def send_email(self, subject, body, to_email):
+        from_email = os.getenv("EMAIL_USER")
+        from_password = os.getenv("EMAIL_PASSWORD")
+
+        print(from_email)
+        if not from_email or not from_password:
+            raise ValueError("Email credentials are not set in the environment variables.")
+
+        # Set up the server
+        server = smtplib.SMTP(host='smtp.example.com', port=587)
+        server.starttls()
+        server.login(from_email, from_password)
+
+        # Create the email
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Send the email
+        server.send_message(msg)
+        server.quit()
+
+
 
 
 # if __name__ == "__main__":

@@ -238,3 +238,139 @@ Comment: qw
 Experiment Field (Oe): 3000.0 to -3000.0
 Experiment Temperature (K): [300.0]
 Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: 12
+Measurement Type: 12
+Run: 12
+Comment: 12
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qwq
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: 12
+Measurement Type: 12
+Run: 12
+Comment: 12
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: 23
+Measurement Type: 23
+Run: 23
+Comment: 23
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-3
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: 12
+Measurement Type: 12
+Run: 12
+Comment: 12
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: 12
+Measurement Type: 12
+Run: 12
+Comment: 12
+Experiment Field (Oe): 3000.0 to -3000.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: qw
+Measurement Type: qw
+Run: qw
+Comment: qw
+Experiment Field (Oe): 300.0 to -300.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-3
+Today's Date: 06/27/2024
+Sample ID: test
+Measurement Type: test
+Run: test
+Comment: test
+Experiment Field (Oe): 300.0 to -300.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: test
+Measurement Type: test
+Run: test
+Comment: test
+Experiment Field (Oe): 300.0 to -300.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6
+Today's Date: 06/27/2024
+Sample ID: 12
+Measurement Type: 1
+Run: 12
+Comment: 12
+Experiment Field (Oe): 300.0 to -300.0
+Experiment Temperature (K): [300.0]
+Experiment Current: 20.0e-6

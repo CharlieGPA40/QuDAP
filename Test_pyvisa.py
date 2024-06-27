@@ -1,17 +1,19 @@
-import pyvisa as visa
+import requests
 
-rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
-# rm = visa.ResourceManager('@sim')
-print(rm.list_resources())
-keithley_2182 = rm.open_resource('ASRL4::INSTR',  read_termination='\n')
-# print("Keithley")
-# keithley_2182 = rm.open_resource('GPIB0::7::INSTR')
+# Step 1: Function to get chat ID# Step 2: Function to send notification
+def send_telegram_notification(message, bot_token, chat_id):
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    data = {"chat_id": chat_id, "text": message}
+    response = requests.post(url, data=data)
+    return response.json()
 
-# Set timeout to a higher value if necessary
-keithley_2182.timeout = 5000  # 5000 ms
-# keithley_2182.timeout = 10000  # 5000 m
+# Replace with your actual bot token
+bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
+url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+print(requests.get(url).json())
+# Get chat ID
+chat_id = get_chat_id(bot_token)
 
-# Test basic commands
-# print(keithley_6221.read())
-print(keithley_2182.query("READ?"))
-# print(keithley_2182.query('*IDN?'))
+# If chat ID is found, send a notification
+if chat_id:
+    send_telegram_notification("The measurement has been completed successfully.", bot_token, chat_id)
