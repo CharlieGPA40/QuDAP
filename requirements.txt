@@ -12,3 +12,4 @@ matplotlib
 psutil
 numpy
 requests
+python-pptx
