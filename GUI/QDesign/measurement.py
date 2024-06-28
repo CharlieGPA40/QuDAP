@@ -75,6 +75,7 @@ class Worker(QThread):
         self.zone2_step_field = zone2_step_field
         self.zone3_step_field = zone3_step_field
         self.zone1_top_field = zone1_top_field
+        self.zone1_top_field = zone1_top_field
         self.zone2_top_field = zone2_top_field
         self.zone3_top_field = zone3_top_field
         self.zone1_field_rate = zone1_field_rate
@@ -528,8 +529,9 @@ class Measurement(QMainWindow):
             self.start_measurement_btn = QPushButton('Start')
             self.start_measurement_btn.clicked.connect(self.start_measurement)
             self.stop_btn = QPushButton('Stop')
+            self.stop_btn.clicked.connect(self.stop_measurement)
             self.rst_btn = QPushButton('Reset')
-            self.rst_btn.clicked.connect(self.preset_reset)
+            self.rst_btn.clicked.connect(self.rst)
             self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
             self.stop_btn.setStyleSheet(self.Button_stylesheet)
             self.rst_btn.setStyleSheet(self.Button_stylesheet)
@@ -955,8 +957,8 @@ class Measurement(QMainWindow):
             print(e)
         self.keithley_6221_DC_range_single_layout = QVBoxLayout()
         self.keithley_6221_DC_range_layout = QHBoxLayout()
-        self.keithley_6221_DC_range_checkbox = QCheckBox('Range')
-        self.keithley_6221_DC_range_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
+        self.keithley_6221_DC_range_checkbox = QRadioButton('Range')
+        # self.keithley_6221_DC_range_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
         self.keithley_6221_DC_range_checkbox.setFont(self.font)
         self.keithley_6221_DC_range_from_label = QLabel('From:')
         self.keithley_6221_DC_range_from_label.setFont(self.font)
@@ -984,9 +986,10 @@ class Measurement(QMainWindow):
         self.keithley_6221_DC_range_layout.addWidget(self.keithley_6221_DC_range_combobox)
         self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_range_layout)
         self.keithley_6221_DC_single_layout = QHBoxLayout()
-        self.keithley_6221_DC_single_checkbox = QCheckBox('Single')
-        self.keithley_6221_DC_single_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
+        self.keithley_6221_DC_single_checkbox = QRadioButton('List')
+        # self.keithley_6221_DC_single_checkbox.stateChanged.connect(self.on_6221_DC_toggle)
         self.keithley_6221_DC_single_checkbox.setFont(self.font)
+
         self.keithley_6221_DC_single_entry = QLineEdit()
         self.keithley_6221_DC_single_entry.setFont(self.font)
         self.keithley_6221_DC_single_combobox = QComboBox()
@@ -998,6 +1001,10 @@ class Measurement(QMainWindow):
         self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_combobox)
         self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_single_layout)
         self.Keithey_curSour_layout.addLayout(self.keithley_6221_DC_range_single_layout)
+
+        self.keithley_6221_DC_selection_btn_group = QButtonGroup()
+        self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_range_checkbox)
+        self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_single_checkbox)
 
     def Keithley_6221_AC(self):
         self.keithley_6221_AC_layout = QHBoxLayout()
@@ -1356,10 +1363,11 @@ class Measurement(QMainWindow):
             self.keithley_6221_DC_range_step_entry.setEnabled(True)
             self.keithley_6221_DC_range_combobox.setEnabled(True)
 
-    def stop(self):
-        self.timer.stop()
-
     def rst(self):
+        try:
+            self.worker = None
+        except Exception:
+            pass
         self.timer = QTimer()
         self.timer.stop()
         self.canvas.axes.cla()
@@ -1369,8 +1377,20 @@ class Measurement(QMainWindow):
         self.ppms_field_Three_zone_radio_enabled = False
         self.nv_channel_1_enabled = None
         self.nv_channel_2_enabled = None
+        try:
+            self.keithley_6221.close()
+            self.keithley_2182A_NV.close()
+        except Exception:
+            pass
+
 
     def stop_measurement(self):
+        try:
+            self.keithley_6221.write(":OUTP OFF")
+            self.keithley_2182nv.write("*RST")
+            self.keithley_2182nv.write("*CLS")
+        except Exception:
+            pass
         self.running = False
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
@@ -1716,6 +1736,7 @@ class Measurement(QMainWindow):
 
             except Exception as e:
                 tb_str = traceback.format_exc()
+                self.stop_measurement()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def update_plot(self, x_data, y_data, color):
@@ -1738,8 +1759,7 @@ class Measurement(QMainWindow):
         QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
 
     def measurement_finished(self):
-        self.worker.stop()
-        self.worker = None
+        self.stop_measurement()
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):
@@ -1828,6 +1848,7 @@ class Measurement(QMainWindow):
         update_ppms_chamber_reading_label(str(cT))
 
         for i in range(templen):
+            send_telegram_notification(f"Starting temperature at {str(TempList[i])} K")
             append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
             Tempsetpoint = TempList[i]
             if i == 0:
@@ -1904,6 +1925,7 @@ class Measurement(QMainWindow):
                 self.channel1_array = []
                 self.channel2_array = []
                 if field_mode_fixed:
+
                     while currentField >= botField:
                         single_measurement_start = time.time()
                         append_text(f'Loop is at {currentField} Oe Field Up \n', 'blue')
@@ -2016,6 +2038,7 @@ class Measurement(QMainWindow):
                     # ----------------- Loop Up ----------------------#
                     currentField = botField
                     deltaH, user_field_rate = deltaH_chk(currentField)
+                    send_telegram_notification(f"Starting the second half of measurement with ramping field up")
                     while currentField <= topField:
                         single_measurement_start = time.time()
                         append_text(f'\n Loop is at {currentField} Oe Field Up \n', 'blue')
@@ -2218,6 +2241,7 @@ class Measurement(QMainWindow):
                                 total_time_in_days), 'purple')
 
                     # ----------------- Loop Up ----------------------#
+                    send_telegram_notification(f"Starting the second half of measurement with ramping field up")
                     currentField = botField
                     client.set_field(currentField,
                                      user_field_rate,
@@ -2316,7 +2340,7 @@ class Measurement(QMainWindow):
                         append_text(
                             'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                 total_time_in_days), 'purple')
-
+                send_telegram_notification(f"This current set measurement has finished")
         client.set_field(zeroField,
                          Fast_fieldRate,
                          client.field.approach_mode.oscillate,  # linear/oscillate
