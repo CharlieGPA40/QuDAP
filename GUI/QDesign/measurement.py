@@ -139,6 +139,14 @@ class LogWindow(QDialog):
         with open("GUI/SHG/QButtonWidget.qss", "r") as file:
             self.Browse_Button_stylesheet = file.read()
         self.layout = QVBoxLayout()
+        self.User_layout = QHBoxLayout()
+        self.User_label = QLabel('User: ')
+        self.User_label.setFont(self.font)
+        self.User_entry_box = QLineEdit(self)
+        self.User_entry_box.setFont(self.font)
+        self.User_layout.addWidget(self.User_label)
+        self.User_layout.addWidget(self.User_entry_box)
+
         self.output_folder_layout = QHBoxLayout()
         self.output_folder_label = QLabel('Output Folder: ')
         self.output_folder_label.setFont(self.font)
@@ -207,6 +215,7 @@ class LogWindow(QDialog):
 
         self.button_box.setStyleSheet(self.Browse_Button_stylesheet)
         self.example_file_name.setText(self.file_name)
+        self.layout.addLayout(self.User_layout)
         self.layout.addLayout(self.output_folder_layout)
         self.layout.addLayout(self.Date_layout)
         self.layout.addLayout(self.Sample_ID_layout)
@@ -249,16 +258,17 @@ class LogWindow(QDialog):
             self.folder_entry_box.setText(self.folder_path)
 
     def accept(self):
+        self.User = self.User_entry_box.text()
         self.commemt = self.comment_entry_box.text()
         self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}"
         # Call the inherited accept method to close the dialog
-        if self.folder_path != '' and self.commemt != '' and self.ID != '' and self.Measurement != '' and self.run != '':
+        if self.User != '' and self.folder_path != '' and self.commemt != '' and self.ID != '' and self.Measurement != '' and self.run != '':
             super().accept()
         else:
             QMessageBox.warning(self, 'Warning', 'Please enter the log completely!')
 
     def get_text(self):
-        return self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt
+        return self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt, self.User
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=100, height=4, dpi=300):
@@ -1420,7 +1430,7 @@ class Measurement(QMainWindow):
                 except Exception:
                     pass
                 self.running = True
-                self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt = dialog.get_text()
+                self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt, self.User = dialog.get_text()
 
                 self.log_box = QTextEdit(self)
                 self.log_box.setReadOnly(True)  # Make the log box read-only
@@ -1687,6 +1697,7 @@ class Measurement(QMainWindow):
                 f = open(self.folder_path + 'Experiment_Log.txt', "a")
                 today = datetime.today()
                 self.formatted_date_csv = today.strftime("%m/%d/%Y")
+                f.write(f"User: {self.User}\n")
                 f.write(f"Today's Date: {self.formatted_date_csv}\n")
                 f.write(f"Sample ID: {self.ID}\n")
                 f.write(f"Measurement Type: {self.Measurement}\n")
