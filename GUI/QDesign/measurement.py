@@ -1411,12 +1411,15 @@ class Measurement(QMainWindow):
             self.worker.stop()
         except AttributeError:
             pass
-        self.canvas.axes.cla()
-        self.canvas.draw()
-        self.main_layout.removeWidget(self.log_box)
-        self.log_box.deleteLater()
-        self.main_layout.removeWidget(self.progress_bar)
-        self.progress_bar.deleteLater()
+        try:
+            self.canvas.axes.cla()
+            self.canvas.draw()
+            self.main_layout.removeWidget(self.log_box)
+            self.log_box.deleteLater()
+            self.main_layout.removeWidget(self.progress_bar)
+            self.progress_bar.deleteLater()
+        except Exception:
+            pass
 
     def start_measurement(self):
         dialog = LogWindow()
@@ -1774,7 +1777,10 @@ class Measurement(QMainWindow):
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):
-        self.log_box.append(f'<span style="color:{color}">{str(text)}</span>')
+        try:
+            self.log_box.append(f'<span style="color:{color}">{str(text)}</span>')
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f'{str(e)}')
 
     def update_ppms_temp_reading_label(self,  temp, tempUnits):
         self.ppms_reading_temp_label.setText(f'{str(temp)} {str(tempUnits)}')
@@ -1859,7 +1865,7 @@ class Measurement(QMainWindow):
         update_ppms_chamber_reading_label(str(cT))
 
         for i in range(templen):
-            send_telegram_notification(f"Starting temperature at {str(TempList[i])} K")
+
             append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
             Tempsetpoint = TempList[i]
             if i == 0:
@@ -1891,6 +1897,7 @@ class Measurement(QMainWindow):
                 time.sleep(300)
 
             for j in range(Curlen):
+                send_telegram_notification(f"Starting temperature at {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                 clear_plot()
 
                 current_progress = int(i*j/totoal_progress)
@@ -2378,11 +2385,10 @@ class Measurement(QMainWindow):
         self.log_box.append(f"Total runtime: {total_runtime} hours\n")
         self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
         send_telegram_notification("The measurement has been completed successfully.")
+
         measurement_finished()
-
-
-
-
+        stop_measurement()
+        return
 
     def send_email(self, subject, body, to_email):
         from_email = os.getenv("EMAIL_USER")
