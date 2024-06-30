@@ -1,90 +1,54 @@
 import sys
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget
-import MultiPyVu as mpv
-import traceback
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import numpy as np
 
-class APIHandler(QObject):
-    error_signal = pyqtSignal(str)
-    server_signal = pyqtSignal(object)
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.ax1 = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
+        self.setParent(parent)
 
-    def __init__(self):
-        super().__init__()
-        self.server = None
+    def plot(self):
+        t = np.arange(0.01, 10.0, 0.01)
+        s1 = np.exp(t)
+        s2 = np.sin(2 * np.pi * t)
 
-    def connect_server(self):
-        try:
-            self.server = mpv.Server()
-            self.server.open()
-            self.server_signal.emit(self.server)
-        except Exception as e:
-            tb_str = traceback.format_exc()
-            self.error_signal.emit(f'{tb_str} {str(e)}')
+        self.ax1.plot(t, s1, 'b-')
+        self.ax1.set_xlabel('Time (s)')
+        self.ax1.set_ylabel('Exp', color='b')
 
-    def disconnect_server(self):
-        if self.server:
-            self.server.close()
-            self.server = None
+        self.ax2 = self.ax1.twinx()
+        self.ax2.plot(t, s2, 'r.')
+        self.ax2.set_ylabel('Sin', color='r')
 
-class ServerThread(QThread):
-    def __init__(self, api_handler):
-        super().__init__()
-        self.api_handler = api_handler
-        self.api_handler.error_signal.connect(self.handle_error)
-
-    def run(self):
-        self.api_handler.connect_server()
-
-    def handle_error(self, error):
-        print(f"Error in server thread: {error}")
+        self.ax1.grid()
+        self.draw()
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Server Connection Example')
+        self.initUI()
 
-        self.api_handler = APIHandler()
-        self.api_handler.error_signal.connect(self.display_error)
-        self.api_handler.server_signal.connect(self.handle_server_connected)
+    def initUI(self):
+        self.setWindowTitle('Double Y-Axis Plot Example')
 
-        self.server_thread = None
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
 
-        self.init_ui()
+        layout = QVBoxLayout(central_widget)
 
-    def init_ui(self):
-        self.status_label = QLabel('Initializing...', self)
-        layout = QVBoxLayout()
-        layout.addWidget(self.status_label)
-        container = QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
-        self.start_server_thread()
+        self.plot_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        layout.addWidget(self.plot_canvas)
 
-    def start_server_thread(self):
-        self.server_thread = ServerThread(self.api_handler)
-        self.server_thread.start()
+        # Call the plot method from the MainWindow
+        self.plot_canvas.plot()
 
-    def handle_server_connected(self, server):
-        self.status_label.setText('Server connected successfully.')
+        self.show()
 
-    def display_error(self, error_message):
-        self.status_label.setText(f'Error: {error_message}')
-
-    def stop_threads(self):
-        if self.server_thread:
-            self.api_handler.disconnect_server()
-            self.server_thread.wait()
-
-    def closeEvent(self, event):
-        self.stop_threads()
-        event.accept()
-
-def main():
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    # window.start_server_thread()  # Start the server thread here
+    mainWin = MainWindow()
     sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()

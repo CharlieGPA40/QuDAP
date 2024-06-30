@@ -6,14 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/BNC845RF.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/BNC845RF.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/DSP7265.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/DSP7265.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/QDesign/PPMS.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/PPMS.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/QDesign/measurement.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/measurement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/SHG/SHG_General.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/SHG/SHG_Imaging.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/QdMultiVu.log" beforeDir="false" afterPath="$PROJECT_DIR$/QdMultiVu.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/initalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/initalization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI/test5.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test5.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,7 +94,7 @@
       <recent name="R:\GitHub\Data_Processing_Suite" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.initalization (1)">
+  <component name="RunManager" selected="Python.test5">
     <configuration name="Test_pyvisa" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Data_Processing_Suite" />
       <option name="ENV_FILES" value="" />
@@ -218,8 +212,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.initalization (1)" />
         <item itemvalue="Python.test5" />
+        <item itemvalue="Python.initalization (1)" />
         <item itemvalue="Python.Test_pyvisa" />
         <item itemvalue="Python.measurement" />
         <item itemvalue="Python.testtt" />
@@ -257,7 +251,7 @@
       <workItem from="1719170487429" duration="52225000" />
       <workItem from="1719340058436" duration="68421000" />
       <workItem from="1719689664909" duration="5253000" />
-      <workItem from="1719701946505" duration="5575000" />
+      <workItem from="1719701946505" duration="8802000" />
     </task>
     <servers />
   </component>
@@ -311,12 +305,12 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$testtt.coverage" NAME="testtt Coverage Results" MODIFIED="1718780492529" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1719721681317" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization__1_.coverage" NAME="initalization (1) Coverage Results" MODIFIED="1719721874763" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$test22.coverage" NAME="test22 Coverage Results" MODIFIED="1718144497035" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$Test_pyvisa.coverage" NAME="Test_pyvisa Coverage Results" MODIFIED="1719525782707" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$measurement.coverage" NAME="measurement Coverage Results" MODIFIED="1719507108510" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/QDesign" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$font__1_.coverage" NAME="font (1) Coverage Results" MODIFIED="1718165537039" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
-    <SUITE FILE_PATH="coverage/Data_Processing_Suite$test5.coverage" NAME="test5 Coverage Results" MODIFIED="1719701506147" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
+    <SUITE FILE_PATH="coverage/Data_Processing_Suite$test5.coverage" NAME="test5 Coverage Results" MODIFIED="1719726128208" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$SHG_General.coverage" NAME="SHG_General Coverage Results" MODIFIED="1717783264114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/SHG" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$plotting.coverage" NAME="plotting Coverage Results" MODIFIED="1718779526598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI/Plot" />
     <SUITE FILE_PATH="coverage/Data_Processing_Suite$initalization.coverage" NAME="initalization Coverage Results" MODIFIED="1717619765618" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />

@@ -39,7 +39,7 @@ class Worker(QThread):
     update_nv_channel_1_label = pyqtSignal(str)
     update_nv_channel_2_label = pyqtSignal(str)
     clear_plot = pyqtSignal()
-    update_plot = pyqtSignal(list, list, str)
+    update_plot = pyqtSignal(list, list, str, bool, bool)
     measurement_finished = pyqtSignal()
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, current, TempList, topField, botField,
@@ -1733,7 +1733,7 @@ class Measurement(QMainWindow):
                 f.write(f"Experiment Temperature (K): {temp_log}\n")
                 f.write(f"Experiment Current: {listToString(current)}\n")
                 f.close()
-
+                self.send_telegram_notification(f"{self.User} is running {self.Measurement} on {self.ID}")
                 if self.ppms_field_mode_fixed_radio.isChecked():
                     self.field_mode_fixed = True
                 else:
@@ -1785,8 +1785,16 @@ class Measurement(QMainWindow):
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
 
-    def update_plot(self, x_data, y_data, color):
-        self.canvas.axes.plot(x_data, y_data, color, marker='s')
+    def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
+        if channel_1_enabled:
+            self.canvas.axes.plot(x_data, y_data, color, marker='s')
+
+        if channel_2_enabled:
+            self.canvas.axes_2 = self.canvas.axes.twinx()
+            self.canvas.axes_2.plot(x_data, y_data, color, marker='s')
+
+        self.axes.set_xlabel('Field (Oe)')
+        self.axes.set_ylabel('Voltage (v)', color=color)
         self.canvas.draw()
 
     def clear_plot(self):
@@ -1923,11 +1931,11 @@ class Measurement(QMainWindow):
                 if sT == 'Stable':
                     break
             if i == 0:
-                append_text(f'Stabling the Temperature....', 'orange')
+                append_text(f'Stabilizing the Temperature....', 'orange')
                 time.sleep(60)
 
             else:
-                append_text(f'Stabling the Temperature.....', 'orange')
+                append_text(f'Stabilizing the Temperature.....', 'orange')
                 time.sleep(300)
 
             for j in range(Curlen):
@@ -2020,7 +2028,7 @@ class Measurement(QMainWindow):
 
                                 self.channel1_array.append(Chan_1_voltage)
                                 # # Drop off the first y element, append a new one.
-                                update_plot(self.field_array, self.channel1_array, 'black')
+                                update_plot(self.field_array, self.channel1_array, 'black', True, False)
                         except Exception as e:
                             QMessageBox.warning(self, 'Warning', str(e))
 
@@ -2032,7 +2040,7 @@ class Measurement(QMainWindow):
                             append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            update_plot(self.field_array, self.channel2_array, 'red')
+                            update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                         # Calculate the average voltage
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
@@ -2132,7 +2140,7 @@ class Measurement(QMainWindow):
                             update_nv_channel_1_label(str(Chan_1_voltage))
                             append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             self.channel1_array.append(Chan_1_voltage)
-                            update_plot(self.field_array, self.channel1_array, 'black')
+                            update_plot(self.field_array, self.channel1_array, 'black', True, False)
                         if nv_channel_2_enabled:
                             keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = keithley_2182nv.query("READ?")
@@ -2141,7 +2149,7 @@ class Measurement(QMainWindow):
                             append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            update_plot(self.field_array, self.channel2_array, 'red')
+                            update_plot(self.field_array, self.channel2_array, 'red', False, True)
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
                         resistance_chan_2 = Chan_2_voltage / float(current[j])
 
@@ -2231,7 +2239,7 @@ class Measurement(QMainWindow):
                             update_nv_channel_1_label(str(Chan_1_voltage))
                             append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             self.channel1_array.append(Chan_1_voltage)
-                            update_plot(self.field_array, self.channel1_array, 'black')
+                            update_plot(self.field_array, self.channel1_array, 'black', True, False)
                         if nv_channel_2_enabled:
                             keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = keithley_2182nv.query("READ?")
@@ -2240,7 +2248,7 @@ class Measurement(QMainWindow):
                             append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            update_plot(self.field_array, self.channel2_array, 'red')
+                            update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                         # Calculate the average voltage
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
@@ -2338,7 +2346,7 @@ class Measurement(QMainWindow):
                             update_nv_channel_1_label(str(Chan_1_voltage))
                             append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             self.channel1_array.append(Chan_1_voltage)
-                            update_plot(self.field_array, self.channel1_array, 'black')
+                            update_plot(self.field_array, self.channel1_array, 'black', True, False)
                         if nv_channel_2_enabled:
                             keithley_2182nv.write("SENS:CHAN 2")
                             volt2 = keithley_2182nv.query("READ?")
@@ -2347,7 +2355,7 @@ class Measurement(QMainWindow):
                             append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                             self.channel2_array.append(Chan_2_voltage)
                             # # Drop off the first y element, append a new one.
-                            update_plot(self.field_array, self.channel2_array, 'red')
+                            update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                         resistance_chan_1 = Chan_1_voltage / float(current[j])
                         resistance_chan_2 = Chan_2_voltage / float(current[j])
