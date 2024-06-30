@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
-    QDialogButtonBox, QProgressBar, QButtonGroup, QApplication
+    QDialogButtonBox, QProgressBar, QButtonGroup, QApplication, QCompleter
 )
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
@@ -148,6 +148,10 @@ class LogWindow(QDialog):
         self.User_layout.addWidget(self.User_label)
         self.User_layout.addWidget(self.User_entry_box)
 
+        user_hints = ["Chunli Tang", "Harry Goyal"]
+        user_completer = QCompleter(user_hints, self.User_entry_box)
+        self.User_entry_box.setCompleter(user_completer)
+
         self.output_folder_layout = QHBoxLayout()
         self.output_folder_label = QLabel('Output Folder: ')
         self.output_folder_label.setFont(self.font)
@@ -190,6 +194,10 @@ class LogWindow(QDialog):
         self.Measurement_type_entry_box.textChanged.connect(self.update_measurement)
         self.Measurement_type_layout.addWidget(self.Measurement_type_label)
         self.Measurement_type_layout.addWidget(self.Measurement_type_entry_box)
+
+        measurement_hints = ["ETO", "ETO_Rxx", "ETO_Rxy", "ETO_Rxy_Rxx"]
+        measurement_completer = QCompleter(measurement_hints, self.Measurement_type_entry_box)
+        self.Measurement_type_entry_box.setCompleter(measurement_completer)
 
         self.run_number_layout = QHBoxLayout()
         self.run_number_label = QLabel("Run Number:")
@@ -1720,6 +1728,8 @@ class Measurement(QMainWindow):
 
                 temp_log = str(TempList)
                 self.append_text('Create Log...!\n', 'green')
+                self.folder_path = self.folder_path + f'Run_{self.run}/'
+                os.makedirs(self.folder_path, exist_ok=True)
                 f = open(self.folder_path + 'Experiment_Log.txt', "a")
                 today = datetime.today()
                 self.formatted_date_csv = today.strftime("%m/%d/%Y")
@@ -1939,7 +1949,7 @@ class Measurement(QMainWindow):
                 time.sleep(300)
 
             for j in range(Curlen):
-                send_telegram_notification(f"Starting temperature at {str(TempList[i])} K, {current_mag[j]} {current_unit}")
+                send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                 clear_plot()
 
                 current_progress = int(i*j/totoal_progress) *100
@@ -1976,6 +1986,7 @@ class Measurement(QMainWindow):
                 keithley_6221.write(f'CURR {current[j]} \n')
                 keithley_6221.write(":OUTP ON")  # Turn on the output
                 append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
+
                 csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
                 self.pts = 0
                 currentField = topField
@@ -2098,7 +2109,7 @@ class Measurement(QMainWindow):
                     # ----------------- Loop Up ----------------------#
                     currentField = botField
                     deltaH, user_field_rate = deltaH_chk(currentField)
-                    send_telegram_notification(f"Starting the second half of measurement with ramping field up")
+                    send_telegram_notification(f"Starting the second half of measurement - ramping field up")
                     while currentField <= topField:
                         single_measurement_start = time.time()
                         append_text(f'\n Loop is at {currentField} Oe Field Up \n', 'blue')
@@ -2301,7 +2312,7 @@ class Measurement(QMainWindow):
                                 total_time_in_days), 'purple')
 
                     # ----------------- Loop Up ----------------------#
-                    send_telegram_notification(f"Starting the second half of measurement with ramping field up")
+                    send_telegram_notification(f"Starting the second half of measurement - ramping field up")
                     currentField = botField
                     client.set_field(currentField,
                                      user_field_rate,
@@ -2400,7 +2411,7 @@ class Measurement(QMainWindow):
                         append_text(
                             'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                 total_time_in_days), 'purple')
-                send_telegram_notification(f"This current set measurement has finished")
+                send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
         client.set_field(zeroField,
                          Fast_fieldRate,
                          client.field.approach_mode.oscillate,  # linear/oscillate
