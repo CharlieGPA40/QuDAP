@@ -1798,6 +1798,8 @@ class Measurement(QMainWindow):
     def append_text(self, text, color):
         try:
             self.log_box.append(f'<span style="color:{color}">{str(text)}</span>')
+            self.log_box.verticalScrollBar().setValue(self.log_box.verticalScrollBar().maximum())
+
         except Exception as e:
             QMessageBox.warning(self, "Error", f'{str(e)}')
 
