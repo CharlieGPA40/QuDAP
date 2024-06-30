@@ -609,13 +609,19 @@ class Measurement(QMainWindow):
     def start_server(self):
         if self.server_btn_clicked == False:
             try:
+                # self.start_server_thread()
                 self.server = mpv.Server()
-            except MultiPyVuError:
-                QMessageBox.critical('Check MutltiVu', 'Run MultiVu without Admin or open MultiVu correctly!')
-            self.server_btn.setText('Stop Server')
-            self.server_btn_clicked = True
-            self.connect_btn.setEnabled(True)
-            self.server.open()
+                self.server.open()
+                self.server_btn.setText('Stop Server')
+                self.server_btn_clicked = True
+                self.connect_btn.setEnabled(True)
+            except SystemExit as e:
+                QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
+                                                               'was detected. Please start MultiVu and retry without administration')
+                self.server_btn.setText('Start Server')
+                self.server_btn_clicked = False
+                self.connect_btn.setEnabled(False)
+                return
         elif self.server_btn_clicked == True:
             self.server.close()
             self.server_btn.setText('Start Server')
@@ -626,124 +632,128 @@ class Measurement(QMainWindow):
         self.host = self.host_entry_box.displayText()
         self.port = self.port_entry_box.displayText()
         if self.connect_btn_clicked == False:
-            self.connect_btn.setText('Stop Client')
-            self.connect_btn_clicked = True
-            self.server_btn.setEnabled(False)
-            self.client_keep_going = True
-            self.client = mpv.Client(host=self.host, port=5000)
-            self.client.open()
-            self.ppms_reading_group_box = QGroupBox('PPMS Status')
-            self.ppms_Temp_group_box = QGroupBox('Temperature Setup')
-            self.ppms_Field_group_box = QGroupBox('Field Setup')
-            self.ppms_reading_layout = QVBoxLayout()
-            self.ppms_temp_layout = QHBoxLayout()
-            self.ppms_temp_label = QLabel('Temperature (K):')
-            self.ppms_temp_label.setFont(self.font)
-            self.ppms_reading_temp_label = QLabel('N/A K')
-            self.ppms_reading_temp_label.setFont(self.font)
-            self.ppms_temp_layout.addWidget(self.ppms_temp_label)
-            self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
-            self.ppms_field_layout = QHBoxLayout()
-            self.ppms_field_label = QLabel('Field (Oe):')
-            self.ppms_field_label.setFont(self.font)
-            self.ppms_reading_field_label = QLabel('N/A Oe')
-            self.ppms_reading_field_label.setFont(self.font)
-            self.ppms_field_layout.addWidget(self.ppms_field_label)
-            self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
+            try:
+                self.client = mpv.Client(host=self.host, port=int(self.port))
+                self.client.open()
+                self.connect_btn.setText('Stop Client')
+                self.connect_btn_clicked = True
+                self.server_btn.setEnabled(False)
+                self.client_keep_going = True
+                self.ppms_reading_group_box = QGroupBox('PPMS Status')
+                self.ppms_Temp_group_box = QGroupBox('Temperature Setup')
+                self.ppms_Field_group_box = QGroupBox('Field Setup')
+                self.ppms_reading_layout = QVBoxLayout()
+                self.ppms_temp_layout = QHBoxLayout()
+                self.ppms_temp_label = QLabel('Temperature (K):')
+                self.ppms_temp_label.setFont(self.font)
+                self.ppms_reading_temp_label = QLabel('N/A K')
+                self.ppms_reading_temp_label.setFont(self.font)
+                self.ppms_temp_layout.addWidget(self.ppms_temp_label)
+                self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
+                self.ppms_field_layout = QHBoxLayout()
+                self.ppms_field_label = QLabel('Field (Oe):')
+                self.ppms_field_label.setFont(self.font)
+                self.ppms_reading_field_label = QLabel('N/A Oe')
+                self.ppms_reading_field_label.setFont(self.font)
+                self.ppms_field_layout.addWidget(self.ppms_field_label)
+                self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
 
-            self.ppms_chamber_layout = QHBoxLayout()
-            self.ppms_chamber_label = QLabel('Chamber Status:')
-            self.ppms_chamber_label.setFont(self.font)
-            self.ppms_reading_chamber_label = QLabel('N/A')
-            self.ppms_reading_chamber_label.setFont(self.font)
-            self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
-            self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
+                self.ppms_chamber_layout = QHBoxLayout()
+                self.ppms_chamber_label = QLabel('Chamber Status:')
+                self.ppms_chamber_label.setFont(self.font)
+                self.ppms_reading_chamber_label = QLabel('N/A')
+                self.ppms_reading_chamber_label.setFont(self.font)
+                self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
+                self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
 
-            self.ppms_reading_layout.addLayout(self.ppms_temp_layout)
-            self.ppms_reading_layout.addLayout(self.ppms_field_layout)
-            self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
+                self.ppms_reading_layout.addLayout(self.ppms_temp_layout)
+                self.ppms_reading_layout.addLayout(self.ppms_field_layout)
+                self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
 
-            self.ppms_reading_group_box.setLayout(self.ppms_reading_layout)
-            self.ppms_temp_setting_layout = QVBoxLayout()
-            self.ppms_temp_radio_buttom_layout = QHBoxLayout()
-            self.ppms_zone_temp_layout = QVBoxLayout()
-            self.Temp_setup_Zone_1 = False
-            self.Temp_setup_Zone_2 = False
-            self.Temp_setup_Zone_3 = False
-            self.Temp_setup_Zone_Cus = False
-            self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
-            self.ppms_temp_zone_number_label.setFont(self.font)
-            self.ppms_temp_One_zone_radio = QRadioButton("1")
-            self.ppms_temp_One_zone_radio.setFont(self.font)
-            self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Two_zone_radio = QRadioButton("2")
-            self.ppms_temp_Two_zone_radio.setFont(self.font)
-            self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Three_zone_radio = QRadioButton("3")
-            self.ppms_temp_Three_zone_radio.setFont(self.font)
-            self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
-            self.ppms_temp_Customize_zone_radio.setFont(self.font)
-            self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
-            self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
-            self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
-            self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
-            self.ppms_Temp_group_box.setLayout(self.ppms_temp_setting_layout)
+                self.ppms_reading_group_box.setLayout(self.ppms_reading_layout)
+                self.ppms_temp_setting_layout = QVBoxLayout()
+                self.ppms_temp_radio_buttom_layout = QHBoxLayout()
+                self.ppms_zone_temp_layout = QVBoxLayout()
+                self.Temp_setup_Zone_1 = False
+                self.Temp_setup_Zone_2 = False
+                self.Temp_setup_Zone_3 = False
+                self.Temp_setup_Zone_Cus = False
+                self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
+                self.ppms_temp_zone_number_label.setFont(self.font)
+                self.ppms_temp_One_zone_radio = QRadioButton("1")
+                self.ppms_temp_One_zone_radio.setFont(self.font)
+                self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
+                self.ppms_temp_Two_zone_radio = QRadioButton("2")
+                self.ppms_temp_Two_zone_radio.setFont(self.font)
+                self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
+                self.ppms_temp_Three_zone_radio = QRadioButton("3")
+                self.ppms_temp_Three_zone_radio.setFont(self.font)
+                self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
+                self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
+                self.ppms_temp_Customize_zone_radio.setFont(self.font)
+                self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
+                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
+                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
+                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
+                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
+                self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
+                self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
+                self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
+                self.ppms_Temp_group_box.setLayout(self.ppms_temp_setting_layout)
 
-            self.ppms_field_setting_layout = QVBoxLayout()
-            self.ppms_field_mode_buttom_layout = QHBoxLayout()
-            self.ppms_field_radio_buttom_layout = QHBoxLayout()
-            self.ppms_zone_field_layout = QVBoxLayout()
+                self.ppms_field_setting_layout = QVBoxLayout()
+                self.ppms_field_mode_buttom_layout = QHBoxLayout()
+                self.ppms_field_radio_buttom_layout = QHBoxLayout()
+                self.ppms_zone_field_layout = QVBoxLayout()
 
-            self.Field_setup_Zone_1 = False
-            self.Field_setup_Zone_2 = False
-            self.Field_setup_Zone_3 = False
+                self.Field_setup_Zone_1 = False
+                self.Field_setup_Zone_2 = False
+                self.Field_setup_Zone_3 = False
 
-            self.ppms_field_mode_fast_radio = QRadioButton("Continuous Sweep")
-            self.ppms_field_mode_fast_radio.setFont(self.font)
-            self.ppms_field_mode_fast_radio.setChecked(True)
-            self.ppms_field_mode_fixed_radio = QRadioButton("Fixed Field")
-            self.ppms_field_mode_fixed_radio.setFont(self.font)
-            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fast_radio)
-            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fixed_radio)
-            self.ppms_field_mode_buttom_group = QButtonGroup()
-            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fast_radio)
-            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fixed_radio)
+                self.ppms_field_mode_fast_radio = QRadioButton("Continuous Sweep")
+                self.ppms_field_mode_fast_radio.setFont(self.font)
+                self.ppms_field_mode_fast_radio.setChecked(True)
+                self.ppms_field_mode_fixed_radio = QRadioButton("Fixed Field")
+                self.ppms_field_mode_fixed_radio.setFont(self.font)
+                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fast_radio)
+                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fixed_radio)
+                self.ppms_field_mode_buttom_group = QButtonGroup()
+                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fast_radio)
+                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fixed_radio)
 
-            self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
-            self.ppms_field_zone_number_label.setFont(self.font)
-            self.ppms_field_One_zone_radio = QRadioButton("1")
-            self.ppms_field_One_zone_radio.setFont(self.font)
-            self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_Two_zone_radio = QRadioButton("2")
-            self.ppms_field_Two_zone_radio.setFont(self.font)
-            self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_Three_zone_radio = QRadioButton("3")
-            self.ppms_field_Three_zone_radio.setFont(self.font)
-            self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
-            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
-            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
-            self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
-            self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
-            self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
-            self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
-            self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
-            self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box, 1)
-            self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box, 2)
-            self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box, 2)
+                self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
+                self.ppms_field_zone_number_label.setFont(self.font)
+                self.ppms_field_One_zone_radio = QRadioButton("1")
+                self.ppms_field_One_zone_radio.setFont(self.font)
+                self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
+                self.ppms_field_Two_zone_radio = QRadioButton("2")
+                self.ppms_field_Two_zone_radio.setFont(self.font)
+                self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
+                self.ppms_field_Three_zone_radio = QRadioButton("3")
+                self.ppms_field_Three_zone_radio.setFont(self.font)
+                self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
+                self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
+                self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
+                self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
+                self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
+                self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
+                self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
+                self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
+                self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box, 1)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box, 2)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box, 2)
+            except SystemExit as e:
+                QMessageBox.critical(self, 'Client connection failed!', 'Please try again')
 
         elif self.connect_btn_clicked == True:
-            self.client.close_client()
+            if self.client is not None:
+                self.client.close_client()
             self.clear_layout(self.PPMS_measurement_setup_layout)
             self.client_keep_going = False
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
-            self.server_btn.setEnabled(True)
+            self.server_btn.setEnabled(False)
 
     def connect_devices(self):
         # self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
@@ -1747,11 +1757,20 @@ class Measurement(QMainWindow):
                 self.worker.clear_plot.connect(self.clear_plot)
                 self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.start()  # Start the worker thread
+            except SystemExit as e:
+                QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
+                self.stop_measurement()
+                self.send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+                self.client_keep_going = False
+                self.connect_btn.setText('Start Client')
+                self.connect_btn_clicked = False
+                self.server_btn.setEnabled(False)
 
             except Exception as e:
                 tb_str = traceback.format_exc()
                 self.stop_measurement()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+                self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
 
     def update_plot(self, x_data, y_data, color):
         self.canvas.axes.plot(x_data, y_data, color, marker='s')
@@ -2390,29 +2409,13 @@ class Measurement(QMainWindow):
         stop_measurement()
         return
 
-    def send_email(self, subject, body, to_email):
-        from_email = os.getenv("EMAIL_USER")
-        from_password = os.getenv("EMAIL_PASSWORD")
-
-        print(from_email)
-        if not from_email or not from_password:
-            raise ValueError("Email credentials are not set in the environment variables.")
-
-        # Set up the server
-        server = smtplib.SMTP(host='smtp.example.com', port=587)
-        server.starttls()
-        server.login(from_email, from_password)
-
-        # Create the email
-        msg = MIMEMultipart()
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
-
-        # Send the email
-        server.send_message(msg)
-        server.quit()
+    def send_telegram_notification(self, message):
+        bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
+        chat_id = "5733353343"
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        data = {"chat_id": chat_id, "text": message}
+        response = requests.post(url, data=data)
+        return response.json()
 
 
 

@@ -1,10 +1,10 @@
 import time
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+    QApplication, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
-from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator, QDoubleValidator
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
+from PyQt6.QtGui import QFont, QIntValidator, QValidator, QDoubleValidator
+from PyQt6.QtCore import pyqtSignal, Qt, QObject, QThread
 import sys
 import pyvisa as visa
 import matplotlib
@@ -17,8 +17,39 @@ import random
 import MultiPyVu as mpv # Uncommented it on the/thesever computer
 from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 import sys
+import traceback
 # import Data_Processing_Suite.GUI.Icon as Icon
 
+class APIHandler(QObject):
+    error_signal = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.server = None
+
+    def connect_server(self):
+        try:
+            self.server = mpv.Server()
+            self.server.open()
+        except SystemExit:
+            self.error_signal.emit(f'Server failed to connect! {e}')
+
+    def disconnect_server(self):
+        if self.server:
+            self.server.close()
+            self.server = None
+
+class ServerThread(QThread):
+    def __init__(self, api_handler):
+        super().__init__()
+        self.api_handler = api_handler
+        self.api_handler.error_signal.connect(self.handle_error)
+
+    def run(self):
+        self.api_handler.connect_server()
+
+    def handle_error(self, error):
+        print(f"Error in server thread: {error}")
 
 class THREAD(QThread):
     update_data = pyqtSignal(float, str, float, str, str)  # Signal to emit the temperature and field values
@@ -34,11 +65,9 @@ class THREAD(QThread):
                 T, sT = self.client.get_temperature()
                 F, sF = self.client.get_field()
                 C = self.client.get_chamber()
-                print(T,sT)
                 self.update_data.emit(T, sT, F, sF, C)
                 time.sleep(1)  # Update every second
             except Exception as e:
-                print(f"Error: {e}")
                 self.running = False
 
     def stop(self):
@@ -59,6 +88,10 @@ class PPMS(QWidget):
         try:
             self.init_ui()
             self.isConnect = False
+            self.api_handler = APIHandler()
+            self.api_handler.error_signal.connect(self.display_error)
+
+            self.server_thread = None
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -378,31 +411,42 @@ class PPMS(QWidget):
         if self.server_btn_clicked == False:
             # import Data_Processing_Suite.GUI.QDesign.run_server as s
             try:
-                self.server = mpv.Server()
                 # user_flags = ['-ip=172.19.159.4']
                 # self.server = mpv.Server(user_flags, keep_server_open=True)
-                self.server_btn.setText('Stop Server')
-                self.server_btn_clicked = True
-                self.connect_btn.setEnabled(True)
-                self.server.open()
+
+                try:
+                    # self.start_server_thread()
+                    self.server = mpv.Server()
+                    self.server.open()
+                    self.server_btn.setText('Stop Server')
+                    self.server_btn_clicked = True
+                    self.connect_btn.setEnabled(True)
+                except SystemExit as e:
+                    QMessageBox.critical(self, 'No Server Opened', 'No running instance of MultiVu '
+                                                        'was detected. Please start MultiVu and retry without administration')
+                    return
+                except Exception:
+                    return
+
             except MultiPyVuError as e:
-                print(e)
-                QMessageBox.warning(self, "Error", str(e))
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 return
         elif self.server_btn_clicked == True:
             try:
-                self.server.close()  # Uncommented it on the sever computer
-                # self.remoteServer.close()
+                self.stop_threads()
                 self.server_btn.setText('Start Server')
                 self.server_btn_clicked = False
                 self.connect_btn.setEnabled(False)
             except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 return
 
     def connect_client(self):
-        self.host = self.host_entry_box.displayText()
-        self.port = self.port_entry_box.displayText()
+        self.host = self.host_entry_box.text()
+        self.port = self.port_entry_box.text()
+
         if self.connect_btn_clicked == False:
             try:
                 self.connect_btn.setText('Stop Client')
@@ -410,34 +454,40 @@ class PPMS(QWidget):
                 self.server_btn.setEnabled(False)
                 # Uncommented it on the client computer
                 self.client_keep_going = True
-                # with mpv.Server() as self.server:
-                # with mpv.Client() as self.client:
-
-                self.client = mpv.Client(host=self.host, port=5000)
+                # self.PPMS_client_Thread = PPMS_client_Thread(host=str(self.host), port=int(self.port))
+                # self.PPMS_client_Thread.client_signal.connect(self.store_client)
+                # self.PPMS_client_Thread.run()
+                self.client = mpv.Client(host=self.host, port=int(self.port))
                 self.client.open()
-                # while self.client_keep_going:
-                #     time.sleep(1)
                 self.thread = THREAD(self.client)
                 self.thread.update_data.connect(self.ppms_reading)
-                self.thread.start()
+                self.thread.run()
             except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 return
 
         elif self.connect_btn_clicked == True:
-            # self.client.close_client()
             try:
                 self.client_keep_going = False
                 self.connect_btn.setText('Start Client')
-                self.thread.stop()
+                self.client.close_client()
+                # if self.PPMS_client_Thread is not None:
+                #     self.PPMS_client_Thread.stop_client()
+                #     self.PPMS_client_Thread.wait()
+                # if self.thread is not None:
+                #     self.thread.stop()
                 self.connect_btn_clicked = False
                 self.server_btn.setEnabled(True)
                 self.cur_temp_reading_Label.setText('N/A K')
                 self.cur_temp_status_reading_Label.setText('Unknown')
             except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 return
 
+    def store_client(self, client):
+        self.client = client
 
     def ppms_reading(self, T, sT, F, sF, C):
         # Uncomment this section to enable ppms control
@@ -506,7 +556,6 @@ class PPMS(QWidget):
 
             self.set_Field = float(self.set_Field)
             self.set_field_rate = float(self.set_field_rate)
-            print(self.set_Field, self.set_field_rate, self.field_rate_method)
             try:
                 if self.field_rate_method == 1:
                     self.client.set_field(self.set_Field,
@@ -550,7 +599,6 @@ class PPMS(QWidget):
         #     self.chamber_set_combo.setCurrentIndex(6)
 
         if self.set_Chamber != 0:
-            print(self.set_Chamber)
             try:
                 if self.set_Chamber == 1:
                     self.client.set_chamber(self.client.chamber.Mode.seal)
@@ -570,7 +618,7 @@ class PPMS(QWidget):
 
             # except mpv.exceptions.MultiPyVuError:
             except Exception:
-                print('Getting there!')
+                pass
                 # QMessageBox.warning(self, "Setup Fail", "Please try again!")
 
         else:
@@ -578,7 +626,6 @@ class PPMS(QWidget):
 
 
     def check_validator(self, validator_model, entry):
-        print("validator")
         try:
             if float(entry.displayText()) <= validator_model.top() and float(entry.displayText()) >= validator_model.bottom():
                 return True
@@ -588,3 +635,20 @@ class PPMS(QWidget):
         except:
             # QMessageBox.warning(self, "Error", "Input Out of range 2")
             return False
+
+    def start_server_thread(self):
+        self.server_thread = ServerThread(self.api_handler)
+        self.server_thread.start()
+
+    def display_error(self, error_message):
+        error_box = QMessageBox()
+        error_box.setIcon(QMessageBox.Icon.Critical)
+        error_box.setWindowTitle('Server Connection Error')
+        error_box.setText('An error occurred while connecting to the server.')
+        error_box.setDetailedText(error_message)
+        error_box.exec()
+
+    def stop_threads(self):
+        if self.server_thread:
+            self.api_handler.disconnect_server()
+            self.server_thread.wait()

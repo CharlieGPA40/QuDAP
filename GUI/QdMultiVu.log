@@ -891,3 +891,22 @@
 2024-06-01 01:43:59,556     MultiVuServer        DEBUG    ;to ('127.0.0.1', 56544); Sending b'\x00h{"byteorder": "little", "content-type": "text/json", "content-encoding": "utf-8", "content-length": 106}{"action": "START", "query": "t", "result": "Connected to DYNACOOL MultiVuServer at (\'127.0.0.1\', 56544)"}'
 2024-06-01 01:43:59,557     MultiVuClient        DEBUG    ;from ('127.0.0.1', 56544); Received request {'action': 'START', 'query': 't', 'result': "Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56544)"}
 2024-06-01 01:43:59,558     MultiVuClient        INFO     Connected to DYNACOOL MultiVuServer at ('127.0.0.1', 56544)
+2024-06-29 17:46:47,308     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-29 17:47:33,606     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-29 17:47:46,058     MultiVuServer        INFO     MultiPyVuError: No running instance of MultiVu was detected. Please
+start MultiVu and retry, or call this script using
+scaffolding (-s ppms, for example).
+2024-06-29 17:51:40,506     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '9676')
+2024-06-29 17:51:40,506     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-29 17:51:40,506     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-29 17:51:40,515     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-29 17:51:40,515     MultiVuServer        INFO     Press ESC to exit.
+2024-06-29 17:51:46,868     MultiVuServer        DEBUG    Dynacool detected here:  ('C:\\QdDynacool\\MultiVu\\Dynacool.exe', '9676')
+2024-06-29 17:51:46,869     MultiVuServer        INFO     Found DYNACOOL running.
+2024-06-29 17:51:46,869     MultiVuServer        DEBUG    MultiPyVu Version: 2.1.4
+2024-06-29 17:51:46,875     MultiVuServer        INFO     Listening on ('localhost', 5000)
+2024-06-29 17:51:46,875     MultiVuServer        INFO     Press ESC to exit.
