@@ -1934,7 +1934,7 @@ class Measurement(QMainWindow):
                 send_telegram_notification(f"Starting temperature at {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                 clear_plot()
 
-                current_progress = int(i*j/totoal_progress)
+                current_progress = int(i*j/totoal_progress) *100
                 progress_update(current_progress)
                 # number_of_current = number_of_current - 1
                 client.set_field(topField,
