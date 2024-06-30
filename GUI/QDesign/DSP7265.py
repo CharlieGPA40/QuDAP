@@ -20,7 +20,6 @@ class THREAD(QThread):
 
     def __init__(self, server):
         super().__init__()
-        print(str(server))
         self.server = server
         self.running = True
 

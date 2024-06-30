@@ -397,7 +397,6 @@ class PPMS(QWidget):
         else:
             msg = 'No flags detected; using hard-coded IP address'
             msg += 'for remote access.'
-            print(msg)
 
             # This value comes from the server PC's self-identified IPV4
             # address and needs to be manually input

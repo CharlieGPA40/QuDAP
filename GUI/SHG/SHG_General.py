@@ -58,7 +58,6 @@ class DragDropWidget(QWidget):
             if event.mimeData().hasUrls():
                 event.acceptProposedAction()
             else:
-                print("Ignore")
                 event.ignore()
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -90,7 +89,6 @@ class DragDropWidget(QWidget):
 
     def reset(self):
         self.previous_folder_path = None
-        print(self.previous_folder_path)
 
 class UserDefineFittingWindow(QWidget):
     def __init__(self, x, y):
@@ -721,7 +719,7 @@ class General(QWidget):
                                             dtype=int, delimiter=',')
                         self.warming_temp = True
                     except FileNotFoundError:
-                        print('Warming File not find')
+                        QMessageBox.warning(self, 'Warning', 'File not find''')
 
                     try:
                         self.SHG_Raw = np.loadtxt(
@@ -729,7 +727,7 @@ class General(QWidget):
                             dtype=int, delimiter=',')
                         self.cooling_temp = True
                     except FileNotFoundError:
-                        print('Cooling File not find')
+                        QMessageBox.warning(self, 'Warning', 'File not find''')
 
                     self.temp_file_cooling = []
                     self.sig_file_Cooling = []
@@ -1290,7 +1288,6 @@ class General(QWidget):
 
 
     def Fitting(self):
-           print('adding')
            self.next_button.setText("Exp. PPT.")
             #
             # #

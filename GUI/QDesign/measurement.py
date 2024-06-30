@@ -2,10 +2,11 @@ import sys
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
-    QDialogButtonBox, QProgressBar, QButtonGroup
+    QDialogButtonBox, QProgressBar, QButtonGroup, QApplication
 )
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
+from PyQt6.QtGui import QKeyEvent
 import pyvisa as visa
 import matplotlib
 import numpy as np
@@ -403,7 +404,7 @@ class Measurement(QMainWindow):
                 self.progress_bar.deleteLater()
 
             except Exception as e:
-                print(e)
+                pass
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -619,11 +620,20 @@ class Measurement(QMainWindow):
                 QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
                                                                'was detected. Please start MultiVu and retry without administration')
                 self.server_btn.setText('Start Server')
+                event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(self, event)
+                event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(self, event)
+                self.server.close()
                 self.server_btn_clicked = False
                 self.connect_btn.setEnabled(False)
                 return
         elif self.server_btn_clicked == True:
             self.server.close()
+            event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            QApplication.sendEvent(self, event)
+            event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            QApplication.sendEvent(self, event)
             self.server_btn.setText('Start Server')
             self.server_btn_clicked = False
             self.connect_btn.setEnabled(False)
@@ -740,9 +750,12 @@ class Measurement(QMainWindow):
                 self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
                 self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
                 self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box, 1)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box, 2)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box, 2)
+                self.ppms_reading_group_box.setFixedWidth(215)
+                self.ppms_Temp_group_box.setFixedWidth(450)
+                self.ppms_Field_group_box.setFixedWidth(450)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box)
             except SystemExit as e:
                 QMessageBox.critical(self, 'Client connection failed!', 'Please try again')
 
@@ -753,7 +766,7 @@ class Measurement(QMainWindow):
             self.client_keep_going = False
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
-            self.server_btn.setEnabled(False)
+            self.server_btn.setEnabled(True)
 
     def connect_devices(self):
         # self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
@@ -974,7 +987,7 @@ class Measurement(QMainWindow):
         try:
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
-            print(e)
+            pass
         self.keithley_6221_DC_range_single_layout = QVBoxLayout()
         self.keithley_6221_DC_range_layout = QHBoxLayout()
         self.keithley_6221_DC_range_checkbox = QRadioButton('Range')
@@ -1032,7 +1045,7 @@ class Measurement(QMainWindow):
         try:
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
-            print(e)
+            pass
 
     def field_zone_selection(self):
         if self.ppms_field_One_zone_radio.isChecked() and self.Field_setup_Zone_1 == False:
@@ -1465,7 +1478,7 @@ class Measurement(QMainWindow):
                                 width: 5px;
                             }
                         """)
-                self.log_box.setFixedSize(1140, 100)
+                self.log_box.setFixedSize(1140, 150)
                 self.main_layout.addWidget(self.progress_bar)
                 self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.log_box.clear()
@@ -1764,7 +1777,7 @@ class Measurement(QMainWindow):
                 self.client_keep_going = False
                 self.connect_btn.setText('Start Client')
                 self.connect_btn_clicked = False
-                self.server_btn.setEnabled(False)
+                self.server_btn.setEnabled(True)
 
             except Exception as e:
                 tb_str = traceback.format_exc()

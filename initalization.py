@@ -13,7 +13,6 @@ import GUI.ETO.ETO as eto
 import GUI.SHG.SHG as shg
 import GUI.SHG.SHG_General as shg_general
 import GUI.QDesign.DSP7265 as dsp
-import GUI.SHG.SHG_Imaging as shg_imaging
 import GUI.QDesign.Keithley2182nv as nv
 import GUI.QDesign.Keithley6221 as cs
 import GUI.QDesign.BNC845RF as rf

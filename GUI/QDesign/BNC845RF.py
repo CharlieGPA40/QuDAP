@@ -610,7 +610,6 @@ class BNC845RF(QWidget):
 
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
-        print(self.connect_btn_clicked)
         if self.connect_btn_clicked == False:
             self.connect_btn.setText('Disonnect')
             self.connect_btn_clicked = True
