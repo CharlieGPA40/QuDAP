@@ -118,7 +118,7 @@ class Worker(QThread):
                                                   zone1_field_rate=self.zone1_field_rate,
                                                   zone2_field_rate=self.zone2_field_rate,
                                                   zone3_field_rate=self.zone3_field_rate)
-
+                self.stop()
             except Exception as e:
                 tb_str = traceback.format_exc()
                 QMessageBox.warning(self, f'{tb_str} {str(e)}')

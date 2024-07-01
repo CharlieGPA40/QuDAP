@@ -7,7 +7,6 @@
     <list default="true" id="ad0ca209-dbfb-4778-8710-f6305621b1d8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/QDesign/measurement.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/QDesign/measurement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI/test5.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/test5.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -251,7 +250,7 @@
       <workItem from="1719170487429" duration="52225000" />
       <workItem from="1719340058436" duration="68421000" />
       <workItem from="1719689664909" duration="5253000" />
-      <workItem from="1719701946505" duration="10208000" />
+      <workItem from="1719701946505" duration="12440000" />
     </task>
     <servers />
   </component>
