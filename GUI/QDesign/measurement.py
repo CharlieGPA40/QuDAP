@@ -119,6 +119,8 @@ class Worker(QThread):
                                                   zone2_field_rate=self.zone2_field_rate,
                                                   zone3_field_rate=self.zone3_field_rate)
                 self.stop()
+            except SystemExit as e:
+                print(e)
             except Exception as e:
                 tb_str = traceback.format_exc()
                 QMessageBox.warning(self, f'{tb_str} {str(e)}')
@@ -532,6 +534,7 @@ class Measurement(QMainWindow):
             figure_group_box = QGroupBox("Graph")
             figure_Layout = QVBoxLayout()
             self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
+            self.canvas.axes_2 = self.canvas.axes.twinx()
             toolbar = NavigationToolbar(self.canvas, self)
             toolbar.setStyleSheet("""
                                              QWidget {
@@ -1800,7 +1803,7 @@ class Measurement(QMainWindow):
             self.canvas.axes.plot(x_data, y_data, color, marker='s')
 
         if channel_2_enabled:
-            self.canvas.axes_2 = self.canvas.axes.twinx()
+
             self.canvas.axes_2.plot(x_data, y_data, color, marker='s')
 
         self.canvas.axes.set_xlabel('Field (Oe)')
