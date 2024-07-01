@@ -1803,8 +1803,8 @@ class Measurement(QMainWindow):
             self.canvas.axes_2 = self.canvas.axes.twinx()
             self.canvas.axes_2.plot(x_data, y_data, color, marker='s')
 
-        self.axes.set_xlabel('Field (Oe)')
-        self.axes.set_ylabel('Voltage (v)', color=color)
+        self.canvas.axes.set_xlabel('Field (Oe)')
+        self.canvas.axes.set_ylabel('Voltage (v)', color=color)
         self.canvas.draw()
 
     def clear_plot(self):
