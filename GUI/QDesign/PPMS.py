@@ -20,37 +20,6 @@ import sys
 import traceback
 # import Data_Processing_Suite.GUI.Icon as Icon
 
-class APIHandler(QObject):
-    error_signal = pyqtSignal(str)
-
-    def __init__(self):
-        super().__init__()
-        self.server = None
-
-    def connect_server(self):
-        try:
-            self.server = mpv.Server()
-            self.server.open()
-        except SystemExit:
-            self.error_signal.emit(f'Server failed to connect! {e}')
-
-    def disconnect_server(self):
-        if self.server:
-            self.server.close()
-            self.server = None
-
-class ServerThread(QThread):
-    def __init__(self, api_handler):
-        super().__init__()
-        self.api_handler = api_handler
-        self.api_handler.error_signal.connect(self.handle_error)
-
-    def run(self):
-        self.api_handler.connect_server()
-
-    def handle_error(self, error):
-        print(f"Error in server thread: {error}")
-
 class THREAD(QThread):
     update_data = pyqtSignal(float, str, float, str, str)  # Signal to emit the temperature and field values
     def __init__(self, client):
@@ -88,8 +57,6 @@ class PPMS(QWidget):
         try:
             self.init_ui()
             self.isConnect = False
-            self.api_handler = APIHandler()
-            self.api_handler.error_signal.connect(self.display_error)
 
             self.server_thread = None
         except Exception as e:
@@ -445,6 +412,7 @@ class PPMS(QWidget):
     def connect_client(self):
         self.host = self.host_entry_box.text()
         self.port = self.port_entry_box.text()
+        print(self.host)
 
         if self.connect_btn_clicked == False:
             try:
@@ -453,14 +421,11 @@ class PPMS(QWidget):
                 self.server_btn.setEnabled(False)
                 # Uncommented it on the client computer
                 self.client_keep_going = True
-                # self.PPMS_client_Thread = PPMS_client_Thread(host=str(self.host), port=int(self.port))
-                # self.PPMS_client_Thread.client_signal.connect(self.store_client)
-                # self.PPMS_client_Thread.run()
-                self.client = mpv.Client(host=self.host, port=int(self.port))
+                self.client = mpv.Client(host=self.host, port=5000)
                 self.client.open()
                 self.thread = THREAD(self.client)
                 self.thread.update_data.connect(self.ppms_reading)
-                self.thread.run()
+                self.thread.start()
             except Exception as e:
                 tb_str = traceback.format_exc()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
