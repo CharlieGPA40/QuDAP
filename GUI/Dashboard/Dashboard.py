@@ -635,7 +635,7 @@ class Dash(QMainWindow):
 
     def update_gpib_status(self):
         # Update the status of the GPIB connections
-        rm = pyvisa.ResourceManager('@sim')
+        rm = pyvisa.ResourceManager('')
         try:
             resources = rm.list_resources()
 
