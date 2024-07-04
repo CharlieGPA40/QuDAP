@@ -123,11 +123,10 @@ class Worker(QThread):
                 print(e)
             except Exception as e:
                 tb_str = traceback.format_exc()
-                QMessageBox.warning(self, f'{tb_str} {str(e)}')
+                print(f'{tb_str} {str(e)}')
 
     def stop(self):
         self.running = False
-        self.worker.stop()
 
 class LogWindow(QDialog):
     def __init__(self):
@@ -1415,6 +1414,7 @@ class Measurement(QMainWindow):
         self.timer = QTimer()
         self.timer.stop()
         self.canvas.axes.cla()
+        self.canvas.axes_2.cla()
         self.canvas.draw()
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
@@ -1422,6 +1422,9 @@ class Measurement(QMainWindow):
         self.nv_channel_1_enabled = None
         self.nv_channel_2_enabled = None
         try:
+            self.keithley_6221.write(":OUTP OFF")
+            self.keithley_2182nv.write("*RST")
+            self.keithley_2182nv.write("*CLS")
             self.keithley_6221.close()
             self.keithley_2182A_NV.close()
         except Exception:
@@ -1435,6 +1438,7 @@ class Measurement(QMainWindow):
             self.keithley_2182nv.write("*CLS")
         except Exception:
             pass
+        self.send_telegram_notification("Experiment Stop!")
         self.running = False
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
@@ -1443,10 +1447,11 @@ class Measurement(QMainWindow):
         self.nv_channel_2_enabled = None
         try:
             self.worker.stop()
-        except AttributeError:
+        except Exception:
             pass
         try:
             self.canvas.axes.cla()
+            self.canvas.axes_2.cla()
             self.canvas.draw()
             self.main_layout.removeWidget(self.log_box)
             self.log_box.deleteLater()
@@ -1801,17 +1806,19 @@ class Measurement(QMainWindow):
     def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
         if channel_1_enabled:
             self.canvas.axes.plot(x_data, y_data, color, marker='s')
+            self.canvas.axes.set_ylabel('Voltage (v)', color=color)
 
         if channel_2_enabled:
-
             self.canvas.axes_2.plot(x_data, y_data, color, marker='s')
+            self.canvas.axes_2.set_ylabel('Voltage (v)', color=color)
 
         self.canvas.axes.set_xlabel('Field (Oe)')
-        self.canvas.axes.set_ylabel('Voltage (v)', color=color)
+        self.canvas.figure.tight_layout()
         self.canvas.draw()
 
     def clear_plot(self):
         self.canvas.axes.cla()
+        self.canvas.axes_2.cla()
 
     def update_nv_channel_1_label(self, chanel1):
         self.keithley_2182_channel_1_reading_label.setText(chanel1)
@@ -1820,7 +1827,7 @@ class Measurement(QMainWindow):
         self.keithley_2182_channel_2_reading_label.setText(chanel2)
 
     def update_progress(self, value):
-        self.progress_bar.setValue(value)
+        self.progress_bar.setValue(int(value))
 
     def show_error_message(self, tb_str, error_str):
         QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
@@ -1828,6 +1835,10 @@ class Measurement(QMainWindow):
     def measurement_finished(self):
         self.stop_measurement()
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
+        try:
+            self.worker.stop()
+        except:
+            pass
 
     def append_text(self, text, color):
         try:
@@ -1955,8 +1966,8 @@ class Measurement(QMainWindow):
                 send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                 clear_plot()
 
-                current_progress = int(i*j/totoal_progress) *100
-                progress_update(current_progress)
+                current_progress = int((i+1)*(j+1)/totoal_progress) * 100
+                progress_update(int(current_progress))
                 # number_of_current = number_of_current - 1
                 client.set_field(topField,
                                  Fast_fieldRate,
@@ -2443,7 +2454,6 @@ class Measurement(QMainWindow):
         send_telegram_notification("The measurement has been completed successfully.")
 
         measurement_finished()
-        stop_measurement()
         return
 
     def send_telegram_notification(self, message):
