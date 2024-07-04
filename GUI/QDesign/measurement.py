@@ -1966,8 +1966,7 @@ class Measurement(QMainWindow):
                 send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                 clear_plot()
 
-                current_progress = int((i+1)*(j+1)/totoal_progress) * 100
-                progress_update(int(current_progress))
+
                 # number_of_current = number_of_current - 1
                 client.set_field(topField,
                                  Fast_fieldRate,
@@ -2009,6 +2008,9 @@ class Measurement(QMainWindow):
                 self.field_array = []
                 self.channel1_array = []
                 self.channel2_array = []
+                current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
+                progress_update(int(current_progress))
+
                 if field_mode_fixed:
 
                     while currentField >= botField:
