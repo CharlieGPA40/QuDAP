@@ -2307,9 +2307,9 @@ class Measurement(QMainWindow):
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
 
-                            append_text(f'deltaH = {deltaH}\n', 'orange')
+                            append_text(f'Field Rate = {user_field_rate}\n', 'orange')
                             # Update currentField for the next iteration
-                            currentField -= deltaH
+                            # currentField -= deltaH
                             self.pts += 1  # Number of self.pts count
                             single_measurement_end = time.time()
                             Single_loop = single_measurement_end - single_measurement_start
@@ -2334,6 +2334,8 @@ class Measurement(QMainWindow):
                             append_text(
                                 'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                     total_time_in_days), 'purple')
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
 
                         # ----------------- Loop Up ----------------------#
                         send_telegram_notification(f"Starting the second half of measurement - ramping field up")
@@ -2413,9 +2415,9 @@ class Measurement(QMainWindow):
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
 
-                            append_text(f'deltaH = {deltaH}\n', 'orange')
+                            append_text(f'Field Rate = {user_field_rate}\n', 'orange')
                             # Update currentField for the next iteration
-                            currentField += deltaH
+                            # Update currentField for the next iteration
                             self.pts += 1  # Number of self.pts count
                             single_measurement_end = time.time()
                             Single_loop = single_measurement_end - single_measurement_start
@@ -2436,6 +2438,9 @@ class Measurement(QMainWindow):
                             append_text(
                                 'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                     total_time_in_days), 'purple')
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
             client.set_field(zeroField,
                              Fast_fieldRate,
