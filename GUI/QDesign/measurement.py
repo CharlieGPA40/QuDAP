@@ -1760,12 +1760,12 @@ class Measurement(QMainWindow):
                 if self.keithley_2182_channel_1_checkbox.isChecked():
                     self.nv_channel_1_enabled = True
                 else:
-                    self.nv_channel_1_enabled = True
+                    self.nv_channel_1_enabled = False
 
                 if self.keithley_2182_channel_2_checkbox.isChecked():
                     self.nv_channel_2_enabled = True
                 else:
-                    self.nv_channel_2_enabled = True
+                    self.nv_channel_2_enabled = False
 
                 self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, current, TempList, topField,
                                      botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
@@ -2255,7 +2255,6 @@ class Measurement(QMainWindow):
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         while currentField >= botField:
                             single_measurement_start = time.time()
-                            print('enter')
                             NPLC = nv_NPLC
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
