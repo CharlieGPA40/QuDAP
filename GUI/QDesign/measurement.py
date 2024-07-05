@@ -2258,7 +2258,7 @@ class Measurement(QMainWindow):
                             NPLC = nv_NPLC
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
-                            time.sleep(0.2)
+                            time.sleep(0.5)
                             try:
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
@@ -2373,7 +2373,7 @@ class Measurement(QMainWindow):
 
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                            time.sleep(0.2)
+                            time.sleep(0.5)
                             currentField, sF = client.get_field()
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
