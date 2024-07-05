@@ -2226,6 +2226,7 @@ class Measurement(QMainWindow):
                                 'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                     total_time_in_days), 'purple')
                     else:
+                        print('enter')
                         client.set_field(topField,
                                          Fast_fieldRate,
                                          client.field.approach_mode.linear,
@@ -2233,6 +2234,7 @@ class Measurement(QMainWindow):
                         append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                         MyField, sF = client.get_field()
                         update_ppms_field_reading_label(str(MyField), 'Oe')
+                        print('Enter1')
                         while True:
                             time.sleep(1)
                             MyField, sF = client.get_field()
@@ -2241,6 +2243,7 @@ class Measurement(QMainWindow):
                             if sF == 'Holding (driven)':
                                 break
                         time.sleep(20)
+                        print("Enter2")
                         deltaH, user_field_rate = deltaH_chk(currentField)
                         while currentField >= botField:
                             client.set_field(botField,
