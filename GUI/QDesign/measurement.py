@@ -2010,8 +2010,7 @@ class Measurement(QMainWindow):
                     self.field_array = []
                     self.channel1_array = []
                     self.channel2_array = []
-                    current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
-                    progress_update(int(current_progress))
+
 
                     if field_mode_fixed:
 
@@ -2253,12 +2252,14 @@ class Measurement(QMainWindow):
                         except SystemExit as e:
                             print(e)
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
+                        counter = 0
                         while currentField >= botField:
+                            counter += 1
                             single_measurement_start = time.time()
                             NPLC = nv_NPLC
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
-                            time.sleep(0.5)
+                            time.sleep(1)
                             try:
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
@@ -2276,7 +2277,8 @@ class Measurement(QMainWindow):
                                 update_nv_channel_1_label(str(Chan_1_voltage))
                                 append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                                 self.channel1_array.append(Chan_1_voltage)
-                                update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                if counter % 20 == 0:
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
                             if nv_channel_2_enabled:
                                 keithley_2182nv.write("SENS:CHAN 2")
                                 volt2 = keithley_2182nv.query("READ?")
@@ -2285,7 +2287,8 @@ class Measurement(QMainWindow):
                                 append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                                 self.channel2_array.append(Chan_2_voltage)
                                 # # Drop off the first y element, append a new one.
-                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                if counter % 20 == 0:
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                             # Calculate the average voltage
                             resistance_chan_1 = Chan_1_voltage / float(current[j])
@@ -2339,6 +2342,8 @@ class Measurement(QMainWindow):
                             currentField, sF = client.get_field()
                             update_ppms_field_reading_label(str(currentField), 'Oe')
 
+
+
                         # ----------------- Loop Up ----------------------#
                         send_telegram_notification(f"Starting the second half of measurement - ramping field up")
                         currentField = botField
@@ -2366,14 +2371,14 @@ class Measurement(QMainWindow):
                                          client.field.approach_mode.linear,
                                          client.field.driven_mode.driven)
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
-
+                        counter = 0
                         while currentField <= topField:
-
+                            counter += 1
                             single_measurement_start = time.time()
 
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                            time.sleep(0.5)
+                            time.sleep(1)
                             currentField, sF = client.get_field()
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
@@ -2388,7 +2393,8 @@ class Measurement(QMainWindow):
                                 update_nv_channel_1_label(str(Chan_1_voltage))
                                 append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                                 self.channel1_array.append(Chan_1_voltage)
-                                update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                if counter % 20 == 0:
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
                             if nv_channel_2_enabled:
                                 keithley_2182nv.write("SENS:CHAN 2")
                                 volt2 = keithley_2182nv.query("READ?")
@@ -2396,8 +2402,9 @@ class Measurement(QMainWindow):
                                 update_nv_channel_2_label(str(Chan_2_voltage))
                                 append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                                 self.channel2_array.append(Chan_2_voltage)
+                                if counter % 20 == 0:
                                 # # Drop off the first y element, append a new one.
-                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                             resistance_chan_1 = Chan_1_voltage / float(current[j])
                             resistance_chan_2 = Chan_2_voltage / float(current[j])
@@ -2446,6 +2453,8 @@ class Measurement(QMainWindow):
                             update_ppms_field_reading_label(str(currentField), 'Oe')
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
+                    current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
+                    progress_update(int(current_progress))
             client.set_field(zeroField,
                              Fast_fieldRate,
                              client.field.approach_mode.oscillate,  # linear/oscillate
