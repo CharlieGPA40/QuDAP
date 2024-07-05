@@ -1884,14 +1884,14 @@ class Measurement(QMainWindow):
                     deltaH = zone1_step_field
                     user_field_rate = zone1_field_rate
                 elif ppms_field_Two_zone_radio_enabled:
-                    if (currentField <= zone1_top_field or currentField >= -1 * zone1_top_field):
+                    if (currentField <= zone1_top_field + 1 or currentField >= -1 * zone1_top_field-1):
                         deltaH = zone1_step_field
                         user_field_rate = zone1_field_rate
                     elif (currentField > -1 * zone2_top_field and currentField <= zone2_top_field):
                         deltaH = zone2_step_field
                         user_field_rate = zone2_field_rate
                 elif ppms_field_Three_zone_radio_enabled:
-                    if (currentField <= zone1_top_field or currentField >= -1 * zone1_top_field):
+                    if (currentField <= zone1_top_field+1 or currentField >= -1 * zone1_top_field-1):
                         deltaH = zone1_step_field
                         user_field_rate = zone1_field_rate
                     elif (currentField < zone2_top_field and currentField >= -1 * zone2_top_field):
@@ -1912,6 +1912,7 @@ class Measurement(QMainWindow):
             start_time = time.time()
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
+            print(user_field_rate)
             time.sleep(5)
             # -------------Temp Status---------------------
             temperature, status = client.get_temperature()
@@ -2241,30 +2242,31 @@ class Measurement(QMainWindow):
                             if sF == 'Holding (driven)':
                                 break
                         time.sleep(20)
-                        deltaH, user_field_rate = deltaH_chk(currentField)
-                        print(deltaH, user_field_rate)
+                        deltaH, user_field_rate = deltaH_chk(MyField)
+                        currentField = MyField
                         try:
                             client.set_field(botField,
                                              user_field_rate,
                                              client.field.approach_mode.linear,
                                              client.field.driven_mode.driven)
-                        except Exception as e:
+                        except SystemExit as e:
                             print(e)
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
-                        print('enter')
                         while currentField >= botField:
                             single_measurement_start = time.time()
                             NPLC = nv_NPLC
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
-                            MyField, sF = client.get_field()
-
-                            update_ppms_field_reading_label(str(MyField), 'Oe')
-                            append_text(f'Saving data for {MyField} Oe \n', 'green')
+                            try:
+                                currentField, sF = client.get_field()
+                            except SystemExit as e:
+                                print(e)
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            append_text(f'Saving data for {currentField} Oe \n', 'green')
 
                             Chan_1_voltage = 0
                             Chan_2_voltage = 0
-                            self.field_array.append(MyField)
+                            self.field_array.append(currentField)
                             if nv_channel_1_enabled:
                                 keithley_2182nv.write("SENS:CHAN 1")
                                 volt = keithley_2182nv.query("READ?")
@@ -2298,9 +2300,9 @@ class Measurement(QMainWindow):
                                                                                                               "Ohm)",
                                          "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                      Chan_2_voltage, MyTemp, current[j]])
-                                append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                                append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
 
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
@@ -2341,37 +2343,38 @@ class Measurement(QMainWindow):
                                          client.field.approach_mode.linear,
                                          client.field.driven_mode.driven)
                         append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
-                        MyField, sF = client.get_field()
-                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        currentField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(currentField), 'Oe')
 
                         while True:
                             time.sleep(1)
-                            MyField, sF = client.get_field()
-                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Status: {sF}\n', 'blue')
                             if sF == 'Holding (driven)':
                                 break
 
                         deltaH, user_field_rate = deltaH_chk(currentField)
                         time.sleep(20)
+                        client.set_field(topField,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
+
                         while currentField <= topField:
-                            client.set_field(topField,
-                                             user_field_rate,
-                                             client.field.approach_mode.linear,
-                                             client.field.driven_mode.driven)
-                            append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
+
                             single_measurement_start = time.time()
 
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                            MyField, sF = client.get_field()
-
-                            update_ppms_field_reading_label(str(MyField), 'Oe')
-                            append_text(f'Saving data for {MyField} Oe \n', 'green')
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            append_text(f'Saving data for {currentField} Oe \n', 'green')
 
                             Chan_1_voltage = 0
                             Chan_2_voltage = 0
-                            self.field_array.append(MyField)
+                            self.field_array.append(currentField)
                             if nv_channel_1_enabled:
                                 keithley_2182nv.write("SENS:CHAN 1")
                                 volt = keithley_2182nv.query("READ?")
@@ -2403,9 +2406,9 @@ class Measurement(QMainWindow):
                                                                                                               "Ohm)",
                                          "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                      Chan_2_voltage, MyTemp, current[j]])
-                                self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
+                                self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
 
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
