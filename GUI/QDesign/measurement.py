@@ -2346,7 +2346,7 @@ class Measurement(QMainWindow):
                                          user_field_rate,
                                          client.field.approach_mode.linear,
                                          client.field.driven_mode.driven)
-                        append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
+                        append_text(f'Set the field to {currentField} Oe and then collect data \n', 'greem')
                         time.sleep(4)
                         currentField, sF = client.get_field()
                         update_ppms_field_reading_label(str(currentField), 'Oe')
