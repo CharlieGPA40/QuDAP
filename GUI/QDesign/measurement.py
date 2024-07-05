@@ -2232,6 +2232,7 @@ class Measurement(QMainWindow):
                                          client.field.approach_mode.linear,
                                          client.field.driven_mode.driven)
                         append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
+                        time.sleep(4)
                         MyField, sF = client.get_field()
                         update_ppms_field_reading_label(str(MyField), 'Oe')
                         while True:
@@ -2254,9 +2255,11 @@ class Measurement(QMainWindow):
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         while currentField >= botField:
                             single_measurement_start = time.time()
+                            print('enter')
                             NPLC = nv_NPLC
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
+                            time.sleep(0.2)
                             try:
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
@@ -2345,6 +2348,7 @@ class Measurement(QMainWindow):
                                          client.field.approach_mode.linear,
                                          client.field.driven_mode.driven)
                         append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
+                        time.sleep(4)
                         currentField, sF = client.get_field()
                         update_ppms_field_reading_label(str(currentField), 'Oe')
 
@@ -2370,6 +2374,7 @@ class Measurement(QMainWindow):
 
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            time.sleep(0.2)
                             currentField, sF = client.get_field()
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
