@@ -2,7 +2,7 @@ import mimetypes
 
 from PyQt6.QtWidgets import (
     QTreeWidgetItem, QMessageBox, QButtonGroup, QWidget, QRadioButton, QGroupBox, QFileDialog, QVBoxLayout, QLabel,
-    QHBoxLayout
+    QHBoxLayout,QSizePolicy
 , QDialog, QPushButton, QComboBox, QLineEdit, QScrollArea, QTreeWidget, QSplitter, QMainWindow)
 from PyQt6.QtGui import QIcon, QFont, QDragEnterEvent, QDropEvent
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QMimeData
@@ -143,7 +143,7 @@ class MplCanvas(FigureCanvas):
         #     self.ax = self.fig.add_subplot(111)
         super(MplCanvas, self).__init__(self.fig)
 
-class General(QWidget):
+class General(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -174,16 +174,21 @@ class General(QWidget):
                 titlefont = QFont("Arial", 20)
                 self.font = QFont("Arial", 12)
                 self.setStyleSheet("background-color: white;")
-                # self.master_layout = QVBoxLayout()
-                # # Create main vertical layout with centered alignment
-                # self.scrollArea = QScrollArea(self)
-                # self.scrollArea.setWidgetResizable(True)
-                # self.scrollArea.setMinimumSize(800, 1000)
+                with open("GUI/QSS/QScrollbar.qss", "r") as file:
+                    self.scrollbar_stylesheet = file.read()
+                    # Create a QScrollArea
+                self.scroll_area = QScrollArea()
+                self.scroll_area.setWidgetResizable(True)
+                self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                self.scroll_area.setStyleSheet(self.scrollbar_stylesheet)
+                # Create a widget to hold the main layout
+                self.content_widget = QWidget()
+                self.scroll_area.setWidget(self.content_widget)
 
-                # self.scrollContent = QWidget()
-                # self.main_layout = QVBoxLayout(self.scrollContent)
-                self.SHG_data_Processing_main_layout = QVBoxLayout(self)
+                # Set the content widget to expand
+                self.SHG_data_Processing_main_layout = QVBoxLayout(self.content_widget)
                 self.SHG_data_Processing_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
                 #  ---------------------------- PART 1 --------------------------------
                 self.SHG_General_label = QLabel("SHG Data Processing (UNO Lab)")
@@ -244,12 +249,13 @@ class General(QWidget):
                 self.fileUpload_layout.addWidget(self.file_view_group_box,1)
                 self.fileupload_container = QWidget(self)
                 self.fileupload_container.setLayout(self.fileUpload_layout)
-                self.fileupload_container.setFixedSize(1180,160)
+                self.fileupload_container.setFixedSize(1200,160)
 
                 self.SHG_data_Processing_main_layout.addWidget(self.SHG_General_label, alignment=Qt.AlignmentFlag.AlignTop)
                 self.SHG_data_Processing_main_layout.addWidget(self.fileupload_container)
                 self.SHG_data_Processing_main_layout.addStretch(1)
                 self.rstpage()
+                self.setCentralWidget(self.scroll_area)
                 # self.scrollArea.setWidget(self.scrollContent)
 
                 # Add the scroll area to the main layout
@@ -636,6 +642,7 @@ class General(QWidget):
                 # If need to remove the space
                 file_name = str(self.Parameter.iat[1, 1]).replace(" ", "")
                 self.file_name = file_name
+                self.log_layout_widget = QWidget()
                 self.log_layout = QVBoxLayout()
                 self.log_layout.addWidget(self.date_label)
                 self.log_layout.addWidget(self.sample_label)
@@ -653,7 +660,19 @@ class General(QWidget):
                 self.log_layout.addWidget(self.end_temp_label)
                 self.log_layout.addWidget(self.step_temp_label)
 
-                self.log_group_box.setLayout(self.log_layout)
+                self.log_layout_widget.setLayout(self.log_layout)
+                self.log_group_box.setFixedSize(400, 500)
+                self.outter_log_layout = QHBoxLayout()
+
+                # self.log_scroll_area = QScrollArea()
+                # self.log_scroll_area.setWidget(self.log_layout_widget)
+                # self.log_scroll_area.setFixedSize(400, 500)
+                # self.log_scroll_area.setWidgetResizable(True)  # Make the scroll area resizable
+                self.outter_log_layout.addWidget(self.log_layout_widget)
+
+                self.log_group_box.setLayout(self.outter_log_layout)
+                self.log_group_box.setFixedSize(100, 500)
+
                 self.data_processing_layout.addWidget(self.log_group_box)
                 self.figure_Layout = QVBoxLayout()
                 self.canvas = MplCanvas(self, width=5, height=4, dpi=100, polar=False)
@@ -707,6 +726,8 @@ class General(QWidget):
                 self.figure_Layout.addLayout(self.plot_button_layout, 1)
 
                 self.Fitting_mode_group_box.setLayout(self.figure_Layout)
+                self.Fitting_mode_group_box.setFixedSize(500, 500)
+
                 self.data_processing_layout.addWidget(self.Fitting_mode_group_box)
                 self.processWidget = True
                 self.SHG_data_Processing_main_layout.addLayout(self.data_processing_layout)

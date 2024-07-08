@@ -1446,9 +1446,10 @@ class Measurement(QMainWindow):
         self.nv_channel_1_enabled = None
         self.nv_channel_2_enabled = None
         try:
-            self.worker.stop()
+            if hasattr(self, 'worker_thread') and self.worker.isRunning():
+                self.worker.stop()
         except Exception:
-            pass
+            QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         try:
             self.canvas.axes.cla()
             self.canvas.axes_2.cla()

@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         self.main_layout = QHBoxLayout()
         self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
         self.main_layout.addWidget(self.hide_button_container, 1)
-        self.main_layout.addWidget(self.right_sidebar, 4)  # Right sidebar stretch factor 1
+        self.main_layout.addWidget(self.right_sidebar, 2)  # Right sidebar stretch factor 1
 
         self.main_layout.addWidget(self.pages, 13)  # Central content area stretch factor 4
         self.main_layout.setSpacing(0)
@@ -205,7 +205,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # Set initial window size
-        self.setFixedSize(1600, 920)
+        self.setMinimumSize(1620,800)
 
     @pyqtSlot(int, int, int)
     def set_page(self, page, left_sidebar, right_sidebar):

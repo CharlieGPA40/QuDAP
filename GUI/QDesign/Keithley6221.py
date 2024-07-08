@@ -316,6 +316,7 @@ class CurrentSource6221(QWidget):
                     self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
                     self.isConnect = True
+                    self.keithley_6221.write("OUTPut OFF")
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
                     self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
                 except visa.errors.VisaIOError:
@@ -347,7 +348,7 @@ class CurrentSource6221(QWidget):
                             unit = 'e-12'
                         self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
                         self.keithley_6221.write("OUTPut ON")
-                        self.send_btn.setText('Abort')
+                        self.send_btn.setText('OFF')
                         self.DCisOn = True
                         self.arm_btn.setEnabled(False)
                         self.send_btn.setStyleSheet("""
