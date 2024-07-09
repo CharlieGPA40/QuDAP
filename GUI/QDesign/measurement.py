@@ -2456,16 +2456,17 @@ class Measurement(QMainWindow):
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
                     current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
                     progress_update(int(current_progress))
+            time.sleep(2)
             client.set_field(zeroField,
                              Fast_fieldRate,
                              client.field.approach_mode.oscillate,  # linear/oscillate
                              client.field.driven_mode.driven)
             append_text('Waiting for Zero Field', 'red')
-
+            time.sleep(2)
             temperature, status = client.get_temperature()
             append_text(f'Finished Temperature = {temperature} K', 'green')
             update_ppms_temp_reading_label(str(temperature), 'K')
-
+            time.sleep(2)
             field, status = client.get_field()
             fieldUnits = client.field.units
             append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
