@@ -1914,7 +1914,6 @@ class Measurement(QMainWindow):
             start_time = time.time()
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
-            print(user_field_rate)
             time.sleep(5)
             # -------------Temp Status---------------------
             temperature, status = client.get_temperature()
@@ -2013,232 +2012,22 @@ class Measurement(QMainWindow):
                     self.channel1_array = []
                     self.channel2_array = []
 
-                    while running():
-                        if field_mode_fixed:
 
-                            while currentField >= botField:
-                                if not running():
-                                    stop_measurement()
-                                    return
-                                single_measurement_start = time.time()
-                                append_text(f'Loop is at {currentField} Oe Field Up \n', 'blue')
-                                Fieldsetpoint = currentField
-                                append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'blue')
-                                client.set_field(Fieldsetpoint,
-                                                 user_field_rate,
-                                                 client.field.approach_mode.linear,
-                                                 client.field.driven_mode.driven)
-                                append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
-                                time.sleep(4)
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
-                                while True:
-                                    time.sleep(1)
-                                    MyField, sF = client.get_field()
-                                    update_ppms_field_reading_label(str(MyField), 'Oe')
-                                    append_text(f'Status: {sF}\n', 'blue')
-                                    if sF == 'Holding (driven)':
-                                        break
+                    if field_mode_fixed:
 
-
-                                # ----------------------------- Measure NV voltage -------------------
-                                append_text(f'Saving data for {MyField} Oe \n', 'green')
-                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                                keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                                time.sleep(2)  # Wait for the configuration to complete
-                                Chan_1_voltage = 0
-                                Chan_2_voltage = 0
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
-                                self.field_array.append(MyField)
-                                try:
-                                    if nv_channel_1_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 1")
-                                        volt = keithley_2182nv.query("READ?")
-                                        Chan_1_voltage = float(volt)
-                                        update_nv_channel_1_label(str(Chan_1_voltage))
-                                        append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-
-                                        self.channel1_array.append(Chan_1_voltage)
-                                        # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                except Exception as e:
-                                    QMessageBox.warning(self, 'Warning', str(e))
-
-                                if nv_channel_2_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 2")
-                                    volt2 = keithley_2182nv.query("READ?")
-                                    Chan_2_voltage = float(volt2)
-                                    update_nv_channel_2_label(str(Chan_2_voltage))
-                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                    self.channel2_array.append(Chan_2_voltage)
-                                    # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
-
-                                # Calculate the average voltage
-                                resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                resistance_chan_2 = Chan_2_voltage / float(current[j])
-
-                                # Append the data to the CSV file
-                                with open(csv_filename, "a", newline="") as csvfile:
-                                    csv_writer = csv.writer(csvfile)
-
-                                    if csvfile.tell() == 0:  # Check if file is empty
-                                        csv_writer.writerow(
-                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                                  "Resistance ("
-                                                                                                                  "Ohm)",
-                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-
-                                    csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                         Chan_2_voltage, MyTemp, current[j]])
-                                    append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
-
-
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
-                                MyTemp, sT = client.get_temperature()
-                                update_ppms_temp_reading_label(str(MyTemp), 'K')
-                                # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
-
-                                append_text(f'deltaH = {deltaH}\n', 'orange')
-                                # Update currentField for the next iteration
-                                currentField -= deltaH
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
-                                append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop), 'purple')
-                                append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
-                                    Single_loop * number_of_field / 60 / 60), 'purple')
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
-                                            number_of_temp - i)
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-                                append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                    total_time_in_seconds), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                    total_time_in_hours), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
-
-                            # ----------------- Loop Up ----------------------#
-                            currentField = botField
-                            deltaH, user_field_rate = deltaH_chk(currentField)
-                            send_telegram_notification(f"Starting the second half of measurement - ramping field up")
-                            while currentField <= topField:
-                                if not running():
-                                    stop_measurement()
-                                    return
-                                single_measurement_start = time.time()
-                                append_text(f'\n Loop is at {currentField} Oe Field Up \n', 'blue')
-                                Fieldsetpoint = currentField
-
-                                append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
-                                client.set_field(Fieldsetpoint,
-                                                 user_field_rate,
-                                                 client.field.approach_mode.linear,
-                                                 client.field.driven_mode.driven)
-
-                                append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
-                                time.sleep(4)
-
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
-                                while True:
-                                    time.sleep(1)
-                                    MyField, sF = client.get_field()
-                                    update_ppms_field_reading_label(str(MyField), 'Oe')
-                                    append_text(f'Status: {sF}\n', 'blue')
-                                    if sF == 'Holding (driven)':
-                                        break
-
-                                # ----------------------------- Measure NV voltage -------------------
-                                append_text(f'Saving data for {MyField} Oe \n', 'green')
-                                Chan_1_voltage = 0
-                                Chan_2_voltage = 0
-                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                                keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                                time.sleep(2)  # Wait for the configuration to complete
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
-                                self.field_array.append(MyField)
-                                if nv_channel_1_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 1")
-                                    volt = keithley_2182nv.query("READ?")
-                                    Chan_1_voltage = float(volt)
-                                    update_nv_channel_1_label(str(Chan_1_voltage))
-                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                    self.channel1_array.append(Chan_1_voltage)
-                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                if nv_channel_2_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 2")
-                                    volt2 = keithley_2182nv.query("READ?")
-                                    Chan_2_voltage = float(volt2)
-                                    update_nv_channel_2_label(str(Chan_2_voltage))
-                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                    self.channel2_array.append(Chan_2_voltage)
-                                    # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
-                                resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                resistance_chan_2 = Chan_2_voltage / float(current[j])
-
-                                # Append the data to the CSV file
-                                with open(csv_filename, "a", newline="") as csvfile:
-                                    csv_writer = csv.writer(csvfile)
-
-                                    if csvfile.tell() == 0:  # Check if file is empty
-                                        csv_writer.writerow(
-                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                                  "Resistance ("
-                                                                                                                  "Ohm)",
-                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                                    MyField, sF = client.get_field()
-                                    update_ppms_field_reading_label(str(MyField), 'Oe')
-                                    MyTemp, sT = client.get_temperature()
-                                    update_ppms_temp_reading_label(str(MyTemp), 'K')
-                                    csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                         Chan_2_voltage, MyTemp, current[j]])
-                                    self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
-
-                                # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
-
-                                append_text(f'deltaH = {deltaH}\n', 'orange')
-                                # Update currentField for the next iteration
-                                currentField += deltaH
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
-                                            number_of_temp - i)
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-                                append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                    total_time_in_seconds), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        total_time_in_hours), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
-                        else:
-                            client.set_field(topField,
-                                             Fast_fieldRate,
+                        while currentField >= botField:
+                            if not running():
+                                stop_measurement()
+                                return
+                            single_measurement_start = time.time()
+                            append_text(f'Loop is at {currentField} Oe Field Up \n', 'blue')
+                            Fieldsetpoint = currentField
+                            append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'blue')
+                            client.set_field(Fieldsetpoint,
+                                             user_field_rate,
                                              client.field.approach_mode.linear,
                                              client.field.driven_mode.driven)
-                            append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
+                            append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
                             time.sleep(4)
                             MyField, sF = client.get_field()
                             update_ppms_field_reading_label(str(MyField), 'Oe')
@@ -2246,226 +2035,437 @@ class Measurement(QMainWindow):
                                 time.sleep(1)
                                 MyField, sF = client.get_field()
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
-                                append_text(f'Status: {sF}\n', 'red')
-                                if sF == 'Holding (driven)':
-                                    break
-                            time.sleep(20)
-                            deltaH, user_field_rate = deltaH_chk(MyField)
-                            currentField = MyField
-                            try:
-                                client.set_field(botField,
-                                                 user_field_rate,
-                                                 client.field.approach_mode.linear,
-                                                 client.field.driven_mode.driven)
-                            except SystemExit as e:
-                                print(e)
-                            append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
-                            counter = 0
-                            while currentField >= botField:
-                                if not running():
-                                    stop_measurement()
-                                    return
-                                counter += 1
-                                single_measurement_start = time.time()
-                                NPLC = nv_NPLC
-                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                                keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
-                                time.sleep(1)
-                                try:
-                                    currentField, sF = client.get_field()
-                                except SystemExit as e:
-                                    print(e)
-                                update_ppms_field_reading_label(str(currentField), 'Oe')
-                                append_text(f'Saving data for {currentField} Oe \n', 'green')
-
-                                Chan_1_voltage = 0
-                                Chan_2_voltage = 0
-                                self.field_array.append(currentField)
-                                if nv_channel_1_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 1")
-                                    volt = keithley_2182nv.query("READ?")
-                                    Chan_1_voltage = float(volt)
-                                    update_nv_channel_1_label(str(Chan_1_voltage))
-                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                    self.channel1_array.append(Chan_1_voltage)
-                                    if counter % 20 == 0:
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                if nv_channel_2_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 2")
-                                    volt2 = keithley_2182nv.query("READ?")
-                                    Chan_2_voltage = float(volt2)
-                                    update_nv_channel_2_label(str(Chan_2_voltage))
-                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                    self.channel2_array.append(Chan_2_voltage)
-                                    # # Drop off the first y element, append a new one.
-                                    if counter % 20 == 0:
-                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
-
-                                # Calculate the average voltage
-                                resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                resistance_chan_2 = Chan_2_voltage / float(current[j])
-
-                                # Append the data to the CSV file
-                                with open(csv_filename, "a", newline="") as csvfile:
-                                    csv_writer = csv.writer(csvfile)
-
-                                    if csvfile.tell() == 0:  # Check if file is empty
-                                        csv_writer.writerow(
-                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                                  "Resistance ("
-                                                                                                                  "Ohm)",
-                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-
-                                    csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                         Chan_2_voltage, MyTemp, current[j]])
-                                    append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
-
-                                # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
-
-                                append_text(f'Field Rate = {user_field_rate}\n', 'orange')
-                                # Update currentField for the next iteration
-                                # currentField -= deltaH
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
-                                append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
-                                            'purple')
-                                append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
-                                    Single_loop * number_of_field / 60 / 60), 'purple')
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
-                                        number_of_temp - i)
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-                                append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                    total_time_in_seconds), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        total_time_in_hours), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
-                                currentField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(currentField), 'Oe')
-
-                            # ----------------- Loop Up ----------------------#
-                            send_telegram_notification(f"Starting the second half of measurement - ramping field up")
-                            currentField = botField
-                            client.set_field(currentField,
-                                             user_field_rate,
-                                             client.field.approach_mode.linear,
-                                             client.field.driven_mode.driven)
-                            append_text(f'Set the field to {currentField} Oe and then collect data \n', 'greem')
-                            time.sleep(4)
-                            currentField, sF = client.get_field()
-                            update_ppms_field_reading_label(str(currentField), 'Oe')
-
-                            while True:
-                                time.sleep(1)
-                                currentField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
                                 if sF == 'Holding (driven)':
                                     break
 
-                            deltaH, user_field_rate = deltaH_chk(currentField)
-                            time.sleep(20)
-                            client.set_field(topField,
-                                             user_field_rate,
-                                             client.field.approach_mode.linear,
-                                             client.field.driven_mode.driven)
-                            append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
-                            counter = 0
-                            while currentField <= topField:
-                                if not running():
-                                    stop_measurement()
-                                    return
-                                counter += 1
-                                single_measurement_start = time.time()
 
-                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                                keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                                time.sleep(1)
-                                currentField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(currentField), 'Oe')
-                                append_text(f'Saving data for {currentField} Oe \n', 'green')
-
-                                Chan_1_voltage = 0
-                                Chan_2_voltage = 0
-                                self.field_array.append(currentField)
+                            # ----------------------------- Measure NV voltage -------------------
+                            append_text(f'Saving data for {MyField} Oe \n', 'green')
+                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            time.sleep(2)  # Wait for the configuration to complete
+                            Chan_1_voltage = 0
+                            Chan_2_voltage = 0
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            self.field_array.append(MyField)
+                            try:
                                 if nv_channel_1_enabled:
                                     keithley_2182nv.write("SENS:CHAN 1")
                                     volt = keithley_2182nv.query("READ?")
                                     Chan_1_voltage = float(volt)
                                     update_nv_channel_1_label(str(Chan_1_voltage))
                                     append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+
                                     self.channel1_array.append(Chan_1_voltage)
-                                    if counter % 20 == 0:
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                if nv_channel_2_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 2")
-                                    volt2 = keithley_2182nv.query("READ?")
-                                    Chan_2_voltage = float(volt2)
-                                    update_nv_channel_2_label(str(Chan_2_voltage))
-                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                    self.channel2_array.append(Chan_2_voltage)
-                                    if counter % 20 == 0:
                                     # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                            except Exception as e:
+                                QMessageBox.warning(self, 'Warning', str(e))
 
-                                resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                resistance_chan_2 = Chan_2_voltage / float(current[j])
-                                # Append the data to the CSV file
-                                with open(csv_filename, "a", newline="") as csvfile:
-                                    csv_writer = csv.writer(csvfile)
+                            if nv_channel_2_enabled:
+                                keithley_2182nv.write("SENS:CHAN 2")
+                                volt2 = keithley_2182nv.query("READ?")
+                                Chan_2_voltage = float(volt2)
+                                update_nv_channel_2_label(str(Chan_2_voltage))
+                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                self.channel2_array.append(Chan_2_voltage)
+                                # # Drop off the first y element, append a new one.
+                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
-                                    if csvfile.tell() == 0:  # Check if file is empty
-                                        csv_writer.writerow(
-                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                                  "Resistance ("
-                                                                                                                  "Ohm)",
-                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+                            # Calculate the average voltage
+                            resistance_chan_1 = Chan_1_voltage / float(current[j])
+                            resistance_chan_2 = Chan_2_voltage / float(current[j])
 
-                                    csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                         Chan_2_voltage, MyTemp, current[j]])
-                                    self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+                            # Append the data to the CSV file
+                            with open(csv_filename, "a", newline="") as csvfile:
+                                csv_writer = csv.writer(csvfile)
 
-                                # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
+                                if csvfile.tell() == 0:  # Check if file is empty
+                                    csv_writer.writerow(
+                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                              "Resistance ("
+                                                                                                              "Ohm)",
+                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                append_text(f'Field Rate = {user_field_rate}\n', 'orange')
-                                # Update currentField for the next iteration
-                                # Update currentField for the next iteration
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
+                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                     Chan_2_voltage, MyTemp, current[j]])
+                                append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+
+
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            MyTemp, sT = client.get_temperature()
+                            update_ppms_temp_reading_label(str(MyTemp), 'K')
+                            # ----------------------------- Measure NV voltage -------------------
+                            deltaH, user_field_rate = deltaH_chk(currentField)
+
+                            append_text(f'deltaH = {deltaH}\n', 'orange')
+                            # Update currentField for the next iteration
+                            currentField -= deltaH
+                            self.pts += 1  # Number of self.pts count
+                            single_measurement_end = time.time()
+                            Single_loop = single_measurement_end - single_measurement_start
+                            number_of_field_update = number_of_field_update - 1
+                            append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop), 'purple')
+                            append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                                Single_loop * number_of_field / 60 / 60), 'purple')
+                            total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
                                         number_of_temp - i)
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-                                append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                    total_time_in_seconds), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        total_time_in_hours), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
+                            totoal_time_in_minutes = total_time_in_seconds / 60
+                            total_time_in_hours = totoal_time_in_minutes / 60
+                            total_time_in_days = total_time_in_hours / 24
+                            append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                total_time_in_seconds), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                    totoal_time_in_minutes), 'purple')
+                            append_text('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                total_time_in_hours), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                    total_time_in_days), 'purple')
+
+                        # ----------------- Loop Up ----------------------#
+                        currentField = botField
+                        deltaH, user_field_rate = deltaH_chk(currentField)
+                        send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                        while currentField <= topField:
+                            if not running():
+                                stop_measurement()
+                                return
+                            single_measurement_start = time.time()
+                            append_text(f'\n Loop is at {currentField} Oe Field Up \n', 'blue')
+                            Fieldsetpoint = currentField
+
+                            append_text(f'Set the field to {Fieldsetpoint} Oe and then collect data \n', 'greem')
+                            client.set_field(Fieldsetpoint,
+                                             user_field_rate,
+                                             client.field.approach_mode.linear,
+                                             client.field.driven_mode.driven)
+
+                            append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
+                            time.sleep(4)
+
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            while True:
+                                time.sleep(1)
+                                MyField, sF = client.get_field()
+                                update_ppms_field_reading_label(str(MyField), 'Oe')
+                                append_text(f'Status: {sF}\n', 'blue')
+                                if sF == 'Holding (driven)':
+                                    break
+
+                            # ----------------------------- Measure NV voltage -------------------
+                            append_text(f'Saving data for {MyField} Oe \n', 'green')
+                            Chan_1_voltage = 0
+                            Chan_2_voltage = 0
+                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            time.sleep(2)  # Wait for the configuration to complete
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            self.field_array.append(MyField)
+                            if nv_channel_1_enabled:
+                                keithley_2182nv.write("SENS:CHAN 1")
+                                volt = keithley_2182nv.query("READ?")
+                                Chan_1_voltage = float(volt)
+                                update_nv_channel_1_label(str(Chan_1_voltage))
+                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                self.channel1_array.append(Chan_1_voltage)
+                                update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                            if nv_channel_2_enabled:
+                                keithley_2182nv.write("SENS:CHAN 2")
+                                volt2 = keithley_2182nv.query("READ?")
+                                Chan_2_voltage = float(volt2)
+                                update_nv_channel_2_label(str(Chan_2_voltage))
+                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                self.channel2_array.append(Chan_2_voltage)
+                                # # Drop off the first y element, append a new one.
+                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                            resistance_chan_1 = Chan_1_voltage / float(current[j])
+                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+
+                            # Append the data to the CSV file
+                            with open(csv_filename, "a", newline="") as csvfile:
+                                csv_writer = csv.writer(csvfile)
+
+                                if csvfile.tell() == 0:  # Check if file is empty
+                                    csv_writer.writerow(
+                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                              "Resistance ("
+                                                                                                              "Ohm)",
+                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+                                MyField, sF = client.get_field()
+                                update_ppms_field_reading_label(str(MyField), 'Oe')
+                                MyTemp, sT = client.get_temperature()
+                                update_ppms_temp_reading_label(str(MyTemp), 'K')
+                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                     Chan_2_voltage, MyTemp, current[j]])
+                                self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
+
+                            # ----------------------------- Measure NV voltage -------------------
+                            deltaH, user_field_rate = deltaH_chk(currentField)
+
+                            append_text(f'deltaH = {deltaH}\n', 'orange')
+                            # Update currentField for the next iteration
+                            currentField += deltaH
+                            self.pts += 1  # Number of self.pts count
+                            single_measurement_end = time.time()
+                            Single_loop = single_measurement_end - single_measurement_start
+                            number_of_field_update = number_of_field_update - 1
+                            total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
+                                        number_of_temp - i)
+                            totoal_time_in_minutes = total_time_in_seconds / 60
+                            total_time_in_hours = totoal_time_in_minutes / 60
+                            total_time_in_days = total_time_in_hours / 24
+                            append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                total_time_in_seconds), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                    totoal_time_in_minutes), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                    total_time_in_hours), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                    total_time_in_days), 'purple')
+                    else:
+                        client.set_field(topField,
+                                         Fast_fieldRate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
+                        time.sleep(4)
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        while True:
+                            time.sleep(1)
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
+                            append_text(f'Status: {sF}\n', 'red')
+                            if sF == 'Holding (driven)':
+                                break
+                        time.sleep(20)
+                        deltaH, user_field_rate = deltaH_chk(MyField)
+                        currentField = MyField
+                        try:
+                            client.set_field(botField,
+                                             user_field_rate,
+                                             client.field.approach_mode.linear,
+                                             client.field.driven_mode.driven)
+                        except SystemExit as e:
+                            print(e)
+                        append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
+                        counter = 0
+                        while currentField >= botField:
+                            if not running():
+                                stop_measurement()
+                                return
+                            counter += 1
+                            single_measurement_start = time.time()
+                            NPLC = nv_NPLC
+                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                            keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
+                            time.sleep(1)
+                            try:
                                 currentField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(currentField), 'Oe')
+                            except SystemExit as e:
+                                print(e)
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            append_text(f'Saving data for {currentField} Oe \n', 'green')
+
+                            Chan_1_voltage = 0
+                            Chan_2_voltage = 0
+                            self.field_array.append(currentField)
+                            if nv_channel_1_enabled:
+                                keithley_2182nv.write("SENS:CHAN 1")
+                                volt = keithley_2182nv.query("READ?")
+                                Chan_1_voltage = float(volt)
+                                update_nv_channel_1_label(str(Chan_1_voltage))
+                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                self.channel1_array.append(Chan_1_voltage)
+                                if counter % 20 == 0:
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                            if nv_channel_2_enabled:
+                                keithley_2182nv.write("SENS:CHAN 2")
+                                volt2 = keithley_2182nv.query("READ?")
+                                Chan_2_voltage = float(volt2)
+                                update_nv_channel_2_label(str(Chan_2_voltage))
+                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                self.channel2_array.append(Chan_2_voltage)
+                                # # Drop off the first y element, append a new one.
+                                if counter % 20 == 0:
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
+
+                            # Calculate the average voltage
+                            resistance_chan_1 = Chan_1_voltage / float(current[j])
+                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+
+                            # Append the data to the CSV file
+                            with open(csv_filename, "a", newline="") as csvfile:
+                                csv_writer = csv.writer(csvfile)
+
+                                if csvfile.tell() == 0:  # Check if file is empty
+                                    csv_writer.writerow(
+                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                              "Resistance ("
+                                                                                                              "Ohm)",
+                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                     Chan_2_voltage, MyTemp, current[j]])
+                                append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
+
+                            # ----------------------------- Measure NV voltage -------------------
+                            deltaH, user_field_rate = deltaH_chk(currentField)
+
+                            append_text(f'Field Rate = {user_field_rate}\n', 'orange')
+                            # Update currentField for the next iteration
+                            # currentField -= deltaH
+                            self.pts += 1  # Number of self.pts count
+                            single_measurement_end = time.time()
+                            Single_loop = single_measurement_end - single_measurement_start
+                            number_of_field_update = number_of_field_update - 1
+                            append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
+                                        'purple')
+                            append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                                Single_loop * number_of_field / 60 / 60), 'purple')
+                            total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
+                                    number_of_temp - i)
+                            totoal_time_in_minutes = total_time_in_seconds / 60
+                            total_time_in_hours = totoal_time_in_minutes / 60
+                            total_time_in_days = total_time_in_hours / 24
+                            append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                total_time_in_seconds), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                    totoal_time_in_minutes), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                    total_time_in_hours), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                    total_time_in_days), 'purple')
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+
+                        # ----------------- Loop Up ----------------------#
+                        send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                        currentField = botField
+                        client.set_field(currentField,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Set the field to {currentField} Oe and then collect data \n', 'greem')
+                        time.sleep(4)
+                        currentField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(currentField), 'Oe')
+
+                        while True:
+                            time.sleep(1)
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            append_text(f'Status: {sF}\n', 'blue')
+                            if sF == 'Holding (driven)':
+                                break
+
+                        deltaH, user_field_rate = deltaH_chk(currentField)
+                        time.sleep(20)
+                        client.set_field(topField,
+                                         user_field_rate,
+                                         client.field.approach_mode.linear,
+                                         client.field.driven_mode.driven)
+                        append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
+                        counter = 0
+                        while currentField <= topField:
+                            if not running():
+                                print('Not Running')
+                                stop_measurement()
+                                return
+                            counter += 1
+                            single_measurement_start = time.time()
+
+                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            time.sleep(1)
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            append_text(f'Saving data for {currentField} Oe \n', 'green')
+
+                            Chan_1_voltage = 0
+                            Chan_2_voltage = 0
+                            self.field_array.append(currentField)
+                            if nv_channel_1_enabled:
+                                keithley_2182nv.write("SENS:CHAN 1")
+                                volt = keithley_2182nv.query("READ?")
+                                Chan_1_voltage = float(volt)
+                                update_nv_channel_1_label(str(Chan_1_voltage))
+                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                self.channel1_array.append(Chan_1_voltage)
+                                if counter % 20 == 0:
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                            if nv_channel_2_enabled:
+                                keithley_2182nv.write("SENS:CHAN 2")
+                                volt2 = keithley_2182nv.query("READ?")
+                                Chan_2_voltage = float(volt2)
+                                update_nv_channel_2_label(str(Chan_2_voltage))
+                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                self.channel2_array.append(Chan_2_voltage)
+                                if counter % 20 == 0:
+                                # # Drop off the first y element, append a new one.
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
+
+                            resistance_chan_1 = Chan_1_voltage / float(current[j])
+                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+                            # Append the data to the CSV file
+                            with open(csv_filename, "a", newline="") as csvfile:
+                                csv_writer = csv.writer(csvfile)
+
+                                if csvfile.tell() == 0:  # Check if file is empty
+                                    csv_writer.writerow(
+                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                              "Resistance ("
+                                                                                                              "Ohm)",
+                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                     Chan_2_voltage, MyTemp, current[j]])
+                                self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+
+                            # ----------------------------- Measure NV voltage -------------------
+                            deltaH, user_field_rate = deltaH_chk(currentField)
+
+                            append_text(f'Field Rate = {user_field_rate}\n', 'orange')
+                            # Update currentField for the next iteration
+                            # Update currentField for the next iteration
+                            self.pts += 1  # Number of self.pts count
+                            single_measurement_end = time.time()
+                            Single_loop = single_measurement_end - single_measurement_start
+                            number_of_field_update = number_of_field_update - 1
+                            total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
+                                    number_of_temp - i)
+                            totoal_time_in_minutes = total_time_in_seconds / 60
+                            total_time_in_hours = totoal_time_in_minutes / 60
+                            total_time_in_days = total_time_in_hours / 24
+                            append_text('Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                total_time_in_seconds), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                    totoal_time_in_minutes), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                    total_time_in_hours), 'purple')
+                            append_text(
+                                'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                    total_time_in_days), 'purple')
+                            currentField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(currentField), 'Oe')
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
-                    current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
+                    current_progress = int((i+1) * (j+1) / totoal_progress * 100)
                     progress_update(int(current_progress))
             time.sleep(2)
             client.set_field(zeroField,
