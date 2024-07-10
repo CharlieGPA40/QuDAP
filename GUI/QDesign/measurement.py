@@ -864,7 +864,7 @@ class Measurement(QMainWindow):
             try:
                 self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
                 time.sleep(2)
-                Model_6221 = self.keithley_2182nv.query('*IDN?')
+                Model_6221 = self.keithley_6221.query('*IDN?')
                 QMessageBox.information(self, "Connected", F"Connected to {Model_6221}")
                 #  Simulation pysim ------------------------------------------------------
                 # self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,
