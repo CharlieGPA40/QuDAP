@@ -842,6 +842,9 @@ class Measurement(QMainWindow):
         if self.Keithley_2182_Connected == False:
             try:
                 self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
+                time.sleep(2)
+                Model_2182 = self.keithley_2182nv.query('*IDN?')
+                QMessageBox.information(self, "Connected", F"Connected to {Model_2182}")
                 #  Simulation pysim----------------------------------------------------------
                 # self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,  read_termination='\n')
                 # ------------------------------------------------------------------
@@ -860,6 +863,9 @@ class Measurement(QMainWindow):
         if self.Ketihley_6221_Connected == False:
             try:
                 self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
+                time.sleep(2)
+                Model_6221 = self.keithley_2182nv.query('*IDN?')
+                QMessageBox.information(self, "Connected", F"Connected to {Model_6221}")
                 #  Simulation pysim ------------------------------------------------------
                 # self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000,
                 #                                              read_termination='\n')
@@ -1835,12 +1841,7 @@ class Measurement(QMainWindow):
         QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
 
     def measurement_finished(self):
-        self.stop_measurement()
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
-        try:
-            self.worker.stop()
-        except:
-            pass
 
     def append_text(self, text, color):
         try:
@@ -2495,6 +2496,7 @@ class Measurement(QMainWindow):
             self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
             send_telegram_notification("The measurement has been completed successfully.")
             progress_update(int=100)
+            stop_measurement()
             measurement_finished()
             return
         except SystemExit as e:

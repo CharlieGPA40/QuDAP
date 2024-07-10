@@ -48,7 +48,7 @@ class CurrentSource6221(QWidget):
         self.gpib_combo.setStyleSheet(self.QCombo_stylesheet)
         self.gpib_combo.setFont(font)
 
-        self.current_gpib_label = QLabel("Current GPIB Connection: None")
+        self.current_gpib_label = QLabel("Current Connection: None")
         self.current_gpib_label.setFont(font)
 
         # Refresh Button
@@ -282,8 +282,8 @@ class CurrentSource6221(QWidget):
         # Access GPIB ports using PyVISA
         rm = visa.ResourceManager()
         instruments = rm.list_resources()
-        self.gpib_ports = [instr for instr in instruments if 'GPIB' in instr]
-        self.current_gpib_label.setText(f"Current GPIB Connection: None")
+        self.gpib_ports = [instr for instr in instruments]
+        self.current_gpib_label.setText(f"Current Connection: None")
         # Clear existing items and add new ones
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
@@ -301,7 +301,7 @@ class CurrentSource6221(QWidget):
             self.connect_btn_clicked = True
         elif self.connect_btn_clicked == True:
             self.connect_btn.setText('Connect')
-            self.current_gpib_label.setText("Current GPIB Connection: None")
+            self.current_gpib_label.setText("Current Connection: None")
             self.connect_btn_clicked = False
             self.keithley_6221.close()
         self.current_connection = self.gpib_combo.currentText()
@@ -315,10 +315,12 @@ class CurrentSource6221(QWidget):
                 try:
                     self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
+                    Model_6221 = self.keithley_2182nv.query('*IDN?')
                     self.isConnect = True
                     self.keithley_6221.write("OUTPut OFF")
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
-                    self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
+                    time.sleep(1)
+                    self.current_gpib_label.setText(f"Current Connection: {Model_6221}")
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")

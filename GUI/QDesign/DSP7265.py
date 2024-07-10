@@ -1,67 +1,23 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
-, QCheckBox, QPushButton, QComboBox, QMessageBox)
-from PyQt6.QtGui import QIcon, QFont
+    QMessageBox, QMainWindow, QWidget, QRadioButton, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+, QCheckBox, QPushButton, QComboBox, QLineEdit)
+from PyQt6.QtGui import QIcon, QFont, QIntValidator, QValidator, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
+import time
 import sys
 import pyvisa as visa
-import matplotlib
-
-matplotlib.use('QtAgg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import random
-import time
 
 
-class THREAD(QThread):
-    update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
-
-    def __init__(self, server):
-        super().__init__()
-        self.server = server
-        self.running = True
-
-    def run(self):
-        while self.running:
-            try:
-                self.server.write("SENS:CHAN 1")
-                Chan_1_voltage = float(self.server.query("FETCH?"))  # Read the measurement result
-                error = self.server.query("SYST:ERR?")
-                print(str(error))
-                self.server.write("SENS:CHAN 2")
-                Chan_2_voltage = float(self.server.query("FETCH?"))  # Read th
-                error = self.server.query("SYST:ERR?")
-                print(str(error))
-                self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
-                time.sleep(1)  # Update every second
-            except Exception as e:
-                print(f"Error: {e}")
-                self.running = False
-
-    def stop(self):
-        self.running = False
-
-
-class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=4, dpi=300):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
-
-
-class Lockin(QWidget):
+class Lockin(QMainWindow):
 
     def __init__(self):
         super().__init__()
         try:
             self.isConnect = False
-            self.isPlotting = False
-            self.keithley_2182A_NV = 'None'
+            self.keithley_6221 = 'None'
+            self.DCisOn = False
+            self.ACisOn = False
             self.init_ui()
-
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
@@ -83,6 +39,7 @@ class Lockin(QWidget):
                                                 background-color: white;
                                                 }
                                                 """)
+
         #  ---------------------------- PART 2 --------------------------------
         # GPIB ComboBox
         self.gpib_combo = QComboBox()
@@ -93,6 +50,7 @@ class Lockin(QWidget):
 
         self.current_gpib_label = QLabel("Current GPIB Connection: None")
         self.current_gpib_label.setFont(font)
+
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
 
@@ -124,119 +82,182 @@ class Lockin(QWidget):
         group_box.setLayout(combo_text_layout)
 
         #  ---------------------------- PART 3 --------------------------------
-        voltage_reading_group_box = QGroupBox("Voltage Reading")  # Container widget for the horizontal layout
-        voltage_reading_layout = QVBoxLayout()
-        # voltage_reading_widget.setStyleSheet("QWidget { border: 2px solid black; }")
-        channel1_read_layout = QHBoxLayout()
-        self.channel1_Label = QLabel("Channel 1:")
-        self.channel1_Label.setFont(font)
-        self.channel1_Volt = QLabel("N/A Volts")
-        self.channel1_Volt.setFont(font)
+        dc_current_group_box = QGroupBox("DC Current")  # Container widget for the horizontal layout
+        dc_current_main_layout = QVBoxLayout()
+        DC_setup_layout = QHBoxLayout()
+        self.DCSource_label = QLabel("DC Source:")
+        self.DCSource_label.setFont(font)
+        self.dc_source_entry_box = QLineEdit()
+        self.dc_source_entry_box.setFont(font)
+        # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
+        self.current_validator = QDoubleValidator(-105, 105, 3)
+        self.current_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.dc_source_entry_box.setValidator(self.current_validator)
+        self.dc_source_entry_box.setPlaceholderText("±0.1pA to ±105mA")
+        self.dc_source_entry_box.setFixedHeight(30)
+        self.DCUnitSource_combo = QComboBox()
+        self.DCUnitSource_combo.setFont(font)
+        self.DCUnitSource_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.DCUnitSource_combo.addItems(["Select Units"])  # 0
+        self.DCUnitSource_combo.addItems(["mA"])  # 1
+        self.DCUnitSource_combo.addItems(["µA"])  # 2
+        self.DCUnitSource_combo.addItems(["nA"])  # 3
+        self.DCUnitSource_combo.addItems(["pA"])  # 3
 
-        channel2_read_layout = QHBoxLayout()
-        self.channel2_Label = QLabel("Channel 2:")
-        self.channel2_Label.setFont(font)
-        self.channel2_Volt = QLabel("N/A Volts")
-        self.channel2_Volt.setFont(font)
-        # self.setStyleSheet("""
-        #                                         QLabel{
-        #                                             background-color: #F8F8F8;
-        #                                             }
-        #                                             """)
-        # self.gpib_combo.currentTextChanged.connect(self.update_current_gpib)
-        # self.voltage_timer = QTimer()
-        # self.voltage_timer.setInterval(1000)
-        # self.voltage_timer.timeout.connect(self.update_voltage)
-        # self.voltage_timer.start()
-        channel1_read_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        channel1_read_layout.addWidget(self.channel1_Label, 1)
-        channel1_read_layout.addWidget(self.channel1_Volt, 5)
-        channel1_read_layout.setContentsMargins(50, 0, 250, 0)
-        channel2_read_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        channel2_read_layout.addWidget(self.channel2_Label, 1)
-        channel2_read_layout.addWidget(self.channel2_Volt, 5)
-        channel2_read_layout.setContentsMargins(50, 0, 250, 0)
+        self.DC_Range_checkbox = QCheckBox("Auto Range")
+        self.DC_Range_checkbox.setFont(font)
+        self.DC_Range_checkbox.setChecked(True)
+        self.send_btn = QPushButton('Send')
+        self.send_btn.clicked.connect(self.sendDCCurrent)
 
-        voltage_reading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        voltage_reading_layout.addLayout(channel1_read_layout, 1)
-        voltage_reading_layout.addLayout(channel2_read_layout, 1)
-        voltage_reading_group_box.setLayout(voltage_reading_layout)
+        DC_setup_layout.addWidget(self.DCSource_label, 1)
+        DC_setup_layout.addWidget(self.dc_source_entry_box, 3)
+        DC_setup_layout.addWidget(self.DCUnitSource_combo, 1)
+        DC_setup_layout.addStretch(1)
+        DC_setup_layout.addWidget(self.DC_Range_checkbox, 1)
+        DC_setup_layout.addStretch(1)
+        DC_setup_layout.addWidget(self.send_btn, 1)
+
+        dc_current_main_layout.addLayout(DC_setup_layout)
+
+        dc_current_group_box.setLayout(dc_current_main_layout)
 
         #  ---------------------------- PART 4 --------------------------------
+        self.wave_func_label = QLabel("Wave Function:")
+        self.wave_func_label.setFont(font)
+        wave_group_box = QGroupBox("Wave Functions")  # Container widget for the horizontal layout
+        wave_main_layout = QVBoxLayout()
+        # voltage_reading_widget.setStyleSheet("QWidget { border: 2px solid black; }")
+        Wave_AMP_setup_layout = QHBoxLayout()
+        self.waveform_combo = QComboBox()
+        self.waveform_combo.setFont(font)
+        self.waveform_combo.setStyleSheet(self.QCombo_stylesheet)
 
-        graphing_layout = QHBoxLayout()
-        selection_Layout = QHBoxLayout()
-        plotting_control_group_box = QGroupBox("Plotting Selection")
+        self.waveform_combo.addItems(["Select Funcs"])  # 0
+        self.waveform_combo.addItems(["SINE"])  # 1
+        self.waveform_combo.addItems(["SQUARE"])  # 2
+        self.waveform_combo.addItems(["RAMP"])  # 3
+        self.waveform_combo.addItems(["ARB(x)"])  # 3
 
-        self.checkbox1 = QCheckBox("Channel 1")
-        self.checkbox1.setFont(font)
-        self.checkbox2 = QCheckBox("Channel 2")
-        self.checkbox2.setFont(font)
+        self.AC_Amplitude_label = QLabel("Amplitude:")
+        self.AC_Amplitude_label.setFont(font)
+        self.AC_Amplitude_entry_box = QLineEdit()
+        self.AC_Amplitude_entry_box.setFont(font)
+        # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
+        self.AC_Amplitude_validator = QDoubleValidator(0, 105, 10)
+        self.AC_Amplitude_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.AC_Amplitude_entry_box.setValidator(self.AC_Amplitude_validator)
+        self.AC_Amplitude_entry_box.setPlaceholderText("2pA to 105mA")
+        self.AC_Amplitude_entry_box.setFixedHeight(30)
+        self.WaveAmpUnitSource_combo = QComboBox()
+        self.WaveAmpUnitSource_combo.setFont(font)
+        self.WaveAmpUnitSource_combo.setStyleSheet(self.QCombo_stylesheet)
 
-        plot_btn = QPushButton('Plot')
-        plot_btn.clicked.connect(self.plot_selection)
-        stop_btn = QPushButton('Stop')
-        stop_btn.clicked.connect(self.stop)
-        rst_btn = QPushButton('Reset')
-        rst_btn.clicked.connect(self.rst)
-        selection_Layout.addWidget(plot_btn)
-        selection_Layout.addWidget(stop_btn)
-        selection_Layout.addWidget(rst_btn)
+        self.WaveAmpUnitSource_combo.addItems(["Select Units"])  # 0
+        self.WaveAmpUnitSource_combo.addItems(["mA"])  # 1
+        self.WaveAmpUnitSource_combo.addItems(["µA"])  # 2
+        self.WaveAmpUnitSource_combo.addItems(["nA"])  # 3
+        self.WaveAmpUnitSource_combo.addItems(["pA"])  # 3
 
-        # Arrange radio buttons horizontally
-        radio_layout = QVBoxLayout()
-        radio_layout.addWidget(self.checkbox1)
-        radio_layout.addWidget(self.checkbox2)
-        radio_layout.addLayout(selection_Layout)
-        plotting_control_group_box.setLayout(radio_layout)
+        Wave_AMP_setup_layout.addWidget(self.wave_func_label, 1)
+        Wave_AMP_setup_layout.addWidget(self.waveform_combo, 1)
+        Wave_AMP_setup_layout.addStretch(1)
+        Wave_AMP_setup_layout.addWidget(self.AC_Amplitude_label, 1)
+        Wave_AMP_setup_layout.addWidget(self.AC_Amplitude_entry_box, 3)
+        Wave_AMP_setup_layout.addWidget(self.WaveAmpUnitSource_combo, 1)
 
-        figure_group_box = QGroupBox("Graph")
-        figure_Layout = QVBoxLayout()
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        toolbar = NavigationToolbar(self.canvas, self)
-        toolbar.setStyleSheet("""
-                                   QWidget {
-                                       border: None; 
-                                   }
-                               """)
-        figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-        figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-        figure_group_box.setLayout(figure_Layout)
-        graphing_layout.addWidget(plotting_control_group_box)
-        graphing_layout.addWidget(figure_group_box)
+        Wave_Freq_Offset_setup_layout = QHBoxLayout()
+        self.AC_Frequency_label = QLabel("Frequency:")
+        self.AC_Frequency_label.setFont(font)
+        self.AC_Frequency_entry_box = QLineEdit()
+        self.AC_Frequency_entry_box.setFont(font)
+        # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
+        self.AC_Frequency_validator = QDoubleValidator(0.00, 100000, 5)
+        self.AC_Frequency_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.AC_Frequency_entry_box.setValidator(self.AC_Frequency_validator)
+        self.AC_Frequency_entry_box.setPlaceholderText("0Hz to 100KHz")
+        self.AC_Frequency_entry_box.setFixedHeight(30)
+        self.AC_Frequency_Unit_label = QLabel("Hz")
+        self.AC_Frequency_Unit_label.setFont(font)
+
+        self.AC_Offset_label = QLabel("Offset:")
+        self.AC_Offset_label.setFont(font)
+        self.AC_Offset_entry_box = QLineEdit()
+        self.AC_Offset_entry_box.setFont(font)
+        # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
+        self.AC_Offset_validator = QDoubleValidator(-105, 105, 10)
+        self.AC_Offset_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.AC_Offset_entry_box.setValidator(self.AC_Offset_validator)
+        self.AC_Offset_entry_box.setPlaceholderText("0 to ±105mA")
+        self.AC_Offset_entry_box.setFixedHeight(30)
+        self.WaveOffsetUnitSource_combo = QComboBox()
+        self.WaveOffsetUnitSource_combo.setFont(font)
+        self.WaveOffsetUnitSource_combo.setStyleSheet(self.QCombo_stylesheet)
+
+        self.WaveOffsetUnitSource_combo.addItems(["Select Units"])  # 0
+        self.WaveOffsetUnitSource_combo.addItems(["mA"])  # 1
+        self.WaveOffsetUnitSource_combo.addItems(["µA"])  # 2
+        self.WaveOffsetUnitSource_combo.addItems(["nA"])  # 3
+        self.WaveOffsetUnitSource_combo.addItems(["pA"])  # 3
+
+        self.Wave_Range_checkbox = QCheckBox("Best Range")
+        self.Wave_Range_checkbox.setFont(font)
+        self.Wave_Range_checkbox.setChecked(True)
+        Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_label)
+        Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_entry_box)
+        Wave_Freq_Offset_setup_layout.addWidget(self.AC_Frequency_Unit_label)
+        Wave_Freq_Offset_setup_layout.addStretch(1)
+        Wave_Freq_Offset_setup_layout.addWidget(self.AC_Offset_label)
+        Wave_Freq_Offset_setup_layout.addWidget(self.AC_Offset_entry_box)
+        Wave_Freq_Offset_setup_layout.addWidget(self.WaveOffsetUnitSource_combo)
+        Wave_Freq_Offset_setup_layout.addStretch(1)
+        Wave_Freq_Offset_setup_layout.addWidget(self.Wave_Range_checkbox)
+
+        Wave_Arm_setup_layout = QHBoxLayout()
+        self.arm_btn = QPushButton('Arm')
+        self.arm_btn.clicked.connect(self.sendACCurrent)
+        Wave_Arm_setup_layout.addStretch(10)
+        Wave_Arm_setup_layout.addWidget(self.arm_btn, 1)
+
+        wave_main_layout.addLayout(Wave_AMP_setup_layout)
+        wave_main_layout.addLayout(Wave_Freq_Offset_setup_layout)
+        wave_main_layout.addLayout(Wave_Arm_setup_layout)
+
+        wave_group_box.setLayout(wave_main_layout)
 
         #  ---------------------------- Main Layout --------------------------------
         # Add widgets to the main layout with centered alignment
         main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
         main_layout.addWidget(group_box)
-        main_layout.addWidget(voltage_reading_group_box)
-        main_layout.addLayout(graphing_layout)
+        main_layout.addWidget(dc_current_group_box)
+        main_layout.addWidget(wave_group_box)
         self.setLayout(main_layout)
 
         #  ---------------------------- Style Sheet --------------------------------
+
         with open("GUI/QSS/QButtonWidget.qss", "r") as file:
             self.Button_stylesheet = file.read()
-        plot_btn.setStyleSheet("""
-                   QPushButton {
-                       background-color: #3498DB; /* Green background */
-                       color: white; /* White text */
-                       border-style: solid;
-                       border-color: #3498DB;
-                       border-width: 2px;
-                       border-radius: 10px; /* Rounded corners */
-                       padding: 5px;
-                       min-height: 2px;
-                       min-width: 50px;
-                   }
-                   QPushButton:hover {
-                       background-color: #2874A6  ; /* Slightly darker green */
-                   }
-                   QPushButton:pressed {
-                       background-color: #85C1E9; /* Even darker green */
-                   }
-               """)
-
-        rst_btn.setStyleSheet("""
+        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+        self.send_btn.setStyleSheet("""
+                                   QPushButton {
+                                       background-color: #CAC9Cb; /* Green background */
+                                       color: black; /* White text */
+                                       border-style: solid;
+                                       border-color: #CAC9Cb;
+                                       border-width: 2px;
+                                       border-radius: 10px; /* Rounded corners */
+                                       padding: 5px;
+                                       min-height: 1px;
+                                       min-width: 10px;
+                                   }
+                                   QPushButton:hover {
+                                       background-color: #5F6A6A; /* Slightly darker green */
+                                   }
+                                   QPushButton:pressed {
+                                       background-color: #979A9A; /* Even darker green */
+                                   }
+                               """)
+        self.arm_btn.setStyleSheet("""
                                    QPushButton {
                                        background-color: #CAC9Cb; /* Green background */
                                        color: black; /* White text */
@@ -255,28 +276,7 @@ class Lockin(QWidget):
                                        background-color: #979A9A; /* Even darker green */
                                    }
                                """)
-        self.connect_btn.setStyleSheet(self.Button_stylesheet)
         refresh_btn.setStyleSheet(self.Button_stylesheet)
-
-        stop_btn.setStyleSheet("""
-                                           QPushButton {
-                                               background-color: #D98880; /* Green background */
-                                               color: white; /* White text */
-                                               border-style: solid;
-                                               border-color: #D98880;
-                                               border-width: 2px;
-                                               border-radius: 10px; /* Rounded corners */
-                                               padding: 5px;
-                                               min-height: 1px;
-                                               min-width: 50px;
-                                           }
-                                           QPushButton:hover {
-                                               background-color: #E74C3C; /* Slightly darker green */
-                                           }
-                                           QPushButton:pressed {
-                                               background-color: #FADBD8; /* Even darker green */
-                                           }
-                                       """)
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
@@ -288,17 +288,11 @@ class Lockin(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
-        # self.gpib_combo.addItems(["GPIB:7"])
-        # self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
         self.isCheckedBox1 = False
         self.isCheckedBox2 = False
-        self.counter = 0
-        self.counter_array = []
-        if self.isPlotting:
-            self.rst()
 
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
@@ -306,11 +300,10 @@ class Lockin(QWidget):
             self.connect_btn.setText('Disonnect')
             self.connect_btn_clicked = True
         elif self.connect_btn_clicked == True:
-            if self.isPlotting:
-                self.rst()
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current GPIB Connection: None")
             self.connect_btn_clicked = False
+            self.keithley_6221.close()
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
             self.isConnect = False
@@ -320,113 +313,226 @@ class Lockin(QWidget):
             else:
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
-                    self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
+                    self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
                     self.isConnect = True
+                    self.keithley_6221.write("OUTPut OFF")
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
-                    # self.keithley_2182A_NV.write("SENS:CHAN 1")
-                    # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
-                    # print(Chan_1_voltage)
-                    self.keep_reading = True
-                    # while self.keep_reading:
-                    #     self.timer = QTimer(self)
-                    #     self.timer.timeout.connect(self.update_voltage)
-                    #     self.timer.start(2000)  # Update every second
-
-                    if self.isConnect:
-                        self.thread = THREAD(server=self.keithley_2182A_NV)
-                        self.thread.update_data.connect(self.update_voltage)
-                        self.thread.start()
+                    self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")
                 # Comment it in real implementation
                 self.isConnect = True
 
-        # self.keithley_2182A_NV=rm.open_resource(self.current_connection, timeout=10000)
+    def sendDCCurrent(self):
+        if self.isConnect == True:
+            if self.DCisOn == False:
+                self.keithley_6221.write('CLE')
+                DC_validator = self.check_validator(self.current_validator, self.dc_source_entry_box)
+                if DC_validator == True:
+                    if self.DC_Range_checkbox.isChecked():
+                        self.keithley_6221.write('CURR:RANG:AUTO ON')
+                    else:
+                        self.keithley_6221.write('CURR:RANG:AUTO OFF')
+                    self.DC_current_entry = self.dc_source_entry_box.displayText()
+                    self.DC_unit = self.DCUnitSource_combo.currentIndex()
+                    if self.DC_unit != 0:
+                        if self.DC_unit == 1:  # mA
+                            unit = 'e-3'
+                        elif self.DC_unit == 2:  # uA
+                            unit = 'e-6'
+                        elif self.DC_unit == 3:  # nA
+                            unit = 'e-9'
+                        elif self.DC_unit == 4:  # pA
+                            unit = 'e-12'
+                        self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
+                        self.keithley_6221.write("OUTPut ON")
+                        self.send_btn.setText('OFF')
+                        self.DCisOn = True
+                        self.arm_btn.setEnabled(False)
+                        self.send_btn.setStyleSheet("""
+                                                           QPushButton {
+                                                               background-color: #28A630; /* Green background */
+                                                               color: black; /* White text */
+                                                               border-style: solid;
+                                                               border-color: #28A630;
+                                                               border-width: 2px;
+                                                               border-radius: 10px; /* Rounded corners */
+                                                               padding: 5px;
+                                                               min-height: 1px;
+                                                               min-width: 10px;
+                                                           }
+                                                           QPushButton:hover {
+                                                               background-color: #F2433B; /* Slightly darker green */
+                                                           }
+                                                           QPushButton:pressed {
+                                                               background-color: #979A9A; /* Even darker green */
+                                                           }
+                                                       """)
+                    else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                else:
+                    QMessageBox.warning(self, "Input out of range", "Please enter again")
+            else:
+                self.DCisOn = False
+                self.keithley_6221.write("OUTPut OFF")
+                self.arm_btn.setEnabled(True)
+                self.send_btn.setText('Send')
+                self.send_btn.setStyleSheet("""
+                                                   QPushButton {
+                                                       background-color: #CAC9Cb; /* Green background */
+                                                       color: black; /* White text */
+                                                       border-style: solid;
+                                                       border-color: #CAC9Cb;
+                                                       border-width: 2px;
+                                                       border-radius: 10px; /* Rounded corners */
+                                                       padding: 5px;
+                                                       min-height: 1px;
+                                                       min-width: 10px;
+                                                   }
+                                                   QPushButton:hover {
+                                                       background-color: #5F6A6A; /* Slightly darker green */
+                                                   }
+                                                   QPushButton:pressed {
+                                                       background-color: #979A9A; /* Even darker green */
+                                                   }
+                                               """)
 
-    # def enable_thread(self):
-    #     if self.isConnect == True:
-    #         self.keep_reading = True
-    #         while self.keep_reading:
-
-    def update_voltage(self, Chan_1_voltage, Chan_2_voltage):
-        self.Chan_1_voltage = Chan_1_voltage
-        self.Chan_2_voltage = Chan_2_voltage
+    def sendACCurrent(self):
         if self.isConnect:
-            self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
-            # This is for testing uncommand it to test GUI
-            # self.Chan_1_voltage = random.randint(0, 1000) / 1000
-            # self.Chan_2_voltage = random.randint(0, 1000) / 100
+            if self.ACisOn == False:
+                self.keithley_6221.write('CLE')
+                self.keithley_6221.write('CURR:RANG:AUTO ON')
+                self.wave_mode = self.waveform_combo.currentIndex()
+                if self.wave_mode != 0:
+                    if self.wave_mode == 1:  # mA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC SIN')
+                    elif self.wave_mode == 2:  # uA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC SQU')
+                    elif self.wave_mode == 3:  # nA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC RAMP')
+                    elif self.wave_mode == 4:  # pA
+                        self.keithley_6221.write('SOUR:WAVE:FUNC ARB0')
+                else:
+                    QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                    return
+                if self.AC_Amplitude_entry_box.displayText() == '':
+                    self.AC_Amplitude_entry_box.setText('1')
+                    self.WaveAmpUnitSource_combo.setCurrentIndex(1)  # 0
 
-            self.channel1_Volt.setText(f"{self.Chan_1_voltage} Volts")
-            self.channel2_Volt.setText(f"{self.Chan_2_voltage} Volts")
+                if self.AC_Frequency_entry_box.displayText() == '':
+                    self.AC_Frequency_entry_box.setText('1e3')
 
-            # This is for real interfac uncommand it to test GUI
-            # self.keithley_2182A_NV.write("SENS:CHAN 1")
-            # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
-            # self.channel1_Volt.setText(f"{Chan_1_voltage} Volts")
-            # self.keithley_2182A_NV.write("SENS:CHAN 2")
-            # # keithley_2182A_NV.write("SENS:CHAN2:RANG AUTO")
-            # Chan_2_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read th
-            # self.channel2_Volt.setText(f"{Chan_2_voltage} Volts")
-        else:
-            self.channel1_Volt.setText(f"N/A Volts")
-            self.channel2_Volt.setText(f"N/A Volts")
+                if self.AC_Offset_entry_box.displayText() == '':
+                    self.AC_Offset_entry_box.setText('0')
+                    self.WaveOffsetUnitSource_combo.setCurrentIndex(1)  # 0
+                Amplitude_Validator = self.check_validator(self.AC_Amplitude_validator, self.AC_Amplitude_entry_box)
+                Freq_Validator = self.check_validator(self.AC_Frequency_validator, self.AC_Frequency_entry_box)
+                Offset_Validator = self.check_validator(self.AC_Offset_validator, self.AC_Offset_entry_box)
+                if Amplitude_Validator == True and Freq_Validator == True and Offset_Validator == True:
 
-    def plot_selection(self):
-        # This method updates the label based on the checkbox states
-        status = []
-        if self.checkbox1.isChecked():
-            status.append(self.checkbox1.text())
-            self.isCheckedBox1 = True
-        else:
-            self.isCheckedBox1 = False
-        if self.checkbox2.isChecked():
-            status.append(self.checkbox2.text())
-            self.isCheckedBox2 = True
-        else:
-            self.isCheckedBox2 = False
+                    self.AC_amplitude = self.AC_Amplitude_entry_box.displayText()
 
-        if len(status) > 0 and self.isConnect == True:
-            self.canvas.axes.cla()
-            self.channel1_Volt_Array = []
-            self.channel2_Volt_Array = []
-            self.counter = 0
-            self.counter_array = []
-            self.counter_array.append(self.counter)
-            self.update_plot()
-            self.show()
+                    self.AC_amplitude_Unit = self.WaveAmpUnitSource_combo.currentIndex()
+                    if self.AC_amplitude_Unit != 0:
+                        if self.AC_amplitude_Unit == 1:  # mA
+                            amp_unit = 'e-3'
+                        elif self.AC_amplitude_Unit == 2:  # uA
+                            amp_unit = 'e-6'
+                        elif self.AC_amplitude_Unit == 3:  # nA
+                            amp_unit = 'e-9'
+                        elif self.AC_amplitude_Unit == 4:  # pA
+                            amp_unit = 'e-12'
+                    else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                        return
 
-            # Setup a timer to trigger the redraw by calling update_plot.
-            self.timer = QTimer()
-            self.timer.setInterval(1000)
-            self.timer.timeout.connect(self.update_plot)
-            self.timer.start()
+                    self.AC_Freq = self.AC_Frequency_entry_box.displayText()
+                    self.AC_Offset = self.AC_Offset_entry_box.displayText()
+                    self.AC_Offset_unit = self.WaveOffsetUnitSource_combo.currentIndex()
+                    if self.AC_Offset_unit != 0:
+                        if self.AC_Offset_unit == 1:  # mA
+                            offset_unit = 'e-3'
+                        elif self.AC_Offset_unit == 2:  # uA
+                            offset_unit = 'e-6'
+                        elif self.AC_Offset_unit == 3:  # nA
+                            offset_unit = 'e-9'
+                        elif self.AC_Offset_unit == 4:  # pA
+                            offset_unit = 'e-12'
+                    else:
+                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                        return
+                    self.keithley_6221.write('SOUR:WAVE:AMPL ' + self.AC_amplitude + amp_unit)
+                    self.keithley_6221.write('SOUR:WAVE:FREQ ' + self.AC_Freq)
+                    self.keithley_6221.write('SOUR:WAVE:OFFset ' + self.AC_Offset + offset_unit)
+                    self.keithley_6221.write('SOUR:WAVE:PMAR:STAT OFF')
+                    if self.Wave_Range_checkbox.isChecked():
+                        self.keithley_6221.write('SOUR:WAVE:RANG BEST')
+                    else:
+                        self.keithley_6221.write('SOUR:WAVE:RANG FIX')
+                    self.keithley_6221.write('SOUR:WAVE:ARM')
+                    self.keithley_6221.write('SOUR:WAVE:INIT')
+                    self.ACisOn = True
+                    self.send_btn.setEnabled(False)
+                    self.arm_btn.setText('Abort')
+                    self.arm_btn.setStyleSheet("""
+                                              QPushButton {
+                                                  background-color: #28A630; /* Green background */
+                                                  color: black; /* White text */
+                                                  border-style: solid;
+                                                  border-color: #28A630;
+                                                  border-width: 2px;
+                                                  border-radius: 10px; /* Rounded corners */
+                                                  padding: 5px;
+                                                  min-height: 1px;
+                                                  min-width: 10px;
+                                              }
+                                              QPushButton:hover {
+                                                  background-color: #F2433B; /* Slightly darker green */
+                                              }
+                                              QPushButton:pressed {
+                                                  background-color: #979A9A; /* Even darker green */
+                                              }
+                                          """)
 
-    def update_plot(self):
-        # self.canvas.axes.cla()  # Clear the canvas.
-        if self.isCheckedBox1 == True:
-            self.isPlotting = True
-            self.channel1_Volt_Array.append(self.Chan_1_voltage)
-            # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
-            self.canvas.draw()
-        if self.isCheckedBox2 == True:
-            self.isPlotting = True
-            self.channel2_Volt_Array.append(self.Chan_2_voltage)
-            # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
-            self.canvas.draw()
-        self.counter += 1
-        self.counter_array.append(self.counter)
+                else:
+                    QMessageBox.warning(self, "Input out of range", "Please enter again")
+            else:
+                self.ACisOn = False
+                self.keithley_6221.write("SOUR:WAVE:ABOR")
+                self.send_btn.setEnabled(True)
+                self.arm_btn.setText('Arm')
+                self.arm_btn.setStyleSheet("""
+                                                                   QPushButton {
+                                                                       background-color: #CAC9Cb; /* Green background */
+                                                                       color: black; /* White text */
+                                                                       border-style: solid;
+                                                                       border-color: #CAC9Cb;
+                                                                       border-width: 2px;
+                                                                       border-radius: 10px; /* Rounded corners */
+                                                                       padding: 5px;
+                                                                       min-height: 1px;
+                                                                       min-width: 10px;
+                                                                   }
+                                                                   QPushButton:hover {
+                                                                       background-color: #5F6A6A; /* Slightly darker green */
+                                                                   }
+                                                                   QPushButton:pressed {
+                                                                       background-color: #979A9A; /* Even darker green */
+                                                                   }
+                                                               """)
 
-    def stop(self):
-        self.timer.stop()
+    def check_validator(self, validator_model, entry):
 
-    def rst(self):
-        # This method updates the label based on the checkbox states
-        self.timer = QTimer()
-        self.timer.stop()
-        self.canvas.axes.cla()
-        self.canvas.draw()
+        try:
+            if float(entry.displayText()) <= validator_model.top() and float(
+                    entry.displayText()) >= validator_model.bottom():
+                return True
+            else:
+                QMessageBox.warning(self, "Error", "Input Out of range")
+                return False
+        except:
+            # QMessageBox.warning(self, "Error", "Input Out of range 2")
+            return False
+

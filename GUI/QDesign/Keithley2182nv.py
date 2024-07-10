@@ -92,7 +92,7 @@ class NV(QWidget):
         self.gpib_combo.setStyleSheet(self.QCombo_stylesheet)
         self.gpib_combo.setFont(font)
 
-        self.current_gpib_label = QLabel("Current GPIB Connection: None")
+        self.current_gpib_label = QLabel("Current Connection: None")
         self.current_gpib_label.setFont(font)
         # Refresh Button
         refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
@@ -283,8 +283,8 @@ class NV(QWidget):
         # Access GPIB ports using PyVISA
         rm = visa.ResourceManager()
         instruments = rm.list_resources()
-        self.gpib_ports = [instr for instr in instruments if 'GPIB' in instr]
-        self.current_gpib_label.setText(f"Current GPIB Connection: None")
+        self.gpib_ports = [instr for instr in instruments]
+        self.current_gpib_label.setText(f"Current Connection: None")
         # Clear existing items and add new ones
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
@@ -310,7 +310,7 @@ class NV(QWidget):
             if self.isPlotting:
                 self.rst()
             self.connect_btn.setText('Connect')
-            self.current_gpib_label.setText("Current GPIB Connection: None")
+            self.current_gpib_label.setText("Current Connection: None")
             self.keithley_2182A_NV.close()
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
@@ -324,8 +324,11 @@ class NV(QWidget):
                 try:
                     self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
+                    keithley_2182A_NV = self.keithley_2182A_NV.query('*IDN?')
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                    time.sleep(1)
+                    self.current_gpib_label.setText(f"Current Connection: {keithley_2182A_NV}")
                     # self.keithley_2182A_NV.write("SENS:CHAN 1")
                     # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
                     # print(Chan_1_voltage)
@@ -356,7 +359,6 @@ class NV(QWidget):
         self.Chan_1_voltage = Chan_1_voltage
         self.Chan_2_voltage = Chan_2_voltage
         if self.isConnect:
-            self.current_gpib_label.setText(f"Current GPIB Connection: {self.current_connection}")
             # This is for testing uncommand it to test GUI
             # self.Chan_1_voltage = random.randint(0, 1000) / 1000
             # self.Chan_2_voltage = random.randint(0, 1000) / 100
