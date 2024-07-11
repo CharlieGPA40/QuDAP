@@ -205,6 +205,7 @@ class Lockin(QMainWindow):
         #  ---------------------------- Main Layout --------------------------------
         # Add widgets to the main layout with centered alignment
         self.main_layout.addWidget(self.current_intrument_label, alignment=Qt.AlignmentFlag.AlignTop)
+        self.main_layout.addWidget(group_box)
         self.main_layout.addWidget(self.Lockin_reading_group_box)
         # main_layout.addWidget(voltage_reading_group_box)
         # main_layout.addLayout(graphing_layout)
