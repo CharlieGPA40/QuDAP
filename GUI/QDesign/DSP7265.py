@@ -32,7 +32,7 @@ class THREAD(QThread):
                 Mag = float(self.server.query("MAG."))  # Read the measurement result
                 Phase = float(self.server.query("PHA."))  # Read the measurement result
                 self.update_data.emit(X,Y,Mag, Phase)
-                time.sleep(1)  # Update every second
+                time.sleep(0.1)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
                 self.running = False
@@ -327,7 +327,7 @@ class Lockin(QMainWindow):
                     time.sleep(1)
                     self.current_gpib_label.setText(f"Current Connection: {DSP7265_device}")
                     if self.isConnect:
-                        self.thread = THREAD(server=self.DSP7265_device)
+                        self.thread = THREAD(server=self.DSP7265)
                         self.thread.update_data.connect(self.update_lockin)
                         self.thread.start()
                 except visa.errors.VisaIOError:
