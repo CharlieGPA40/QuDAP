@@ -214,6 +214,8 @@ class Lockin(QMainWindow):
         #  ---------------------------- Style Sheet --------------------------------
         with open("GUI/QSS/QButtonWidget.qss", "r") as file:
             self.Button_stylesheet = file.read()
+        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+        refresh_btn.setStyleSheet(self.Button_stylesheet)
         # plot_btn.setStyleSheet("""
         #            QPushButton {
         #                background-color: #3498DB; /* Green background */

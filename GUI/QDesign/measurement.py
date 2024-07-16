@@ -43,7 +43,7 @@ class Worker(QThread):
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
 
-    def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, current, TempList, topField, botField,
+    def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
                  field_mode_fixed, nv_channel_1_enabled, nv_channel_2_enabled,nv_NPLC, ppms_field_One_zone_radio_enabled,
                  ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled, zone1_step_field, zone2_step_field,
@@ -54,6 +54,7 @@ class Worker(QThread):
         self.running = True
         self.keithley_6221 = keithley_6221
         self.keithley_2182nv = keithley_2182nv
+        self.DSP7265 = DSP_7265
         self.current = current
         self.TempList = TempList
         self.topField = topField
@@ -98,6 +99,7 @@ class Worker(QThread):
                                                   self.error_message.emit,
                                                   keithley_6221 =self.keithley_6221,
                                                   keithley_2182nv=self.keithley_2182nv,
+                                                  DSP7265=self.DSP7265,
                                                   current=self.current, TempList=self.TempList, topField=self.topField,
                                                   botField=self.botField,
                                                   folder_path=self.folder_path, client=self.client,
@@ -765,9 +767,9 @@ class Measurement(QMainWindow):
                 self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
                 self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
                 self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
-                self.ppms_reading_group_box.setFixedWidth(215)
-                self.ppms_Temp_group_box.setFixedWidth(450)
-                self.ppms_Field_group_box.setFixedWidth(450)
+                self.ppms_reading_group_box.setFixedWidth(340)
+                self.ppms_Temp_group_box.setFixedWidth(350)
+                self.ppms_Field_group_box.setFixedWidth(420)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box)
@@ -891,8 +893,10 @@ class Measurement(QMainWindow):
                 self.DSP7265 = self.rm.open_resource(self.current_connection, timeout=10000)
                 time.sleep(2)
                 self.DSP7265_Connected = True
+                DSPModel = self.DSP7265.query('ID')
+                QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
                 self.instru_connect_btn.setText('Disconnect')
-                self.keithley2182_Window()
+                self.dsp7265_Window()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
         else:
@@ -918,6 +922,15 @@ class Measurement(QMainWindow):
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
+    def close_dsp7265(self):
+        try:
+            self.DSP7265.close()
+            self.DSP7265_Connected = False
+            self.clear_layout(self.DSP7265_contain_layout)
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
     def instru_combo_index_change(self):
         self.current_connection_index = self.Instruments_combo.currentIndex()
         if self.current_connection_index == 1:
@@ -937,6 +950,30 @@ class Measurement(QMainWindow):
                 self.instru_connect_btn.setText('Disconnect')
             else:
                 self.instru_connect_btn.setText('Connect')
+
+    def dsp7265_Window(self):
+        self.dsp726_Container = QWidget(self)
+        self.dsp726_groupbox = QGroupBox('DSP 7265')
+
+        self.dsp7265_main_layout = QVBoxLayout()
+        self.dsp726_DC_radio = QRadioButton("DC")
+        self.dsp726_DC_radio.setFont(self.font)
+        self.dsp726_DC_radio.toggled.connect(self.dsp726_DC)
+        self.dsp726_AC_radio = QRadioButton("AC")
+        self.dsp726_AC_radio.setFont(self.font)
+        self.dsp726_AC_radio.toggled.connect(self.dsp726_AC)
+        self.dsp726_radio_button_layout = QHBoxLayout()
+        self.dsp726_radio_button_layout.addWidget(self.dsp726_DC_radio)
+        self.dsp726_radio_button_layout.addWidget(self.dsp726_AC_radio)
+        self.Keithey_6221_main_layout.addLayout(self.dsp726_radio_button_layout)
+
+        self.Keithey_curSour_layout = QVBoxLayout()
+        self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
+        self.dsp726_groupbox.setLayout(self.Keithey_6221_main_layout)
+        self.dsp726_groupbox.setFixedSize(700, 150)
+        self.DSP7265_contain_layout = QHBoxLayout()
+        self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
 
     def keithley2182_Window(self):
         self.Keithley_2182_Container = QWidget(self)
@@ -999,7 +1036,7 @@ class Measurement(QMainWindow):
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
         self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.keithley_6221_groupbox.setFixedSize(740, 150)
+        self.keithley_6221_groupbox.setFixedSize(700, 150)
         self.keithley_6221_contain_layout = QHBoxLayout()
         self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
@@ -1779,7 +1816,7 @@ class Measurement(QMainWindow):
                 else:
                     self.nv_channel_2_enabled = False
 
-                self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, current, TempList, topField,
+                self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, self.DSP7265, current, TempList, topField,
                                      botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
                                      self.file_name, self.run, number_of_field, self.field_mode_fixed,
                                      self.nv_channel_1_enabled, self.nv_channel_2_enabled, nv_NPLC,
@@ -1873,7 +1910,7 @@ class Measurement(QMainWindow):
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, clear_plot, update_plot,
                 measurement_finished, error_message,
-                keithley_6221, keithley_2182nv, current, TempList,
+                keithley_6221, keithley_2182nv, DSP_7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
                 nv_channel_2_enabled, nv_NPLC, ppms_field_One_zone_radio_enabled,
@@ -2527,6 +2564,10 @@ class Measurement(QMainWindow):
                                     total_time_in_days), 'purple')
                             # currentField, sF = client.get_field()
                             # update_ppms_field_reading_label(str(currentField), 'Oe')
+                            if nv_channel_1_enabled:
+                               update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                            if nv_channel_2_enabled:
+                               update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
                     current_progress = int((i+1) * (j+1) / totoal_progress * 100)
