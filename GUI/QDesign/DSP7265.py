@@ -32,7 +32,7 @@ class THREAD(QThread):
                 Mag = float(self.server.query("MAG."))  # Read the measurement result
                 Phase = float(self.server.query("PHA."))  # Read the measurement result
                 self.update_data.emit(X,Y,Mag, Phase)
-                time.sleep(0.1)  # Update every second
+                time.sleep(0.01)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
                 self.running = False
