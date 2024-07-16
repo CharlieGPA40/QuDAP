@@ -41,6 +41,7 @@ class Worker(QThread):
     clear_plot = pyqtSignal()
     update_plot = pyqtSignal(list, list, str, bool, bool)
     measurement_finished = pyqtSignal()
+    error_message = pyqtSignal(str, str)
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
@@ -94,6 +95,7 @@ class Worker(QThread):
                                                   self.update_nv_channel_2_label.emit,
                                                   self.clear_plot.emit, self.update_plot.emit,
                                                   self.measurement_finished.emit,
+                                                  self.error_message.emit,
                                                   keithley_6221 =self.keithley_6221,
                                                   keithley_2182nv=self.keithley_2182nv,
                                                   current=self.current, TempList=self.TempList, topField=self.topField,
@@ -120,6 +122,7 @@ class Worker(QThread):
                                                   zone3_field_rate=self.zone3_field_rate,
                                                   running=lambda: self.running)
                 self.stop()
+                return
             except SystemExit as e:
                 print(e)
             except Exception as e:
@@ -1548,6 +1551,7 @@ class Measurement(QMainWindow):
                         zone_1_end = float(self.ppms_zone1_temp_to_entry.text()) + float(
                             self.ppms_zone1_temp_step_entry.text())
                         zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
+                        print(zone_1_start, zone_1_end, zone_1_step)
                         TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
                         tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
                     elif self.ppms_temp_Two_zone_radio.isChecked():
@@ -1795,6 +1799,7 @@ class Measurement(QMainWindow):
                 self.worker.update_plot.connect(self.update_plot)
                 self.worker.clear_plot.connect(self.clear_plot)
                 self.worker.measurement_finished.connect(self.measurement_finished)
+                self.worker.error_message.connect(self.error_popup)
                 self.worker.start()  # Start the worker thread
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
@@ -1823,6 +1828,10 @@ class Measurement(QMainWindow):
         self.canvas.axes.set_xlabel('Field (Oe)')
         self.canvas.figure.tight_layout()
         self.canvas.draw()
+
+    def error_popup(self, e, tb_str):
+        self.stop_measurement()
+        QMessageBox.warning(self, str(e), f'{tb_str}')
 
     def clear_plot(self):
         self.canvas.axes.cla()
@@ -1863,7 +1872,7 @@ class Measurement(QMainWindow):
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, clear_plot, update_plot,
-                measurement_finished,
+                measurement_finished, error_message,
                 keithley_6221, keithley_2182nv, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
@@ -1875,8 +1884,6 @@ class Measurement(QMainWindow):
             def send_telegram_notification(message):
                 bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
                 chat_id = "5733353343"
-                url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
-                print(requests.get(url).json())
                 url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
                 data = {"chat_id": chat_id, "text": message}
                 response = requests.post(url, data=data)
@@ -1916,16 +1923,20 @@ class Measurement(QMainWindow):
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
             time.sleep(5)
-            # -------------Temp Status---------------------
-            temperature, status = client.get_temperature()
-            tempUnits = client.temperature.units
-            append_text(f'Temperature = {temperature} {tempUnits}\n', 'purple')
-            update_ppms_temp_reading_label(str(temperature), 'K')
-            # ------------Field Status----------------------
-            field, status = client.get_field()
-            fieldUnits = client.field.units
-            append_text(f'Field = {field} {fieldUnits}\n', 'purple')
-            update_ppms_field_reading_label(str(field), 'Oe')
+            try:
+                # -------------Temp Status---------------------
+                temperature, status = client.get_temperature()
+                tempUnits = client.temperature.units
+                append_text(f'Temperature = {temperature} {tempUnits}\n', 'purple')
+                update_ppms_temp_reading_label(str(temperature), 'K')
+                # ------------Field Status----------------------
+                field, status = client.get_field()
+                fieldUnits = client.field.units
+                append_text(f'Field = {field} {fieldUnits}\n', 'purple')
+                update_ppms_field_reading_label(str(field), 'Oe')
+            except SystemExit as e:
+                error_message(e,e)
+                send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
             # ----------------- Loop Down ----------------------#
             Curlen = len(current)
             templen = len(TempList)
@@ -1935,7 +1946,6 @@ class Measurement(QMainWindow):
             update_ppms_chamber_reading_label(str(cT))
 
             for i in range(templen):
-
                 append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
                 Tempsetpoint = TempList[i]
                 if i == 0:
@@ -1952,7 +1962,7 @@ class Measurement(QMainWindow):
                 MyTemp, sT = client.get_temperature()
                 update_ppms_temp_reading_label(str(MyTemp), 'K')
                 while True:
-                    time.sleep(1)
+                    time.sleep(1.5)
                     MyTemp, sT = client.get_temperature()
                     update_ppms_temp_reading_label(str(MyTemp), 'K')
                     append_text(f'Temperature Status: {sT}\n', 'blue')
@@ -1980,7 +1990,12 @@ class Measurement(QMainWindow):
                     time.sleep(10)
                     while True:
                         time.sleep(15)
-                        F, sF = client.get_field()
+                        try:
+                            F, sF = client.get_field()
+                        except SystemExit as e:
+                            error_message(e, e)
+                            send_telegram_notification(
+                                "Your measurement went wrong, possible PPMS client lost connection")
                         update_ppms_field_reading_label(str(F), 'Oe')
                         append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
@@ -1993,7 +2008,12 @@ class Measurement(QMainWindow):
                     time.sleep(10)
                     while True:
                         time.sleep(15)
-                        F, sF = client.get_field()
+                        try:
+                            F, sF = client.get_field()
+                        except SystemExit as e:
+                            error_message(e, e)
+                            send_telegram_notification(
+                                "Your measurement went wrong, possible PPMS client lost connection")
                         update_ppms_field_reading_label(str(F), 'Oe')
                         append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
@@ -2034,7 +2054,12 @@ class Measurement(QMainWindow):
                             update_ppms_field_reading_label(str(MyField), 'Oe')
                             while True:
                                 time.sleep(1)
-                                MyField, sF = client.get_field()
+                                try:
+                                    MyField, sF = client.get_field()
+                                except SystemExit as e:
+                                    error_message(e, e)
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
                                 if sF == 'Holding (driven)':
@@ -2094,8 +2119,12 @@ class Measurement(QMainWindow):
                                                      Chan_2_voltage, MyTemp, current[j]])
                                 append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
-
-                            MyField, sF = client.get_field()
+                            try:
+                                MyField, sF = client.get_field()
+                            except SystemExit as e:
+                                error_message(e, e)
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(MyField), 'Oe')
                             MyTemp, sT = client.get_temperature()
                             update_ppms_temp_reading_label(str(MyTemp), 'K')
@@ -2153,7 +2182,12 @@ class Measurement(QMainWindow):
                             update_ppms_field_reading_label(str(MyField), 'Oe')
                             while True:
                                 time.sleep(1)
-                                MyField, sF = client.get_field()
+                                try:
+                                    MyField, sF = client.get_field()
+                                except SystemExit as e:
+                                    error_message(e, e)
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
                                 if sF == 'Holding (driven)':
@@ -2199,10 +2233,15 @@ class Measurement(QMainWindow):
                                                                                                               "Resistance ("
                                                                                                               "Ohm)",
                                          "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
-                                MyTemp, sT = client.get_temperature()
-                                update_ppms_temp_reading_label(str(MyTemp), 'K')
+                                try:
+                                    MyField, sF = client.get_field()
+                                    update_ppms_field_reading_label(str(MyField), 'Oe')
+                                    MyTemp, sT = client.get_temperature()
+                                    update_ppms_temp_reading_label(str(MyTemp), 'K')
+                                except SystemExit as e:
+                                    error_message(e, e)
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                                 csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                      Chan_2_voltage, MyTemp, current[j]])
                                 self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
@@ -2234,21 +2273,31 @@ class Measurement(QMainWindow):
                                 'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                     total_time_in_days), 'purple')
                     else:
-                        client.set_field(topField,
-                                         Fast_fieldRate,
-                                         client.field.approach_mode.linear,
-                                         client.field.driven_mode.driven)
+                        try:
+                            client.set_field(topField,
+                                             Fast_fieldRate,
+                                             client.field.approach_mode.linear,
+                                             client.field.driven_mode.driven)
+                        except SystemExit as e:
+                            error_message(e, e)
+                            send_telegram_notification(
+                                "Your measurement went wrong, possible PPMS client lost connection")
                         append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                         time.sleep(4)
                         MyField, sF = client.get_field()
                         update_ppms_field_reading_label(str(MyField), 'Oe')
                         while True:
-                            time.sleep(1)
-                            MyField, sF = client.get_field()
-                            update_ppms_field_reading_label(str(MyField), 'Oe')
-                            append_text(f'Status: {sF}\n', 'red')
-                            if sF == 'Holding (driven)':
-                                break
+                            try:
+                                time.sleep(1.5)
+                                MyField, sF = client.get_field()
+                                update_ppms_field_reading_label(str(MyField), 'Oe')
+                                append_text(f'Status: {sF}\n', 'red')
+                                if sF == 'Holding (driven)':
+                                    break
+                            except SystemExit as e:
+                                error_message(e, e)
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                         time.sleep(20)
                         deltaH, user_field_rate = deltaH_chk(MyField)
                         currentField = MyField
@@ -2258,7 +2307,9 @@ class Measurement(QMainWindow):
                                              client.field.approach_mode.linear,
                                              client.field.driven_mode.driven)
                         except SystemExit as e:
-                            print(e)
+                            error_message(e, e)
+                            send_telegram_notification(
+                                "Your measurement went wrong, possible PPMS client lost connection")
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         counter = 0
                         while currentField >= botField:
@@ -2274,7 +2325,9 @@ class Measurement(QMainWindow):
                             try:
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
-                                print(e)
+                                error_message(e, e)
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -2350,8 +2403,8 @@ class Measurement(QMainWindow):
                             append_text(
                                 'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                     total_time_in_days), 'purple')
-                            currentField, sF = client.get_field()
-                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            # currentField, sF = client.get_field()
+                            # update_ppms_field_reading_label(str(currentField), 'Oe')
 
                         # ----------------- Loop Up ----------------------#
                         send_telegram_notification(f"Starting the second half of measurement - ramping field up")
@@ -2367,7 +2420,12 @@ class Measurement(QMainWindow):
 
                         while True:
                             time.sleep(1)
-                            currentField, sF = client.get_field()
+                            try:
+                                currentField, sF = client.get_field()
+                            except SystemExit as e:
+                                error_message(e, e)
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Status: {sF}\n', 'blue')
                             if sF == 'Holding (driven)':
@@ -2392,7 +2450,12 @@ class Measurement(QMainWindow):
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
                             time.sleep(1)
-                            currentField, sF = client.get_field()
+                            try:
+                                currentField, sF = client.get_field()
+                            except SystemExit as e:
+                                error_message(e, e)
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -2462,8 +2525,8 @@ class Measurement(QMainWindow):
                             append_text(
                                 'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                     total_time_in_days), 'purple')
-                            currentField, sF = client.get_field()
-                            update_ppms_field_reading_label(str(currentField), 'Oe')
+                            # currentField, sF = client.get_field()
+                            # update_ppms_field_reading_label(str(currentField), 'Oe')
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
                     current_progress = int((i+1) * (j+1) / totoal_progress * 100)
@@ -2501,6 +2564,7 @@ class Measurement(QMainWindow):
             return
         except SystemExit as e:
             send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+            error_message(e,e)
             stop_measurement()
 
     def send_telegram_notification(self, message):
