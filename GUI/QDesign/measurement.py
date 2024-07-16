@@ -48,7 +48,8 @@ class Worker(QThread):
                  field_mode_fixed, nv_channel_1_enabled, nv_channel_2_enabled,nv_NPLC, ppms_field_One_zone_radio_enabled,
                  ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled, zone1_step_field, zone2_step_field,
                  zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
-                 zone3_field_rate):
+                 zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, BNC845RF_Connected,
+                 DSP7265_Connected):
         super().__init__()
         self.measurement_instance = measurement_instance
         self.running = True
@@ -84,6 +85,10 @@ class Worker(QThread):
         self.zone1_field_rate = zone1_field_rate
         self.zone2_field_rate = zone2_field_rate
         self.zone3_field_rate = zone3_field_rate
+        self.Keithley_2182_Connected = Keithley_2182_Connected
+        self.Ketihley_6221_Connected = Ketihley_6221_Connected
+        self.BNC845RF_Connected = BNC845RF_Connected
+        self.DSP7265_Connected = DSP7265_Connected
 
     def run(self):
         while self.running:
@@ -122,6 +127,10 @@ class Worker(QThread):
                                                   zone1_field_rate=self.zone1_field_rate,
                                                   zone2_field_rate=self.zone2_field_rate,
                                                   zone3_field_rate=self.zone3_field_rate,
+                                                  Keithley_2182_Connected=self.Keithley_2182_Connected,
+                                                  Ketihley_6221_Connected=self.Ketihley_6221_Connected,
+                                                  BNC845RF_Connected=self.BNC845RF_Connected,
+                                                  DSP7265_Connected=self.DSP7265_Connected,
                                                   running=lambda: self.running)
                 self.stop()
                 return
@@ -1824,7 +1833,8 @@ class Measurement(QMainWindow):
                                      self.ppms_field_Three_zone_radio_enabled, self.zone1_step_field,
                                      self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
                                      self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
-                                     self.zone2_field_rate,self.zone3_field_rate)  # Create a worker instance
+                                     self.zone2_field_rate,self.zone3_field_rate, self.Keithley_2182_Connected,
+                                     self.Ketihley_6221_Connected,self.BNC845RF_Connected,self.DSP7265_Connected)  # Create a worker instance
                 self.worker.progress_update.connect(self.update_progress)
                 self.worker.append_text.connect(self.append_text)
                 self.worker.stop_measurment.connect(self.stop_measurement)
@@ -1916,7 +1926,8 @@ class Measurement(QMainWindow):
                 nv_channel_2_enabled, nv_NPLC, ppms_field_One_zone_radio_enabled,
                 ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled,zone1_step_field,
                 zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
-                zone2_field_rate, zone3_field_rate, running):
+                zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
+                Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running):
         try:
             def send_telegram_notification(message):
                 bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
@@ -2055,11 +2066,12 @@ class Measurement(QMainWindow):
                         append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
                             break
-                    keithley_6221.write(":OUTP OFF")  # Set source function to current
-                    keithley_6221.write("CURRent:RANGe:AUTO ON \n")
-                    keithley_6221.write(f'CURR {current[j]} \n')
-                    keithley_6221.write(":OUTP ON")  # Turn on the output
-                    append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
+                    if Ketihley_6221_Connected:
+                        keithley_6221.write(":OUTP OFF")  # Set source function to current
+                        keithley_6221.write("CURRent:RANGe:AUTO ON \n")
+                        keithley_6221.write(f'CURR {current[j]} \n')
+                        keithley_6221.write(":OUTP ON")  # Turn on the output
+                        append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
 
                     csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
                     self.pts = 0
@@ -2072,7 +2084,6 @@ class Measurement(QMainWindow):
 
 
                     if field_mode_fixed:
-
                         while currentField >= botField:
                             if not running():
                                 stop_measurement()
@@ -2113,48 +2124,49 @@ class Measurement(QMainWindow):
                             MyField, sF = client.get_field()
                             update_ppms_field_reading_label(str(MyField), 'Oe')
                             self.field_array.append(MyField)
-                            try:
-                                if nv_channel_1_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 1")
-                                    volt = keithley_2182nv.query("READ?")
-                                    Chan_1_voltage = float(volt)
-                                    update_nv_channel_1_label(str(Chan_1_voltage))
-                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                            if Keithley_2182_Connected:
+                                try:
+                                    if nv_channel_1_enabled:
+                                        keithley_2182nv.write("SENS:CHAN 1")
+                                        volt = keithley_2182nv.query("READ?")
+                                        Chan_1_voltage = float(volt)
+                                        update_nv_channel_1_label(str(Chan_1_voltage))
+                                        append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
 
-                                    self.channel1_array.append(Chan_1_voltage)
+                                        self.channel1_array.append(Chan_1_voltage)
+                                        # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                except Exception as e:
+                                    QMessageBox.warning(self, 'Warning', str(e))
+
+                                if nv_channel_2_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 2")
+                                    volt2 = keithley_2182nv.query("READ?")
+                                    Chan_2_voltage = float(volt2)
+                                    update_nv_channel_2_label(str(Chan_2_voltage))
+                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                    self.channel2_array.append(Chan_2_voltage)
                                     # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                            except Exception as e:
-                                QMessageBox.warning(self, 'Warning', str(e))
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
-                            if nv_channel_2_enabled:
-                                keithley_2182nv.write("SENS:CHAN 2")
-                                volt2 = keithley_2182nv.query("READ?")
-                                Chan_2_voltage = float(volt2)
-                                update_nv_channel_2_label(str(Chan_2_voltage))
-                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                self.channel2_array.append(Chan_2_voltage)
-                                # # Drop off the first y element, append a new one.
-                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                # Calculate the average voltage
+                                resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                resistance_chan_2 = Chan_2_voltage / float(current[j])
 
-                            # Calculate the average voltage
-                            resistance_chan_1 = Chan_1_voltage / float(current[j])
-                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
 
-                            # Append the data to the CSV file
-                            with open(csv_filename, "a", newline="") as csvfile:
-                                csv_writer = csv.writer(csvfile)
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                                  "Resistance ("
+                                                                                                                  "Ohm)",
+                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                if csvfile.tell() == 0:  # Check if file is empty
-                                    csv_writer.writerow(
-                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                              "Resistance ("
-                                                                                                              "Ohm)",
-                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-
-                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                     Chan_2_voltage, MyTemp, current[j]])
-                                append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                                    csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                         Chan_2_voltage, MyTemp, current[j]])
+                                    append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
                             try:
                                 MyField, sF = client.get_field()
@@ -2198,6 +2210,8 @@ class Measurement(QMainWindow):
                         currentField = botField
                         deltaH, user_field_rate = deltaH_chk(currentField)
                         send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                        current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
+                        progress_update(int(current_progress))
                         while currentField <= topField:
                             if not running():
                                 stop_measurement()
@@ -2240,48 +2254,49 @@ class Measurement(QMainWindow):
                             MyField, sF = client.get_field()
                             update_ppms_field_reading_label(str(MyField), 'Oe')
                             self.field_array.append(MyField)
-                            if nv_channel_1_enabled:
-                                keithley_2182nv.write("SENS:CHAN 1")
-                                volt = keithley_2182nv.query("READ?")
-                                Chan_1_voltage = float(volt)
-                                update_nv_channel_1_label(str(Chan_1_voltage))
-                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                self.channel1_array.append(Chan_1_voltage)
-                                update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                            if nv_channel_2_enabled:
-                                keithley_2182nv.write("SENS:CHAN 2")
-                                volt2 = keithley_2182nv.query("READ?")
-                                Chan_2_voltage = float(volt2)
-                                update_nv_channel_2_label(str(Chan_2_voltage))
-                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                self.channel2_array.append(Chan_2_voltage)
-                                # # Drop off the first y element, append a new one.
-                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
-                            resistance_chan_1 = Chan_1_voltage / float(current[j])
-                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+                            if Keithley_2182_Connected:
+                                if nv_channel_1_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 1")
+                                    volt = keithley_2182nv.query("READ?")
+                                    Chan_1_voltage = float(volt)
+                                    update_nv_channel_1_label(str(Chan_1_voltage))
+                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                    self.channel1_array.append(Chan_1_voltage)
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                if nv_channel_2_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 2")
+                                    volt2 = keithley_2182nv.query("READ?")
+                                    Chan_2_voltage = float(volt2)
+                                    update_nv_channel_2_label(str(Chan_2_voltage))
+                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                    self.channel2_array.append(Chan_2_voltage)
+                                    # # Drop off the first y element, append a new one.
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                resistance_chan_2 = Chan_2_voltage / float(current[j])
 
-                            # Append the data to the CSV file
-                            with open(csv_filename, "a", newline="") as csvfile:
-                                csv_writer = csv.writer(csvfile)
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
 
-                                if csvfile.tell() == 0:  # Check if file is empty
-                                    csv_writer.writerow(
-                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                              "Resistance ("
-                                                                                                              "Ohm)",
-                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                                try:
-                                    MyField, sF = client.get_field()
-                                    update_ppms_field_reading_label(str(MyField), 'Oe')
-                                    MyTemp, sT = client.get_temperature()
-                                    update_ppms_temp_reading_label(str(MyTemp), 'K')
-                                except SystemExit as e:
-                                    error_message(e, e)
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
-                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                     Chan_2_voltage, MyTemp, current[j]])
-                                self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                                  "Resistance ("
+                                                                                                                  "Ohm)",
+                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+                                    try:
+                                        MyField, sF = client.get_field()
+                                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                                        MyTemp, sT = client.get_temperature()
+                                        update_ppms_temp_reading_label(str(MyTemp), 'K')
+                                    except SystemExit as e:
+                                        error_message(e, e)
+                                        send_telegram_notification(
+                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                         Chan_2_voltage, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
 
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
@@ -2371,44 +2386,45 @@ class Measurement(QMainWindow):
                             Chan_1_voltage = 0
                             Chan_2_voltage = 0
                             self.field_array.append(currentField)
-                            if nv_channel_1_enabled:
-                                keithley_2182nv.write("SENS:CHAN 1")
-                                volt = keithley_2182nv.query("READ?")
-                                Chan_1_voltage = float(volt)
-                                update_nv_channel_1_label(str(Chan_1_voltage))
-                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                self.channel1_array.append(Chan_1_voltage)
-                                if counter % 20 == 0:
-                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                            if nv_channel_2_enabled:
-                                keithley_2182nv.write("SENS:CHAN 2")
-                                volt2 = keithley_2182nv.query("READ?")
-                                Chan_2_voltage = float(volt2)
-                                update_nv_channel_2_label(str(Chan_2_voltage))
-                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                self.channel2_array.append(Chan_2_voltage)
-                                # # Drop off the first y element, append a new one.
-                                if counter % 20 == 0:
-                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                            if Keithley_2182_Connected:
+                                if nv_channel_1_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 1")
+                                    volt = keithley_2182nv.query("READ?")
+                                    Chan_1_voltage = float(volt)
+                                    update_nv_channel_1_label(str(Chan_1_voltage))
+                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                    self.channel1_array.append(Chan_1_voltage)
+                                    if counter % 20 == 0:
+                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                if nv_channel_2_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 2")
+                                    volt2 = keithley_2182nv.query("READ?")
+                                    Chan_2_voltage = float(volt2)
+                                    update_nv_channel_2_label(str(Chan_2_voltage))
+                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                    self.channel2_array.append(Chan_2_voltage)
+                                    # # Drop off the first y element, append a new one.
+                                    if counter % 20 == 0:
+                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
-                            # Calculate the average voltage
-                            resistance_chan_1 = Chan_1_voltage / float(current[j])
-                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+                                # Calculate the average voltage
+                                resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                resistance_chan_2 = Chan_2_voltage / float(current[j])
 
-                            # Append the data to the CSV file
-                            with open(csv_filename, "a", newline="") as csvfile:
-                                csv_writer = csv.writer(csvfile)
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
 
-                                if csvfile.tell() == 0:  # Check if file is empty
-                                    csv_writer.writerow(
-                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                              "Resistance ("
-                                                                                                              "Ohm)",
-                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                                  "Resistance ("
+                                                                                                                  "Ohm)",
+                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                     Chan_2_voltage, MyTemp, current[j]])
-                                append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
+                                    csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                         Chan_2_voltage, MyTemp, current[j]])
+                                    append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
 
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
@@ -2476,6 +2492,8 @@ class Measurement(QMainWindow):
                                          client.field.driven_mode.driven)
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         counter = 0
+                        current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)/2
+                        progress_update(int(current_progress))
                         while currentField <= topField:
                             if not running():
                                 print('Not Running')
@@ -2499,42 +2517,43 @@ class Measurement(QMainWindow):
                             Chan_1_voltage = 0
                             Chan_2_voltage = 0
                             self.field_array.append(currentField)
-                            if nv_channel_1_enabled:
-                                keithley_2182nv.write("SENS:CHAN 1")
-                                volt = keithley_2182nv.query("READ?")
-                                Chan_1_voltage = float(volt)
-                                update_nv_channel_1_label(str(Chan_1_voltage))
-                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                self.channel1_array.append(Chan_1_voltage)
-                                if counter % 20 == 0:
-                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                            if nv_channel_2_enabled:
-                                keithley_2182nv.write("SENS:CHAN 2")
-                                volt2 = keithley_2182nv.query("READ?")
-                                Chan_2_voltage = float(volt2)
-                                update_nv_channel_2_label(str(Chan_2_voltage))
-                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                self.channel2_array.append(Chan_2_voltage)
-                                if counter % 20 == 0:
-                                # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                            if Keithley_2182_Connected:
+                                if nv_channel_1_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 1")
+                                    volt = keithley_2182nv.query("READ?")
+                                    Chan_1_voltage = float(volt)
+                                    update_nv_channel_1_label(str(Chan_1_voltage))
+                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                    self.channel1_array.append(Chan_1_voltage)
+                                    if counter % 20 == 0:
+                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                if nv_channel_2_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 2")
+                                    volt2 = keithley_2182nv.query("READ?")
+                                    Chan_2_voltage = float(volt2)
+                                    update_nv_channel_2_label(str(Chan_2_voltage))
+                                    append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                    self.channel2_array.append(Chan_2_voltage)
+                                    if counter % 20 == 0:
+                                    # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
-                            resistance_chan_1 = Chan_1_voltage / float(current[j])
-                            resistance_chan_2 = Chan_2_voltage / float(current[j])
-                            # Append the data to the CSV file
-                            with open(csv_filename, "a", newline="") as csvfile:
-                                csv_writer = csv.writer(csvfile)
+                                resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                resistance_chan_2 = Chan_2_voltage / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
 
-                                if csvfile.tell() == 0:  # Check if file is empty
-                                    csv_writer.writerow(
-                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                              "Resistance ("
-                                                                                                              "Ohm)",
-                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
+                                                                                                                  "Resistance ("
+                                                                                                                  "Ohm)",
+                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                     Chan_2_voltage, MyTemp, current[j]])
-                                self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+                                    csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                         Chan_2_voltage, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
 
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
@@ -2564,10 +2583,11 @@ class Measurement(QMainWindow):
                                     total_time_in_days), 'purple')
                             # currentField, sF = client.get_field()
                             # update_ppms_field_reading_label(str(currentField), 'Oe')
-                            if nv_channel_1_enabled:
-                               update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                            if nv_channel_2_enabled:
-                               update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                            if Keithley_2182_Connected:
+                                if nv_channel_1_enabled:
+                                   update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                if nv_channel_2_enabled:
+                                   update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
                     current_progress = int((i+1) * (j+1) / totoal_progress * 100)
@@ -2587,9 +2607,9 @@ class Measurement(QMainWindow):
             fieldUnits = client.field.units
             append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
             update_ppms_field_reading_label(str(field), 'Oe')
-
-            keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
-            keithley_6221.write(":OUTP OFF")  # Turn off the output
+            if Ketihley_6221_Connected:
+                keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
+                keithley_6221.write(":OUTP OFF")  # Turn off the output
             append_text("DC current is set to: 0.00 A\n", 'red')
             # keithley_6221_Curr_Src.close()
 
