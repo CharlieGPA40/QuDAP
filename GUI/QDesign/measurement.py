@@ -2229,7 +2229,9 @@ class Measurement(QMainWindow):
 
             cT = client.get_chamber()
             update_ppms_chamber_reading_label(str(cT))
-
+            if not running():
+                stop_measurement()
+                return
             for i in range(templen):
                 append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
                 Tempsetpoint = TempList[i]
@@ -2247,6 +2249,9 @@ class Measurement(QMainWindow):
                 MyTemp, sT = client.get_temperature()
                 update_ppms_temp_reading_label(str(MyTemp), 'K')
                 while True:
+                    if not running():
+                        stop_measurement()
+                        return
                     time.sleep(1.5)
                     MyTemp, sT = client.get_temperature()
                     update_ppms_temp_reading_label(str(MyTemp), 'K')
@@ -2273,6 +2278,9 @@ class Measurement(QMainWindow):
                     append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                     time.sleep(10)
                     while True:
+                        if not running():
+                            stop_measurement()
+                            return
                         time.sleep(15)
                         try:
                             F, sF = client.get_field()
@@ -2291,6 +2299,9 @@ class Measurement(QMainWindow):
                     append_text(f'Waiting for {zeroField} Oe Field for Demagnetization... \n', 'blue')
                     time.sleep(10)
                     while True:
+                        if not running():
+                            stop_measurement()
+                            return
                         time.sleep(15)
                         try:
                             F, sF = client.get_field()
