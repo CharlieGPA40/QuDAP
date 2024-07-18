@@ -2039,6 +2039,14 @@ class Measurement(QMainWindow):
                 f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
                 f.write(f"Experiment Temperature (K): {temp_log}\n")
                 f.write(f"Experiment Current: {listToString(current)}\n")
+                if self.Keithley_2182_Connected:
+                    f.write(f"Instrument: Keithley 2182")
+                if self.Ketihley_6221_Connected:
+                    f.write(f"Instrument: Keithley 6221")
+                if self.BNC845RF_Connected:
+                    f.write(f"Instrument: BNC845RF")
+                if self.DSP7265_Connected:
+                    f.write(f"Instrument: DSP 7265 Lock-in")
                 f.close()
                 self.send_telegram_notification(f"{self.User} is running {self.Measurement} on {self.ID}")
                 if self.ppms_field_mode_fixed_radio.isChecked():
