@@ -327,6 +327,7 @@ class Measurement(QMainWindow):
             self.ppms_field_Three_zone_radio_enabled = False
             self.nv_channel_1_enabled = None
             self.nv_channel_2_enabled = None
+            self.nv_NPLC = None
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
