@@ -901,8 +901,8 @@ class Measurement(QMainWindow):
             try:
                 self.DSP7265 = self.rm.open_resource(self.current_connection, timeout=10000)
                 time.sleep(2)
-                self.DSP7265_Connected = True
                 DSPModel = self.DSP7265.query('ID')
+                self.DSP7265_Connected = True
                 QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
                 self.instru_connect_btn.setText('Disconnect')
                 self.dsp7265_Window()
@@ -965,24 +965,57 @@ class Measurement(QMainWindow):
         self.dsp726_groupbox = QGroupBox('DSP 7265')
 
         self.dsp7265_main_layout = QVBoxLayout()
-        self.dsp726_DC_radio = QRadioButton("DC")
-        self.dsp726_DC_radio.setFont(self.font)
-        self.dsp726_DC_radio.toggled.connect(self.dsp726_DC)
-        self.dsp726_AC_radio = QRadioButton("AC")
-        self.dsp726_AC_radio.setFont(self.font)
-        self.dsp726_AC_radio.toggled.connect(self.dsp726_AC)
-        self.dsp726_radio_button_layout = QHBoxLayout()
-        self.dsp726_radio_button_layout.addWidget(self.dsp726_DC_radio)
-        self.dsp726_radio_button_layout.addWidget(self.dsp726_AC_radio)
-        self.Keithey_6221_main_layout.addLayout(self.dsp726_radio_button_layout)
 
-        self.Keithey_curSour_layout = QVBoxLayout()
-        self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
-        self.dsp726_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.dsp726_groupbox.setFixedSize(700, 150)
-        self.DSP7265_contain_layout = QHBoxLayout()
-        self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
-        self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
+        self.dsp726_IMODE_layout = QHBoxLayout()
+        self.dsp7265_IMODE_combo = QComboBox()
+        self.dsp7265_IMODE_combo.setFont(self.font)
+        self.dsp7265_IMODE_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_IMODE_combo.addItems(
+            ["Select Input Mode", "Current mode off", "High bandwidth current mode", "Low noise current mode"])
+        self.dsp7265_IMODE_combo.currentIndexChanged.connect(self.dsp726_IMODE_selection)
+        self.dsp_imode_text = QLabel('IMODE:')
+        self.dsp_imode_text.setFont(self.font)
+        self.dsp726_IMODE_layout.addWidget(self.dsp_imode_text)
+        self.dsp726_IMODE_layout.addWidget(self.dsp7265_IMODE_combo)
+        self.dsp7265_main_layout.addLayout(self.dsp726_IMODE_layout)
+
+        self.dsp7265_mode_contain_layout = QVBoxLayout()
+        self.dsp7265_main_layout.addLayout(self.dsp7265_mode_contain_layout)
+
+        self.dsp7265_reading_layout = QVBoxLayout()
+        self.dsp7265_x_reading_layout = QHBoxLayout()
+        self.dsp7265_x_reading_label = QLabel('X: ')
+        self.dsp7265_x_reading_value_label = QLabel('N/A')
+        self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_label)
+        self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_value_label)
+
+        self.dsp7265_y_reading_layout = QHBoxLayout()
+        self.dsp7265_y_reading_label = QLabel('Y: ')
+        self.dsp7265_y_reading_value_label = QLabel('N/A')
+        self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_label)
+        self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_value_label)
+
+        self.dsp7265_mag_reading_layout = QHBoxLayout()
+        self.dsp7265_mag_reading_label = QLabel('Magnitude: ')
+        self.dsp7265_mag_reading_value_label = QLabel('N/A')
+        self.dsp7265_mag_reading_layout.addWidget(self.dsp7265_mag_reading_label)
+        self.dsp7265_mag_reading_layout.addWidget(self.dsp7265_mag_reading_value_label)
+
+        self.dsp7265_phase_reading_layout = QHBoxLayout()
+        self.dsp7265_phase_reading_label = QLabel('Phase: ')
+        self.dsp7265_phase_reading_value_label = QLabel('N/A')
+        self.dsp7265_phase_reading_layout.addWidget(self.dsp7265_phase_reading_label)
+        self.dsp7265_phase_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
+
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
+        self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
+
+        self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
+        self.dsp726_groupbox.setFixedSize(415g, 150)
+        self.Instruments_measurement_setup_layout.addWidget(self.dsp726_groupbox)
 
     def keithley2182_Window(self):
         self.Keithley_2182_Container = QWidget(self)
@@ -1021,7 +1054,7 @@ class Measurement(QMainWindow):
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
         self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
-        self.keithley_2182_groupbox.setFixedSize(365, 150)
+        self.keithley_2182_groupbox.setFixedSize(415, 150)
         self.keithley_2182_contain_layout = QHBoxLayout()
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
@@ -1045,7 +1078,7 @@ class Measurement(QMainWindow):
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
         self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.keithley_6221_groupbox.setFixedSize(700, 150)
+        self.keithley_6221_groupbox.setFixedSize(650, 150)
         self.keithley_6221_contain_layout = QHBoxLayout()
         self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
@@ -1113,6 +1146,170 @@ class Measurement(QMainWindow):
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
             pass
+
+
+    def dsp726_IMODE_selection(self):
+        try:
+            self.clear_layout(self.dsp7265_mode_contain_layout)
+        except Exception as e:
+            pass
+
+        self.dsp_IMODE_index = self.dsp7265_IMODE_combo.currentIndex()
+        if self.dsp_IMODE_index == 1:
+            self.DSP7265.query('IMODE 0')
+
+            self.dsp726_VMODE_layout = QHBoxLayout()
+            self.dsp7265_VMODE_combo = QComboBox()
+            self.dsp7265_VMODE_combo.setFont(self.font)
+            self.dsp7265_VMODE_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_VMODE_combo.addItems(
+                ["Select Input Mode", "Both grounded", "A", "-B", "A-B"])
+            self.dsp7265_VMODE_combo.currentIndexChanged.connect(self.dsp726_VMODE_selection)
+            self.dsp_VMODE_text = QLabel('VMODE:')
+            self.dsp_VMODE_text.setFont(self.font)
+            self.dsp726_IMODE_layout.addWidget(self.dsp_VMODE_text)
+            self.dsp726_IMODE_layout.addWidget(self.dsp7265_VMODE_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_IMODE_layout)
+
+            # Sensitivity
+            self.dsp726_sens_layout = QHBoxLayout()
+            self.dsp7265_sens_combo = QComboBox()
+            self.dsp7265_sens_combo.setFont(self.font)
+            self.dsp7265_sens_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_sens_combo.addItems(
+                ["Select Sensitivity", "2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV",
+                 "1 \u00B5V", "2 \u00B5V", "5 \u00B5V", "10 \u00B5V", "20 \u00B5V", "50 \u00B5V", "100 \u00B5V",
+                 "200 \u00B5V", "500 \u00B5V", "1 mV", "2 mV", "5 mV", "10 mV", "20 mV", "50 mV", "100 mV", "200 mV",
+                 "500 mV",
+                 "1 V", "Auto"])
+            self.dsp7265_sens_combo.currentIndexChanged.connect(self.dsp726_sens_selection)
+            self.dsp_sens_text = QLabel('Sensitivity:')
+            self.dsp_sens_text.setFont(self.font)
+            self.dsp726_sens_layout.addWidget(self.dsp_sens_text)
+            self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_sens_layout)
+            # TC
+            self.dsp726_TC_layout = QHBoxLayout()
+            self.dsp7265_TC_combo = QComboBox()
+            self.dsp7265_TC_combo.setFont(self.font)
+            self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_TC_combo.addItems(
+                ["Select Input Mode", "10 \u00B5s", "20 \u00B5s""A", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
+                    , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
+                    , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
+                 "10 ks", "20 ks", "50 ks", "100 ks"])
+            self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
+            self.dsp_tc_text = QLabel('Time constant:')
+            self.dsp_tc_text.setFont(self.font)
+            self.dsp726_TC_layout.addWidget(self.dsp_tc_text)
+            self.dsp726_TC_layout.addWidget(self.dsp7265_TC_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
+
+            self.dsp726_auto_button_layout = QHBoxLayout()
+            self.dsp7265_auto_sense = QPushButton('Auto Sens.')
+            self.dsp7265_auto_sense.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_auto_sense.clicked.connect(self.dsp725_auto_sens)
+
+            self.dsp7265_auto_phase = QPushButton('Auto Phase')
+            self.dsp7265_auto_phase.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_auto_phase.clicked.connect(self.dsp725_auto_phase)
+
+            self.dsp7265_auto_Measurement = QPushButton('Auto Meas.')
+            self.dsp7265_auto_Measurement.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_auto_Measurement.clicked.connect(self.dsp725_auto_meas)
+
+            self.dsp726_auto_button_layout.addWidget(self.dsp7265_auto_sense)
+            self.dsp726_auto_button_layout.addWidget(self.dsp7265_auto_phase)
+            self.dsp726_auto_button_layout.addWidget(self.dsp7265_auto_Measurement)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_auto_button_layout)
+
+
+
+
+        elif self.dsp_IMODE_index == 2:
+            self.DSP7265.query('IMODE 1')
+
+            self.dsp726_VMODE_layout = QHBoxLayout()
+            self.dsp7265_VMODE_combo = QComboBox()
+            self.dsp7265_VMODE_combo.setFont(self.font)
+            self.dsp7265_VMODE_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_VMODE_combo.addItems(
+                ["Select Input Mode", "Both grounded", "A", "-B", "A-B"])
+            self.dsp7265_VMODE_combo.currentIndexChanged.connect(self.dsp726_VMODE_selection)
+            self.dsp_VMODE_text = QLabel('VMODE:')
+            self.dsp_VMODE_text.setFont(self.font)
+            self.dsp726_IMODE_layout.addWidget(self.dsp_VMODE_text)
+            self.dsp726_IMODE_layout.addWidget(self.dsp7265_VMODE_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_IMODE_layout)
+
+            # Sensitivity
+            self.dsp726_sens_layout = QHBoxLayout()
+            self.dsp7265_sens_combo = QComboBox()
+            self.dsp7265_sens_combo.setFont(self.font)
+            self.dsp7265_sens_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_sens_combo.addItems(
+                ["Select Sensitivity", "2 fA", "5 fA", "10 fA", "20 fA", "50 fA", "100 fA", "200 fA", "500 fA",
+                 "1 pA", "2 pA", "5 pA", "10 pA", "20 pA", "50 pA", "100 pA",
+                 "200 pA", "500 pA", "1 nA", "2 nA", "5 nA", "10 nA", "20 nA", "50 nA", "100 nA", "200 nA",
+                 "500 nA",
+                 "1 \u00B5A", "Auto"])
+            self.dsp7265_sens_combo.currentIndexChanged.connect(self.dsp726_sens_selection)
+            self.dsp_sens_text = QLabel('Sensitivity:')
+            self.dsp_sens_text.setFont(self.font)
+            self.dsp726_sens_layout.addWidget(self.dsp_sens_text)
+            self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_sens_layout)
+            # TC
+            self.dsp726_TC_layout = QHBoxLayout()
+            self.dsp7265_TC_combo = QComboBox()
+            self.dsp7265_TC_combo.setFont(self.font)
+            self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_TC_combo.addItems(
+                ["Select Input Mode", "10 \u00B5s", "20 \u00B5s""A", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
+                    , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
+                    , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
+                 "10 ks", "20 ks", "50 ks", "100 ks"])
+            self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
+            self.dsp_tc_text = QLabel('Time constant:')
+            self.dsp_tc_text.setFont(self.font)
+            self.dsp726_TC_layout.addWidget(self.dsp_tc_text)
+            self.dsp726_TC_layout.addWidget(self.dsp7265_TC_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
+
+        elif self.dsp_IMODE_index == 3:
+            self.DSP7265.query('IMODE 2')
+
+    def dsp726_VMODE_selection(self):
+        self.dsp_VMODE_index = self.dsp7265_VMODE_combo.currentIndex()
+        if self.dsp_VMODE_index == 1:
+            self.DSP7265.query('VMODE 0')
+        elif self.dsp_VMODE_index == 2:
+            self.DSP7265.query('VMODE 1')
+        elif self.dsp_VMODE_index == 3:
+            self.DSP7265.query('VMODE 2')
+        elif self.dsp_VMODE_index == 4:
+            self.DSP7265.query('VMODE 3')
+
+    def dsp726_sens_selection(self):
+        self.dsp_sens_index = self.dsp7265_sens_combo.currentIndex()
+        if self.dsp_sens_index != 0:
+            self.DSP7265.query(f'SEN {str(self.dsp_sens_index)}')
+        elif self.dsp_sens_index > 27:
+            self.DSP7265.query('AS')
+
+    def dsp726_TC_selection(self):
+        self.dsp_tc_index = self.dsp7265_TC_combo.currentIndex()
+        if self.dsp_tc_index != 0:
+            self.DSP7265.query(f'TC {str(self.dsp_sens_index-1)}')
+
+    def dsp725_auto_sens(self):
+        self.DSP7265.query('AS')
+        
+    def dsp725_auto_phase(self):
+        self.DSP7265.query('AQN')
+
+    def dsp725_auto_meas(self):
+        self.DSP7265.query('ASM')
 
     def field_zone_selection(self):
         if self.ppms_field_One_zone_radio.isChecked() and self.Field_setup_Zone_1 == False:
@@ -2081,6 +2278,10 @@ class Measurement(QMainWindow):
                     self.field_array = []
                     self.channel1_array = []
                     self.channel2_array = []
+                    self.lockin_x = []
+                    self.lockin_y = []
+                    self.lockin_mag = []
+                    self.lockin_pahse = []
 
 
                     if field_mode_fixed:
@@ -2167,6 +2368,38 @@ class Measurement(QMainWindow):
                                     csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                            elif DSP7265_Connected:
+                                try:
+                                    X = float(self.server.query("X."))  # Read the measurement result
+                                    Y = float(self.server.query("Y."))  # Read the measurement result
+                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
+                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    self.lockin_x.append(X)
+                                    self.lockin_y.append(Y)
+                                    self.lockin_mag.append(Mag)
+                                    self.lockin_pahse.append(Phase)
+                                    if counter % 20 == 0:
+                                        # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
+                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                except Exception as e:
+                                    QMessageBox.warning(self, "Reading Error", f'{e}')
+
+                                resistance_chan_1 = Mag / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
+
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)"
+                                                                               "Temperature (K)", "Current (A)"])
+
+                                    csv_writer.writerow(
+                                        [currentField, resistance_chan_1, Mag, X, Y,
+                                         Phase, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
 
                             try:
                                 MyField, sF = client.get_field()
@@ -2297,7 +2530,38 @@ class Measurement(QMainWindow):
                                     csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
+                            elif DSP7265_Connected:
+                                try:
+                                    X = float(self.server.query("X."))  # Read the measurement result
+                                    Y = float(self.server.query("Y."))  # Read the measurement result
+                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
+                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    self.lockin_x.append(X)
+                                    self.lockin_y.append(Y)
+                                    self.lockin_mag.append(Mag)
+                                    self.lockin_pahse.append(Phase)
+                                    if counter % 20 == 0:
+                                        # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
+                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                except Exception as e:
+                                    QMessageBox.warning(self, "Reading Error", f'{e}')
 
+                                resistance_chan_1 = Mag / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
+
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)"
+                                                                               "Temperature (K)", "Current (A)"])
+
+                                    csv_writer.writerow(
+                                        [currentField, resistance_chan_1, Mag, X, Y,
+                                         Phase, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
 
@@ -2425,7 +2689,38 @@ class Measurement(QMainWindow):
                                     csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
+                            elif DSP7265_Connected:
+                                try:
+                                    X = float(self.server.query("X."))  # Read the measurement result
+                                    Y = float(self.server.query("Y."))  # Read the measurement result
+                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
+                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    self.lockin_x.append(X)
+                                    self.lockin_y.append(Y)
+                                    self.lockin_mag.append(Mag)
+                                    self.lockin_pahse.append(Phase)
+                                    if counter % 20 == 0:
+                                        # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
+                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                except Exception as e:
+                                    QMessageBox.warning(self, "Reading Error", f'{e}')
 
+                                resistance_chan_1 = Mag / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
+
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)"
+                                                                               "Temperature (K)", "Current (A)"])
+
+                                    csv_writer.writerow(
+                                        [currentField, resistance_chan_1, Mag, X, Y,
+                                         Phase, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
 
@@ -2554,6 +2849,38 @@ class Measurement(QMainWindow):
                                     csv_writer.writerow([currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+                            elif DSP7265_Connected:
+                                try:
+                                    X = float(self.server.query("X."))  # Read the measurement result
+                                    Y = float(self.server.query("Y."))  # Read the measurement result
+                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
+                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    self.lockin_x.append(X)
+                                    self.lockin_y.append(Y)
+                                    self.lockin_mag.append(Mag)
+                                    self.lockin_pahse.append(Phase)
+                                    if counter % 20 == 0:
+                                    # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
+                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                except Exception as e:
+                                    QMessageBox.warning(self, "Reading Error", f'{e}')
+
+                                resistance_chan_1 = Mag / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
+
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
+                                             "Voltage X (V)","Voltage Y (V)", "Phase (deg)"
+                                             "Temperature (K)", "Current (A)"])
+
+                                    csv_writer.writerow(
+                                        [currentField, resistance_chan_1, Mag, X, Y,
+                                         Phase, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
 
                             # ----------------------------- Measure NV voltage -------------------
                             deltaH, user_field_rate = deltaH_chk(currentField)
@@ -2588,6 +2915,10 @@ class Measurement(QMainWindow):
                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 if nv_channel_2_enabled:
                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                            elif DSP7265_Connected:
+                                update_plot(self.field_array, self.lockin_mag, 'red', True, False)
+                                update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
                     current_progress = int((i+1) * (j+1) / totoal_progress * 100)
