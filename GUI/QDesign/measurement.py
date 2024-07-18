@@ -1233,7 +1233,7 @@ class Measurement(QMainWindow):
             self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_Measurement)
             self.dsp7265_button_container = QWidget()
             self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
-            self.dsp7265_button_container.setFixedHeight(30)
+            self.dsp7265_button_container.setFixedHeight(50)
             self.dsp7265_mode_contain_layout.addWidget(self.dsp7265_button_container)
 
 
