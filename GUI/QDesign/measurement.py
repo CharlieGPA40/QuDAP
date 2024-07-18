@@ -1825,6 +1825,7 @@ class Measurement(QMainWindow):
                         zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
                         print(zone_1_start, zone_1_end, zone_1_step)
                         TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
+                        print(TempList)
                         tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
                     elif self.ppms_temp_Two_zone_radio.isChecked():
                         zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
@@ -1987,8 +1988,8 @@ class Measurement(QMainWindow):
                     QMessageBox.warning(self, "New Feature is coming", 'Abort')
                     self.stop_measurement()
                     return
-
-                nv_NPLC = self.NPLC_entry.text()
+                if self.Keithley_2182_Connected:
+                    nv_NPLC = self.NPLC_entry.text()
 
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
