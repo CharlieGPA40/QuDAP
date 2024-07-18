@@ -1024,7 +1024,7 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
-        self.dsp726_groupbox.setFixedWidth(415)
+        self.dsp726_groupbox.setFixedWidth(465)
         self.Instruments_measurement_setup_layout.addWidget(self.dsp726_groupbox)
 
     def keithley2182_Window(self):
@@ -1064,7 +1064,7 @@ class Measurement(QMainWindow):
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
         self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
-        self.keithley_2182_groupbox.setFixedWidth(415)
+        self.keithley_2182_groupbox.setFixedWidth(465)
         self.keithley_2182_contain_layout = QHBoxLayout()
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
@@ -1088,7 +1088,7 @@ class Measurement(QMainWindow):
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
         self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.keithley_6221_groupbox.setFixedWidth(650)
+        self.keithley_6221_groupbox.setFixedWidth(600)
         self.keithley_6221_contain_layout = QHBoxLayout()
         self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
