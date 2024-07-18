@@ -1020,6 +1020,7 @@ class Measurement(QMainWindow):
         self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
+        self.dsp7265_main_layout.addStretch(1)
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
