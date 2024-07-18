@@ -2149,10 +2149,10 @@ class Measurement(QMainWindow):
         self.ppms_reading_field_label.setText(f'{str(field)} {str(fieldUnits)}')
 
     def update_lockin_label(self, x, y, mag, phase):
-        self.dsp7265_x_reading_label.setText(f'{str(x)} volts')
-        self.dsp7265_y_reading_label.setText(f'{str(y)} volts')
-        self.dsp7265_mag_reading_label.setText(f'{str(mag)} volts')
-        self.dsp7265_phase_reading_label.setText(f'{str(phase)} degs')
+        self.dsp7265_x_reading_value_label.setText(f'{str(x)} volts')
+        self.dsp7265_y_reading_value_label.setText(f'{str(y)} volts')
+        self.dsp7265_mag_reading_value_label.setText(f'{str(mag)} volts')
+        self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
@@ -2433,8 +2433,8 @@ class Measurement(QMainWindow):
                                     self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
-                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                        # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
 
@@ -2597,8 +2597,8 @@ class Measurement(QMainWindow):
                                     self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
-                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                        # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
 
@@ -2758,8 +2758,8 @@ class Measurement(QMainWindow):
                                     self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
-                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                        # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
 
@@ -2919,8 +2919,8 @@ class Measurement(QMainWindow):
                                     self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                     # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'red', True, False)
-                                        update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                        # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
 
@@ -2974,8 +2974,8 @@ class Measurement(QMainWindow):
                                 if nv_channel_2_enabled:
                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
                             elif DSP7265_Connected:
-                                update_plot(self.field_array, self.lockin_mag, 'red', True, False)
-                                update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
