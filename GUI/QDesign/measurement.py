@@ -317,7 +317,9 @@ class Measurement(QMainWindow):
             self.BNC845RF_Connected = False
             self.DSP7265_Connected = False
             self.field_mode_fixed = None
-
+            self.keithley_2182nv = None
+            self.keithley_6221 = None
+            self.DSP7265 = None
             self.worker = None  # Initialize the worker to None
             self.init_ui()
             self.ppms_field_One_zone_radio_enabled = False
@@ -1026,7 +1028,7 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
-        self.dsp726_groupbox.setFixedWidth(480)
+        self.dsp726_groupbox.setFixedWidth(500)
         self.DSP7265_contain_layout = QHBoxLayout()
         self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
@@ -1068,7 +1070,7 @@ class Measurement(QMainWindow):
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
         self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
-        self.keithley_2182_groupbox.setFixedWidth(480)
+        self.keithley_2182_groupbox.setFixedWidth(500)
         self.keithley_2182_contain_layout = QHBoxLayout()
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
