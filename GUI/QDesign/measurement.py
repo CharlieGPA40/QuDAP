@@ -1026,7 +1026,7 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
-        self.dsp726_groupbox.setFixedWidth(465)
+        self.dsp726_groupbox.setFixedWidth(480)
         self.DSP7265_contain_layout = QHBoxLayout()
         self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
@@ -1068,7 +1068,7 @@ class Measurement(QMainWindow):
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
         self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
-        self.keithley_2182_groupbox.setFixedWidth(465)
+        self.keithley_2182_groupbox.setFixedWidth(480)
         self.keithley_2182_contain_layout = QHBoxLayout()
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
@@ -1092,7 +1092,7 @@ class Measurement(QMainWindow):
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
         self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.keithley_6221_groupbox.setFixedWidth(600)
+        self.keithley_6221_groupbox.setFixedWidth(620)
         self.keithley_6221_contain_layout = QHBoxLayout()
         self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
@@ -2041,16 +2041,16 @@ class Measurement(QMainWindow):
                     self.field_mode_fixed = True
                 else:
                     self.field_mode_fixed = False
+                if self.Keithley_2182_Connected:
+                    if self.keithley_2182_channel_1_checkbox.isChecked():
+                        self.nv_channel_1_enabled = True
+                    else:
+                        self.nv_channel_1_enabled = False
 
-                if self.keithley_2182_channel_1_checkbox.isChecked():
-                    self.nv_channel_1_enabled = True
-                else:
-                    self.nv_channel_1_enabled = False
-
-                if self.keithley_2182_channel_2_checkbox.isChecked():
-                    self.nv_channel_2_enabled = True
-                else:
-                    self.nv_channel_2_enabled = False
+                    if self.keithley_2182_channel_2_checkbox.isChecked():
+                        self.nv_channel_2_enabled = True
+                    else:
+                        self.nv_channel_2_enabled = False
 
                 self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, self.DSP7265, current, TempList, topField,
                                      botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
