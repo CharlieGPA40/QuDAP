@@ -1014,7 +1014,7 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
-        self.dsp726_groupbox.setFixedSize(415g, 150)
+        self.dsp726_groupbox.setFixedSize(415, 150)
         self.Instruments_measurement_setup_layout.addWidget(self.dsp726_groupbox)
 
     def keithley2182_Window(self):
