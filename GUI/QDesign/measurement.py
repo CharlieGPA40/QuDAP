@@ -38,6 +38,7 @@ class Worker(QThread):
     update_ppms_chamber_reading_label = pyqtSignal(str)
     update_nv_channel_1_label = pyqtSignal(str)
     update_nv_channel_2_label = pyqtSignal(str)
+    update_lockin_label = pyqtSignal(str, str, str, str)
     clear_plot = pyqtSignal()
     update_plot = pyqtSignal(list, list, str, bool, bool)
     measurement_finished = pyqtSignal()
@@ -99,6 +100,7 @@ class Worker(QThread):
                                                   self.update_ppms_chamber_reading_label.emit,
                                                   self.update_nv_channel_1_label.emit,
                                                   self.update_nv_channel_2_label.emit,
+                                                  self.update_lockin_label.emit,
                                                   self.clear_plot.emit, self.update_plot.emit,
                                                   self.measurement_finished.emit,
                                                   self.error_message.emit,
@@ -1025,7 +1027,9 @@ class Measurement(QMainWindow):
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
         self.dsp726_groupbox.setFixedWidth(465)
-        self.Instruments_measurement_setup_layout.addWidget(self.dsp726_groupbox)
+        self.DSP7265_contain_layout = QHBoxLayout()
+        self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
 
     def keithley2182_Window(self):
         self.Keithley_2182_Container = QWidget(self)
@@ -1768,31 +1772,42 @@ class Measurement(QMainWindow):
                 self.log_box.clear()
 
                 # self.send_email('Measurement Started', "start", 'czt0036@auburn.edu')
-
-                self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
-                try:
-                    model_6221 = self.keithley_6221.query('*IDN?')
-                    self.append_text(str(model_6221), 'green')
-                except visa.errors.VisaIOError as e:
-                    QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
-                    self.stop_measurement()
-                    return
-                self.append_text('Keithley 6221 connected!\n', 'green')
-                self.append_text('Check Connection of Keithley 2182....\n', 'yellow')
-                try:
-                    model_2182 = self.keithley_2182nv.query('*IDN?')
-                    self.keithley_2182nv.write(':SYST:BEEP:STAT 0')
-                    self.log_box.append(str(model_2182))
-                    # Initialize and configure the instrument
-                    self.keithley_2182nv.write("*RST")
-                    self.keithley_2182nv.write("*CLS")
-                    time.sleep(2)  # Wait for the reset to complete
-                except visa.errors.VisaIOError as e:
-                    QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
-                    self.stop_measurement()
-                    return
-                self.append_text('Keithley 2182 connected!\n', 'green')
-
+                if self.Ketihley_6221_Connected:
+                    self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
+                    try:
+                        model_6221 = self.keithley_6221.query('*IDN?')
+                        self.append_text(str(model_6221), 'green')
+                    except visa.errors.VisaIOError as e:
+                        QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
+                        self.stop_measurement()
+                        return
+                    self.append_text('Keithley 6221 connected!\n', 'green')
+                if self.Keithley_2182_Connected:
+                    self.append_text('Check Connection of Keithley 2182....\n', 'yellow')
+                    try:
+                        model_2182 = self.keithley_2182nv.query('*IDN?')
+                        self.keithley_2182nv.write(':SYST:BEEP:STAT 0')
+                        self.log_box.append(str(model_2182))
+                        # Initialize and configure the instrument
+                        self.keithley_2182nv.write("*RST")
+                        self.keithley_2182nv.write("*CLS")
+                        time.sleep(2)  # Wait for the reset to complete
+                    except visa.errors.VisaIOError as e:
+                        QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
+                        self.stop_measurement()
+                        return
+                    self.append_text('Keithley 2182 connected!\n', 'green')
+                if self.DSP7265_Connected:
+                    self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
+                    try:
+                        model_7265 = self.DSP7265.query('ID')
+                        self.log_box.append(str(model_7265))
+                        time.sleep(2)  # Wait for the reset to complete
+                    except visa.errors.VisaIOError as e:
+                        QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
+                        self.stop_measurement()
+                        return
+                    self.append_text('DSP Lock-in 7265 connected!\n', 'green')
                 def float_range(start, stop, step):
                     current = start
                     while current < stop:
@@ -2054,6 +2069,7 @@ class Measurement(QMainWindow):
                 self.worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
                 self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
                 self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
+                self.worker.update_lockin_label.connect(self.update_lockin_label)
                 self.worker.update_plot.connect(self.update_plot)
                 self.worker.clear_plot.connect(self.clear_plot)
                 self.worker.measurement_finished.connect(self.measurement_finished)
@@ -2127,9 +2143,15 @@ class Measurement(QMainWindow):
     def update_ppms_field_reading_label(self,  field, fieldUnits):
         self.ppms_reading_field_label.setText(f'{str(field)} {str(fieldUnits)}')
 
+    def update_lockin_label(self, x, y, mag, phase):
+        self.dsp7265_x_reading_label.setText(f'{str(x)} volts')
+        self.dsp7265_y_reading_label.setText(f'{str(y)} volts')
+        self.dsp7265_mag_reading_label.setText(f'{str(mag)} volts')
+        self.dsp7265_phase_reading_label.setText(f'{str(phase)} degs')
+
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
-                update_nv_channel_1_label, update_nv_channel_2_label, clear_plot, update_plot,
+                update_nv_channel_1_label, update_nv_channel_2_label, update_lockin_label, clear_plot, update_plot,
                 measurement_finished, error_message,
                 keithley_6221, keithley_2182nv, DSP_7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
@@ -2238,7 +2260,6 @@ class Measurement(QMainWindow):
                 for j in range(Curlen):
                     send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                     clear_plot()
-
 
                     # number_of_current = number_of_current - 1
                     client.set_field(topField,
@@ -2388,6 +2409,7 @@ class Measurement(QMainWindow):
                                     Y = float(self.server.query("Y."))  # Read the measurement result
                                     Mag = float(self.server.query("MAG."))  # Read the measurement result
                                     Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
@@ -2550,6 +2572,7 @@ class Measurement(QMainWindow):
                                     Y = float(self.server.query("Y."))  # Read the measurement result
                                     Mag = float(self.server.query("MAG."))  # Read the measurement result
                                     Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
@@ -2709,6 +2732,7 @@ class Measurement(QMainWindow):
                                     Y = float(self.server.query("Y."))  # Read the measurement result
                                     Mag = float(self.server.query("MAG."))  # Read the measurement result
                                     Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
@@ -2869,6 +2893,7 @@ class Measurement(QMainWindow):
                                     Y = float(self.server.query("Y."))  # Read the measurement result
                                     Mag = float(self.server.query("MAG."))  # Read the measurement result
                                     Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
