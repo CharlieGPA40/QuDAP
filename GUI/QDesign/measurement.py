@@ -2368,8 +2368,9 @@ class Measurement(QMainWindow):
 
                             # ----------------------------- Measure NV voltage -------------------
                             append_text(f'Saving data for {MyField} Oe \n', 'green')
-                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            if Keithley_2182_Connected:
+                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                                keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
                             time.sleep(2)  # Wait for the configuration to complete
                             Chan_1_voltage = 0
                             Chan_2_voltage = 0
@@ -2533,8 +2534,9 @@ class Measurement(QMainWindow):
                             append_text(f'Saving data for {MyField} Oe \n', 'green')
                             Chan_1_voltage = 0
                             Chan_2_voltage = 0
-                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            if Keithley_2182_Connected:
+                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                                keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
                             time.sleep(2)  # Wait for the configuration to complete
                             MyField, sF = client.get_field()
                             update_ppms_field_reading_label(str(MyField), 'Oe')
@@ -2687,9 +2689,10 @@ class Measurement(QMainWindow):
                                 return
                             counter += 1
                             single_measurement_start = time.time()
-                            NPLC = nv_NPLC
-                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                            keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
+                            if Keithley_2182_Connected:
+                                NPLC = nv_NPLC
+                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                                keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
                             time.sleep(1)
                             try:
                                 currentField, sF = client.get_field()
@@ -2850,9 +2853,9 @@ class Measurement(QMainWindow):
                                 return
                             counter += 1
                             single_measurement_start = time.time()
-
-                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                            if Keithley_2182_Connected:
+                                keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                                keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
                             time.sleep(1)
                             try:
                                 currentField, sF = client.get_field()
