@@ -2157,7 +2157,7 @@ class Measurement(QMainWindow):
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, update_lockin_label, clear_plot, update_plot,
                 measurement_finished, error_message,
-                keithley_6221, keithley_2182nv, DSP_7265, current, TempList,
+                keithley_6221, keithley_2182nv, DSP7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
                 nv_channel_2_enabled, nv_NPLC, ppms_field_One_zone_radio_enabled,
@@ -2409,10 +2409,10 @@ class Measurement(QMainWindow):
                                     append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
                             elif DSP7265_Connected:
                                 try:
-                                    X = float(self.server.query("X."))  # Read the measurement result
-                                    Y = float(self.server.query("Y."))  # Read the measurement result
-                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
-                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    X = float(DSP7265.query("X."))  # Read the measurement result
+                                    Y = float(DSP7265.query("Y."))  # Read the measurement result
+                                    Mag = float(DSP7265.query("MAG."))  # Read the measurement result
+                                    Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
@@ -2572,10 +2572,10 @@ class Measurement(QMainWindow):
                                     self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
                             elif DSP7265_Connected:
                                 try:
-                                    X = float(self.server.query("X."))  # Read the measurement result
-                                    Y = float(self.server.query("Y."))  # Read the measurement result
-                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
-                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    X = float(DSP7265.query("X."))  # Read the measurement result
+                                    Y = float(DSP7265.query("Y."))  # Read the measurement result
+                                    Mag = float(DSP7265.query("MAG."))  # Read the measurement result
+                                    Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
@@ -2732,10 +2732,10 @@ class Measurement(QMainWindow):
                                     append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
                             elif DSP7265_Connected:
                                 try:
-                                    X = float(self.server.query("X."))  # Read the measurement result
-                                    Y = float(self.server.query("Y."))  # Read the measurement result
-                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
-                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    X = float(DSP7265.query("X."))  # Read the measurement result
+                                    Y = float(DSP7265.query("Y."))  # Read the measurement result
+                                    Mag = float(DSP7265.query("MAG."))  # Read the measurement result
+                                    Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
@@ -2893,10 +2893,10 @@ class Measurement(QMainWindow):
                                     self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
                             elif DSP7265_Connected:
                                 try:
-                                    X = float(self.server.query("X."))  # Read the measurement result
-                                    Y = float(self.server.query("Y."))  # Read the measurement result
-                                    Mag = float(self.server.query("MAG."))  # Read the measurement result
-                                    Phase = float(self.server.query("PHA."))  # Read the measurement result
+                                    X = float(DSP7265.query("X."))  # Read the measurement result
+                                    Y = float(DSP7265.query("Y."))  # Read the measurement result
+                                    Mag = float(DSP7265.query("MAG."))  # Read the measurement result
+                                    Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                     self.lockin_x.append(X)
                                     self.lockin_y.append(Y)
