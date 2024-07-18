@@ -1754,6 +1754,7 @@ class Measurement(QMainWindow):
                 self.progress_bar = QProgressBar(self)
                 self.progress_bar.setMinimum(0)
                 self.progress_bar.setMaximum(100)
+                self.progress_bar.setFixedWidth(1140)
                 self.progress_value = 0
                 self.progress_bar.setValue(self.progress_value)
                 self.progress_bar.setStyleSheet("""
