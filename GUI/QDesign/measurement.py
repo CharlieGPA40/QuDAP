@@ -1165,7 +1165,7 @@ class Measurement(QMainWindow):
 
         self.dsp_IMODE_index = self.dsp7265_IMODE_combo.currentIndex()
         if self.dsp_IMODE_index == 1:
-            self.DSP7265.query('IMODE 0')
+            self.DSP7265.write('IMODE 0')
 
             self.dsp726_VMODE_layout = QHBoxLayout()
             self.dsp7265_VMODE_combo = QComboBox()
@@ -1236,7 +1236,7 @@ class Measurement(QMainWindow):
 
 
         elif self.dsp_IMODE_index == 2:
-            self.DSP7265.query('IMODE 1')
+            self.DSP7265.write('IMODE 1')
 
             self.dsp726_VMODE_layout = QHBoxLayout()
             self.dsp7265_VMODE_combo = QComboBox()
@@ -1286,39 +1286,39 @@ class Measurement(QMainWindow):
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
 
         elif self.dsp_IMODE_index == 3:
-            self.DSP7265.query('IMODE 2')
+            self.DSP7265.write('IMODE 2')
 
     def dsp726_VMODE_selection(self):
         self.dsp_VMODE_index = self.dsp7265_VMODE_combo.currentIndex()
         if self.dsp_VMODE_index == 1:
-            self.DSP7265.query('VMODE 0')
+            self.DSP7265.write('VMODE 0')
         elif self.dsp_VMODE_index == 2:
-            self.DSP7265.query('VMODE 1')
+            self.DSP7265.write('VMODE 1')
         elif self.dsp_VMODE_index == 3:
-            self.DSP7265.query('VMODE 2')
+            self.DSP7265.write('VMODE 2')
         elif self.dsp_VMODE_index == 4:
-            self.DSP7265.query('VMODE 3')
+            self.DSP7265.write('VMODE 3')
 
     def dsp726_sens_selection(self):
         self.dsp_sens_index = self.dsp7265_sens_combo.currentIndex()
         if self.dsp_sens_index != 0:
-            self.DSP7265.query(f'SEN {str(self.dsp_sens_index)}')
+            self.DSP7265.write(f'SEN {str(self.dsp_sens_index)}')
         elif self.dsp_sens_index > 27:
-            self.DSP7265.query('AS')
+            self.DSP7265.write('AS')
 
     def dsp726_TC_selection(self):
         self.dsp_tc_index = self.dsp7265_TC_combo.currentIndex()
         if self.dsp_tc_index != 0:
-            self.DSP7265.query(f'TC {str(self.dsp_sens_index-1)}')
+            self.DSP7265.write(f'TC {str(self.dsp_sens_index-1)}')
 
     def dsp725_auto_sens(self):
-        self.DSP7265.query('AS')
+        self.DSP7265.write('AS')
         
     def dsp725_auto_phase(self):
-        self.DSP7265.query('AQN')
+        self.DSP7265.write('AQN')
 
     def dsp725_auto_meas(self):
-        self.DSP7265.query('ASM')
+        self.DSP7265.write('ASM')
 
     def field_zone_selection(self):
         if self.ppms_field_One_zone_radio.isChecked() and self.Field_setup_Zone_1 == False:
