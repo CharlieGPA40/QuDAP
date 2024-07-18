@@ -1203,7 +1203,7 @@ class Measurement(QMainWindow):
             self.dsp7265_TC_combo.setFont(self.font)
             self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
             self.dsp7265_TC_combo.addItems(
-                ["Select Input Mode", "10 \u00B5s", "20 \u00B5s""A", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
+                ["Select Input Mode", "10 \u00B5s", "20 \u00B5s", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
                     , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
                     , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
                  "10 ks", "20 ks", "50 ks", "100 ks"])
