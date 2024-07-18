@@ -1992,7 +1992,7 @@ class Measurement(QMainWindow):
                     self.stop_measurement()
                     return
                 if self.Keithley_2182_Connected:
-                    nv_NPLC = self.NPLC_entry.text()
+                    self.nv_NPLC = self.NPLC_entry.text()
 
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
@@ -2058,7 +2058,7 @@ class Measurement(QMainWindow):
                 self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, self.DSP7265, current, TempList, topField,
                                      botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
                                      self.file_name, self.run, number_of_field, self.field_mode_fixed,
-                                     self.nv_channel_1_enabled, self.nv_channel_2_enabled, nv_NPLC,
+                                     self.nv_channel_1_enabled, self.nv_channel_2_enabled, self.nv_NPLC,
                                      self.ppms_field_One_zone_radio_enabled, self.ppms_field_Two_zone_radio_enabled,
                                      self.ppms_field_Three_zone_radio_enabled, self.zone1_step_field,
                                      self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
