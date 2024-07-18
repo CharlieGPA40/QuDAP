@@ -132,6 +132,7 @@ class Worker(QThread):
                                                   BNC845RF_Connected=self.BNC845RF_Connected,
                                                   DSP7265_Connected=self.DSP7265_Connected,
                                                   running=lambda: self.running)
+                self.running = False
                 self.stop()
                 return
             except SystemExit as e:
@@ -1681,6 +1682,7 @@ class Measurement(QMainWindow):
             self.keithley_2182nv.write("*CLS")
             self.keithley_6221.close()
             self.keithley_2182nv.close()
+            self.DSP7265.close()
         except Exception:
             pass
 
@@ -1705,12 +1707,12 @@ class Measurement(QMainWindow):
                 self.worker = None
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
-        try:
-            self.canvas.axes.cla()
-            self.canvas.axes_2.cla()
-            self.canvas.draw()
-        except Exception:
-            pass
+        # try:
+        #     self.canvas.axes.cla()
+        #     self.canvas.axes_2.cla()
+        #     self.canvas.draw()
+        # except Exception:
+        #     pass
 
     def start_measurement(self):
         dialog = LogWindow()
