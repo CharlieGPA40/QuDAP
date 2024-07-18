@@ -1309,7 +1309,7 @@ class Measurement(QMainWindow):
     def dsp726_TC_selection(self):
         self.dsp_tc_index = self.dsp7265_TC_combo.currentIndex()
         if self.dsp_tc_index != 0:
-            self.DSP7265.write(f'TC {str(self.dsp_sens_index-1)}')
+            self.DSP7265.write(f'TC {str(self.dsp_tc_index-1)}')
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
