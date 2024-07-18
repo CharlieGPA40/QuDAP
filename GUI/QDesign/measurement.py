@@ -1022,23 +1022,6 @@ class Measurement(QMainWindow):
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
         self.dsp7265_main_layout.addStretch(1)
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
-        self.dsp726_auto_button_layout = QHBoxLayout()
-        self.dsp7265_auto_sense = QPushButton('Auto Sens.')
-        self.dsp7265_auto_sense.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_sense.clicked.connect(self.dsp725_auto_sens)
-
-        self.dsp7265_auto_phase = QPushButton('Auto Phase')
-        self.dsp7265_auto_phase.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_phase.clicked.connect(self.dsp725_auto_phase)
-
-        self.dsp7265_auto_Measurement = QPushButton('Auto Meas.')
-        self.dsp7265_auto_Measurement.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_Measurement.clicked.connect(self.dsp725_auto_meas)
-
-        self.dsp726_auto_button_layout.addWidget(self.dsp7265_auto_sense)
-        self.dsp726_auto_button_layout.addWidget(self.dsp7265_auto_phase)
-        self.dsp726_auto_button_layout.addWidget(self.dsp7265_auto_Measurement)
-        self.dsp7265_main_layout.addLayout(self.dsp726_auto_button_layout)
 
         self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
         self.dsp726_groupbox.setFixedWidth(415)
@@ -1232,7 +1215,26 @@ class Measurement(QMainWindow):
             self.dsp726_TC_layout.addWidget(self.dsp7265_TC_combo)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
 
+            self.dsp7265_auto_button_layout = QHBoxLayout()
+            self.dsp7265_auto_sense = QPushButton('Auto Sens.')
+            self.dsp7265_auto_sense.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_auto_sense.clicked.connect(self.dsp725_auto_sens)
 
+            self.dsp7265_auto_phase = QPushButton('Auto Phase')
+            self.dsp7265_auto_phase.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_auto_phase.clicked.connect(self.dsp725_auto_phase)
+
+            self.dsp7265_auto_Measurement = QPushButton('Auto Meas.')
+            self.dsp7265_auto_Measurement.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_auto_Measurement.clicked.connect(self.dsp725_auto_meas)
+
+            self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_sense)
+            self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_phase)
+            self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_Measurement)
+            self.dsp7265_button_container = QWidget()
+            self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
+            self.dsp7265_button_container.setFixedHeight(30)
+            self.dsp7265_mode_contain_layout.addWidget(self.dsp7265_button_container)
 
 
 
