@@ -38,7 +38,7 @@ class Worker(QThread):
     update_ppms_chamber_reading_label = pyqtSignal(str)
     update_nv_channel_1_label = pyqtSignal(str)
     update_nv_channel_2_label = pyqtSignal(str)
-    update_lockin_label = pyqtSignal(str, str, str, str)
+    update_lockin_label = pyqtSignal(str, str)
     clear_plot = pyqtSignal()
     update_plot = pyqtSignal(list, list, str, bool, bool)
     measurement_finished = pyqtSignal()
@@ -990,21 +990,21 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addLayout(self.dsp7265_mode_contain_layout)
 
         self.dsp7265_reading_layout = QVBoxLayout()
-        self.dsp7265_x_reading_layout = QHBoxLayout()
-        self.dsp7265_x_reading_label = QLabel('X: ')
-        self.dsp7265_x_reading_label.setFont(self.font)
-        self.dsp7265_x_reading_value_label = QLabel('N/A')
-        self.dsp7265_x_reading_value_label.setFont(self.font)
-        self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_label)
-        self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_value_label)
-
-        self.dsp7265_y_reading_layout = QHBoxLayout()
-        self.dsp7265_y_reading_label = QLabel('Y: ')
-        self.dsp7265_y_reading_value_label = QLabel('N/A')
-        self.dsp7265_y_reading_label.setFont(self.font)
-        self.dsp7265_y_reading_value_label.setFont(self.font)
-        self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_label)
-        self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_value_label)
+        # self.dsp7265_x_reading_layout = QHBoxLayout()
+        # self.dsp7265_x_reading_label = QLabel('X: ')
+        # self.dsp7265_x_reading_label.setFont(self.font)
+        # self.dsp7265_x_reading_value_label = QLabel('N/A')
+        # self.dsp7265_x_reading_value_label.setFont(self.font)
+        # self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_label)
+        # self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_value_label)
+        #
+        # self.dsp7265_y_reading_layout = QHBoxLayout()
+        # self.dsp7265_y_reading_label = QLabel('Y: ')
+        # self.dsp7265_y_reading_value_label = QLabel('N/A')
+        # self.dsp7265_y_reading_label.setFont(self.font)
+        # self.dsp7265_y_reading_value_label.setFont(self.font)
+        # self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_label)
+        # self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_value_label)
 
         self.dsp7265_mag_reading_layout = QHBoxLayout()
         self.dsp7265_mag_reading_label = QLabel('Magnitude: ')
@@ -1022,8 +1022,8 @@ class Measurement(QMainWindow):
         self.dsp7265_phase_reading_layout.addWidget(self.dsp7265_phase_reading_label)
         self.dsp7265_phase_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
 
-        self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
-        self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
+        # self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
+        # self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
         self.dsp7265_main_layout.addStretch(1)
@@ -2161,9 +2161,7 @@ class Measurement(QMainWindow):
     def update_ppms_field_reading_label(self,  field, fieldUnits):
         self.ppms_reading_field_label.setText(f'{str(field)} {str(fieldUnits)}')
 
-    def update_lockin_label(self, x, y, mag, phase):
-        self.dsp7265_x_reading_value_label.setText(f'{str(x)} volts')
-        self.dsp7265_y_reading_value_label.setText(f'{str(y)} volts')
+    def update_lockin_label(self, mag, phase):
         self.dsp7265_mag_reading_value_label.setText(f'{str(mag)} volts')
         self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
@@ -2439,7 +2437,7 @@ class Measurement(QMainWindow):
                                     Y = float(DSP7265.query("Y."))  # Read the measurement result
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
+                                    update_lockin_label(str(Mag), str(Phase))
                                     # self.lockin_x.append(X)
                                     # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
@@ -2603,7 +2601,7 @@ class Measurement(QMainWindow):
                                     Y = float(DSP7265.query("Y."))  # Read the measurement result
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
+                                    update_lockin_label(str(Mag), str(Phase))
                                     # self.lockin_x.append(X)
                                     # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
@@ -2764,7 +2762,7 @@ class Measurement(QMainWindow):
                                     Y = float(DSP7265.query("Y."))  # Read the measurement result
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
+                                    update_lockin_label(str(Mag), str(Phase))
                                     # self.lockin_x.append(X)
                                     # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
@@ -2925,7 +2923,7 @@ class Measurement(QMainWindow):
                                     Y = float(DSP7265.query("Y."))  # Read the measurement result
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                    update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
+                                    update_lockin_label(str(Mag), str(Phase))
                                     # self.lockin_x.append(X)
                                     # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
