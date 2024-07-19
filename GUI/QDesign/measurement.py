@@ -2458,7 +2458,7 @@ class Measurement(QMainWindow):
                                     if csvfile.tell() == 0:  # Check if file is empty
                                         csv_writer.writerow(
                                             ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)"
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
                                                                                "Temperature (K)", "Current (A)"])
 
                                     csv_writer.writerow(
@@ -2622,7 +2622,7 @@ class Measurement(QMainWindow):
                                     if csvfile.tell() == 0:  # Check if file is empty
                                         csv_writer.writerow(
                                             ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)"
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
                                                                                "Temperature (K)", "Current (A)"])
 
                                     csv_writer.writerow(
@@ -2783,7 +2783,7 @@ class Measurement(QMainWindow):
                                     if csvfile.tell() == 0:  # Check if file is empty
                                         csv_writer.writerow(
                                             ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)"
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
                                                                                "Temperature (K)", "Current (A)"])
 
                                     csv_writer.writerow(
@@ -2944,7 +2944,7 @@ class Measurement(QMainWindow):
                                     if csvfile.tell() == 0:  # Check if file is empty
                                         csv_writer.writerow(
                                             ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                             "Voltage X (V)","Voltage Y (V)", "Phase (deg)"
+                                             "Voltage X (V)","Voltage Y (V)", "Phase (deg)",
                                              "Temperature (K)", "Current (A)"])
 
                                     csv_writer.writerow(
