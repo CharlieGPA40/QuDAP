@@ -92,56 +92,56 @@ class Worker(QThread):
         self.DSP7265_Connected = DSP7265_Connected
 
     def run(self):
-        while self.running:
-            try:
-                self.measurement_instance.run_ETO(self.append_text.emit, self.progress_update.emit,
-                                                  self.stop_measurment.emit, self.update_ppms_temp_reading_label.emit,
-                                                  self.update_ppms_field_reading_label.emit,
-                                                  self.update_ppms_chamber_reading_label.emit,
-                                                  self.update_nv_channel_1_label.emit,
-                                                  self.update_nv_channel_2_label.emit,
-                                                  self.update_lockin_label.emit,
-                                                  self.clear_plot.emit, self.update_plot.emit,
-                                                  self.measurement_finished.emit,
-                                                  self.error_message.emit,
-                                                  keithley_6221 =self.keithley_6221,
-                                                  keithley_2182nv=self.keithley_2182nv,
-                                                  DSP7265=self.DSP7265,
-                                                  current=self.current, TempList=self.TempList, topField=self.topField,
-                                                  botField=self.botField,
-                                                  folder_path=self.folder_path, client=self.client,
-                                                  tempRate=self.tempRate, current_mag=self.current_mag,
-                                                  current_unit=self.current_unit, file_name=self.file_name,
-                                                  run=self.run, number_of_field=self.number_of_field,
-                                                  field_mode_fixed=self.field_mode_fixed,
-                                                  nv_channel_1_enabled=self.nv_channel_1_enabled,
-                                                  nv_channel_2_enabled=self.nv_channel_2_enabled,
-                                                  nv_NPLC=self.nv_NPLC,
-                                                  ppms_field_One_zone_radio_enabled=self.ppms_field_One_zone_radio_enabled,
-                                                  ppms_field_Two_zone_radio_enabled=self.ppms_field_Two_zone_radio_enabled,
-                                                  ppms_field_Three_zone_radio_enabled=self.ppms_field_Three_zone_radio_enabled,
-                                                  zone1_step_field=self.zone1_step_field,
-                                                  zone2_step_field=self.zone2_step_field,
-                                                  zone3_step_field=self.zone3_step_field,
-                                                  zone1_top_field=self.zone1_top_field,
-                                                  zone2_top_field=self.zone2_top_field,
-                                                  zone3_top_field=self.zone3_top_field,
-                                                  zone1_field_rate=self.zone1_field_rate,
-                                                  zone2_field_rate=self.zone2_field_rate,
-                                                  zone3_field_rate=self.zone3_field_rate,
-                                                  Keithley_2182_Connected=self.Keithley_2182_Connected,
-                                                  Ketihley_6221_Connected=self.Ketihley_6221_Connected,
-                                                  BNC845RF_Connected=self.BNC845RF_Connected,
-                                                  DSP7265_Connected=self.DSP7265_Connected,
-                                                  running=lambda: self.running)
-                self.running = False
-                self.stop()
-                return
-            except SystemExit as e:
-                print(e)
-            except Exception as e:
-                tb_str = traceback.format_exc()
-                print(f'{tb_str} {str(e)}')
+
+        try:
+            self.measurement_instance.run_ETO(self.append_text.emit, self.progress_update.emit,
+                                              self.stop_measurment.emit, self.update_ppms_temp_reading_label.emit,
+                                              self.update_ppms_field_reading_label.emit,
+                                              self.update_ppms_chamber_reading_label.emit,
+                                              self.update_nv_channel_1_label.emit,
+                                              self.update_nv_channel_2_label.emit,
+                                              self.update_lockin_label.emit,
+                                              self.clear_plot.emit, self.update_plot.emit,
+                                              self.measurement_finished.emit,
+                                              self.error_message.emit,
+                                              keithley_6221 =self.keithley_6221,
+                                              keithley_2182nv=self.keithley_2182nv,
+                                              DSP7265=self.DSP7265,
+                                              current=self.current, TempList=self.TempList, topField=self.topField,
+                                              botField=self.botField,
+                                              folder_path=self.folder_path, client=self.client,
+                                              tempRate=self.tempRate, current_mag=self.current_mag,
+                                              current_unit=self.current_unit, file_name=self.file_name,
+                                              run=self.run, number_of_field=self.number_of_field,
+                                              field_mode_fixed=self.field_mode_fixed,
+                                              nv_channel_1_enabled=self.nv_channel_1_enabled,
+                                              nv_channel_2_enabled=self.nv_channel_2_enabled,
+                                              nv_NPLC=self.nv_NPLC,
+                                              ppms_field_One_zone_radio_enabled=self.ppms_field_One_zone_radio_enabled,
+                                              ppms_field_Two_zone_radio_enabled=self.ppms_field_Two_zone_radio_enabled,
+                                              ppms_field_Three_zone_radio_enabled=self.ppms_field_Three_zone_radio_enabled,
+                                              zone1_step_field=self.zone1_step_field,
+                                              zone2_step_field=self.zone2_step_field,
+                                              zone3_step_field=self.zone3_step_field,
+                                              zone1_top_field=self.zone1_top_field,
+                                              zone2_top_field=self.zone2_top_field,
+                                              zone3_top_field=self.zone3_top_field,
+                                              zone1_field_rate=self.zone1_field_rate,
+                                              zone2_field_rate=self.zone2_field_rate,
+                                              zone3_field_rate=self.zone3_field_rate,
+                                              Keithley_2182_Connected=self.Keithley_2182_Connected,
+                                              Ketihley_6221_Connected=self.Ketihley_6221_Connected,
+                                              BNC845RF_Connected=self.BNC845RF_Connected,
+                                              DSP7265_Connected=self.DSP7265_Connected,
+                                              running=lambda: self.running)
+            self.running = False
+            self.stop()
+            return
+        except SystemExit as e:
+            print(e)
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            print(f'{tb_str} {str(e)}')
 
     def stop(self):
         self.running = False
