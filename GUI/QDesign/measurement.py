@@ -215,7 +215,8 @@ class LogWindow(QDialog):
         self.Measurement_type_layout.addWidget(self.Measurement_type_label)
         self.Measurement_type_layout.addWidget(self.Measurement_type_entry_box)
 
-        measurement_hints = ["ETO", "ETO_Rxx", "ETO_Rxy", "ETO_Rxy_Rxx"]
+        measurement_hints = ["ETO", "ETO_Rxx_in_plane", "ETO_Rxx_out_of_plane", "ETO_Rxy_in_plane","ETO_Rxy_out_of_plane", 
+                             "ETO_Rxy_Rxx_in_plane", "ETO_Rxy_Rxx_out_of_plane"]
         measurement_completer = QCompleter(measurement_hints, self.Measurement_type_entry_box)
         self.Measurement_type_entry_box.setCompleter(measurement_completer)
 
@@ -2088,8 +2089,8 @@ class Measurement(QMainWindow):
                 self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.error_message.connect(self.error_popup)
                 self.worker.start()  # Start the worker thread
-                self.worker.wait()
-                self.stop_measurement()
+                # self.worker.wait()
+                # self.stop_measurement()
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
                 self.stop_measurement()
