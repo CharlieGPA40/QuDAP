@@ -2141,6 +2141,7 @@ class Measurement(QMainWindow):
         QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
 
     def measurement_finished(self):
+        self.stop_btn.click()
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):
