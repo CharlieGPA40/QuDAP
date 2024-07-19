@@ -2985,14 +2985,14 @@ class Measurement(QMainWindow):
                                     total_time_in_days), 'purple')
                             # currentField, sF = client.get_field()
                             # update_ppms_field_reading_label(str(currentField), 'Oe')
-                            if Keithley_2182_Connected:
-                                if nv_channel_1_enabled:
-                                   update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                if nv_channel_2_enabled:
-                                   update_plot(self.field_array, self.channel2_array, 'red', False, True)
-                            elif DSP7265_Connected:
-                                update_plot(self.field_array, self.lockin_mag, 'black', True, False)
-                                # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                    if Keithley_2182_Connected:
+                        if nv_channel_1_enabled:
+                           update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                        if nv_channel_2_enabled:
+                           update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                    elif DSP7265_Connected:
+                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                        # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
 
                     send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
