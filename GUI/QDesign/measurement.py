@@ -2028,9 +2028,10 @@ class Measurement(QMainWindow):
                 self.append_text('Create Log...!\n', 'green')
                 self.folder_path = self.folder_path + f'Run_{self.run}/'
                 os.makedirs(self.folder_path, exist_ok=True)
-                f = open(self.folder_path + 'Experiment_Log.txt', "a")
+                self.random_number = random.randint(100000, 999999)
+                f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
                 today = datetime.today()
-                self.formatted_date_csv = today.strftime("%m/%d/%Y")
+                self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
                 f.write(f"User: {self.User}\n")
                 f.write(f"Today's Date: {self.formatted_date_csv}\n")
                 f.write(f"Sample ID: {self.ID}\n")
