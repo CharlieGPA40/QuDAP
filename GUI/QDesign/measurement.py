@@ -2088,6 +2088,8 @@ class Measurement(QMainWindow):
                 self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.error_message.connect(self.error_popup)
                 self.worker.start()  # Start the worker thread
+                self.worker.wait()
+                self.stop_measurement()
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
                 self.stop_measurement()
@@ -2435,10 +2437,10 @@ class Measurement(QMainWindow):
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
-                                    self.lockin_x.append(X)
-                                    self.lockin_y.append(Y)
+                                    # self.lockin_x.append(X)
+                                    # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
-                                    self.lockin_pahse.append(Phase)
+                                    # self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                         # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.lockin_mag, 'black', True, False)
@@ -2599,10 +2601,10 @@ class Measurement(QMainWindow):
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
-                                    self.lockin_x.append(X)
-                                    self.lockin_y.append(Y)
+                                    # self.lockin_x.append(X)
+                                    # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
-                                    self.lockin_pahse.append(Phase)
+                                    # self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                         # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.lockin_mag, 'black', True, False)
@@ -2760,10 +2762,10 @@ class Measurement(QMainWindow):
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
-                                    self.lockin_x.append(X)
-                                    self.lockin_y.append(Y)
+                                    # self.lockin_x.append(X)
+                                    # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
-                                    self.lockin_pahse.append(Phase)
+                                    # self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                         # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.lockin_mag, 'black', True, False)
@@ -2921,10 +2923,10 @@ class Measurement(QMainWindow):
                                     Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                     Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                     update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
-                                    self.lockin_x.append(X)
-                                    self.lockin_y.append(Y)
+                                    # self.lockin_x.append(X)
+                                    # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
-                                    self.lockin_pahse.append(Phase)
+                                    # self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
                                     # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.lockin_mag, 'black', True, False)
