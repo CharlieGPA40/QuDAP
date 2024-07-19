@@ -2442,9 +2442,9 @@ class Measurement(QMainWindow):
                                     # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
                                     # self.lockin_pahse.append(Phase)
-                                    if counter % 20 == 0:
+
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                    update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -2606,9 +2606,9 @@ class Measurement(QMainWindow):
                                     # self.lockin_y.append(Y)
                                     self.lockin_mag.append(Mag)
                                     # self.lockin_pahse.append(Phase)
-                                    if counter % 20 == 0:
+
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                    update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -2726,6 +2726,7 @@ class Measurement(QMainWindow):
                                     append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                                     self.channel1_array.append(Chan_1_voltage)
                                     if counter % 20 == 0:
+                                        counter = 0
                                         update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 if nv_channel_2_enabled:
                                     keithley_2182nv.write("SENS:CHAN 2")
@@ -2736,6 +2737,7 @@ class Measurement(QMainWindow):
                                     self.channel2_array.append(Chan_2_voltage)
                                     # # Drop off the first y element, append a new one.
                                     if counter % 20 == 0:
+                                        counter = 0
                                         update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                                 # Calculate the average voltage
@@ -2768,6 +2770,7 @@ class Measurement(QMainWindow):
                                     self.lockin_mag.append(Mag)
                                     # self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
+                                        counter = 0
                                         # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
@@ -2889,6 +2892,7 @@ class Measurement(QMainWindow):
                                     append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                                     self.channel1_array.append(Chan_1_voltage)
                                     if counter % 20 == 0:
+                                        counter = 0
                                         update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 if nv_channel_2_enabled:
                                     keithley_2182nv.write("SENS:CHAN 2")
@@ -2898,6 +2902,7 @@ class Measurement(QMainWindow):
                                     append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                                     self.channel2_array.append(Chan_2_voltage)
                                     if counter % 20 == 0:
+                                        counter = 0
                                     # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
@@ -2929,6 +2934,7 @@ class Measurement(QMainWindow):
                                     self.lockin_mag.append(Mag)
                                     # self.lockin_pahse.append(Phase)
                                     if counter % 20 == 0:
+                                        counter = 0
                                     # # Drop off the first y element, append a new one.
                                         update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
