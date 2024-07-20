@@ -24,9 +24,6 @@ from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 from datetime import datetime
 import traceback
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import requests
 
 class Worker(QThread):
@@ -310,7 +307,6 @@ class Measurement(QMainWindow):
     def __init__(self):
         super().__init__()
 
-
         try:
             self.preseted = False
             self.Keithley_2182_Connected = False
@@ -438,6 +434,7 @@ class Measurement(QMainWindow):
             except Exception as e:
                 pass
             try:
+                self.stop_measurement()
                 self.keithley_6221.close()
                 self.keithley_2182nv.close()
                 self.DSP7265.close()
@@ -1720,7 +1717,7 @@ class Measurement(QMainWindow):
             self.keithley_2182nv.write("*CLS")
         except Exception:
             pass
-        self.send_telegram_notification("Experiment Stop!")
+
         self.running = False
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
@@ -1731,6 +1728,7 @@ class Measurement(QMainWindow):
             if self.worker is not None:
                 self.worker.stop()
                 self.worker = None
+                self.send_telegram_notification("Experiment Stop!")
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         # try:
@@ -2071,7 +2069,9 @@ class Measurement(QMainWindow):
                         self.nv_channel_2_enabled = True
                     else:
                         self.nv_channel_2_enabled = False
-
+                self.canvas.axes.cla()
+                self.canvas.axes_2.cla()
+                self.canvas.draw()
                 self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, self.DSP7265, current, TempList, topField,
                                      botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
                                      self.file_name, self.run, number_of_field, self.field_mode_fixed,
