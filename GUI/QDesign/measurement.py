@@ -437,6 +437,12 @@ class Measurement(QMainWindow):
 
             except Exception as e:
                 pass
+            try:
+                self.keithley_6221.close()
+                self.keithley_2182nv.close()
+                self.DSP7265.close()
+            except Exception as e:
+                pass
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -1700,9 +1706,9 @@ class Measurement(QMainWindow):
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
-            self.keithley_6221.close()
-            self.keithley_2182nv.close()
-            self.DSP7265.close()
+            # self.keithley_6221.close()
+            # self.keithley_2182nv.close()
+            # self.DSP7265.close()
         except Exception:
             pass
 
