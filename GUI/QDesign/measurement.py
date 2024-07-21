@@ -3043,11 +3043,11 @@ class Measurement(QMainWindow):
                             # update_ppms_field_reading_label(str(currentField), 'Oe')
                     if Keithley_2182_Connected:
                         if nv_channel_1_enabled:
-                           save_plot(self.field_array, self.channel1_array, 'black', True, False, True, TempList[i], current[j])
+                           save_plot(self.field_array, self.channel1_array, 'black', True, False, True, str(TempList[i]), str(current[j]))
                         if nv_channel_2_enabled:
-                           save_plot(self.field_array, self.channel2_array, 'red', False, True, True, TempList[i], current[j])
+                           save_plot(self.field_array, self.channel2_array, 'red', False, True, True, str(TempList[i]), str(current[j]))
                     elif DSP7265_Connected:
-                        save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, TempList[i], current[j])
+                        save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, str(TempList[i]), str(current[j]))
                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
 
