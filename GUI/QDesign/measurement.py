@@ -2126,7 +2126,7 @@ class Measurement(QMainWindow):
             self.canvas.axes_2.set_ylabel('Voltage (v)', color=color)
 
         self.canvas.axes.set_xlabel('Field (Oe)')
-        # self.canvas.figure.legend(f'{temp}K {current}A')
+        self.canvas.axes.legend(f'{temp}K {current}A')
         self.canvas.figure.tight_layout()
         self.canvas.draw()
 
