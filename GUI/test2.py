@@ -49,7 +49,7 @@ def send_image(bot_token, chat_id, image_path, caption=None):
 # Replace with your new bot token
 bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
 chat_id = "5733353343"
-image_path = "GUI\QDesign\Reference\Keithley6221DC.png"  # Replace with your image path
+image_path = r"c:\Users\QDUser\Documents\Chunli Software\Chunli Data\ETO\THE_Fe_WSe2_0709_02_3um_gap_50nm_gold\Run_5\FeWSe2_ETO_Rxy_out_of_plane_run5_10.0K_10.0e-6A.png"
 caption = "Here is an image for you!"  # Optional caption
 
 response = send_image(bot_token, chat_id, image_path, caption)
