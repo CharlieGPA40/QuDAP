@@ -99,7 +99,7 @@ class Worker(QThread):
                                               self.update_nv_channel_1_label.emit,
                                               self.update_nv_channel_2_label.emit,
                                               self.update_lockin_label.emit,
-                                              self.clear_plot.emit, self.update_plot.emit,self.save_plot.emit,
+                                              self.clear_plot.emit, self.update_plot.emit, self.save_plot.emit,
                                               self.measurement_finished.emit,
                                               self.error_message.emit,
                                               keithley_6221 =self.keithley_6221,
