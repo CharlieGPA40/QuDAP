@@ -37,7 +37,8 @@ class Worker(QThread):
     update_nv_channel_2_label = pyqtSignal(str)
     update_lockin_label = pyqtSignal(str, str)
     clear_plot = pyqtSignal()
-    update_plot = pyqtSignal(list, list, str, bool, bool, bool)
+    update_plot = pyqtSignal(list, list, str, bool, bool)
+    save_plot = pyqtSignal(list, list, str, bool, bool, bool, str, str)
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
 
@@ -98,7 +99,7 @@ class Worker(QThread):
                                               self.update_nv_channel_1_label.emit,
                                               self.update_nv_channel_2_label.emit,
                                               self.update_lockin_label.emit,
-                                              self.clear_plot.emit, self.update_plot.emit,
+                                              self.clear_plot.emit, self.update_plot.emit,self.save_plot.emit,
                                               self.measurement_finished.emit,
                                               self.error_message.emit,
                                               keithley_6221 =self.keithley_6221,
@@ -2092,6 +2093,7 @@ class Measurement(QMainWindow):
                 self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
                 self.worker.update_lockin_label.connect(self.update_lockin_label)
                 self.worker.update_plot.connect(self.update_plot)
+                self.worker.save_plot.connect(self.save_plot)
                 self.worker.clear_plot.connect(self.clear_plot)
                 self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.error_message.connect(self.error_popup)
@@ -2113,7 +2115,7 @@ class Measurement(QMainWindow):
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
 
-    def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled, save):
+    def save_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled, save, temp, current):
 
         if channel_1_enabled:
             self.canvas.axes.plot(x_data, y_data, color, marker='s')
@@ -2124,16 +2126,16 @@ class Measurement(QMainWindow):
             self.canvas.axes_2.set_ylabel('Voltage (v)', color=color)
 
         self.canvas.axes.set_xlabel('Field (Oe)')
+        self.canvas.figure.legend(f'{temp}K {current}A')
         self.canvas.figure.tight_layout()
         self.canvas.draw()
 
         if save:
-            number = random.randint(100000, 999999)
-            self.canvas.figure.savefig(self.folder_path +"preview_{}.png".format(number))
+            self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.ID, self.Measurement, self.run, temp, current))
             bot_token = "7345322165:AAErDD6Qb8b0lvQKsHyRGJQBDTXKGwE"
             chat_id = "5733353343"
-            image_path = f"{self.folder_path}preview_{number}.png"
-            caption = "Data preview"
+            image_path = "{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
+            caption = f"Data preview"
 
             def send_image(bot_token, chat_id, image_path, caption=None):
                 url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
@@ -2158,6 +2160,20 @@ class Measurement(QMainWindow):
 
             response = send_image(bot_token, chat_id, image_path, caption)
             print(response)
+
+    def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
+
+        if channel_1_enabled:
+            self.canvas.axes.plot(x_data, y_data, color, marker='s')
+            self.canvas.axes.set_ylabel('Voltage (v)', color=color)
+
+        if channel_2_enabled:
+            self.canvas.axes_2.plot(x_data, y_data, color, marker='s')
+            self.canvas.axes_2.set_ylabel('Voltage (v)', color=color)
+
+        self.canvas.axes.set_xlabel('Field (Oe)')
+        self.canvas.figure.tight_layout()
+        self.canvas.draw()
 
     def error_popup(self, e, tb_str):
         self.stop_measurement()
@@ -2207,6 +2223,7 @@ class Measurement(QMainWindow):
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, update_lockin_label, clear_plot, update_plot,
+                save_plot,
                 measurement_finished, error_message,
                 keithley_6221, keithley_2182nv, DSP7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
@@ -2438,7 +2455,7 @@ class Measurement(QMainWindow):
 
                                         self.channel1_array.append(Chan_1_voltage)
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False, False)
+                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 except Exception as e:
                                     QMessageBox.warning(self, 'Warning', str(e))
 
@@ -2450,7 +2467,7 @@ class Measurement(QMainWindow):
                                     append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                                     self.channel2_array.append(Chan_2_voltage)
                                     # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel2_array, 'red', False, True, False)
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                                 # Calculate the average voltage
                                 resistance_chan_1 = Chan_1_voltage / float(current[j])
@@ -2483,7 +2500,7 @@ class Measurement(QMainWindow):
                                     # self.lockin_pahse.append(Phase)
 
                                         # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.lockin_mag, 'black', True, False, False)
+                                    update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -2599,7 +2616,7 @@ class Measurement(QMainWindow):
                                     update_nv_channel_1_label(str(Chan_1_voltage))
                                     append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
                                     self.channel1_array.append(Chan_1_voltage)
-                                    update_plot(self.field_array, self.channel1_array, 'black', True, False, False)
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 if nv_channel_2_enabled:
                                     keithley_2182nv.write("SENS:CHAN 2")
                                     volt2 = keithley_2182nv.query("READ?")
@@ -2608,7 +2625,7 @@ class Measurement(QMainWindow):
                                     append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
                                     self.channel2_array.append(Chan_2_voltage)
                                     # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel2_array, 'red', False, True, False)
+                                    update_plot(self.field_array, self.channel2_array, 'red', False, True)
                                 resistance_chan_1 = Chan_1_voltage / float(current[j])
                                 resistance_chan_2 = Chan_2_voltage / float(current[j])
 
@@ -2647,7 +2664,7 @@ class Measurement(QMainWindow):
                                     # self.lockin_pahse.append(Phase)
 
                                         # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.lockin_mag, 'black', True, False, False)
+                                    update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -2766,7 +2783,7 @@ class Measurement(QMainWindow):
                                     self.channel1_array.append(Chan_1_voltage)
                                     if counter % 20 == 0:
                                         counter = 0
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False, False)
+                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 if nv_channel_2_enabled:
                                     keithley_2182nv.write("SENS:CHAN 2")
                                     volt2 = keithley_2182nv.query("READ?")
@@ -2777,7 +2794,7 @@ class Measurement(QMainWindow):
                                     # # Drop off the first y element, append a new one.
                                     if counter % 20 == 0:
                                         counter = 0
-                                        update_plot(self.field_array, self.channel2_array, 'red', False, True, False)
+                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                                 # Calculate the average voltage
                                 resistance_chan_1 = Chan_1_voltage / float(current[j])
@@ -2811,7 +2828,7 @@ class Measurement(QMainWindow):
                                     if counter % 20 == 0:
                                         counter = 0
                                         # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False, False)
+                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -2932,7 +2949,7 @@ class Measurement(QMainWindow):
                                     self.channel1_array.append(Chan_1_voltage)
                                     if counter % 20 == 0:
                                         counter = 0
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False, False)
+                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
                                 if nv_channel_2_enabled:
                                     keithley_2182nv.write("SENS:CHAN 2")
                                     volt2 = keithley_2182nv.query("READ?")
@@ -2943,7 +2960,7 @@ class Measurement(QMainWindow):
                                     if counter % 20 == 0:
                                         counter = 0
                                     # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.channel2_array, 'red', False, True, False)
+                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
                                 resistance_chan_1 = Chan_1_voltage / float(current[j])
                                 resistance_chan_2 = Chan_2_voltage / float(current[j])
@@ -2975,7 +2992,7 @@ class Measurement(QMainWindow):
                                     if counter % 20 == 0:
                                         counter = 0
                                     # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False, False)
+                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                 except Exception as e:
                                     QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -3026,11 +3043,11 @@ class Measurement(QMainWindow):
                             # update_ppms_field_reading_label(str(currentField), 'Oe')
                     if Keithley_2182_Connected:
                         if nv_channel_1_enabled:
-                           update_plot(self.field_array, self.channel1_array, 'black', True, False, True)
+                           save_plot(self.field_array, self.channel1_array, 'black', True, False, True, TempList[i], current[j])
                         if nv_channel_2_enabled:
-                           update_plot(self.field_array, self.channel2_array, 'red', False, True, True)
+                           save_plot(self.field_array, self.channel2_array, 'red', False, True, True, TempList[i], current[j])
                     elif DSP7265_Connected:
-                        update_plot(self.field_array, self.lockin_mag, 'black', True, False, True)
+                        save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, TempList[i], current[j])
                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
 
