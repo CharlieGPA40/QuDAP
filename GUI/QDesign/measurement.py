@@ -2132,7 +2132,7 @@ class Measurement(QMainWindow):
 
         if save:
             self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.ID, self.Measurement, self.run, temp, current))
-            time.sleep(1)
+            time.sleep(5)
             
 
             def send_image(bot_token, chat_id, image_path, caption=None):
@@ -2160,6 +2160,8 @@ class Measurement(QMainWindow):
             chat_id = "5733353343"
             image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
             print(image_path)
+            if not os.path.exists(image_path):
+                print("No Such File.")
             caption = f"Data preview"
             response = send_image(bot_token, chat_id, image_path, caption)
             print(response)
