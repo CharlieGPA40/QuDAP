@@ -3085,6 +3085,7 @@ class Measurement(QMainWindow):
             self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
             send_telegram_notification("The measurement has been completed successfully.")
             progress_update(int=100)
+            append_text("You measuremnt is finished!", 'green')
             stop_measurement()
             measurement_finished()
             return
