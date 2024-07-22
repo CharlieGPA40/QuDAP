@@ -2136,6 +2136,7 @@ class Measurement(QMainWindow):
             bot_token = "7345322165:AAErDD6Qb8b0lvQKsHyRGJQBDTXKGwE"
             chat_id = "5733353343"
             image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
+            print(image_path)
             caption = f"Data preview"
 
             def send_image(bot_token, chat_id, image_path, caption=None):
