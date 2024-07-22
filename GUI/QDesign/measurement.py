@@ -2126,18 +2126,14 @@ class Measurement(QMainWindow):
             self.canvas.axes_2.set_ylabel('Voltage (v)', color=color)
 
         self.canvas.axes.set_xlabel('Field (Oe)')
-        self.canvas.axes.legend(f'{temp}K {current}A')
+        self.canvas.axes.legend([f'{temp}K {current}A'])
         self.canvas.figure.tight_layout()
         self.canvas.draw()
 
         if save:
             self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.ID, self.Measurement, self.run, temp, current))
             time.sleep(1)
-            bot_token = "7345322165:AAErDD6Qb8b0lvQKsHyRGJQBDTXKGwE"
-            chat_id = "5733353343"
-            image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
-            print(image_path)
-            caption = f"Data preview"
+            
 
             def send_image(bot_token, chat_id, image_path, caption=None):
                 url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
@@ -2159,7 +2155,12 @@ class Measurement(QMainWindow):
                     return {"ok": False, "error": "File not found. Check the file path."}
                 except Exception as e:
                     return {"ok": False, "error": str(e)}
-
+            
+            bot_token = "7345322165:AAErDD6Qb8b0lvQKsHyRGJQBDTXKGwE"
+            chat_id = "5733353343"
+            image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
+            print(image_path)
+            caption = f"Data preview"
             response = send_image(bot_token, chat_id, image_path, caption)
             print(response)
 
