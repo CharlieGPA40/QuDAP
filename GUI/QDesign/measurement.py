@@ -2047,13 +2047,13 @@ class Measurement(QMainWindow):
                 f.write(f"Experiment Temperature (K): {temp_log}\n")
                 f.write(f"Experiment Current: {listToString(current)}\n")
                 if self.Keithley_2182_Connected:
-                    f.write(f"Instrument: Keithley 2182")
+                    f.write(f"Instrument: Keithley 2182\n")
                 if self.Ketihley_6221_Connected:
-                    f.write(f"Instrument: Keithley 6221")
+                    f.write(f"Instrument: Keithley 6221\n")
                 if self.BNC845RF_Connected:
-                    f.write(f"Instrument: BNC845RF")
+                    f.write(f"Instrument: BNC845RF\n")
                 if self.DSP7265_Connected:
-                    f.write(f"Instrument: DSP 7265 Lock-in")
+                    f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
                 self.send_telegram_notification(f"{self.User} is running {self.Measurement} on {self.ID}")
                 if self.ppms_field_mode_fixed_radio.isChecked():
@@ -2156,7 +2156,7 @@ class Measurement(QMainWindow):
                 except Exception as e:
                     return {"ok": False, "error": str(e)}
             
-            bot_token = "7345322165:AAErDD6Qb8b0lvQKsHyRGJQBDTXKGwE"
+            bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
             chat_id = "5733353343"
             image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
             print(image_path)
