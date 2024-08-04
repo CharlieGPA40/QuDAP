@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doi_batch xmlns="http://www.crossref.org/schema/5.3.1"
+           xmlns:ai="http://www.crossref.org/AccessIndicators.xsd"
+           xmlns:rel="http://www.crossref.org/relations.xsd"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           version="5.3.1"
+           xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
+  <head>
+    <doi_batch_id>20240802064743-08b49a221e83429a0bc87075e73e1c54239ba095</doi_batch_id>
+    <timestamp>20240802064743</timestamp>
+    <depositor>
+      <depositor_name>JOSS Admin</depositor_name>
+      <email_address>admin@theoj.org</email_address>
+    </depositor>
+    <registrant>The Open Journal</registrant>
+  </head>
+  <body>
+    <journal>
+      <journal_metadata>
+        <full_title>Journal of Open Source Software</full_title>
+        <abbrev_title>JOSS</abbrev_title>
+        <issn media_type="electronic">2475-9066</issn>
+        <doi_data>
+          <doi>10.21105/joss</doi>
+          <resource>https://joss.theoj.org</resource>
+        </doi_data>
+      </journal_metadata>
+      <journal_issue>
+        <publication_date media_type="online">
+          <month>01</month>
+          <year>1970</year>
+        </publication_date>
+        <journal_volume>
+          <volume>¿VOL?</volume>
+        </journal_volume>
+        <issue>¿ISSUE?</issue>
+      </journal_issue>
+      <journal_article publication_type="full_text">
+        <titles>
+          <title>QuDAP: an Open Source Software for Quantum Materials
+Characterization</title>
+        </titles>
+        <contributors>
+          <person_name sequence="first" contributor_role="author">
+            <given_name>Skai</given_name>
+            <surname>White</surname>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Jingyu</given_name>
+            <surname>Jia</surname>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Chunli</given_name>
+            <surname>Tang</surname>
+            <ORCID>https://orcid.org/0000-0001-8252-3195</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Masoud</given_name>
+            <surname>Mahjouri-Samani</surname>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Wencan</given_name>
+            <surname>Jin</surname>
+          </person_name>
+        </contributors>
+        <publication_date>
+          <month>01</month>
+          <day>01</day>
+          <year>1970</year>
+        </publication_date>
+        <pages>
+          <first_page>¿PAGE?</first_page>
+        </pages>
+        <publisher_item>
+          <identifier id_type="doi">N/A</identifier>
+        </publisher_item>
+        <ai:program name="AccessIndicators">
+          <ai:license_ref applies_to="vor">http://creativecommons.org/licenses/by/4.0/</ai:license_ref>
+          <ai:license_ref applies_to="am">http://creativecommons.org/licenses/by/4.0/</ai:license_ref>
+          <ai:license_ref applies_to="tdm">http://creativecommons.org/licenses/by/4.0/</ai:license_ref>
+        </ai:program>
+        <rel:program>
+          <rel:related_item>
+            <rel:description>Software archive</rel:description>
+            <rel:inter_work_relation relationship-type="references" identifier-type="doi">10.5281</rel:inter_work_relation>
+          </rel:related_item>
+          <rel:related_item>
+            <rel:description>GitHub review issue</rel:description>
+            <rel:inter_work_relation relationship-type="hasReview" identifier-type="uri">https://github.com/openjournals</rel:inter_work_relation>
+          </rel:related_item>
+        </rel:program>
+        <doi_data>
+          <doi>N/A</doi>
+          <resource>https://joss.theoj.org/papers/N/A</resource>
+          <collection property="text-mining">
+            <item>
+              <resource mime_type="application/pdf">https://joss.theoj.org/papers/N/A.pdf</resource>
+            </item>
+          </collection>
+        </doi_data>
+        <citation_list>
+          <citation key="kalantari2022thermal">
+            <article_title>Thermal transport in 2D
+materials</article_title>
+            <author>Kalantari</author>
+            <journal_title>Nanomaterials</journal_title>
+            <issue>1</issue>
+            <volume>13</volume>
+            <cYear>2022</cYear>
+            <unstructured_citation>Kalantari, M. H., &amp; Zhang, X.
+(2022). Thermal transport in 2D materials. Nanomaterials, 13(1),
+117.</unstructured_citation>
+          </citation>
+          <citation key="goyal2023methodology">
+            <article_title>Methodology to characterize thermal
+properties of thin film superconductors using a DynaCool physical
+property measurement system</article_title>
+            <author>Goyal</author>
+            <journal_title>IEEE Transactions on Applied
+Superconductivity</journal_title>
+            <issue>5</issue>
+            <volume>33</volume>
+            <cYear>2023</cYear>
+            <unstructured_citation>Goyal, H., Peek, S. E., Sellers, J.
+A., &amp; Hamilton, M. C. (2023). Methodology to characterize thermal
+properties of thin film superconductors using a DynaCool physical
+property measurement system. IEEE Transactions on Applied
+Superconductivity, 33(5), 1–5.</unstructured_citation>
+          </citation>
+          <citation key="wei2020emerging">
+            <article_title>Emerging intrinsic magnetism in
+two-dimensional materials: Theory and applications</article_title>
+            <author>Wei</author>
+            <journal_title>2D Materials</journal_title>
+            <issue>1</issue>
+            <volume>8</volume>
+            <cYear>2020</cYear>
+            <unstructured_citation>Wei, S., Liao, X., Wang, C., Li, J.,
+Zhang, H., Zeng, Y.-J., Linghu, J., Jin, H., &amp; Wei, Y. (2020).
+Emerging intrinsic magnetism in two-dimensional materials: Theory and
+applications. 2D Materials, 8(1), 012005.</unstructured_citation>
+          </citation>
+          <citation key="kumari2021recent">
+            <article_title>Recent developments on 2D magnetic materials:
+Challenges and opportunities</article_title>
+            <author>Kumari</author>
+            <journal_title>Emergent Materials</journal_title>
+            <issue>4</issue>
+            <volume>4</volume>
+            <cYear>2021</cYear>
+            <unstructured_citation>Kumari, S., Pradhan, D. K., Pradhan,
+N. R., &amp; Rack, P. D. (2021). Recent developments on 2D magnetic
+materials: Challenges and opportunities. Emergent Materials, 4(4),
+827–846.</unstructured_citation>
+          </citation>
+          <citation key="azam2022laser">
+            <article_title>Laser-assisted synthesis of monolayer 2D
+MoSe2 crystals with tunable vacancy concentrations: Implications for gas
+and biosensing</article_title>
+            <author>Azam</author>
+            <journal_title>ACS Applied Nano Materials</journal_title>
+            <issue>7</issue>
+            <volume>5</volume>
+            <cYear>2022</cYear>
+            <unstructured_citation>Azam, N., Boebinger, M. G., Jaiswal,
+S., Unocic, R. R., Fathi-Hafshejani, P., &amp; Mahjouri-Samani, M.
+(2022). Laser-assisted synthesis of monolayer 2D MoSe2 crystals with
+tunable vacancy concentrations: Implications for gas and biosensing. ACS
+Applied Nano Materials, 5(7), 9129–9139.</unstructured_citation>
+          </citation>
+          <citation key="awschalom2021quantum">
+            <article_title>Quantum engineering with hybrid magnonic
+systems and materials</article_title>
+            <author>Awschalom</author>
+            <journal_title>IEEE Transactions on Quantum
+Engineering</journal_title>
+            <volume>2</volume>
+            <cYear>2021</cYear>
+            <unstructured_citation>Awschalom, D. D., Du, C. R., He, R.,
+Heremans, F. J., Hoffmann, A., Hou, J., Kurebayashi, H., Li, Y., Liu,
+L., Novosad, V., &amp; others. (2021). Quantum engineering with hybrid
+magnonic systems and materials. IEEE Transactions on Quantum
+Engineering, 2, 1–36.</unstructured_citation>
+          </citation>
+          <citation key="tang2023spin">
+            <article_title>Spin dynamics in van der waals magnetic
+systems</article_title>
+            <author>Tang</author>
+            <journal_title>Physics Reports</journal_title>
+            <volume>1032</volume>
+            <cYear>2023</cYear>
+            <unstructured_citation>Tang, C., Alahmed, L., Mahdi, M.,
+Xiong, Y., Inman, J., McLaughlin, N. J., Zollitsch, C., Kim, T. H., Du,
+C. R., Kurebayashi, H., &amp; others. (2023). Spin dynamics in van der
+waals magnetic systems. Physics Reports, 1032,
+1–36.</unstructured_citation>
+          </citation>
+          <citation key="rahman2021recent">
+            <article_title>Recent developments in van der waals
+antiferromagnetic 2D materials: Synthesis, characterization, and device
+implementation</article_title>
+            <author>Rahman</author>
+            <journal_title>ACS nano</journal_title>
+            <issue>11</issue>
+            <volume>15</volume>
+            <cYear>2021</cYear>
+            <unstructured_citation>Rahman, S., Torres, J. F., Khan, A.
+R., &amp; Lu, Y. (2021). Recent developments in van der waals
+antiferromagnetic 2D materials: Synthesis, characterization, and device
+implementation. ACS Nano, 15(11), 17175–17213.</unstructured_citation>
+          </citation>
+          <citation key="Grecco2023">
+            <article_title>PyVISA: The python instrumentation
+package</article_title>
+            <author>Grecco</author>
+            <journal_title>Journal of Open Source
+Software</journal_title>
+            <issue>84</issue>
+            <volume>8</volume>
+            <doi>10.21105/joss.05304</doi>
+            <cYear>2023</cYear>
+            <unstructured_citation>Grecco, H. E., Dartiailh, M. C.,
+Thalhammer-Thurner, G., Bronger, T., &amp; Bauer, F. (2023). PyVISA: The
+python instrumentation package. Journal of Open Source Software, 8(84),
+5304. https://doi.org/10.21105/joss.05304</unstructured_citation>
+          </citation>
+          <citation key="foner1956vibrating">
+            <article_title>Vibrating sample magnetometer</article_title>
+            <author>Foner</author>
+            <journal_title>Review of Scientific
+Instruments</journal_title>
+            <issue>7</issue>
+            <volume>27</volume>
+            <cYear>1956</cYear>
+            <unstructured_citation>Foner, S. (1956). Vibrating sample
+magnetometer. Review of Scientific Instruments, 27(7),
+548–548.</unstructured_citation>
+          </citation>
+          <citation key="nagaosa2010anomalous">
+            <article_title>Anomalous hall effect</article_title>
+            <author>Nagaosa</author>
+            <journal_title>Reviews of modern physics</journal_title>
+            <issue>2</issue>
+            <volume>82</volume>
+            <cYear>2010</cYear>
+            <unstructured_citation>Nagaosa, N., Sinova, J., Onoda, S.,
+MacDonald, A. H., &amp; Ong, N. P. (2010). Anomalous hall effect.
+Reviews of Modern Physics, 82(2), 1539–1592.</unstructured_citation>
+          </citation>
+          <citation key="rojo2013review">
+            <article_title>Review on measurement techniques of transport
+properties of nanowires</article_title>
+            <author>Rojo</author>
+            <journal_title>Nanoscale</journal_title>
+            <issue>23</issue>
+            <volume>5</volume>
+            <cYear>2013</cYear>
+            <unstructured_citation>Rojo, M. M., Calero, O. C.,
+Lopeandia, A., Rodriguez-Viejo, J., &amp; Martin-Gonzalez, M. (2013).
+Review on measurement techniques of transport properties of nanowires.
+Nanoscale, 5(23), 11526–11544.</unstructured_citation>
+          </citation>
+          <citation key="zhang2018atomic">
+            <article_title>Atomic force microscopy for two-dimensional
+materials: A tutorial review</article_title>
+            <author>Zhang</author>
+            <journal_title>Optics Communications</journal_title>
+            <volume>406</volume>
+            <cYear>2018</cYear>
+            <unstructured_citation>Zhang, H., Huang, J., Wang, Y., Liu,
+R., Huai, X., Jiang, J., &amp; Anfuso, C. (2018). Atomic force
+microscopy for two-dimensional materials: A tutorial review. Optics
+Communications, 406, 3–17.</unstructured_citation>
+          </citation>
+          <citation key="li2018mechanical">
+            <article_title>Mechanical properties of 2D materials studied
+by in situ microscopy techniques</article_title>
+            <author>Li</author>
+            <journal_title>Advanced Materials Interfaces</journal_title>
+            <issue>5</issue>
+            <volume>5</volume>
+            <cYear>2018</cYear>
+            <unstructured_citation>Li, X., Sun, M., Shan, C., Chen, Q.,
+&amp; Wei, X. (2018). Mechanical properties of 2D materials studied by
+in situ microscopy techniques. Advanced Materials Interfaces, 5(5),
+1701246.</unstructured_citation>
+          </citation>
+          <citation key="ppms">
+            <article_title>Quantum design PPMS DynaCool</article_title>
+            <author>Quantum Design</author>
+            <unstructured_citation>Quantum Design. (n.d.). Quantum
+design PPMS DynaCool.
+https://www.qdusa.com/products/dynacool.html</unstructured_citation>
+          </citation>
+          <citation key="multipyvu">
+            <article_title>MultiPyVu 2.1.4</article_title>
+            <author>Damon D Jackson</author>
+            <cYear>2023</cYear>
+            <unstructured_citation>Damon D Jackson, Q. D. (2023).
+MultiPyVu 2.1.4.
+https://pypi.org/project/MultiPyVu/</unstructured_citation>
+          </citation>
+          <citation key="BNC845">
+            <article_title>Model 845 datasheet v2.75</article_title>
+            <author>Berkeley Nucleonics</author>
+            <unstructured_citation>Berkeley Nucleonics. (n.d.). Model
+845 datasheet v2.75.
+https://www.berkeleynucleonics.com/sites/default/files/products/resources/845_datasheet_v275.1.pdf</unstructured_citation>
+          </citation>
+          <citation key="keithley6221">
+            <article_title>Keithley 6220-6221</article_title>
+            <author>Tektronix</author>
+            <unstructured_citation>Tektronix. (n.d.). Keithley
+6220-6221.
+https://download.tek.com/datasheet/6220-6221.pdf</unstructured_citation>
+          </citation>
+          <citation key="keithley2182">
+            <article_title>Model 2182 and 2182A nanovoltmeter user’s
+manual</article_title>
+            <author>Tektronix</author>
+            <unstructured_citation>Tektronix. (n.d.). Model 2182 and
+2182A nanovoltmeter user’s manual.
+https://download.tek.com/manual/2182A-900-01_May_2017.pdf</unstructured_citation>
+          </citation>
+          <citation key="DSP7265">
+            <article_title>Model 7265 DSP lock-in
+amplifier</article_title>
+            <author>Signal Recovery</author>
+            <unstructured_citation>Signal Recovery. (n.d.). Model 7265
+DSP lock-in amplifier.
+https://www.atecorp.com/atecorp/media/pdfs/data-sheets/7265lockinampv7web.pdf?ext=.pdf</unstructured_citation>
+          </citation>
+          <citation key="Keysight">
+            <volume_title>Instrument automation with
+python</volume_title>
+            <author>Keysight Technologies</author>
+            <cYear>2022</cYear>
+            <unstructured_citation>Keysight Technologies. (2022).
+Instrument automation with python.</unstructured_citation>
+          </citation>
+        </citation_list>
+      </journal_article>
+    </journal>
+  </body>
+</doi_batch>
