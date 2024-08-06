@@ -36,7 +36,7 @@ Note: This package is for academic and educational research (WITHOUT WARRANTIES,
 1. `QuDAP` is compatible with Python 3.10 or newer. 
 
 ## Installation
-`QuDAP` is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows and it can be installed by:
+`QuDAP` is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows and can be installed by:
 
 ```console
 $ pip install QuDAP
@@ -57,7 +57,7 @@ $ python ./QuDAP/StartGUI.py
 ## Usage
 Check the [`docs`](https://github.com/CharlieGPA40/QuDAP/tree/main/doc/)  file to learn how to use the software.
 
-Demonstrations
+Demonstration
 1. Software interface and experimental setup
 ![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Experiment%20Demo.gif)
 
