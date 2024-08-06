@@ -12,10 +12,11 @@
 1. [Description](README.md#Description)
 2. [Requirements](README.md#Requirements)
 3. [Installation](README.md#Installation)
+4. [Usage](README.md#Usage)
 5. [Contact](README.md#Contact)
 
 ## Description
-Quantum Materials Data Acquisition and Processing (QuDAP), a Python-based and open-source software package, is designed to control and automate material characterizations based on the Physical Property Measurement System (PPMS). The software supports major hardware interfaces and protocols (USB, RS232, GPIB, and Ethernet), enabling communication with the measurement modules associated with the PPMS. It integrates multiple Python libraries to realize instrument control, data acquisition, and real-time data visualization. Here, we present features of QuDAP, including direct control of instruments without relying on proprietary software, real-time data plotting for immediate verification and analysis, full automation of data acquisition and storage, and real-time notifications of experiment status and errors. These capabilities enhance experimental efficiency, reliability, and reproducibility.
+Quantum Materials Data Acquisition and Processing `QuDAP`, a Python-based and open-source software package, is designed to control and automate material characterizations based on the Physical Property Measurement System (PPMS). The software supports major hardware interfaces and protocols (USB, RS232, GPIB, and Ethernet), enabling communication with the measurement modules associated with the PPMS. It integrates multiple Python libraries to realize instrument control, data acquisition, and real-time data visualization. Here, we present features of QuDAP, including direct control of instruments without relying on proprietary software, real-time data plotting for immediate verification and analysis, full automation of data acquisition and storage, and real-time notifications of experiment status and errors. These capabilities enhance experimental efficiency, reliability, and reproducibility.
 
 The software provides the benefits as summarized below:
 
@@ -32,19 +33,37 @@ The software provides the benefits as summarized below:
 Note: This package is for academic and educational research (WITHOUT WARRANTIES, our software does not collect any data from users).
 
 ## Requirements
-1. This package is compatible with Python 3.10 or newer. 
+1. `QuDAP` is compatible with Python 3.10 or newer. 
 
 ## Installation
-QuDAP is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows.
+`QuDAP` is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows and it can be installed by:
 
 ```console
-(venv) $ pip install QuDAP
+$ pip install QuDAP
 ```
+
+or installed from source:
+```bash
+git clone https://github.com/CharlieGPA40/QuDAP.git
+cd QuDAP
+pip install .
+```
+
+To run the program, run the`QuDAP/StartGUI.py` or 
+```console
+$ python ./QuDAP/StartGUI.py
+```
+
+## Usage
+Check the [`docs`](https://github.com/CharlieGPA40/QuDAP/tree/main/doc/)  file to learn how to use the software.
 
 ## Contact
 This project is contributed by:
 * Chunli Tang (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
+* Skai White and Jingyu Jia
 
 Advisor:
 * [Dr. Masoud Mahjouri-Samani](http://wp.auburn.edu/Mahjouri/) (Auburn University – Electrical and Computer Engineering: Mahjouri@auburn.edu)
 * [Dr. Wencan Jin](http://wp.auburn.edu/JinLab/) (Auburn University – Physics Department: wjin@auburn.edu)
+
+
