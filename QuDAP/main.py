@@ -5,7 +5,7 @@ import initalization
 
 
 if sys.version_info[:2] < (3, 10):
-    print("Requires Python 3.7 or newer. "
+    print("Requires Python 3.10 or newer. "
           "Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 

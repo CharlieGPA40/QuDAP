@@ -4,21 +4,21 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont, QPixmap
 from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 import sys
-import GUI.FMR.FMR as fmr
-import GUI.Setting.Setting as Setting
-import GUI.QDesign.PPMS as ppms
-import GUI.QDesign.QD as qd
-import GUI.VSM.VSM as vsm
-import GUI.ETO.ETO as eto
-import GUI.SHG.SHG as shg
-import GUI.SHG.SHG_General as shg_general
-import GUI.QDesign.DSP7265 as dsp
-import GUI.QDesign.Keithley2182nv as nv
-import GUI.QDesign.Keithley6221 as cs
-import GUI.QDesign.BNC845RF as rf
-import GUI.QDesign.measurement as m
-import GUI.Dashboard.Dashboard as Dashboard
-import GUI.Plot.plotting as pt
+import QuDAP.GUI.FMR.FMR as fmr
+import QuDAP.GUI.Setting.Setting as Setting
+import QuDAP.GUI.QDesign.PPMS as ppms
+import QuDAP.GUI.QDesign.QD as qd
+import QuDAP.GUI.VSM.VSM as vsm
+import QuDAP.GUI.ETO.ETO as eto
+import QuDAP.GUI.SHG.SHG as shg
+import QuDAP.GUI.SHG.SHG_General as shg_general
+import QuDAP.GUI.QDesign.DSP7265 as dsp
+import QuDAP.GUI.QDesign.Keithley2182nv as nv
+import QuDAP.GUI.QDesign.Keithley6221 as cs
+import QuDAP.GUI.QDesign.BNC845RF as rf
+import QuDAP.GUI.QDesign.measurement as m
+import QuDAP.GUI.Dashboard.Dashboard as Dashboard
+import QuDAP.GUI.Plot.plotting as pt
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)

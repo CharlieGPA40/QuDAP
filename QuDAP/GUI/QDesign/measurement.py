@@ -27,6 +27,7 @@ import os
 import requests
 
 import QuDAP.GUI.QDesign as QDesign
+
 class Worker(QThread):
     progress_update = pyqtSignal(int)
     append_text = pyqtSignal(str, str)

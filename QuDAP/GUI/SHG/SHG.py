@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
-import GUI.SHG.SHG_General as sg
+import QuDAP.GUI.SHG.SHG_General as sg
 
 class SHG(QMainWindow):
     def __init__(self):
