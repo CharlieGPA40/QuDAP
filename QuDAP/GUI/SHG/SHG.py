@@ -4,7 +4,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
-import QuDAP.GUI.SHG.SHG_General as sg
+# import QuDAP.GUI.SHG.SHG_General as sg
+from .SHG_General import *
 
 class SHG(QMainWindow):
     def __init__(self):
@@ -32,7 +33,7 @@ class SHG(QMainWindow):
         self.tab3_layout = QVBoxLayout()
 
         # Add content to each tab
-        self.uno_widget = sg.General()
+        self.uno_widget = General()
         self.tab1_layout.addWidget(self.uno_widget)
         self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
         self.tab3_layout.addWidget(QLabel("Content of Tab 3"))
