@@ -59,8 +59,7 @@ Check the [`docs`](https://github.com/CharlieGPA40/QuDAP/tree/main/doc/)  file t
 
 Demonstrations
 1. Software interface and experimental setup
-2. 
-![line](doc/demo/Experiment Demo.gif)
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Experiment%20Demo.gif)
 
 
 
