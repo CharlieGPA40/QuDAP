@@ -63,5 +63,5 @@ class BNC845RF(QWidget):
                                                 background-color: white;
                                                 }
                                                 """)
-
+        main_layout.addWidget(self.current_intrument_label)
         #  ---------------------------- PART 2 --------------------------------
