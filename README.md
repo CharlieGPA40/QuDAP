@@ -12,7 +12,6 @@
 1. [Description](README.md#Description)
 2. [Requirements](README.md#Requirements)
 3. [Installation](README.md#Installation)
-4. [Modules](README.md#Structure)
 5. [Contact](README.md#Contact)
 
 ## Description
