@@ -9,10 +9,14 @@ readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache-2.0 License",
-    "Operating System :: Windows",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
 ]
 
 [project.urls]
 Homepage = "https://github.com/CharlieGPA40/QuDAP"
 Issues = "https://github.com/CharlieGPA40/QuDAP/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
