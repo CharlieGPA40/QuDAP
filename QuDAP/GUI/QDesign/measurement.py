@@ -157,6 +157,7 @@ class LogWindow(QDialog):
 
         # Path to the text file containing the bot token
         self.token_file = 'bot.txt'
+        self.token_file = read_bot_token(self.token_file)
         self.setWindowTitle('Log Window')
         self.font = QFont("Arial", 13)
         self.ID = None
