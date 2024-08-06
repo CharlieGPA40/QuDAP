@@ -1,4 +1,4 @@
-# <img src="QuDAP/GUI/Icon/logo.svg" width="300"/>
+# <img src="https://github.com/CharlieGPA40/QuDAP/blob/main/QuDAP/GUI/Icon/logo.svg" width="300"/>
 <h3 align="left">Quantum Materials Data Acquisition and Processing</h3>
 
 ![GitHub release version](https://img.shields.io/github/v/release/CharlieGPA40/QuDAP?color=%2350C878&include_prereleases)
