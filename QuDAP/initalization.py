@@ -47,7 +47,7 @@ class ProfilePage(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, communicator):
         super().__init__()
-        self.setWindowTitle("QDPE")
+        self.setWindowTitle("QuDAP")
         self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
         self.Listwidgets_Font = 13
         self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa

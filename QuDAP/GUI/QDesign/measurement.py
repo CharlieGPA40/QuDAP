@@ -26,6 +26,7 @@ import traceback
 import os
 import requests
 
+import QuDAP.GUI.QDesign as QDesign
 class Worker(QThread):
     progress_update = pyqtSignal(int)
     append_text = pyqtSignal(str, str)
@@ -148,6 +149,15 @@ class Worker(QThread):
 class LogWindow(QDialog):
     def __init__(self):
         super().__init__()
+
+        def read_bot_token(file_path):
+            with open(file_path, 'r') as file:
+                # Read the first line, which should be the token
+                bot_token = file.readline().strip()
+            return bot_token
+
+        # Path to the text file containing the bot token
+        self.token_file = 'bot.txt'
         self.setWindowTitle('Log Window')
         self.font = QFont("Arial", 13)
         self.ID = None
@@ -166,7 +176,7 @@ class LogWindow(QDialog):
         self.User_layout.addWidget(self.User_label)
         self.User_layout.addWidget(self.User_entry_box)
 
-        user_hints = ["Chunli Tang", "Harry Goyal"]
+        user_hints = ["Chunli Tang"]
         user_completer = QCompleter(user_hints, self.User_entry_box)
         self.User_entry_box.setCompleter(user_completer)
 
@@ -2156,7 +2166,7 @@ class Measurement(QMainWindow):
                 except Exception as e:
                     return {"ok": False, "error": str(e)}
             
-            bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
+            bot_token = self.token_file
             chat_id = "5733353343"
             image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
             print(image_path)
@@ -2240,7 +2250,7 @@ class Measurement(QMainWindow):
                 Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running):
         try:
             def send_telegram_notification(message):
-                bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
+                bot_token = self.token_file
                 chat_id = "5733353343"
                 url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
                 data = {"chat_id": chat_id, "text": message}
@@ -3097,7 +3107,7 @@ class Measurement(QMainWindow):
             stop_measurement()
 
     def send_telegram_notification(self, message):
-        bot_token = "7345322165:AAErDD6Qb8b0xjb0lvQKsHyRGJQBDTXKGwE"
+        bot_token = self.token_file
         chat_id = "5733353343"
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
         data = {"chat_id": chat_id, "text": message}

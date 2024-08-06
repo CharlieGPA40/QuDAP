@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = [
   { name="Chunli Tang", email="chunli.tang@auburn.edu" },
 ]
-description = "An Instrumentation software to perform quantum material characterization"
+description = "Quantum Materials Data Acquisition and Processing (QuDAP), a Python-based and open-source software package, is designed to control and automate material characterizations based on the Physical Property Measurement System (PPMS)."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -15,4 +15,4 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/CharlieGPA40/QuDAP"
-Issues = "https://github.com/pypa/sampleproject/issues"
+Issues = "https://github.com/CharlieGPA40/QuDAP/issues"
