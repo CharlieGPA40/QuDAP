@@ -57,6 +57,13 @@ $ python ./QuDAP/StartGUI.py
 ## Usage
 Check the [`docs`](https://github.com/CharlieGPA40/QuDAP/tree/main/doc/)  file to learn how to use the software.
 
+Demonstrations
+1. Software interface and experimental setup
+2. 
+![line](doc/demo/Experiment Demo.gif)
+
+
+
 ## Contact
 This project is contributed by:
 * Chunli Tang (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
