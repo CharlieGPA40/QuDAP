@@ -1,0 +1,18 @@
+[project]
+name = "QuDAP"
+version = "0.0.1"
+authors = [
+  { name="Chunli Tang", email="chunli.tang@auburn.edu" },
+]
+description = "An Instrumentation software to perform quantum material characterization"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache-2.0 License",
+    "Operating System :: Windows",
+]
+
+[project.urls]
+Homepage = "https://github.com/CharlieGPA40/QuDAP"
+Issues = "https://github.com/pypa/sampleproject/issues"

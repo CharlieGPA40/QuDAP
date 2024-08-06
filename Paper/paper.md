@@ -47,7 +47,8 @@ Real-time notification on the measurement status and program error through push 
 5. Various post data pocessing features allowing to process optical, magnetic, and electrical data.
 
 In the following sections, we introduce the peripheral instruments we have integrated into our software and show the experiment procedure for this software. 
-![Block Diagram of the instrumentation of QuDAP. The QuDAP software establish the instrument communication using USB, RS232, and GPIB to control the PPMS [@ppms], BNC845[@BNC845], Keithley 6221[@keithley6221], Keithley 2182$[@keithley2182], and DSP7265[@DSP7265].\label{fig1}](Figure1.pdf)
+
+![Block Diagram of the instrumentation of QuDAP. The QuDAP software establish the instrument communication using USB, RS232, and GPIB to control the PPMS [@ppms], BNC845 [@BNC845], Keithley 6221 [@keithley6221], Keithley 2182 [@keithley2182], and DSP7265 [@DSP7265].\label{fig1}](Figure1.pdf)
 
 
 
