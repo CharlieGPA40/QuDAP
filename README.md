@@ -1,4 +1,4 @@
-# <img src="https://github.com/CharlieGPA40/QuDAP/blob/main/QuDAP/GUI/Icon/logo.svg" width="300"/>
+# <img src="QuDAP/GUI/Icon/logo.svg" width="300"/>
 <h3 align="left">Quantum Materials Data Acquisition and Processing</h3>
 
 ![GitHub release version](https://img.shields.io/github/v/release/CharlieGPA40/QuDAP?color=%2350C878&include_prereleases)
@@ -11,7 +11,7 @@
 ## Table of Content
 1. [Description](README.md#Description)
 2. [Requirements](README.md#Requirements)
-3. [Usage](README.md#Usage)
+3. [Installation](README.md#Installation)
 4. [Modules](README.md#Structure)
 5. [Contact](README.md#Contact)
 
@@ -34,13 +34,13 @@ Note: This package is for academic and educational research (WITHOUT WARRANTIES,
 
 ## Requirements
 1. This package is compatible with Python 3.10 or newer. 
-2. Latex is required on all platforms:
-   1. Windows users need to install Latex before running the program (MiKTeX).
-   2. Mac and Linux users can install the package by simply running `StartGui.py` or install before running.
-2. We tested the program on Python version 3.9-3.11 on M1 Mac (macOS 13.4.1), Intel Mac (macOS 12.6.7), Windows (win 10 & 11), and Linux (Ubuntu 22.04 LST) Machines.
 
-## Usage
-1. Prerequisite
+## Installation
+QuDAP is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows.
+
+```console
+(venv) $ pip install QuDAP
+```
 
 ## Contact
 This project is contributed by:
