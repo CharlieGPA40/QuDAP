@@ -123,12 +123,13 @@ class Dash(QMainWindow):
         # line.setFrameShadow(QFrame.Shadow.Sunken)
         line.setStyleSheet("color: #ff5733;")  # Set the color of the line
         line.setFixedHeight(10)  # Set the thickness of the line
-        line.setFixedWidth(1200)  # Set the length of the line
+        line.setFixedWidth(1100)  # Set the length of the line
         # Center the label horizontally and vertically
         self.hello_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.headiing_layout.addWidget(self.hello_label)
         self.headiing_layout.addWidget(self.time_label)
+        self.headiing_layout.addSpacing(20)
         self.headiing_layout.addWidget(line, alignment=Qt.AlignmentFlag.AlignCenter)
         self.headiing_layout.addSpacing(50)
         with open("GUI/Dashboard/QLabel.qss", "r") as file:

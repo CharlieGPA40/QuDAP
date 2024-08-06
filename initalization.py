@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         # line.setFrameShadow(QFrame.Shadow.Sunken)
         line.setStyleSheet("color: #ff5733;")  # Set the color of the line
         line.setFixedHeight(5)  # Set the thickness of the line
-        line.setFixedWidth(150)  # Set the length of the line
+        line.setFixedWidth(170)  # Set the length of the line
 
 
         self.logolayout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
