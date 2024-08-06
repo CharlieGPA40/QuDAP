@@ -24,7 +24,8 @@ if platform.system() == 'Windows':
 
 
 if OS == 'Windows':
-    initalization
+    if __name__ == '__main__':
+        initalization.main()
 # elif OS == 'Darwin':
 # else:  # Linux
 
