@@ -7,7 +7,7 @@
 ![Python Versions](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue)
 ![Last updated](https://img.shields.io/github/last-commit/CharlieGPA40/QuDAP/main?label=Last%20updated&style=flat)
 [![Request](https://img.shields.io/badge/request-features-orange)](mailto:chunli.tang@auburn.edu)
-[![Connect](https://img.shields.io/badge/Connect_me-navy)](www.linkedin.com/in/chunlitang)
+[![Connect](https://img.shields.io/badge/Connect_me-navy)](http://www.linkedin.com/in/chunlitang)
 
 
 ## Table of Content
@@ -32,7 +32,7 @@ The software provides the benefits as summarized below:
     
 5. Real-time notification on the measurement status and program error through push notification, allowing the user to promptly identify and verify the experimental and parameter setup.
 
-Note: This package is for academic and educational research (WITHOUT WARRANTIES, our software does not collect any data from users).
+Note: This package is for academic and educational research (WITHOUT WARRANTIES or instrument issues; our software does not collect any data from users).
 
 ## Requirements
 1. `QuDAP` is compatible with Python 3.10 or newer. 
@@ -67,7 +67,7 @@ Demonstration
 
 ## Contact
 This project is contributed by:
-* [Chunli Tang](www.linkedin.com/in/chunlitang) (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
+* [Chunli Tang](http://www.linkedin.com/in/chunlitang) (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
 * Skai White 
 * Jingyu Jia
 
