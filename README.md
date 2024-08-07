@@ -6,7 +6,8 @@
 ![GitHub Size](https://img.shields.io/github/repo-size/CharlieGPA40/QuDAP)
 ![Python Versions](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue)
 ![Last updated](https://img.shields.io/github/last-commit/CharlieGPA40/QuDAP/main?label=Last%20updated&style=flat)
-[![Request !](https://img.shields.io/badge/request-contact_me-orange)](mailto:chunli.tang@auburn.edu)
+[![Request](https://img.shields.io/badge/request-features-orange)](mailto:chunli.tang@auburn.edu)
+[![Connect](https://img.shields.io/badge/Connect_me-navy)](www.linkedin.com/in/chunlitang)
 
 
 ## Table of Content
@@ -66,8 +67,9 @@ Demonstration
 
 ## Contact
 This project is contributed by:
-* Chunli Tang (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
-* Skai White and Jingyu Jia
+* [Chunli Tang](www.linkedin.com/in/chunlitang) (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
+* Skai White 
+* Jingyu Jia
 
 Advisor:
 * [Dr. Masoud Mahjouri-Samani](http://wp.auburn.edu/Mahjouri/) (Auburn University – Electrical and Computer Engineering: Mahjouri@auburn.edu)
