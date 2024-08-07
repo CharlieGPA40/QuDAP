@@ -6,6 +6,7 @@
 ![GitHub Size](https://img.shields.io/github/repo-size/CharlieGPA40/QuDAP)
 ![Python Versions](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue)
 ![Last updated](https://img.shields.io/github/last-commit/CharlieGPA40/QuDAP/main?label=Last%20updated&style=flat)
+[![Request !](https://img.shields.io/badge/request-contact_me-orange)](mailto:chunli.tang@auburn.edu)
 
 
 ## Table of Content
