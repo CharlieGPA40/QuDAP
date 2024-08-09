@@ -67,9 +67,9 @@ Demonstration
 
 ## Contact
 This project is contributed by:
-* [Chunli Tang](http://www.linkedin.com/in/chunlitang) (Auburn University – Electrical and Computer Engineering: chunli.tang@auburn.edu)
-* Skai White 
-* Jingyu Jia
+* [Chunli Tang](http://www.linkedin.com/in/chunlitang) (Auburn University, Auburn AL – Electrical and Computer Engineering: chunli.tang@auburn.edu)
+* Skai White Hampton University, Hampton, VA USA
+* Jingyu Jia Great Neck South High School, Lake Success, NY USA
 
 Advisor:
 * [Dr. Masoud Mahjouri-Samani](http://wp.auburn.edu/Mahjouri/) (Auburn University – Electrical and Computer Engineering: Mahjouri@auburn.edu)
