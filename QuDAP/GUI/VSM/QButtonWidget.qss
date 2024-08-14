@@ -1,0 +1,18 @@
+ QPushButton {
+                                       background-color: #FFFFFF; /* Green background */
+                                       color: #2b2b2b; /* White text */
+                                       border-style: solid;
+                                       border-color: #F9F9F9;
+                                       border-width: 2px;
+                                       border-radius: 5px; /* Rounded corners */
+                                       padding: 2px;
+                                       min-height: 25px;
+                                       max-width: 150px;
+                                       font-size: 16px;;
+                                   }
+                                   QPushButton:hover {
+                                       background-color: #CECFCE  ; /* Slightly darker green */
+                                   }
+                                   QPushButton:pressed {
+                                       background-color: #c8c9c8; /* Even darker green */
+                                   }
