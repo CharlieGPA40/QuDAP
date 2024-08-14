@@ -2316,6 +2316,27 @@ class Measurement(QMainWindow):
                 stop_measurement()
                 return
             for i in range(templen):
+                client.set_field(zeroField,
+                                 Fast_fieldRate,
+                                 client.field.approach_mode.linear,  # linear/oscillate
+                                 client.field.driven_mode.driven)
+                append_text(f'Waiting for {zeroField} Oe Field for Temperature... \n', 'orange')
+                time.sleep(10)
+                while True:
+                    if not running():
+                        stop_measurement()
+                        return
+                    time.sleep(15)
+                    try:
+                        F, sF = client.get_field()
+                    except SystemExit as e:
+                        error_message(e, e)
+                        send_telegram_notification(
+                            "Your measurement went wrong, possible PPMS client lost connection")
+                    update_ppms_field_reading_label(str(F), 'Oe')
+                    append_text(f'Status: {sF}\n', 'red')
+                    if sF == 'Holding (driven)':
+                        break
                 append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
                 Tempsetpoint = TempList[i]
                 if i == 0:
