@@ -35,7 +35,11 @@ The software provides the benefits as summarized below:
 Note: This package is for academic and educational research (WITHOUT WARRANTIES or instrument issues; our software does not collect any data from users).
 
 ## Requirements
-1. `QuDAP` is compatible with Python 3.10 or newer. 
+1. `QuDAP` is compatible with Python 3.10 or newer.
+2. Hardwares requirements:
+   i). Physical Property Measurment System from Quantum Design.
+   ii). GPIB cables, RS232, USB, or Ethernet.
+   iii). Supported instruments (Keithley 6221, Keithley 2182, etc.)
 
 ## Installation
 `QuDAP` is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows and can be installed by:
