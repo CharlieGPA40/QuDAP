@@ -4,7 +4,24 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
-from .VSMDataExtraction import *
+import platform
+
+system = platform.system()
+if system != "Windows":
+    print("Not running on Windows")
+
+version_info = platform.win32_ver()
+version, build, service_pack, extra = version_info
+build_number = int(build.split('.')[2])
+if version == "10" and build_number >= 22000:
+    # print("Windows 11")
+    from QuDAP.GUI.VSM.VSMDataExtraction import *
+    from QuDAP.GUI.VSM.VSMDataProcessing import *
+elif version == "10":
+    # print("Windows 10")
+    from .VSMDataExtraction import *
+else:
+    print("Unknown Windows version")
 
 class VSM(QMainWindow):
 
@@ -33,8 +50,10 @@ class VSM(QMainWindow):
         # self.tab4_layout = QVBoxLayout()
 
         # Add content to each tab
-        # self.uno_widget = sg.General()
-        # self.tab1_layout.addWidget(self.uno_widget)
+        self.qd_data_extract_widget = VSM_Data_Extraction()
+        self.qd_data_proc_widget = VSM_Data_Processing()
+        self.tab1_layout.addWidget(self.qd_data_extract_widget)
+        self.tab2_layout.addWidget(self.qd_data_proc_widget)
         # self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
         # self.tab3_layout.addWidget(QLabel("Content of Tab 3"))
 

@@ -82,7 +82,6 @@ class Loadfile():
                 self.metadata[key] = string_to_type(value)
             else:
                 print("No data in file!")
-
             self.column_headers = f.readline().strip().split(",")
             data = np.genfromtxt([str2bytes(l) for l in f], dtype="float", delimiter=",", invalid_raise=False)
             if data.shape[0] == 0:
@@ -93,19 +92,18 @@ class Loadfile():
                 data = data[:, : len(self.column_headers) - data.shape[1]]
             self.data = data
         self.column_headers = self.column_headers
-        for i in range(len(self.filename) -1, 0, -1):
-            if self.filename[i] == ".":
-                file_name = self.filename[: i]
-            if self.filename[i] == "/":
-                file_name = file_name[i+1:]
-                folder_name = self.filename[:i+1]
-                break
-
-        with open('{}{}.csv'.format(folder_name, file_name), 'w', encoding='utf-8') as f:
-            f.write(",".join(self.column_headers) + "\n")
-            np.savetxt(f, data, delimiter=",", fmt="%s")
+        # for i in range(len(self.filename) -1, 0, -1):
+        #     if self.filename[i] == ".":
+        #         file_name = self.filename[: i]
+        #     if self.filename[i] == "/":
+        #         file_name = file_name[i+1:]
+        #         folder_name = self.filename[:i+1]
+        #         break
+        # with open('{}{}.csv'.format(folder_name, file_name), 'w', encoding='utf-8') as f:
+        #     f.write(",".join(self.column_headers) + "\n")
+        #     np.savetxt(f, data, delimiter=",", fmt="%s")
 
         combined_data = np.vstack((self.column_headers, self.data))
-        return combined_data
-
+        return self.column_headers, self.data, combined_data
+#
 # loaded_data = Loadfile(None, filedialog=True)  # This will open the PyQt6 file dialog if filename is not provided
