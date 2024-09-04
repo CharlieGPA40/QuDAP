@@ -31,7 +31,7 @@ if version == "10" and build_number >= 22000:
     from QuDAP.VSM.qd import *
 elif version == "10":
     print("Windows 10")
-    from ...VSM.qd import *
+    from VSM.qd import *
 else:
     print("Unknown Windows version")
 

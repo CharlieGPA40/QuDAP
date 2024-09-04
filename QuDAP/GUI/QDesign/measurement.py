@@ -156,8 +156,10 @@ class LogWindow(QDialog):
             return bot_token
 
         # Path to the text file containing the bot token
-        self.token_file = 'bot.txt'
-        self.token_file = read_bot_token(self.token_file)
+        self.token_file_path = 'C:/Users/QDUser/Documents/Chunli Software/Data_Processing_Suite/QuDAP/GUI/QDesign/bot.txt'
+        self.file_exists = os.path.isfile(self.token_file_path)
+        if self.file_exists:
+            self.token_file = read_bot_token(self.token_file_path)
         self.setWindowTitle('Log Window')
         self.font = QFont("Arial", 13)
         self.ID = None
@@ -342,6 +344,17 @@ class Measurement(QMainWindow):
             return
 
     def init_ui(self):
+        def read_bot_token(file_path):
+            with open(file_path, 'r') as file:
+                # Read the first line, which should be the token
+                bot_token = file.readline().strip()
+            return bot_token
+
+        # Path to the text file containing the bot token
+        self.token_file_path = 'C:/Users/QDUser/Documents/Chunli Software/Data_Processing_Suite/QuDAP/GUI/QDesign/bot.txt'
+        self.file_exists = os.path.isfile(self.token_file_path)
+        if self.file_exists:
+            self.token_file = read_bot_token(self.token_file_path)
         titlefont = QFont("Arial", 20)
         self.font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
@@ -1739,7 +1752,8 @@ class Measurement(QMainWindow):
             if self.worker is not None:
                 self.worker.stop()
                 self.worker = None
-                self.send_telegram_notification("Experiment Stop!")
+                if self.file_exists:
+                    self.send_telegram_notification("Experiment Stop!")
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         # try:
@@ -2065,7 +2079,8 @@ class Measurement(QMainWindow):
                 if self.DSP7265_Connected:
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
-                self.send_telegram_notification(f"{self.User} is running {self.Measurement} on {self.ID}")
+                if self.file_exists:
+                    self.send_telegram_notification(f"{self.User} is running {self.Measurement} on {self.ID}")
                 if self.ppms_field_mode_fixed_radio.isChecked():
                     self.field_mode_fixed = True
                 else:
@@ -2113,7 +2128,8 @@ class Measurement(QMainWindow):
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
                 self.stop_measurement()
-                self.send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+                if self.file_exists:
+                    self.send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
                 self.client_keep_going = False
                 self.connect_btn.setText('Start Client')
                 self.connect_btn_clicked = False
@@ -2123,7 +2139,8 @@ class Measurement(QMainWindow):
                 tb_str = traceback.format_exc()
                 self.stop_measurement()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-                self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
+                if self.file_exists:
+                    self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
 
     def save_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled, save, temp, current):
 
@@ -2249,8 +2266,22 @@ class Measurement(QMainWindow):
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
                 Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running):
         try:
+            def read_bot_token(file_path):
+                with open(file_path, 'r') as file:
+                    # Read the first line, which should be the token
+                    bot_token = file.readline().strip()
+                return bot_token
+
+            # Path to the text file containing the bot token
+            # self.token_file_path = 'C:\Users\QDUser\Documents\Chunli Software\Data_Processing_Suite\QuDAP\GUI\QDesign\bot.txt'
+            token_file_path = 'C:/Users/QDUser/Documents/Chunli Software/Data_Processing_Suite/QuDAP/GUI/QDesign/bot.txt'
+            file_exists = os.path.isfile(token_file_path)
+            if file_exists:
+                token_file = read_bot_token(token_file_path)
+                
+            
             def send_telegram_notification(message):
-                bot_token = self.token_file
+                bot_token = token_file
                 chat_id = "5733353343"
                 url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
                 data = {"chat_id": chat_id, "text": message}
@@ -2281,7 +2312,8 @@ class Measurement(QMainWindow):
 
                 return deltaH, user_field_rate
 
-            send_telegram_notification("The measurement has been started successfully.")
+            if file_exists:
+                send_telegram_notification("The measurement has been started successfully.")
             number_of_current = len(current)
             number_of_temp = len(TempList)
             Fast_fieldRate = 220
@@ -2304,7 +2336,8 @@ class Measurement(QMainWindow):
                 update_ppms_field_reading_label(str(field), 'Oe')
             except SystemExit as e:
                 error_message(e,e)
-                send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+                if file_exists:
+                    send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
             # ----------------- Loop Down ----------------------#
             Curlen = len(current)
             templen = len(TempList)
@@ -2331,8 +2364,9 @@ class Measurement(QMainWindow):
                         F, sF = client.get_field()
                     except SystemExit as e:
                         error_message(e, e)
-                        send_telegram_notification(
-                            "Your measurement went wrong, possible PPMS client lost connection")
+                        if file_exists:
+                            send_telegram_notification(
+                                "Your measurement went wrong, possible PPMS client lost connection")
                     update_ppms_field_reading_label(str(F), 'Oe')
                     append_text(f'Status: {sF}\n', 'red')
                     if sF == 'Holding (driven)':
@@ -2371,7 +2405,8 @@ class Measurement(QMainWindow):
                     time.sleep(300)
 
                 for j in range(Curlen):
-                    send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
+                    if file_exists:
+                        send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                     clear_plot()
 
                     # number_of_current = number_of_current - 1
@@ -2390,8 +2425,9 @@ class Measurement(QMainWindow):
                             F, sF = client.get_field()
                         except SystemExit as e:
                             error_message(e, e)
-                            send_telegram_notification(
-                                "Your measurement went wrong, possible PPMS client lost connection")
+                            if file_exists:
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                         update_ppms_field_reading_label(str(F), 'Oe')
                         append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
@@ -2411,8 +2447,9 @@ class Measurement(QMainWindow):
                             F, sF = client.get_field()
                         except SystemExit as e:
                             error_message(e, e)
-                            send_telegram_notification(
-                                "Your measurement went wrong, possible PPMS client lost connection")
+                            if file_exists:
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                         update_ppms_field_reading_label(str(F), 'Oe')
                         append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
@@ -2461,8 +2498,9 @@ class Measurement(QMainWindow):
                                     MyField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
+                                    if file_exists:
+                                        send_telegram_notification(
+                                            "Your measurement went wrong, possible PPMS client lost connection")
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
                                 if sF == 'Holding (driven)':
@@ -2561,8 +2599,9 @@ class Measurement(QMainWindow):
                                 MyField, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                send_telegram_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection")
+                                if file_exists:
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(MyField), 'Oe')
                             MyTemp, sT = client.get_temperature()
                             update_ppms_temp_reading_label(str(MyTemp), 'K')
@@ -2598,7 +2637,8 @@ class Measurement(QMainWindow):
                         # ----------------- Loop Up ----------------------#
                         currentField = botField
                         deltaH, user_field_rate = deltaH_chk(currentField)
-                        send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                        if file_exists:
+                            send_telegram_notification(f"Starting the second half of measurement - ramping field up")
                         current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
                         progress_update(int(current_progress))
                         while currentField <= topField:
@@ -2626,8 +2666,9 @@ class Measurement(QMainWindow):
                                     MyField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
+                                    if file_exists:
+                                        send_telegram_notification(
+                                            "Your measurement went wrong, possible PPMS client lost connection")
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
                                 if sF == 'Holding (driven)':
@@ -2682,8 +2723,9 @@ class Measurement(QMainWindow):
                                         update_ppms_temp_reading_label(str(MyTemp), 'K')
                                     except SystemExit as e:
                                         error_message(e, e)
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                        if file_exists:
+                                            send_telegram_notification(
+                                                "Your measurement went wrong, possible PPMS client lost connection")
                                     csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
@@ -2754,8 +2796,9 @@ class Measurement(QMainWindow):
                                              client.field.driven_mode.driven)
                         except SystemExit as e:
                             error_message(e, e)
-                            send_telegram_notification(
-                                "Your measurement went wrong, possible PPMS client lost connection")
+                            if file_exists:
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                         append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                         time.sleep(4)
                         MyField, sF = client.get_field()
@@ -2770,8 +2813,9 @@ class Measurement(QMainWindow):
                                     break
                             except SystemExit as e:
                                 error_message(e, e)
-                                send_telegram_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection")
+                                if file_exists:
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                         time.sleep(20)
                         deltaH, user_field_rate = deltaH_chk(MyField)
                         currentField = MyField
@@ -2782,8 +2826,9 @@ class Measurement(QMainWindow):
                                              client.field.driven_mode.driven)
                         except SystemExit as e:
                             error_message(e, e)
-                            send_telegram_notification(
-                                "Your measurement went wrong, possible PPMS client lost connection")
+                            if file_exists:
+                                send_telegram_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection")
                         append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                         counter = 0
                         while currentField >= botField:
@@ -2801,8 +2846,9 @@ class Measurement(QMainWindow):
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                send_telegram_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection")
+                                if file_exists:
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -2918,7 +2964,8 @@ class Measurement(QMainWindow):
                             # update_ppms_field_reading_label(str(currentField), 'Oe')
 
                         # ----------------- Loop Up ----------------------#
-                        send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                        if file_exists:
+                            send_telegram_notification(f"Starting the second half of measurement - ramping field up")
                         currentField = botField
                         client.set_field(currentField,
                                          user_field_rate,
@@ -2935,8 +2982,9 @@ class Measurement(QMainWindow):
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                send_telegram_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection")
+                                if file_exists:
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Status: {sF}\n', 'blue')
                             if sF == 'Holding (driven)':
@@ -2967,8 +3015,9 @@ class Measurement(QMainWindow):
                                 currentField, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                send_telegram_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection")
+                                if file_exists:
+                                    send_telegram_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection")
                             update_ppms_field_reading_label(str(currentField), 'Oe')
                             append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -3086,8 +3135,8 @@ class Measurement(QMainWindow):
                         save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, str(TempList[i]), str(current[j]))
                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
-
-                    send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
+                    if file_exists:
+                        send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
                     current_progress = int((i+1) * (j+1) / totoal_progress * 100)
                     progress_update(int(current_progress))
             time.sleep(2)
@@ -3116,14 +3165,16 @@ class Measurement(QMainWindow):
             total_runtime = (end_time - start_time) / 3600
             self.log_box.append(f"Total runtime: {total_runtime} hours\n")
             self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
-            send_telegram_notification("The measurement has been completed successfully.")
+            if file_exists:
+                send_telegram_notification("The measurement has been completed successfully.")
             progress_update(int=100)
             append_text("You measuremnt is finished!", 'green')
             stop_measurement()
             measurement_finished()
             return
         except SystemExit as e:
-            send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+            if file_exists:
+                send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
             error_message(e,e)
             stop_measurement()
 
