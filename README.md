@@ -8,6 +8,7 @@
 ![Last updated](https://img.shields.io/github/last-commit/CharlieGPA40/QuDAP/main?label=Last%20updated&style=flat)
 [![Request](https://img.shields.io/badge/request-features-orange)](mailto:chunli.tang@auburn.edu)
 [![Connect](https://img.shields.io/badge/Connect_me-navy)](http://www.linkedin.com/in/chunlitang)
+<a href="https://joss.theoj.org/papers/69d38a267017a55683b6bdb958846c54"><img src="https://joss.theoj.org/papers/69d38a267017a55683b6bdb958846c54/status.svg"></a>
 
 
 ## Table of Content
@@ -36,9 +37,9 @@ Note: This package is for academic and educational research (WITHOUT WARRANTIES 
 
 ## Requirements
 1. `QuDAP` is compatible with Python 3.10 or newer.
-2. Hardwares requirements:
+2. Hardware requirements:
    
-   i). Physical Property Measurment System from Quantum Design.
+   i). Physical Property Measurement System from Quantum Design.
    
    ii). GPIB cables, RS232, USB, or Ethernet.
    
