@@ -233,7 +233,7 @@ class VSM_Data_Processing(QMainWindow):
                                                                                   border: None;
                                                                               }
                                                                           """)
-                self.raw_canvas.ax.set_title("Hysteresis Loop") 
+                self.raw_canvas.ax.set_title("Hysteresis Loop")
                 self.raw_canvas_layout.addWidget(self.raw_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.raw_canvas_layout.addWidget(self.raw_canvas)
 
