@@ -1,5 +1,5 @@
 import time
-
+import platform
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
@@ -14,8 +14,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import random
-import MultiPyVu as mpv # Uncommented it on the/thesever computer
-from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
+if platform.system() == 'Windows':
+    import MultiPyVu as mpv # Uncommented it on the/thesever computer
+    from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 import sys
 import traceback
 # import Data_Processing_Suite.GUI.Icon as Icon

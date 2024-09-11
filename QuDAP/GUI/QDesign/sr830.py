@@ -27,11 +27,11 @@ class THREAD(QThread):
     def run(self):
         while self.running:
             try:
-                X = float(self.server.query("X."))  # Read the measurement result
-                Y = float(self.server.query("Y."))  # Read the measurement result
-                Mag = float(self.server.query("MAG."))  # Read the measurement result
-                Phase = float(self.server.query("PHA."))  # Read the measurement result
-                self.update_data.emit(X,Y,Mag, Phase)
+                X = float(self.server.query("OUTP? 1"))  # Read the measurement result
+                Y = float(self.server.query("OUTP? 2"))  # Read the measurement result
+                R = float(self.server.query("OUTP? 3"))  # Read the measurement result
+                Theta = float(self.server.query("OUTP? 4"))  # Read the measurement result
+                self.update_data.emit(X, Y, R, Theta)
                 time.sleep(0.01)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
@@ -49,14 +49,14 @@ class MplCanvas(FigureCanvas):
         super(MplCanvas, self).__init__(fig)
 
 
-class Lockin(QMainWindow):
+class sr830Lockin(QMainWindow):
 
     def __init__(self):
         super().__init__()
         try:
             self.isConnect = False
             self.isPlotting = False
-            self.DSP7265 = 'None'
+            self.sr830 = 'None'
             self.init_ui()
 
         except Exception as e:
@@ -90,7 +90,7 @@ class Lockin(QMainWindow):
 
 
         #  ---------------------------- PART 1 --------------------------------
-        self.current_intrument_label = QLabel("Signal Recovery 7265 DSP Lock-in Amplifier")
+        self.current_intrument_label = QLabel("Stanford Research System sr830 Lock-in Amplifier")
         self.current_intrument_label.setFont(titlefont)
         self.current_intrument_label.setStyleSheet("""
                                             QLabel{
@@ -136,8 +136,6 @@ class Lockin(QMainWindow):
         combo_text_layout.addLayout(combo_layout)
         combo_text_layout.addWidget(self.current_gpib_label, alignment=Qt.AlignmentFlag.AlignCenter)
         group_box.setLayout(combo_text_layout)
-
-
 
         #  ---------------------------- PART 3 --------------------------------
         self.lockin_reading_plotting_layout = QHBoxLayout()
@@ -185,22 +183,52 @@ class Lockin(QMainWindow):
         self.Lockin_reading_group_box.setLayout(self.lockin_reading_layout)
 
         # #  ---------------------------- PART 3 Right --------------------------------
-        #
-        # graphing_layout = QHBoxLayout()
-        # figure_group_box = QGroupBox("Graph")
-        # figure_Layout = QVBoxLayout()
-        # self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        # toolbar = NavigationToolbar(self.canvas, self)
-        # toolbar.setStyleSheet("""
-        #                            QWidget {
-        #                                border: None;
-        #                            }
-        #                        """)
-        # figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-        # figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-        # figure_group_box.setLayout(figure_Layout)
-        # graphing_layout.addWidget(plotting_control_group_box)
-        # graphing_layout.addWidget(figure_group_box)
+        graphing_layout = QHBoxLayout()
+        selection_Layout = QHBoxLayout()
+        plotting_control_group_box = QGroupBox("Plotting Selection")
+
+        self.checkbox1 = QCheckBox("X")
+        self.checkbox1.setFont(font)
+        self.checkbox2 = QCheckBox("Y")
+        self.checkbox2.setFont(font)
+        self.checkbox3 = QCheckBox("R")
+        self.checkbox3.setFont(font)
+        self.checkbox4 = QCheckBox("\u03B8")
+        self.checkbox4.setFont(font)
+
+        plot_btn = QPushButton('Plot')
+        plot_btn.clicked.connect(self.plot_selection)
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.stop)
+        rst_btn = QPushButton('Reset')
+        rst_btn.clicked.connect(self.rst)
+        selection_Layout.addWidget(plot_btn)
+        selection_Layout.addWidget(stop_btn)
+        selection_Layout.addWidget(rst_btn)
+
+        # Arrange radio buttons horizontally
+        radio_layout = QVBoxLayout()
+        radio_layout.addWidget(self.checkbox1)
+        radio_layout.addWidget(self.checkbox2)
+        radio_layout.addWidget(self.checkbox3)
+        radio_layout.addWidget(self.checkbox4)
+        radio_layout.addLayout(selection_Layout)
+        plotting_control_group_box.setLayout(radio_layout)
+
+        figure_group_box = QGroupBox("Graph")
+        figure_Layout = QVBoxLayout()
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        toolbar = NavigationToolbar(self.canvas, self)
+        toolbar.setStyleSheet("""
+                                        QWidget {
+                                            border: None; 
+                                        }
+                                    """)
+        figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+        figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+        figure_group_box.setLayout(figure_Layout)
+        graphing_layout.addWidget(plotting_control_group_box)
+        graphing_layout.addWidget(figure_group_box)
 
         #  ---------------------------- Main Layout --------------------------------
         # Add widgets to the main layout with centered alignment
@@ -208,7 +236,7 @@ class Lockin(QMainWindow):
         self.main_layout.addWidget(group_box)
         self.main_layout.addWidget(self.Lockin_reading_group_box)
         # main_layout.addWidget(voltage_reading_group_box)
-        # main_layout.addLayout(graphing_layout)
+        self.main_layout.addLayout(graphing_layout)
         self.setLayout(self.main_layout)
         self.setCentralWidget(self.scroll_area)
         #  ---------------------------- Style Sheet --------------------------------
@@ -216,67 +244,67 @@ class Lockin(QMainWindow):
             self.Button_stylesheet = file.read()
         self.connect_btn.setStyleSheet(self.Button_stylesheet)
         refresh_btn.setStyleSheet(self.Button_stylesheet)
-        # plot_btn.setStyleSheet("""
-        #            QPushButton {
-        #                background-color: #3498DB; /* Green background */
-        #                color: white; /* White text */
-        #                border-style: solid;
-        #                border-color: #3498DB;
-        #                border-width: 2px;
-        #                border-radius: 10px; /* Rounded corners */
-        #                padding: 5px;
-        #                min-height: 2px;
-        #                min-width: 50px;
-        #            }
-        #            QPushButton:hover {
-        #                background-color: #2874A6  ; /* Slightly darker green */
-        #            }
-        #            QPushButton:pressed {
-        #                background-color: #85C1E9; /* Even darker green */
-        #            }
-        #        """)
-        #
-        # rst_btn.setStyleSheet("""
-        #                            QPushButton {
-        #                                background-color: #CAC9Cb; /* Green background */
-        #                                color: black; /* White text */
-        #                                border-style: solid;
-        #                                border-color: #CAC9Cb;
-        #                                border-width: 2px;
-        #                                border-radius: 10px; /* Rounded corners */
-        #                                padding: 5px;
-        #                                min-height: 1px;
-        #                                min-width: 50px;
-        #                            }
-        #                            QPushButton:hover {
-        #                                background-color: #5F6A6A; /* Slightly darker green */
-        #                            }
-        #                            QPushButton:pressed {
-        #                                background-color: #979A9A; /* Even darker green */
-        #                            }
-        #                        """)
-        # self.connect_btn.setStyleSheet(self.Button_stylesheet)
-        # refresh_btn.setStyleSheet(self.Button_stylesheet)
-        #
-        # stop_btn.setStyleSheet("""
-        #                                    QPushButton {
-        #                                        background-color: #D98880; /* Green background */
-        #                                        color: white; /* White text */
-        #                                        border-style: solid;
-        #                                        border-color: #D98880;
-        #                                        border-width: 2px;
-        #                                        border-radius: 10px; /* Rounded corners */
-        #                                        padding: 5px;
-        #                                        min-height: 1px;
-        #                                        min-width: 50px;
-        #                                    }
-        #                                    QPushButton:hover {
-        #                                        background-color: #E74C3C; /* Slightly darker green */
-        #                                    }
-        #                                    QPushButton:pressed {
-        #                                        background-color: #FADBD8; /* Even darker green */
-        #                                    }
-        #                                """)
+        plot_btn.setStyleSheet("""
+                   QPushButton {
+                       background-color: #3498DB; /* Green background */
+                       color: white; /* White text */
+                       border-style: solid;
+                       border-color: #3498DB;
+                       border-width: 2px;
+                       border-radius: 10px; /* Rounded corners */
+                       padding: 5px;
+                       min-height: 2px;
+                       min-width: 50px;
+                   }
+                   QPushButton:hover {
+                       background-color: #2874A6  ; /* Slightly darker green */
+                   }
+                   QPushButton:pressed {
+                       background-color: #85C1E9; /* Even darker green */
+                   }
+               """)
+
+        rst_btn.setStyleSheet("""
+                                   QPushButton {
+                                       background-color: #CAC9Cb; /* Green background */
+                                       color: black; /* White text */
+                                       border-style: solid;
+                                       border-color: #CAC9Cb;
+                                       border-width: 2px;
+                                       border-radius: 10px; /* Rounded corners */
+                                       padding: 5px;
+                                       min-height: 1px;
+                                       min-width: 50px;
+                                   }
+                                   QPushButton:hover {
+                                       background-color: #5F6A6A; /* Slightly darker green */
+                                   }
+                                   QPushButton:pressed {
+                                       background-color: #979A9A; /* Even darker green */
+                                   }
+                               """)
+        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+        refresh_btn.setStyleSheet(self.Button_stylesheet)
+
+        stop_btn.setStyleSheet("""
+                                           QPushButton {
+                                               background-color: #D98880; /* Green background */
+                                               color: white; /* White text */
+                                               border-style: solid;
+                                               border-color: #D98880;
+                                               border-width: 2px;
+                                               border-radius: 10px; /* Rounded corners */
+                                               padding: 5px;
+                                               min-height: 1px;
+                                               min-width: 50px;
+                                           }
+                                           QPushButton:hover {
+                                               background-color: #E74C3C; /* Slightly darker green */
+                                           }
+                                           QPushButton:pressed {
+                                               background-color: #FADBD8; /* Even darker green */
+                                           }
+                                       """)
 
     def refresh_gpib_list(self):
         # Access GPIB ports using PyVISA
@@ -288,13 +316,13 @@ class Lockin(QMainWindow):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
-        # self.gpib_combo.addItems(["GPIB:7"])
-        # self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
         self.isCheckedBox1 = False
         self.isCheckedBox2 = False
+        self.isCheckedBox3 = False
+        self.isCheckedBox4 = False
         self.counter = 0
         self.counter_array = []
         if self.isPlotting:
@@ -310,7 +338,7 @@ class Lockin(QMainWindow):
                 self.rst()
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current Connection: None")
-            self.DSP7265.close()
+            self.sr830.close()
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
@@ -321,15 +349,15 @@ class Lockin(QMainWindow):
             else:
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
-                    self.DSP7265 = rm.open_resource(self.current_connection, timeout=10000)
+                    self.sr830 = rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
-                    DSP7265_device = self.DSP7265.query('ID')
+                    sr830_device = self.sr830.query('*IDN?')
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
                     time.sleep(1)
-                    self.current_gpib_label.setText(f"Current Connection: {DSP7265_device}")
+                    self.current_gpib_label.setText(f"Current Connection: {sr830_device}")
                     if self.isConnect:
-                        self.thread = THREAD(server=self.DSP7265)
+                        self.thread = THREAD(server=self.sr830)
                         self.thread.update_data.connect(self.update_lockin)
                         self.thread.start()
                 except visa.errors.VisaIOError:
@@ -338,16 +366,16 @@ class Lockin(QMainWindow):
                 # Comment it in real implementation
                 self.isConnect = True
 
-    def update_lockin(self, X, Y, Mag, Phase):
+    def update_lockin(self, X, Y, R, Theta):
         self.X = X
         self.Y = Y
-        self.Mag = Mag
-        self.Phase = Phase
+        self.R = R
+        self.Theta = Theta
         if self.isConnect:
             self.lockiin_x_reading_label.setText(f"{self.X} Volts")
             self.lockiin_y_reading_label.setText(f"{self.Y} Volts")
-            self.lockiin_mag_reading_label.setText(f"{self.Mag} Volts")
-            self.lockiin_phase_reading_label.setText(f"{self.Phase} deg")
+            self.lockiin_mag_reading_label.setText(f"{self.R} Volts")
+            self.lockiin_phase_reading_label.setText(f"{self.Theta} deg")
 
         else:
             self.lockiin_x_reading_label.setText(f"N/A Volts")
@@ -356,7 +384,6 @@ class Lockin(QMainWindow):
             self.lockiin_phase_reading_label.setText(f"N/A deg")
 
     def plot_selection(self):
-        # This method updates the label based on the checkbox states
         status = []
         if self.checkbox1.isChecked():
             status.append(self.checkbox1.text())
@@ -369,10 +396,23 @@ class Lockin(QMainWindow):
         else:
             self.isCheckedBox2 = False
 
+        if self.checkbox3.isChecked():
+            status.append(self.checkbox1.text())
+            self.isCheckedBox3 = True
+        else:
+            self.isCheckedBox3 = False
+        if self.checkbox4.isChecked():
+            status.append(self.checkbox1.text())
+            self.isCheckedBox4 = True
+        else:
+            self.isCheckedBox4 = False
+
         if len(status) > 0 and self.isConnect == True:
             self.canvas.axes.cla()
-            self.channel1_Volt_Array = []
-            self.channel2_Volt_Array = []
+            self.x_array = []
+            self.y_array = []
+            self.r_array = []
+            self.theta_array = []
             self.counter = 0
             self.counter_array = []
             self.counter_array.append(self.counter)
@@ -381,23 +421,32 @@ class Lockin(QMainWindow):
 
             # Setup a timer to trigger the redraw by calling update_plot.
             self.timer = QTimer()
-            self.timer.setInterval(1000)
+            self.timer.setInterval(500)
             self.timer.timeout.connect(self.update_plot)
             self.timer.start()
 
     def update_plot(self):
         # self.canvas.axes.cla()  # Clear the canvas.
+        self.x_array.append(self.X)
+        self.y_array.append(self.Y)
+        self.r_array.append(self.R)
+        self.theta_array.append(self.Theta)
+        # # Drop off the first y element, append a new one.
         if self.isCheckedBox1 == True:
             self.isPlotting = True
-            self.channel1_Volt_Array.append(self.Chan_1_voltage)
-            # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter_array, self.channel1_Volt_Array, 'black')
+            self.canvas.axes.plot(self.counter_array, self.x_array, 'blue')
             self.canvas.draw()
         if self.isCheckedBox2 == True:
             self.isPlotting = True
-            self.channel2_Volt_Array.append(self.Chan_2_voltage)
-            # # Drop off the first y element, append a new one.
-            self.canvas.axes.plot(self.counter_array, self.channel2_Volt_Array, 'r')
+            self.canvas.axes.plot(self.counter_array, self.y_array, 'orange')
+            self.canvas.draw()
+        if self.isCheckedBox3 == True:
+            self.isPlotting = True
+            self.canvas.axes.plot(self.counter_array, self.r_array, 'black')
+            self.canvas.draw()
+        if self.isCheckedBox4 == True:
+            self.isPlotting = True
+            self.canvas.axes.plot(self.counter_array, self.theta_array, 'purple')
             self.canvas.draw()
         self.counter += 1
         self.counter_array.append(self.counter)

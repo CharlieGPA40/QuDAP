@@ -16,6 +16,7 @@ import GUI.QDesign.DSP7265 as dsp
 import GUI.QDesign.Keithley2182nv as nv
 import GUI.QDesign.Keithley6221 as cs
 import GUI.QDesign.BNC845RF as rf
+import GUI.QDesign.sr830 as sr
 import GUI.QDesign.measurement as m
 import GUI.Dashboard.Dashboard as Dashboard
 import GUI.Plot.plotting as pt
@@ -188,6 +189,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(shg_general.General())  # 12
         self.pages.addWidget(pt.plotting())  # 13
         self.pages.addWidget(dsp.Lockin())  # 14
+        self.pages.addWidget(sr.sr830Lockin())  # 15
 
         # self.toggle_dark_mode()
         # Main Layout
@@ -271,6 +273,7 @@ class MainWindow(QMainWindow):
             self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
             self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
             self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
+            self.right_sidebar.addItem(QListWidgetItem("sr830 Lock-in"))
             self.right_sidebar.addItem(QListWidgetItem("Measure"))
             self.right_sidebar.addItem(QListWidgetItem("Quick Test"))
             self.right_sidebar.currentRowChanged.connect(self.update_exp_processing)
@@ -351,13 +354,18 @@ class MainWindow(QMainWindow):
 
         elif current_row == 5:  # Imaging
             self.right_sidebar.setCurrentRow(5)
-            self.pages.setCurrentIndex(11)
+            self.pages.setCurrentIndex(15)
             self.currentqdindex = 5
 
         elif current_row == 6:  # Imaging
             self.right_sidebar.setCurrentRow(6)
             self.pages.setCurrentIndex(11)
             self.currentqdindex = 6
+
+        elif current_row == 7:  # Imaging
+            self.right_sidebar.setCurrentRow(7)
+            self.pages.setCurrentIndex(11)
+            self.currentqdindex = 7
 
 
     def update_tool_bar(self, current_row):

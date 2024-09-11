@@ -19,8 +19,10 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import random
 import time
-import MultiPyVu as mpv  # Uncommented it on the server computer
-from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
+import platform
+if platform.system() == 'Windows':
+    import MultiPyVu as mpv  # Uncommented it on the server computer
+    from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
 from datetime import datetime
 import traceback
 import os
