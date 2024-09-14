@@ -520,6 +520,7 @@ class Measurement(QMainWindow):
                         self.xps_password_entry_box.setEchoMode(QLineEdit.EchoMode.Password)
 
                         self.xps_server_btn = QPushButton('Start Service')
+                        self.xps_server_btn_clicked = False
                         # self.xps_server_btn.clicked.connect(self.xps_start_server)
 
                         self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
@@ -750,23 +751,29 @@ class Measurement(QMainWindow):
                     self.clear_layout(child.layout())
 
     def xps_start_server(self):
-        from newportxps import NewportXPS
-        self.xps_host = self.xps_host_entry_box.displayText()
-        self.xps_username = self.xps_Username_entry_box.displayText()
-        self.xps_password = self.xps_password_entry_box.displayText()
+        if self.xps_server_btn_clicked == False:
+            self.xps_server_btn_clicked = True
+            self.xps_server_btn.setText('Stop Service')
+            from newportxps import NewportXPS
+            self.xps_host = self.xps_host_entry_box.displayText()
+            self.xps_username = self.xps_Username_entry_box.displayText()
+            self.xps_password = self.xps_password_entry_box.displayText()
 
-        try:
-            xps = NewportXPS(self.xps_host, username=self.xps_username, password=self.xps_password)
-            print(xps.status_report)
-        except SystemExit as e:
-            QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
-                                                           'was detected. Please start MultiVu and retry without administration')
-            self.server_btn.setText('Start Server')
-            event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-            QApplication.sendEvent(self, event)
-            event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-            QApplication.sendEvent(self, event)
-            return
+            try:
+                self.xps = NewportXPS(self.xps_host, username=self.xps_username, password=self.xps_password)
+                print(self.xps.status_report)
+            except SystemExit as e:
+                QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
+                                                               'was detected. Please start MultiVu and retry without administration')
+                self.server_btn.setText('Start Server')
+                event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(self, event)
+                event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(self, event)
+                return
+        else:
+            self.xps_server_btn_clicked = False
+            self.xps_server_btn.setText('Start Service')
 
 
     def start_server(self):

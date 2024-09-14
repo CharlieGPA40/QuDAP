@@ -595,7 +595,7 @@ class Dash(QMainWindow):
         elif widget.objectName() == 'GPIB' or widget.objectName() == 'ASLR' or widget.objectName() == 'USB' or widget.objectName() == 'TCPIP':
             self.page_index = 11
             self.left_index = 2
-            self.right_index = 6
+            self.right_index = 7
         else:
             self.page_index = 0
             self.left_index = 0

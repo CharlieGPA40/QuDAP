@@ -20,6 +20,7 @@ import GUI.QDesign.sr830 as sr
 import GUI.QDesign.measurement as m
 import GUI.Dashboard.Dashboard as Dashboard
 import GUI.Plot.plotting as pt
+import GUI.QDesign.xps as xps
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)
@@ -190,6 +191,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(pt.plotting())  # 13
         self.pages.addWidget(dsp.Lockin())  # 14
         self.pages.addWidget(sr.sr830Lockin())  # 15
+        self.pages.addWidget(xps.XPS())  # 16
 
         # self.toggle_dark_mode()
         # Main Layout
@@ -274,6 +276,7 @@ class MainWindow(QMainWindow):
             self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
             self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
             self.right_sidebar.addItem(QListWidgetItem("sr830 Lock-in"))
+            self.right_sidebar.addItem(QListWidgetItem("XPS"))
             self.right_sidebar.addItem(QListWidgetItem("Measure"))
             self.right_sidebar.addItem(QListWidgetItem("Quick Test"))
             self.right_sidebar.currentRowChanged.connect(self.update_exp_processing)
@@ -359,13 +362,18 @@ class MainWindow(QMainWindow):
 
         elif current_row == 6:  # Imaging
             self.right_sidebar.setCurrentRow(6)
-            self.pages.setCurrentIndex(11)
+            self.pages.setCurrentIndex(16)
             self.currentqdindex = 6
 
         elif current_row == 7:  # Imaging
             self.right_sidebar.setCurrentRow(7)
             self.pages.setCurrentIndex(11)
             self.currentqdindex = 7
+
+        elif current_row == 8:  # Imaging
+            self.right_sidebar.setCurrentRow(8)
+            self.pages.setCurrentIndex(11)
+            self.currentqdindex = 8
 
 
     def update_tool_bar(self, current_row):
