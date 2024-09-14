@@ -397,6 +397,8 @@ class Measurement(QMainWindow):
         self.ETO_radio_buttom.setFont(self.font)
         self.FMR_radio_buttom = QRadioButton("FMR")
         self.FMR_radio_buttom.setFont(self.font)
+        self.PaP_radio_buttom = QRadioButton("Pump and Probe")
+        self.PaP_radio_buttom.setFont(self.font)
         self.reset_preset_buttom = QPushButton("Reset")
         self.select_preset_buttom = QPushButton("Select")
         self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
@@ -411,6 +413,8 @@ class Measurement(QMainWindow):
         self.radio_btn_layout.addWidget(self.ETO_radio_buttom)
         self.radio_btn_layout.addStretch(1)
         self.radio_btn_layout.addWidget(self.FMR_radio_buttom)
+        self.radio_btn_layout.addStretch(2)
+        self.radio_btn_layout.addWidget(self.PaP_radio_buttom)
         self.radio_btn_layout.addStretch(2)
 
         self.select_preset_btn_layout = QHBoxLayout()
@@ -481,48 +485,103 @@ class Measurement(QMainWindow):
             self.ppms_main_layout = QHBoxLayout()
             self.connection_group_box = QGroupBox("PPMS Connection")
             self.connection_box_layout = QVBoxLayout()
+
+            self.xps_container = QWidget()
+            self.xps_main_layout = QHBoxLayout()
+            self.xps_connection_group_box = QGroupBox("XPS Connection")
+            self.xps_connection_box_layout = QVBoxLayout()
             # --------------------------------------- Part connection_PPMS ----------------------------
-            self.ppms_connection = QVBoxLayout()
-            self.ppms_host_connection_layout = QHBoxLayout()
-            self.ppms_port_connection_layout = QHBoxLayout()
-            self.ppms_connection_button_layout = QHBoxLayout()
-            self.host_label = QLabel("PPMS Host:")
-            self.host_label.setFont(self.font)
-            self.host_entry_box = QLineEdit("127.0.0.1")
-            self.host_entry_box.setFont(self.font)
-            self.host_entry_box.setFixedHeight(30)
-            self.port_label = QLabel("PPMS Port:")
-            self.port_label.setFont(self.font)
-            self.port_entry_box = QLineEdit("5000")
-            self.port_entry_box.setFont(self.font)
-            self.port_entry_box.setFixedHeight(30)
-            self.server_btn = QPushButton('Start Server')
-            self.server_btn_clicked = False
-            self.server_btn.clicked.connect(self.start_server)
-            self.connect_btn = QPushButton('Client Connect')
-            self.connect_btn.setEnabled(False)
-            self.connect_btn_clicked = False
-            self.connect_btn.clicked.connect(self.connect_client)
+            if self.PaP_radio_buttom.isChecked():
+                self.xps_connection = QVBoxLayout()
+                self.xps_host_connection_layout = QHBoxLayout()
+                self.xps_username_connection_layout = QHBoxLayout()
+                self.xps_password_connection_layout = QHBoxLayout()
+                self.xps_connection_button_layout = QHBoxLayout()
+                self.xps_host_label = QLabel("XPS Host:")
+                self.xps_host_label.setFont(self.font)
+                self.xps_host_entry_box = QLineEdit("192.168.254.254")
+                self.xps_host_entry_box.setFont(self.font)
+                self.xps_host_entry_box.setFixedHeight(30)
+                self.xps_Username_label = QLabel("Username:")
+                self.xps_Username_label.setFont(self.font)
+                self.xps_Username_entry_box = QLineEdit("Administrator")
+                self.xps_Username_entry_box.setFont(self.font)
+                self.xps_Username_entry_box.setFixedHeight(30)
+                self.xps_password_label = QLabel("Password:")
+                self.xps_password_label.setFont(self.font)
+                self.xps_password_entry_box = QLineEdit("Administrator")
+                self.xps_password_entry_box.setFont(self.font)
+                self.xps_password_entry_box.setFixedHeight(30)
+                self.xps_password_entry_box.setEchoMode(QLineEdit.EchoMode.Password)
+                self.xps_server_btn = QPushButton('Start Service')
+                self.xps_server_btn_clicked = False
+                self.xps_server_btn.clicked.connect(self.xps_start_server)
+                self.xps_timeout = 10000
 
-            self.ppms_host_connection_layout.addWidget(self.host_label, 1)
-            self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+                self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
+                self.xps_host_connection_layout.addWidget(self.xps_host_entry_box, 2)
 
-            self.ppms_port_connection_layout.addWidget(self.port_label, 1)
-            self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+                self.xps_username_connection_layout.addWidget(self.xps_Username_label, 1)
+                self.xps_username_connection_layout.addWidget(self.xps_Username_entry_box, 2)
 
-            self.ppms_connection_button_layout.addWidget(self.server_btn)
-            self.ppms_connection_button_layout.addWidget(self.connect_btn)
+                self.xps_password_connection_layout.addWidget(self.xps_password_label, 1)
+                self.xps_password_connection_layout.addWidget(self.xps_password_entry_box, 2)
 
-            self.ppms_connection.addLayout(self.ppms_host_connection_layout)
-            self.ppms_connection.addLayout(self.ppms_port_connection_layout)
-            self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+                self.xps_connection_button_layout.addWidget(self.server_btn)
 
-            self.connection_group_box.setLayout(self.ppms_connection)
-            self.ppms_main_layout.addWidget(self.connection_group_box)
-            self.ppms_container.setFixedSize(380, 180)
-            self.ppms_container.setLayout(self.ppms_main_layout)
+                self.xps_connection.addLayout(self.xps_host_connection_layout)
+                self.xps_connection.addLayout(self.xps_username_connection_layout)
+                self.xps_connection.addLayout(self.xps_password_connection_layout)
+                self.xps_connection.addLayout(self.xps_connection_button_layout)
 
-            self.instrument_connection_layout.addWidget(self.ppms_container)
+                self.xps_connection_group_box.setLayout(self.xps_connection)
+                self.xps_main_layout.addWidget(self.xps_connection_group_box)
+                self.xps_container.setFixedSize(380, 180)
+                self.xps_container.setLayout(self.xps_main_layout)
+
+                self.instrument_connection_layout.addWidget(self.xps_container)
+            else:
+                self.ppms_connection = QVBoxLayout()
+                self.ppms_host_connection_layout = QHBoxLayout()
+                self.ppms_port_connection_layout = QHBoxLayout()
+                self.ppms_connection_button_layout = QHBoxLayout()
+                self.host_label = QLabel("PPMS Host:")
+                self.host_label.setFont(self.font)
+                self.host_entry_box = QLineEdit("127.0.0.1")
+                self.host_entry_box.setFont(self.font)
+                self.host_entry_box.setFixedHeight(30)
+                self.port_label = QLabel("PPMS Port:")
+                self.port_label.setFont(self.font)
+                self.port_entry_box = QLineEdit("5000")
+                self.port_entry_box.setFont(self.font)
+                self.port_entry_box.setFixedHeight(30)
+                self.server_btn = QPushButton('Start Server')
+                self.server_btn_clicked = False
+                self.server_btn.clicked.connect(self.start_server)
+                self.connect_btn = QPushButton('Client Connect')
+                self.connect_btn.setEnabled(False)
+                self.connect_btn_clicked = False
+                self.connect_btn.clicked.connect(self.connect_client)
+
+                self.ppms_host_connection_layout.addWidget(self.host_label, 1)
+                self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+
+                self.ppms_port_connection_layout.addWidget(self.port_label, 1)
+                self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+
+                self.ppms_connection_button_layout.addWidget(self.server_btn)
+                self.ppms_connection_button_layout.addWidget(self.connect_btn)
+
+                self.ppms_connection.addLayout(self.ppms_host_connection_layout)
+                self.ppms_connection.addLayout(self.ppms_port_connection_layout)
+                self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+
+                self.connection_group_box.setLayout(self.ppms_connection)
+                self.ppms_main_layout.addWidget(self.connection_group_box)
+                self.ppms_container.setFixedSize(380, 180)
+                self.ppms_container.setLayout(self.ppms_main_layout)
+
+                self.instrument_connection_layout.addWidget(self.ppms_container)
 
             self.instrument_container = QWidget()
             self.instrument_main_layout = QHBoxLayout()
@@ -668,6 +727,26 @@ class Measurement(QMainWindow):
                     child.widget().deleteLater()
                 if child.layout() is not None:
                     self.clear_layout(child.layout())
+
+    def xps_start_server(self):
+        from newportxps import NewportXPS
+        self.xps_host = self.xps_host_entry_box.displayText()
+        self.xps_username = self.xps_Username_entry_box.displayText()
+        self.xps_password = self.xps_password_entry_box.displayText()
+
+        try:
+            xps = NewportXPS(self.xps_host, username=self.xps_username, password=self.xps_password)
+            
+        except SystemExit as e:
+            QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
+                                                           'was detected. Please start MultiVu and retry without administration')
+            self.server_btn.setText('Start Server')
+            event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            QApplication.sendEvent(self, event)
+            event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            QApplication.sendEvent(self, event)
+            return
+
 
     def start_server(self):
         if self.server_btn_clicked == False:
