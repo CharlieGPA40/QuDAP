@@ -426,7 +426,7 @@ class Measurement(QMainWindow):
         self.Preset_group_box.setLayout(self.preset_layout)
 
         self.preset_container = QWidget()
-        self.preset_container.setFixedSize(380, 180)
+        self.preset_container.setFixedSize(380, 200)
 
         self.preset_container_layout = QHBoxLayout()
         self.preset_container_layout.addWidget(self.Preset_group_box, 1)
@@ -476,219 +476,240 @@ class Measurement(QMainWindow):
             return
 
     def preset_select(self):
-        if self.preseted == False:
-            self.preseted = True
-            with open("GUI/QSS/QComboWidget.qss", "r") as file:
-                self.QCombo_stylesheet = file.read()
-            # --------------------------------------- Part connection ----------------------------
-            self.ppms_container = QWidget()
-            self.ppms_main_layout = QHBoxLayout()
-            self.connection_group_box = QGroupBox("PPMS Connection")
-            self.connection_box_layout = QVBoxLayout()
+        try:
+            if self.preseted == False:
+                self.preseted = True
+                with open("GUI/QSS/QComboWidget.qss", "r") as file:
+                    self.QCombo_stylesheet = file.read()
+                # --------------------------------------- Part connection ----------------------------
+                self.ppms_container = QWidget()
+                self.ppms_main_layout = QHBoxLayout()
+                self.connection_group_box = QGroupBox("PPMS Connection")
+                self.connection_box_layout = QVBoxLayout()
 
-            self.xps_container = QWidget()
-            self.xps_main_layout = QHBoxLayout()
-            self.xps_connection_group_box = QGroupBox("XPS Connection")
-            self.xps_connection_box_layout = QVBoxLayout()
-            # --------------------------------------- Part connection_PPMS ----------------------------
-            if self.PaP_radio_buttom.isChecked():
-                self.xps_connection = QVBoxLayout()
-                self.xps_host_connection_layout = QHBoxLayout()
-                self.xps_username_connection_layout = QHBoxLayout()
-                self.xps_password_connection_layout = QHBoxLayout()
-                self.xps_connection_button_layout = QHBoxLayout()
-                self.xps_host_label = QLabel("XPS Host:")
-                self.xps_host_label.setFont(self.font)
-                self.xps_host_entry_box = QLineEdit("192.168.254.254")
-                self.xps_host_entry_box.setFont(self.font)
-                self.xps_host_entry_box.setFixedHeight(30)
-                self.xps_Username_label = QLabel("Username:")
-                self.xps_Username_label.setFont(self.font)
-                self.xps_Username_entry_box = QLineEdit("Administrator")
-                self.xps_Username_entry_box.setFont(self.font)
-                self.xps_Username_entry_box.setFixedHeight(30)
-                self.xps_password_label = QLabel("Password:")
-                self.xps_password_label.setFont(self.font)
-                self.xps_password_entry_box = QLineEdit("Administrator")
-                self.xps_password_entry_box.setFont(self.font)
-                self.xps_password_entry_box.setFixedHeight(30)
-                self.xps_password_entry_box.setEchoMode(QLineEdit.EchoMode.Password)
-                self.xps_server_btn = QPushButton('Start Service')
-                self.xps_server_btn_clicked = False
-                self.xps_server_btn.clicked.connect(self.xps_start_server)
-                self.xps_timeout = 10000
+                self.xps_container = QWidget()
+                self.xps_main_layout = QHBoxLayout()
+                self.xps_connection_group_box = QGroupBox("XPS Connection")
+                self.xps_connection_box_layout = QVBoxLayout()
+                # --------------------------------------- Part connection_PPMS ----------------------------
+                if self.PaP_radio_buttom.isChecked():
+                    try:
+                        self.xps_connection = QVBoxLayout()
+                        self.xps_host_connection_layout = QHBoxLayout()
+                        self.xps_username_connection_layout = QHBoxLayout()
+                        self.xps_password_connection_layout = QHBoxLayout()
+                        self.xps_connection_button_layout = QHBoxLayout()
 
-                self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
-                self.xps_host_connection_layout.addWidget(self.xps_host_entry_box, 2)
+                        self.xps_host_label = QLabel("XPS Host:")
+                        self.xps_host_label.setFont(self.font)
+                        self.xps_host_entry_box = QLineEdit("192.168.254.254")
+                        self.xps_host_entry_box.setFont(self.font)
+                        self.xps_host_entry_box.setFixedHeight(30)
 
-                self.xps_username_connection_layout.addWidget(self.xps_Username_label, 1)
-                self.xps_username_connection_layout.addWidget(self.xps_Username_entry_box, 2)
+                        self.xps_Username_label = QLabel("Username:")
+                        self.xps_Username_label.setFont(self.font)
+                        self.xps_Username_entry_box = QLineEdit("Administrator")
+                        self.xps_Username_entry_box.setFont(self.font)
+                        self.xps_Username_entry_box.setFixedHeight(30)
 
-                self.xps_password_connection_layout.addWidget(self.xps_password_label, 1)
-                self.xps_password_connection_layout.addWidget(self.xps_password_entry_box, 2)
+                        self.xps_password_label = QLabel("Password:")
+                        self.xps_password_label.setFont(self.font)
+                        self.xps_password_entry_box = QLineEdit("Administrator")
+                        self.xps_password_entry_box.setFont(self.font)
+                        self.xps_password_entry_box.setFixedHeight(30)
+                        self.xps_password_entry_box.setEchoMode(QLineEdit.EchoMode.Password)
 
-                self.xps_connection_button_layout.addWidget(self.server_btn)
+                        self.xps_server_btn = QPushButton('Start Service')
+                        # self.xps_server_btn.clicked.connect(self.xps_start_server)
 
-                self.xps_connection.addLayout(self.xps_host_connection_layout)
-                self.xps_connection.addLayout(self.xps_username_connection_layout)
-                self.xps_connection.addLayout(self.xps_password_connection_layout)
-                self.xps_connection.addLayout(self.xps_connection_button_layout)
+                        self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
+                        self.xps_host_connection_layout.addWidget(self.xps_host_entry_box, 2)
 
-                self.xps_connection_group_box.setLayout(self.xps_connection)
-                self.xps_main_layout.addWidget(self.xps_connection_group_box)
-                self.xps_container.setFixedSize(380, 180)
-                self.xps_container.setLayout(self.xps_main_layout)
+                        self.xps_username_connection_layout.addWidget(self.xps_Username_label, 1)
+                        self.xps_username_connection_layout.addWidget(self.xps_Username_entry_box, 2)
 
-                self.instrument_connection_layout.addWidget(self.xps_container)
-            else:
-                self.ppms_connection = QVBoxLayout()
-                self.ppms_host_connection_layout = QHBoxLayout()
-                self.ppms_port_connection_layout = QHBoxLayout()
-                self.ppms_connection_button_layout = QHBoxLayout()
-                self.host_label = QLabel("PPMS Host:")
-                self.host_label.setFont(self.font)
-                self.host_entry_box = QLineEdit("127.0.0.1")
-                self.host_entry_box.setFont(self.font)
-                self.host_entry_box.setFixedHeight(30)
-                self.port_label = QLabel("PPMS Port:")
-                self.port_label.setFont(self.font)
-                self.port_entry_box = QLineEdit("5000")
-                self.port_entry_box.setFont(self.font)
-                self.port_entry_box.setFixedHeight(30)
-                self.server_btn = QPushButton('Start Server')
-                self.server_btn_clicked = False
-                self.server_btn.clicked.connect(self.start_server)
-                self.connect_btn = QPushButton('Client Connect')
-                self.connect_btn.setEnabled(False)
-                self.connect_btn_clicked = False
-                self.connect_btn.clicked.connect(self.connect_client)
+                        self.xps_password_connection_layout.addWidget(self.xps_password_label, 1)
+                        self.xps_password_connection_layout.addWidget(self.xps_password_entry_box, 2)
 
-                self.ppms_host_connection_layout.addWidget(self.host_label, 1)
-                self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+                        self.xps_password_connection_layout.addStretch(1)
+                        self.xps_connection_button_layout.addWidget(self.xps_server_btn)
+                        # self.xps_connection_container = QWidget()
+                        # self.xps_connection_container.setFixedSize(380, 40)
 
-                self.ppms_port_connection_layout.addWidget(self.port_label, 1)
-                self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+                        self.xps_connection.addLayout(self.xps_host_connection_layout)
+                        self.xps_connection.addLayout(self.xps_username_connection_layout)
+                        self.xps_connection.addLayout(self.xps_password_connection_layout)
+                        self.xps_connection.addLayout(self.xps_connection_button_layout)
 
-                self.ppms_connection_button_layout.addWidget(self.server_btn)
-                self.ppms_connection_button_layout.addWidget(self.connect_btn)
+                        self.xps_connection_group_box.setLayout(self.xps_connection)
+                        self.xps_main_layout.addWidget(self.xps_connection_group_box)
+                        self.xps_container.setFixedSize(380, 200)
+                        self.xps_container.setLayout(self.xps_main_layout)
 
-                self.ppms_connection.addLayout(self.ppms_host_connection_layout)
-                self.ppms_connection.addLayout(self.ppms_port_connection_layout)
-                self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+                        self.instrument_connection_layout.addWidget(self.xps_container)
 
-                self.connection_group_box.setLayout(self.ppms_connection)
-                self.ppms_main_layout.addWidget(self.connection_group_box)
-                self.ppms_container.setFixedSize(380, 180)
-                self.ppms_container.setLayout(self.ppms_main_layout)
 
-                self.instrument_connection_layout.addWidget(self.ppms_container)
+                        self.xps_server_btn.setStyleSheet(self.Button_stylesheet)
 
-            self.instrument_container = QWidget()
-            self.instrument_main_layout = QHBoxLayout()
-            self.instrument_connection_group_box = QGroupBox("Select Instruments")
-            self.instrument_connection_box_layout = QVBoxLayout()
+                    except SystemExit as e:
+                        tb_str = traceback.format_exc()
+                        QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+                else:
+                    self.ppms_connection = QVBoxLayout()
+                    self.ppms_host_connection_layout = QHBoxLayout()
+                    self.ppms_port_connection_layout = QHBoxLayout()
+                    self.ppms_connection_button_layout = QHBoxLayout()
+                    self.host_label = QLabel("PPMS Host:")
+                    self.host_label.setFont(self.font)
+                    self.host_entry_box = QLineEdit("127.0.0.1")
+                    self.host_entry_box.setFont(self.font)
+                    self.host_entry_box.setFixedHeight(30)
+                    self.port_label = QLabel("PPMS Port:")
+                    self.port_label.setFont(self.font)
+                    self.port_entry_box = QLineEdit("5000")
+                    self.port_entry_box.setFont(self.font)
+                    self.port_entry_box.setFixedHeight(30)
+                    self.server_btn = QPushButton('Start Server')
+                    self.server_btn_clicked = False
+                    self.server_btn.clicked.connect(self.start_server)
+                    self.connect_btn = QPushButton('Client Connect')
+                    self.connect_btn.setEnabled(False)
+                    self.connect_btn_clicked = False
+                    self.connect_btn.clicked.connect(self.connect_client)
 
-            self.Instru_main_layout = QVBoxLayout()
-            self.instru_select_layout = QHBoxLayout()
-            self.instru_connection_layout = QHBoxLayout()
-            self.instru_cnt_btn_layout = QHBoxLayout()
-            self.Instruments_sel_label = QLabel("Select Instruments:")
-            self.Instruments_sel_label.setFont(self.font)
-            self.Instruments_combo = QComboBox()
-            self.Instruments_combo.setFont(self.font)
-            self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
-            if self.ETO_radio_buttom.isChecked():
-                self.Instruments_combo.addItems(
-                    ["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
-            elif self.FMR_radio_buttom.isChecked():
-                self.Instruments_combo.addItems(["BNC 845 RF", "DSP 7265 Lock-in"])
-            self.Instruments_combo.currentIndexChanged.connect(self.instru_combo_index_change)
+                    self.ppms_host_connection_layout.addWidget(self.host_label, 1)
+                    self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
 
-            self.Instruments_port_label = QLabel("Channel:")
-            self.Instruments_port_label.setFont(self.font)
-            self.connection_combo = QComboBox()
-            self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
-            self.connection_combo.setFont(self.font)
+                    self.ppms_port_connection_layout.addWidget(self.port_label, 1)
+                    self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
 
-            self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
-            self.refresh_btn.clicked.connect(self.refresh_Connection_List)
-            self.instru_connect_btn = QPushButton('Connect')
-            self.instru_connect_btn.clicked.connect(self.connect_devices)
-            self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
-            self.instru_select_layout.addWidget(self.Instruments_combo, 2)
+                    self.ppms_connection_button_layout.addWidget(self.server_btn)
+                    self.ppms_connection_button_layout.addWidget(self.connect_btn)
 
-            self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
-            self.instru_connection_layout.addWidget(self.connection_combo, 3)
-            self.refresh_Connection_List()
-            self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
-            self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
-            self.Instru_main_layout.addLayout(self.instru_select_layout)
-            self.Instru_main_layout.addLayout(self.instru_connection_layout)
-            self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
-            self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
-            self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-            self.instrument_container.setFixedSize(380, 180)
-            self.instrument_container.setLayout(self.instrument_main_layout)
-            self.instrument_connection_layout.addWidget(self.instrument_container)
+                    self.ppms_connection.addLayout(self.ppms_host_connection_layout)
+                    self.ppms_connection.addLayout(self.ppms_port_connection_layout)
+                    self.ppms_connection.addLayout(self.ppms_connection_button_layout)
 
-            self.PPMS_measurement_setup_layout = QHBoxLayout()
-            self.Instruments_Content_Layout.addLayout(self.PPMS_measurement_setup_layout)
+                    self.connection_group_box.setLayout(self.ppms_connection)
+                    self.ppms_main_layout.addWidget(self.connection_group_box)
+                    self.ppms_container.setFixedSize(380, 200)
+                    self.ppms_container.setLayout(self.ppms_main_layout)
 
-            self.Instruments_measurement_setup_layout = QHBoxLayout()
-            self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
+                    self.instrument_connection_layout.addWidget(self.ppms_container)
+                    self.server_btn.setStyleSheet(self.Button_stylesheet)
+                    self.connect_btn.setStyleSheet(self.Button_stylesheet)
 
-            self.main_layout.addLayout(self.Instruments_Content_Layout)
+                self.instrument_container = QWidget()
+                self.instrument_main_layout = QHBoxLayout()
+                self.instrument_connection_group_box = QGroupBox("Select Instruments")
+                self.instrument_connection_box_layout = QVBoxLayout()
 
-            self.graphing_layout = QHBoxLayout()
+                self.Instru_main_layout = QVBoxLayout()
+                self.instru_select_layout = QHBoxLayout()
+                self.instru_connection_layout = QHBoxLayout()
+                self.instru_cnt_btn_layout = QHBoxLayout()
+                self.Instruments_sel_label = QLabel("Select Instruments:")
+                self.Instruments_sel_label.setFont(self.font)
+                self.Instruments_combo = QComboBox()
+                self.Instruments_combo.setFont(self.font)
+                self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
+                if self.ETO_radio_buttom.isChecked():
+                    self.Instruments_combo.addItems(
+                        ["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
+                elif self.FMR_radio_buttom.isChecked():
+                    self.Instruments_combo.addItems(["Select Instruments","BNC 845 RF", "DSP 7265 Lock-in"])
+                elif self.PaP_radio_buttom.isChecked():
+                    self.Instruments_combo.addItems(["Select Instruments","sr830 Lock-in", "DSP 7265 Lock-in"])
+                self.Instruments_combo.currentIndexChanged.connect(self.instru_combo_index_change)
+                self.Instruments_port_label = QLabel("Channel:")
+                self.Instruments_port_label.setFont(self.font)
+                self.connection_combo = QComboBox()
+                self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
+                self.connection_combo.setFont(self.font)
 
-            figure_group_box = QGroupBox("Graph")
-            figure_Layout = QVBoxLayout()
-            self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
-            self.canvas.axes_2 = self.canvas.axes.twinx()
-            toolbar = NavigationToolbar(self.canvas, self)
-            toolbar.setStyleSheet("""
-                                             QWidget {
-                                                 border: None;
-                                             }
-                                         """)
-            figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-            figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-            figure_group_box.setLayout(figure_Layout)
-            figure_group_box.setFixedSize(1150,400)
-            self.figure_container_layout = QHBoxLayout()
-            self.figure_container = QWidget(self)
-            self.buttons_layout = QHBoxLayout()
-            self.start_measurement_btn = QPushButton('Start')
-            self.start_measurement_btn.clicked.connect(self.start_measurement)
-            self.stop_btn = QPushButton('Stop')
-            self.stop_btn.clicked.connect(self.stop_measurement)
-            self.rst_btn = QPushButton('Reset')
-            self.rst_btn.clicked.connect(self.rst)
-            self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
-            self.stop_btn.setStyleSheet(self.Button_stylesheet)
-            self.rst_btn.setStyleSheet(self.Button_stylesheet)
-            self.buttons_layout.addStretch(4)
-            self.buttons_layout.addWidget(self.rst_btn)
-            self.buttons_layout.addWidget(self.stop_btn)
-            self.buttons_layout.addWidget(self.start_measurement_btn)
+                self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
+                self.refresh_btn.clicked.connect(self.refresh_Connection_List)
+                self.instru_connect_btn = QPushButton('Connect')
+                self.instru_connect_btn.clicked.connect(self.connect_devices)
+                self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
+                self.instru_select_layout.addWidget(self.Instruments_combo, 2)
 
-            self.button_container = QWidget()
-            self.button_container.setLayout(self.buttons_layout)
-            self.button_container.setFixedSize(1150,80)
+                self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
+                self.instru_connection_layout.addWidget(self.connection_combo, 3)
+                self.refresh_Connection_List()
+                self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
+                self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
+                self.Instru_main_layout.addLayout(self.instru_select_layout)
+                self.Instru_main_layout.addLayout(self.instru_connection_layout)
+                self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
+                self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
+                self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
+                self.instrument_container.setFixedSize(380, 200)
+                self.instrument_container.setLayout(self.instrument_main_layout)
+                self.instrument_connection_layout.addWidget(self.instrument_container)
 
-            self.figure_container_layout.addWidget(figure_group_box)
-            self.figure_container.setLayout(self.figure_container_layout)
-            self.graphing_layout.addWidget(self.figure_container)
-            self.main_layout.addLayout(self.graphing_layout)
-            self.main_layout.addWidget(self.button_container)
+                self.PPMS_measurement_setup_layout = QHBoxLayout()
+                self.Instruments_Content_Layout.addLayout(self.PPMS_measurement_setup_layout)
 
-            self.setCentralWidget(self.scroll_area)
+                self.xpsmeasurement_setup_layout = QHBoxLayout()
+                self.Instruments_Content_Layout.addLayout(self.xpsmeasurement_setup_layout)
 
-            self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
-            self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
-            self.refresh_btn.setStyleSheet(self.Button_stylesheet)
-            self.server_btn.setStyleSheet(self.Button_stylesheet)
-            self.connect_btn.setStyleSheet(self.Button_stylesheet)
+                self.Instruments_measurement_setup_layout = QHBoxLayout()
+                self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
+
+                self.main_layout.addLayout(self.Instruments_Content_Layout)
+
+                self.graphing_layout = QHBoxLayout()
+
+                figure_group_box = QGroupBox("Graph")
+                figure_Layout = QVBoxLayout()
+                self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
+                self.canvas.axes_2 = self.canvas.axes.twinx()
+                toolbar = NavigationToolbar(self.canvas, self)
+                toolbar.setStyleSheet("""
+                                                 QWidget {
+                                                     border: None;
+                                                 }
+                                             """)
+                figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+                figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+                figure_group_box.setLayout(figure_Layout)
+                figure_group_box.setFixedSize(1150,400)
+                self.figure_container_layout = QHBoxLayout()
+                self.figure_container = QWidget(self)
+                self.buttons_layout = QHBoxLayout()
+                self.start_measurement_btn = QPushButton('Start')
+                self.start_measurement_btn.clicked.connect(self.start_measurement)
+                self.stop_btn = QPushButton('Stop')
+                self.stop_btn.clicked.connect(self.stop_measurement)
+                self.rst_btn = QPushButton('Reset')
+                self.rst_btn.clicked.connect(self.rst)
+                self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
+                self.stop_btn.setStyleSheet(self.Button_stylesheet)
+                self.rst_btn.setStyleSheet(self.Button_stylesheet)
+                self.buttons_layout.addStretch(4)
+                self.buttons_layout.addWidget(self.rst_btn)
+                self.buttons_layout.addWidget(self.stop_btn)
+                self.buttons_layout.addWidget(self.start_measurement_btn)
+
+                self.button_container = QWidget()
+                self.button_container.setLayout(self.buttons_layout)
+                self.button_container.setFixedSize(1150,80)
+                self.figure_container_layout.addWidget(figure_group_box)
+                self.figure_container.setLayout(self.figure_container_layout)
+                self.graphing_layout.addWidget(self.figure_container)
+                self.main_layout.addLayout(self.graphing_layout)
+                self.main_layout.addWidget(self.button_container)
+
+                self.setCentralWidget(self.scroll_area)
+                self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
+                self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
+                self.refresh_btn.setStyleSheet(self.Button_stylesheet)
+
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def refresh_Connection_List(self):
         try:
@@ -736,7 +757,7 @@ class Measurement(QMainWindow):
 
         try:
             xps = NewportXPS(self.xps_host, username=self.xps_username, password=self.xps_password)
-            
+            print(xps.status_report)
         except SystemExit as e:
             QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
                                                            'was detected. Please start MultiVu and retry without administration')
