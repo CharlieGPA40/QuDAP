@@ -27,12 +27,18 @@ class THREAD(QThread):
     def run(self):
         while self.running:
             try:
-                X = float(self.server.query("OUTP? 1"))  # Read the measurement result
-                Y = float(self.server.query("OUTP? 2"))  # Read the measurement result
-                R = float(self.server.query("OUTP? 3"))  # Read the measurement result
-                Theta = float(self.server.query("OUTP? 4"))  # Read the measurement result
+                # X = float(self.server.query("OUTP? 1"))  # Read the measurement result
+                # Y = float(self.server.query("OUTP? 2"))  # Read the measurement result
+                # R = float(self.server.query("OUTP? 3"))  # Read the measurement result
+                # Theta = float(self.server.query("OUTP? 4"))  # Read the measurement result
+                values = self.server.query("SNAP? 1, 2, 3, 4")
+                X, Y, R, Theta = values.split(',')
+                X = float(X)
+                Y = float(Y)
+                R = float(R)
+                Theta = float(Theta)
                 self.update_data.emit(X, Y, R, Theta)
-                time.sleep(0.01)  # Update every second
+                time.sleep(1.5)  # Update every second
             except Exception as e:
                 print(f"Error: {e}")
                 self.running = False
@@ -351,7 +357,7 @@ class sr830Lockin(QMainWindow):
                 try:
                     self.sr830 = rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
-                    sr830_device = self.sr830.query('*IDN?')
+                    sr830_device = self.sr830.write("*IDN?")
                     self.isConnect = True
                     self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
                     time.sleep(1)
@@ -432,22 +438,23 @@ class sr830Lockin(QMainWindow):
         self.r_array.append(self.R)
         self.theta_array.append(self.Theta)
         # # Drop off the first y element, append a new one.
-        if self.isCheckedBox1 == True:
-            self.isPlotting = True
-            self.canvas.axes.plot(self.counter_array, self.x_array, 'blue')
-            self.canvas.draw()
-        if self.isCheckedBox2 == True:
-            self.isPlotting = True
-            self.canvas.axes.plot(self.counter_array, self.y_array, 'orange')
-            self.canvas.draw()
-        if self.isCheckedBox3 == True:
-            self.isPlotting = True
-            self.canvas.axes.plot(self.counter_array, self.r_array, 'black')
-            self.canvas.draw()
-        if self.isCheckedBox4 == True:
-            self.isPlotting = True
-            self.canvas.axes.plot(self.counter_array, self.theta_array, 'purple')
-            self.canvas.draw()
+        if self.counter % 10 == 0:
+            if self.isCheckedBox1 == True:
+                self.isPlotting = True
+                self.canvas.axes.plot(self.counter_array, self.x_array, 'navy')
+                self.canvas.draw()
+            if self.isCheckedBox2 == True:
+                self.isPlotting = True
+                self.canvas.axes.plot(self.counter_array, self.y_array, 'coral')
+                self.canvas.draw()
+            if self.isCheckedBox3 == True:
+                self.isPlotting = True
+                self.canvas.axes.plot(self.counter_array, self.r_array, 'black')
+                self.canvas.draw()
+            if self.isCheckedBox4 == True:
+                self.isPlotting = True
+                self.canvas.axes.plot(self.counter_array, self.theta_array, 'indigo')
+                self.canvas.draw()
         self.counter += 1
         self.counter_array.append(self.counter)
 
