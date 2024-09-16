@@ -1,4 +1,6 @@
 import sys
+import os
+import glob
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
@@ -426,7 +428,7 @@ class Measurement(QMainWindow):
         self.Preset_group_box.setLayout(self.preset_layout)
 
         self.preset_container = QWidget()
-        self.preset_container.setFixedSize(380, 200)
+        self.preset_container.setFixedSize(380, 180)
 
         self.preset_container_layout = QHBoxLayout()
         self.preset_container_layout.addWidget(self.Preset_group_box, 1)
@@ -506,18 +508,12 @@ class Measurement(QMainWindow):
                         self.xps_host_entry_box.setFont(self.font)
                         self.xps_host_entry_box.setFixedHeight(30)
 
-                        self.xps_Username_label = QLabel("Username:")
-                        self.xps_Username_label.setFont(self.font)
-                        self.xps_Username_entry_box = QLineEdit("Administrator")
-                        self.xps_Username_entry_box.setFont(self.font)
-                        self.xps_Username_entry_box.setFixedHeight(30)
+                        self.xps_port_label = QLabel("Username:")
+                        self.xps_port_label.setFont(self.font)
+                        self.xps_port_entry_box = QLineEdit("5001")
+                        self.xps_port_entry_box.setFont(self.font)
+                        self.xps_port_entry_box.setFixedHeight(30)
 
-                        self.xps_password_label = QLabel("Password:")
-                        self.xps_password_label.setFont(self.font)
-                        self.xps_password_entry_box = QLineEdit("Administrator")
-                        self.xps_password_entry_box.setFont(self.font)
-                        self.xps_password_entry_box.setFixedHeight(30)
-                        self.xps_password_entry_box.setEchoMode(QLineEdit.EchoMode.Password)
 
                         self.xps_server_btn = QPushButton('Start Service')
                         self.xps_server_btn_clicked = False
@@ -526,11 +522,9 @@ class Measurement(QMainWindow):
                         self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
                         self.xps_host_connection_layout.addWidget(self.xps_host_entry_box, 2)
 
-                        self.xps_username_connection_layout.addWidget(self.xps_Username_label, 1)
-                        self.xps_username_connection_layout.addWidget(self.xps_Username_entry_box, 2)
+                        self.xps_username_connection_layout.addWidget(self.xps_port_label, 1)
+                        self.xps_username_connection_layout.addWidget(self.xps_port_entry_box, 2)
 
-                        self.xps_password_connection_layout.addWidget(self.xps_password_label, 1)
-                        self.xps_password_connection_layout.addWidget(self.xps_password_entry_box, 2)
 
                         self.xps_password_connection_layout.addStretch(1)
                         self.xps_connection_button_layout.addWidget(self.xps_server_btn)
@@ -544,7 +538,7 @@ class Measurement(QMainWindow):
 
                         self.xps_connection_group_box.setLayout(self.xps_connection)
                         self.xps_main_layout.addWidget(self.xps_connection_group_box)
-                        self.xps_container.setFixedSize(380, 200)
+                        self.xps_container.setFixedSize(380, 180)
                         self.xps_container.setLayout(self.xps_main_layout)
 
                         self.instrument_connection_layout.addWidget(self.xps_container)
@@ -593,7 +587,7 @@ class Measurement(QMainWindow):
 
                     self.connection_group_box.setLayout(self.ppms_connection)
                     self.ppms_main_layout.addWidget(self.connection_group_box)
-                    self.ppms_container.setFixedSize(380, 200)
+                    self.ppms_container.setFixedSize(380, 180)
                     self.ppms_container.setLayout(self.ppms_main_layout)
 
                     self.instrument_connection_layout.addWidget(self.ppms_container)
@@ -645,7 +639,7 @@ class Measurement(QMainWindow):
                 self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
                 self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
                 self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-                self.instrument_container.setFixedSize(380, 200)
+                self.instrument_container.setFixedSize(380, 180)
                 self.instrument_container.setLayout(self.instrument_main_layout)
                 self.instrument_connection_layout.addWidget(self.instrument_container)
 
@@ -754,27 +748,49 @@ class Measurement(QMainWindow):
         if self.xps_server_btn_clicked == False:
             self.xps_server_btn_clicked = True
             self.xps_server_btn.setText('Stop Service')
-            from newportxps import NewportXPS
-            self.xps_host = self.xps_host_entry_box.displayText()
-            self.xps_username = self.xps_Username_entry_box.displayText()
-            self.xps_password = self.xps_password_entry_box.displayText()
+            directory_path = "C:/Windows/Microsoft.NET/assembly/GAC_64/Newport.XPS.CommandInterface"
+            if os.path.isdir(directory_path):
+                directories = [f for f in glob.glob(f"{directory_path}/*") if os.path.isdir(f)]
 
-            try:
-                self.xps = NewportXPS(self.xps_host, username=self.xps_username, password=self.xps_password)
-                print(self.xps.status_report)
-            except SystemExit as e:
-                QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
-                                                               'was detected. Please start MultiVu and retry without administration')
+                try:
+                    # Define the controller's IP address and port
+                    self.host = self.xps_host_entry_box.displayText()
+                    self.port = self.xps_port_entry_box.displayText()
+
+                    import clr
+                    clr.AddReference(f'{directories[0]}/Newport.XPS.CommandInterface.dll')
+                    # clr.AddReference(
+                    #     R'C:\Windows\Microsoft.NET\assembly\GAC_64\Newport.XPS.CommandInterface\v4.0_2.2.1.0__9a267756cf640dcf\Newport.XPS.CommandInterface.dll')
+                    # clr.AddReference("Newport.XPS.CommandInterface.dll")
+                    from CommandInterfaceXPS import *
+
+                    myXPS = XPS()
+                    timeout = 1000
+                    result = myXPS.OpenInstrument(self.host, self.port, timeout)
+                    if result == 0:
+                        print('Open ', self.host, ":", self.port, " => Successful")
+                    else:
+                        QMessageBox.critical(self, 'Fail to connect', 'Please try again')
+
+
+                except SystemExit as e:
+                    QMessageBox.critical(self, 'No Server detected', 'Please check connection again')
+                    self.server_btn.setText('Start Server')
+                    event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                    QApplication.sendEvent(self, event)
+                    event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                    QApplication.sendEvent(self, event)
+                    return
+            else:
+                QMessageBox.critical(self, 'No driver detected', 'Please check whether the driver is properly installed!')
                 self.server_btn.setText('Start Server')
                 event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
                 QApplication.sendEvent(self, event)
                 event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
                 QApplication.sendEvent(self, event)
-                return
         else:
             self.xps_server_btn_clicked = False
             self.xps_server_btn.setText('Start Service')
-
 
     def start_server(self):
         if self.server_btn_clicked == False:
