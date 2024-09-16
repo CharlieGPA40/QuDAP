@@ -523,7 +523,7 @@ class Measurement(QMainWindow):
 
                         self.xps_server_btn = QPushButton('Start Service')
                         self.xps_server_btn_clicked = False
-                        # self.xps_server_btn.clicked.connect(self.xps_start_server)
+                        self.xps_server_btn.clicked.connect(self.xps_start_server)
 
                         self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
                         self.xps_host_connection_layout.addWidget(self.xps_host_entry_box, 2)
