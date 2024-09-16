@@ -1,5 +1,5 @@
 import sys
-import os
+
 import glob
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
@@ -29,6 +29,12 @@ from datetime import datetime
 import traceback
 import os
 import requests
+directory_path = "C:/Windows/Microsoft.NET/assembly/GAC_64/Newport.XPS.CommandInterface"
+if os.path.isdir(directory_path):
+    directories = [f for f in glob.glob(f"{directory_path}/*") if os.path.isdir(f)]
+    import clr
+    clr.AddReference(f'{directories[0]}/Newport.XPS.CommandInterface.dll')
+    from CommandInterfaceXPS import *
 
 class Worker(QThread):
     progress_update = pyqtSignal(int)
@@ -756,13 +762,6 @@ class Measurement(QMainWindow):
                     # Define the controller's IP address and port
                     self.host = self.xps_host_entry_box.displayText()
                     self.port = self.xps_port_entry_box.displayText()
-
-                    import clr
-                    clr.AddReference(f'{directories[0]}/Newport.XPS.CommandInterface.dll')
-                    # clr.AddReference(
-                    #     R'C:\Windows\Microsoft.NET\assembly\GAC_64\Newport.XPS.CommandInterface\v4.0_2.2.1.0__9a267756cf640dcf\Newport.XPS.CommandInterface.dll')
-                    # clr.AddReference("Newport.XPS.CommandInterface.dll")
-                    from CommandInterfaceXPS import *
 
                     myXPS = XPS()
                     timeout = 1000
