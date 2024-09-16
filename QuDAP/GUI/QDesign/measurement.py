@@ -761,7 +761,7 @@ class Measurement(QMainWindow):
                 try:
                     # Define the controller's IP address and port
                     self.host = self.xps_host_entry_box.displayText()
-                    self.port = self.xps_port_entry_box.displayText()
+                    self.port = int(self.xps_port_entry_box.displayText())
 
                     myXPS = XPS()
                     timeout = 1000
