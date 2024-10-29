@@ -14,4 +14,3 @@ pythonnet
 requests
 clr
 newportxps
-glob

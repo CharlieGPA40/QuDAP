@@ -17,8 +17,8 @@ else:
     build_number = int(build.split('.')[2])
     if version == "10" and build_number >= 22000:
         # print("Windows 11")
-        from QuDAP.GUI.VSM.VSMDataExtraction import *
-        from QuDAP.GUI.VSM.VSMDataProcessing import *
+        from GUI.VSM.VSMDataExtraction import *
+        from GUI.VSM.VSMDataProcessing import *
     elif version == "10":
         # print("Windows 10")
         from GUI.VSM.VSMDataExtraction import *
