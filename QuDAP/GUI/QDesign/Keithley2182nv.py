@@ -44,6 +44,26 @@ class THREAD(QThread):
     def stop(self):
         self.running = False
 
+class EMULATION(QThread):
+    update_data = pyqtSignal(float, float)  # Signal to emit the temperature and field values
+
+    def __init__(self):
+        super().__init__()
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                Chan_1_voltage = random.randint(0, 1000) / 1000
+                Chan_2_voltage = random.randint(0, 1000) / 100
+                self.update_data.emit(Chan_1_voltage, Chan_2_voltage)
+                time.sleep(1)  # Update every second
+            except Exception as e:
+                print(f"Error: {e}")
+                self.running = False
+
+    def stop(self):
+        self.running = False
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -289,7 +309,7 @@ class NV(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
-        # self.gpib_combo.addItems(["GPIB:7"])
+        self.gpib_combo.addItems(["Emulation"])
         # self.gpib_combo.addItems(["GPIB:8"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
@@ -304,14 +324,15 @@ class NV(QWidget):
     def connect_current_gpib(self):
         rm = visa.ResourceManager()
         if self.connect_btn_clicked == False:
-            self.connect_btn.setText('Disonnect')
+            self.connect_btn.setText('Disconnect')
             self.connect_btn_clicked = True
         elif self.connect_btn_clicked == True:
             if self.isPlotting:
                 self.rst()
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current Connection: None")
-            self.keithley_2182A_NV.close()
+            if self.gpib_combo.currentText() != 'Emulation':
+                self.keithley_2182A_NV.close()
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
@@ -322,26 +343,35 @@ class NV(QWidget):
             else:
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
-                    self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
-                    time.sleep(2)
-                    keithley_2182A_NV = self.keithley_2182A_NV.query('*IDN?')
-                    self.isConnect = True
-                    self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
-                    time.sleep(1)
-                    self.current_gpib_label.setText(f"Current Connection: {keithley_2182A_NV}")
-                    # self.keithley_2182A_NV.write("SENS:CHAN 1")
-                    # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
-                    # print(Chan_1_voltage)
-                    self.keep_reading = True
-                    # while self.keep_reading:
-                    #     self.timer = QTimer(self)
-                    #     self.timer.timeout.connect(self.update_voltage)
-                    #     self.timer.start(2000)  # Update every second
+                    if self.current_connection == 'Emulation':
+                        self.isConnect = True
+                        self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                        self.current_gpib_label.setText(f"Current Connection: Emulation")
+                        if self.isConnect:
+                            self.emulation = EMULATION()
+                            self.emulation.update_data.connect(self.update_voltage)
+                            self.emulation.start()
+                    else:
+                        self.keithley_2182A_NV = rm.open_resource(self.current_connection, timeout=10000)
+                        time.sleep(2)
+                        keithley_2182A_NV = self.keithley_2182A_NV.query('*IDN?')
+                        self.isConnect = True
+                        self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                        time.sleep(1)
+                        self.current_gpib_label.setText(f"Current Connection: {keithley_2182A_NV}")
+                        # self.keithley_2182A_NV.write("SENS:CHAN 1")
+                        # Chan_1_voltage = float(self.keithley_2182A_NV.query("FETCH?"))  # Read the measurement result
+                        # print(Chan_1_voltage)
+                        self.keep_reading = True
+                        # while self.keep_reading:
+                        #     self.timer = QTimer(self)
+                        #     self.timer.timeout.connect(self.update_voltage)
+                        #     self.timer.start(2000)  # Update every second
 
-                    if self.isConnect:
-                        self.thread = THREAD(server=self.keithley_2182A_NV)
-                        self.thread.update_data.connect(self.update_voltage)
-                        self.thread.start()
+                        if self.isConnect:
+                            self.thread = THREAD(server=self.keithley_2182A_NV)
+                            self.thread.update_data.connect(self.update_voltage)
+                            self.thread.start()
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")

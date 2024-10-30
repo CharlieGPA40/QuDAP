@@ -288,6 +288,7 @@ class CurrentSource6221(QWidget):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
+        self.gpib_combo.addItems(["Emulation"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
@@ -303,7 +304,8 @@ class CurrentSource6221(QWidget):
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current Connection: None")
             self.connect_btn_clicked = False
-            self.keithley_6221.close()
+            if self.gpib_combo.currentText() != "Emulation":
+                self.keithley_6221.close()
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
             self.isConnect = False
@@ -313,14 +315,19 @@ class CurrentSource6221(QWidget):
             else:
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
-                    self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
-                    time.sleep(2)
-                    Model_6221 = self.keithley_2182nv.query('*IDN?')
-                    self.isConnect = True
-                    self.keithley_6221.write("OUTPut OFF")
-                    self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
-                    time.sleep(1)
-                    self.current_gpib_label.setText(f"Current Connection: {Model_6221}")
+                    if self.current_connection == "Emulation":
+                        self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                        time.sleep(1)
+                        self.current_gpib_label.setText(f"Current Connection: Emulation")
+                    else:
+                        self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
+                        time.sleep(2)
+                        Model_6221 = self.keithley_2182nv.query('*IDN?')
+                        self.isConnect = True
+                        self.keithley_6221.write("OUTPut OFF")
+                        self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                        time.sleep(1)
+                        self.current_gpib_label.setText(f"Current Connection: {Model_6221}")
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")
@@ -330,13 +337,15 @@ class CurrentSource6221(QWidget):
     def sendDCCurrent(self):
         if self.isConnect == True:
             if self.DCisOn == False:
-                self.keithley_6221.write('CLE')
+                if self.current_connection !='Emulation':
+                    self.keithley_6221.write('CLE')
                 DC_validator = self.check_validator(self.current_validator, self.dc_source_entry_box)
                 if DC_validator == True:
-                    if self.DC_Range_checkbox.isChecked():
-                        self.keithley_6221.write('CURR:RANG:AUTO ON')
-                    else:
-                        self.keithley_6221.write('CURR:RANG:AUTO OFF')
+                    if self.current_connection != 'Emulation':
+                        if self.DC_Range_checkbox.isChecked():
+                            self.keithley_6221.write('CURR:RANG:AUTO ON')
+                        else:
+                            self.keithley_6221.write('CURR:RANG:AUTO OFF')
                     self.DC_current_entry = self.dc_source_entry_box.displayText()
                     self.DC_unit = self.DCUnitSource_combo.currentIndex()
                     if self.DC_unit != 0:
@@ -348,8 +357,9 @@ class CurrentSource6221(QWidget):
                             unit = 'e-9'
                         elif self.DC_unit == 4:  # pA
                             unit = 'e-12'
-                        self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
-                        self.keithley_6221.write("OUTPut ON")
+                        if self.current_connection != 'Emulation':
+                            self.keithley_6221.write("CURRent " + self.DC_current_entry + unit)
+                            self.keithley_6221.write("OUTPut ON")
                         self.send_btn.setText('OFF')
                         self.DCisOn = True
                         self.arm_btn.setEnabled(False)
@@ -378,7 +388,8 @@ class CurrentSource6221(QWidget):
                     QMessageBox.warning(self, "Input out of range", "Please enter again")
             else:
                 self.DCisOn = False
-                self.keithley_6221.write("OUTPut OFF")
+                if self.current_connection != 'Emulation':
+                    self.keithley_6221.write("OUTPut OFF")
                 self.arm_btn.setEnabled(True)
                 self.send_btn.setText('Send')
                 self.send_btn.setStyleSheet("""
@@ -404,21 +415,23 @@ class CurrentSource6221(QWidget):
     def sendACCurrent(self):
         if self.isConnect:
             if self.ACisOn == False:
-                self.keithley_6221.write('CLE')
-                self.keithley_6221.write('CURR:RANG:AUTO ON')
+                if self.current_connection != 'Emulation':
+                    self.keithley_6221.write('CLE')
+                    self.keithley_6221.write('CURR:RANG:AUTO ON')
                 self.wave_mode = self.waveform_combo.currentIndex()
                 if self.wave_mode != 0:
-                    if self.wave_mode == 1:  # mA
-                        self.keithley_6221.write('SOUR:WAVE:FUNC SIN')
-                    elif self.wave_mode == 2:  # uA
-                        self.keithley_6221.write('SOUR:WAVE:FUNC SQU')
-                    elif self.wave_mode == 3:  # nA
-                        self.keithley_6221.write('SOUR:WAVE:FUNC RAMP')
-                    elif self.wave_mode == 4:  # pA
-                        self.keithley_6221.write('SOUR:WAVE:FUNC ARB0')
-                else:
-                        QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
-                        return
+                    if self.current_connection != 'Emulation':
+                        if self.wave_mode == 1:  # mA
+                            self.keithley_6221.write('SOUR:WAVE:FUNC SIN')
+                        elif self.wave_mode == 2:  # uA
+                            self.keithley_6221.write('SOUR:WAVE:FUNC SQU')
+                        elif self.wave_mode == 3:  # nA
+                            self.keithley_6221.write('SOUR:WAVE:FUNC RAMP')
+                        elif self.wave_mode == 4:  # pA
+                            self.keithley_6221.write('SOUR:WAVE:FUNC ARB0')
+                        else:
+                            QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+                            return
                 if self.AC_Amplitude_entry_box.displayText() == '':
                     self.AC_Amplitude_entry_box.setText('1')
                     self.WaveAmpUnitSource_combo.setCurrentIndex(1)  # 0
@@ -465,16 +478,17 @@ class CurrentSource6221(QWidget):
                     else:
                         QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
                         return
-                    self.keithley_6221.write('SOUR:WAVE:AMPL ' + self.AC_amplitude + amp_unit)
-                    self.keithley_6221.write('SOUR:WAVE:FREQ ' + self.AC_Freq)
-                    self.keithley_6221.write('SOUR:WAVE:OFFset ' + self.AC_Offset + offset_unit)
-                    self.keithley_6221.write('SOUR:WAVE:PMAR:STAT OFF')
-                    if self.Wave_Range_checkbox.isChecked():
-                        self.keithley_6221.write('SOUR:WAVE:RANG BEST')
-                    else:
-                        self.keithley_6221.write('SOUR:WAVE:RANG FIX')
-                    self.keithley_6221.write('SOUR:WAVE:ARM')
-                    self.keithley_6221.write('SOUR:WAVE:INIT')
+                    if self.current_connection != 'Emulation':
+                        self.keithley_6221.write('SOUR:WAVE:AMPL ' + self.AC_amplitude + amp_unit)
+                        self.keithley_6221.write('SOUR:WAVE:FREQ ' + self.AC_Freq)
+                        self.keithley_6221.write('SOUR:WAVE:OFFset ' + self.AC_Offset + offset_unit)
+                        self.keithley_6221.write('SOUR:WAVE:PMAR:STAT OFF')
+                        if self.Wave_Range_checkbox.isChecked():
+                            self.keithley_6221.write('SOUR:WAVE:RANG BEST')
+                        else:
+                            self.keithley_6221.write('SOUR:WAVE:RANG FIX')
+                        self.keithley_6221.write('SOUR:WAVE:ARM')
+                        self.keithley_6221.write('SOUR:WAVE:INIT')
                     self.ACisOn = True
                     self.send_btn.setEnabled(False)
                     self.arm_btn.setText('Abort')
@@ -502,7 +516,8 @@ class CurrentSource6221(QWidget):
                     QMessageBox.warning(self, "Input out of range", "Please enter again")
             else:
                 self.ACisOn = False
-                self.keithley_6221.write("SOUR:WAVE:ABOR")
+                if self.current_connection != 'Emulation':
+                    self.keithley_6221.write("SOUR:WAVE:ABOR")
                 self.send_btn.setEnabled(True)
                 self.arm_btn.setText('Arm')
                 self.arm_btn.setStyleSheet("""

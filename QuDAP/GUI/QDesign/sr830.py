@@ -46,6 +46,29 @@ class THREAD(QThread):
     def stop(self):
         self.running = False
 
+class EMULATION(QThread):
+    update_data = pyqtSignal(float, float, float, float)  # Signal to emit the temperature and field values
+
+    def __init__(self):
+        super().__init__()
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                X = random.randint(0, 1000) / 1000
+                Y = random.randint(0, 1000) / 1000
+                Mag = random.randint(0, 1000) / 1000
+                Phase = random.randint(0, 1000) / 1000
+                self.update_data.emit(X,Y,Mag, Phase)
+                time.sleep(0.01)  # Update every second
+            except Exception as e:
+                print(f"Error: {e}")
+                self.running = False
+
+        def stop(self):
+            self.running = False
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=300):
@@ -322,6 +345,7 @@ class sr830Lockin(QMainWindow):
         self.gpib_combo.clear()
         self.gpib_combo.addItems(["None"])
         self.gpib_combo.addItems(self.gpib_ports)
+        self.gpib_combo.addItems(["Emulation"])
         self.connect_btn.setText('Connect')
         self.connect_btn_clicked = False
         self.isConnect = False
@@ -344,7 +368,8 @@ class sr830Lockin(QMainWindow):
                 self.rst()
             self.connect_btn.setText('Connect')
             self.current_gpib_label.setText("Current Connection: None")
-            self.sr830.close()
+            if self.gpib_combo.currentText() != 'Emulation':
+                self.sr830.close()
             self.connect_btn_clicked = False
         self.current_connection = self.gpib_combo.currentText()
         if self.current_connection == 'None':
@@ -355,17 +380,27 @@ class sr830Lockin(QMainWindow):
             else:
                 self.current_gpib_label.setText(f"Attempt to connect {self.current_connection}...")
                 try:
-                    self.sr830 = rm.open_resource(self.current_connection, timeout=10000)
-                    time.sleep(2)
-                    sr830_device = self.sr830.write("*IDN?")
-                    self.isConnect = True
-                    self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
-                    time.sleep(1)
-                    self.current_gpib_label.setText(f"Current Connection: {sr830_device}")
-                    if self.isConnect:
-                        self.thread = THREAD(server=self.sr830)
-                        self.thread.update_data.connect(self.update_lockin)
-                        self.thread.start()
+                    if self.current_connection == 'Emulation':
+                        self.isConnect = True
+                        self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                        time.sleep(1)
+                        self.current_gpib_label.setText(f"Current Connection: Emulation")
+                        if self.isConnect:
+                            self.emulation = EMULATION()
+                            self.emulation.update_data.connect(self.update_lockin)
+                            self.emulation.start()
+                    else:
+                        self.sr830 = rm.open_resource(self.current_connection, timeout=10000)
+                        time.sleep(2)
+                        sr830_device = self.sr830.write("*IDN?")
+                        self.isConnect = True
+                        self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
+                        time.sleep(1)
+                        self.current_gpib_label.setText(f"Current Connection: {sr830_device}")
+                        if self.isConnect:
+                            self.thread = THREAD(server=self.sr830)
+                            self.thread.update_data.connect(self.update_lockin)
+                            self.thread.start()
                 except visa.errors.VisaIOError:
                     self.isConnect = False
                     self.current_gpib_label.setText(f"Connecting {self.current_connection} fail!")
