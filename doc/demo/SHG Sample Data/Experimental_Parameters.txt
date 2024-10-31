@@ -1,0 +1,15 @@
+Date: January 31, 1700 : 24:24:24
+Sample: Example
+Fundamental or nonlinear: Fundamental
+Incidence angle: Normal
+Power at sample (mW): 0.80
+Start angle (degrees): 0 
+Termination angle (degrees): 360 
+Step size (degrees): 5 
+Polarization configuration: S-S 
+ExposureTime (s): 1.00000
+EMGain: 3
+Accumulation: 1
+Starting Temperature: 12
+Ending Temperature: 150
+Step Temperature: 2
