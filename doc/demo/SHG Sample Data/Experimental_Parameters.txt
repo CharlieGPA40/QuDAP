@@ -1,11 +1,11 @@
 Date: January 31, 1700 : 24:24:24
-Sample: Example
+Sample: SHG_Sample
 Fundamental or nonlinear: Fundamental
 Incidence angle: Normal
 Power at sample (mW): 0.80
 Start angle (degrees): 0 
 Termination angle (degrees): 360 
-Step size (degrees): 5 
+Step size (degrees): 10
 Polarization configuration: S-S 
 ExposureTime (s): 1.00000
 EMGain: 3
