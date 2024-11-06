@@ -43,7 +43,7 @@ Note: This package is for academic and educational research (WITHOUT WARRANTIES 
    
    ii). GPIB cables, RS232, USB, or Ethernet.
    
-   iii). Supported instruments (Keithley 6221, Keithley 2182, etc.)
+   iii). Supported instruments (Keithley 6221, Keithley 2182, etc.) or try out our software using the demo feature.
    
 
 ## Installation
@@ -72,6 +72,28 @@ Demonstration
 1. Software interface and experimental setup
 ![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Experiment%20Demo.gif)
 
+2. Demo for Keithley 2182 nanovoltmeter
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/Keithley%202182%20demo.gif)
+
+3. Demo for Keithley 6221 current and voltage source
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/Keithley%206221%20demo.gif)
+
+4. Demo for DSP 7260 lock-in amplifier
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/DSP%207265%20Demo.gif)
+
+5. Demo for sr380 lock-in amplifier
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/SR830%20Demo.gif)
+
+6. Demo for experiment
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/Measurement%20Demo.gif)
+
+7. Demo for Second harmonic generation data processing
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/SHG%20Data%20Processing%20Demo.gif)
+
+8. Demo for PPMS VSM data extraction
+![line](https://github.com/CharlieGPA40/QuDAP/blob/main/doc/demo/Emulation/VSM%20Data%20Processing%20Demo.gif)
+
+More coming...
 
 
 ## Contact
