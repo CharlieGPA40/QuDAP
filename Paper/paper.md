@@ -6,13 +6,13 @@ tags:
   - Physcial Property Measurement System
   - Experiment automation
 authors:
+  - name: Chunli Tang
+    orcid: 0000-0001-8252-3195
+    affiliation: 3 
   - name: Skai White
     affiliation: 1
   - name: Jingyu Jia
     affiliation: 2
-  - name: Chunli Tang
-    orcid: 0000-0001-8252-3195
-    affiliation: 3
   - name: Masoud Mahjouri-Samani
     affiliation: 3
   - name: Wencan Jin
