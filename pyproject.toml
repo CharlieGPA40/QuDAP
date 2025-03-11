@@ -10,7 +10,26 @@ requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
+]
+
+dependencies = [
+    "PyQt6",
+    "pandas",
+    "MultiPyVu",
+    "PyVISA",
+    "PyVISA-py",
+    "PyVISA-sim",
+    "numpy",
+    "python-pptx",
+    "pywin32",
+    "setuptools",
+    "Pillow",
+    "matplotlib",
+    "psutil",
+    "pythonnet",
+    "requests",
+    "newportxps",
 ]
 
 [project.urls]

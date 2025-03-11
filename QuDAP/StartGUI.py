@@ -11,8 +11,8 @@ if sys.version_info[:2] < (3, 10):
 
 if platform.system() == 'Windows':
     OS = 'Windows'
-    os.system('py -m pip install --upgrade pip')
-    os.system('py -m pip install -r requirements.txt')
+    # os.system('py -m pip install --upgrade pip')
+    # os.system('py -m pip install -r requirements.txt')
 # elif platform.system() == 'Linux':
 #     OS = 'Linux'
 # os.system('python3 -m pip install --upgrade pip')
