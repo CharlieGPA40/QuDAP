@@ -30,6 +30,7 @@ dependencies = [
     "pythonnet",
     "requests",
     "newportxps",
+    'clr'
 ]
 
 [project.urls]
