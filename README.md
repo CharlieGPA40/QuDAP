@@ -15,8 +15,8 @@
 1. [Description](README.md#Description)
 2. [Requirements](README.md#Requirements)
 3. [Installation](README.md#Installation)
-4. [Usage](README.md#Usage)
-5. [Contact](README.md#Contact)
+5. [Usage](README.md#Usage)
+6. [Contact](README.md#Contact)
 
 ## Description
 Quantum Materials Data Acquisition and Processing `QuDAP`, a Python-based and open-source software package, is designed to control and automate material characterizations based on the Physical Property Measurement System (PPMS). The software supports major hardware interfaces and protocols (USB, RS232, GPIB, and Ethernet), enabling communication with the measurement modules associated with the PPMS. It integrates multiple Python libraries to realize instrument control, data acquisition, and real-time data visualization. Here, we present features of QuDAP, including direct control of instruments without relying on proprietary software, real-time data plotting for immediate verification and analysis, full automation of data acquisition and storage, and real-time notifications of experiment status and errors. These capabilities enhance experimental efficiency, reliability, and reproducibility.
@@ -37,35 +37,64 @@ Note: This package is for academic and educational research (WITHOUT WARRANTIES 
 
 ## Requirements
 1. `QuDAP` is compatible with Python 3.10 or newer.
-2. Hardware requirements:
+
+3. Hardware requirements:
    
    i). Physical Property Measurement System from Quantum Design.
    
    ii). GPIB cables, RS232, USB, or Ethernet.
    
    iii). Supported instruments (Keithley 6221, Keithley 2182, etc.) or try out our software using the demo feature.
+4. Software requirements:
    
+   i). **OS**: Windows 11.
+   
+   ii). **Dependencies**: Listed in `pyproject.toml` (no default `requirements.txt` is included — see [Generate Your Own Requirements File (Optional)](README.md#3-generate-your-own-requirements-file-optional)).
 
+- **Experimental Features**: QuDAP’s experimental modules require the Physical Property Measurement System (PPMS) and any associated hardware (e.g., VSM attachments).  
+- **Data Processing**: The processing and analysis tools can run without any specialized hardware, so you can analyze data offline without a live instrument.
+  
 ## Installation
+### 1. Option 1 - PyPi installation
 `QuDAP` is available via [PyPi](https://pypi.org/project/QuDAP/) for Windows and can be installed by:
 
 ```console
 $ pip install QuDAP
 ```
-
+### 2. Option 2 - Clone the Repository
 or installed from source:
 ```bash
 git clone https://github.com/CharlieGPA40/QuDAP.git
 cd QuDAP
 pip install .
 ```
+### 3. Generate Your Own Requirements File (Optional)
+If you prefer installing pinned dependencies (exact versions for reproducibility), you can create a 'requirements.txt' from the 'pyproject.toml' using pip-tools. This way, you control which versions get installed without QuDAP shipping a pre-generated file.
+1. Install 'pip-tools':
+```bash
+pip install pip-tools
+```
 
+2. Compile dependencies from 'pyproject.toml':
+```bash
+pip-compile --output-file requirements.txt pyproject.toml
+```
+
+### 4. Install Dependencies
+You have two primary options:
+1. Install 'pyproject.toml':
+```bash
+pip install .
+```
+This reads '[QuDAP] dependencies' in 'pyproject.toml' and installs the most recent compatible versions.
+2. Install from your compiled 'requirements.txt' (for locked versions):
+
+
+## Usage
 To run the program, run the`QuDAP/StartGUI.py` or 
 ```console
 $ python ./QuDAP/StartGUI.py
 ```
-
-## Usage
 Check the [`docs`](https://github.com/CharlieGPA40/QuDAP/tree/main/doc/)  file to learn how to use the software.
 
 Demonstration
