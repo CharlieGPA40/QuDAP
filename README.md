@@ -135,4 +135,12 @@ Advisor:
 * [Dr. Masoud Mahjouri-Samani](http://wp.auburn.edu/Mahjouri/) (Auburn University – Electrical and Computer Engineering: Mahjouri@auburn.edu)
 * [Dr. Wencan Jin](http://wp.auburn.edu/JinLab/) (Auburn University – Physics Department: wjin@auburn.edu)
 
+# Contributing to QuDAP
 
+Thank you for your interest in contributing! We welcome all kinds of contributions—bug reports, feature requests, documentation improvements, tests, and code patches.
+
+## 🎯 Reporting Issues & Getting Support
+
+- **New issues**: Please open an issue on GitHub at  
+  https://github.com/CharlieGPA40/QuDAP/issues
+- **Private support**: Email the maintainers at `chunli.tang@auburn.edu` if you need assistance you’d rather not post publicly.
