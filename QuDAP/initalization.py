@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QListWidget, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QAbstractItemView, QFrame, QPushButton, QMessageBox)
 from PyQt6.QtGui import QIcon, QFont, QPixmap
-from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot, QTimer
 import sys
 import GUI.FMR.FMR as fmr
 import GUI.Setting.Setting as Setting
@@ -397,7 +397,7 @@ class MainWindow(QMainWindow):
             self.currentToolIndex = 1
 
 
-def main():
+def main(test_mode=False):
     app = QApplication(sys.argv)
     communicator = Communicator()
     app.setStyleSheet("QWidget { background-color: #ECECEB; }")
@@ -405,6 +405,9 @@ def main():
     window.show()
 
     app.communicator = communicator
+
+    if test_mode:
+       QTimer.singleShot(100, app.quit)
     sys.exit(app.exec())
 
 if __name__ == "__main__":
