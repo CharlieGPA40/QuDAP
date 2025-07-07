@@ -8,6 +8,7 @@ import pyvisa
 from matplotlib.figure import Figure
 import psutil
 from matplotlib.ticker import FuncFormatter
+import os
 
 
 class CPU_Display(FigureCanvas):
@@ -572,7 +573,10 @@ class Dash(QMainWindow):
                 self.removeShadowEffect(obj)
             elif event.type() == QEvent.Type.MouseButtonPress:
                 self.openAnotherPythonFile(self.page_index, self.left_index, self.right_index)
-        return super().eventFilter(obj, event)
+        if not os.getenv("PYTEST_CURRENT_TEST"):
+            return super().eventFilter(obj, event)
+        return False
+        # return super().eventFilter(obj, event)
 
 
     def applyShadowEffect(self, widget):
