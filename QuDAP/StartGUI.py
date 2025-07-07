@@ -23,9 +23,9 @@ if platform.system() == 'Windows':
 #     os.system('python3 -m pip install -r requirements.txt')
 
 
-if OS == 'Windows':
-    if __name__ == '__main__':
-        initalization.main()
+# if OS == 'Windows':
+if __name__ == '__main__':
+    initalization.main()
 # elif OS == 'Darwin':
 # else:  # Linux
 
