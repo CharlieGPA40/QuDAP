@@ -6,6 +6,8 @@ from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot, QTimer
 import sys
 import GUI.FMR.FMR as fmr
 import GUI.Setting.Setting as Setting
+import GUI.Setting.AboutSoftware as AboutSoftware
+import GUI.Setting.Contact as Contact
 import GUI.QDesign.PPMS as ppms
 import GUI.QDesign.QD as qd
 import GUI.VSM.VSM as vsm
@@ -24,7 +26,8 @@ import GUI.QDesign.xps as xps
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)
-# Individual Frames
+
+
 class SettingsPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -44,61 +47,59 @@ class ProfilePage(QWidget):
         self.setLayout(layout)
         self.setStyleSheet("background-color: lightcoral;")
 
-
 # Main Window
 class MainWindow(QMainWindow):
     def __init__(self, communicator):
         super().__init__()
         self.setWindowTitle("QuDAP")
         self.setWindowIcon(QIcon("GUI/Icon/QEP.svg"))
-        self.Listwidgets_Font = 13
-        self.ishide = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
-        self.isinital = True  # Flag for first initialization of the program; this essential to avoid the auto select of hide function
-        self.currentindex = 0  # Index for menu bar; this tells which row of the menu bar has been selected (FMR, VSM, etc.)
-        self.currentToolIndex = 0  # Index for help menu and setting menu selection
-        self.whichSideBar = 0  # Index for which side bar on the left side has been selected; 1 means menu sidebar; 2 means tool menu bar
-        self.currentdpindex = 0
+        self.LIST_WIDGET_FONT = 13
+        self.MENU_IS_HIDE = False  # Flag for hide menu; the ture flag means the hide button is selected, vice versa
+        self.MENU_IS_INIT = True  # Flag for first initialization of the program; this essential to avoid the auto select of hide function
+        self.CURRENT_INDEX_PARENT = 0  # Index for menu bar; this tells which row of the menu bar has been selected (FMR, VSM, etc.)
+        self.CURRENT_INDEX_HELP_SETTING = 0  # Index for help menu and setting menu selection
+        self.PARENT_SIDE_BAR_SELECTION = 0  # Index for which side bar on the left side has been selected; 1 means menu sidebar; 2 means tool menu bar
+        self.CURRENT_INDEX_CHILD = 0
         self.communicator = communicator
         self.initUI()
 
     def initUI(self):
-        self.left_sidebar = QListWidget()
-        self.left_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
+        self.parent_side_bar = QListWidget()
+        self.parent_side_bar.setFont(QFont("Arial", self.LIST_WIDGET_FONT))
         with open("GUI/QSS/QListWidget.qss", "r") as file:
             self.QListWidget_stylesheet = file.read()
 
         with open("GUI/QSS/QListWidget_middle.qss", "r") as file:
             self.QListWidget_middle_stylesheet = file.read()
 
-        self.left_sidebar.setStyleSheet(self.QListWidget_stylesheet)
-        dashboard = QListWidgetItem(QIcon("GUI/Icon/Dashboard.svg"), "Dashboard")
-        Data_processing = QListWidgetItem(QIcon("GUI/Icon/codesandbox.svg"), "Data Processing")
-        experiment = QListWidgetItem(QIcon("GUI/Icon/cpu.svg"), 'Experiment')
+        self.parent_side_bar.setStyleSheet(self.QListWidget_stylesheet)
+        dashboard_list_widget = QListWidgetItem(QIcon("GUI/Icon/Dashboard.svg"), "Dashboard")
+        data_processing_list_widget = QListWidgetItem(QIcon("GUI/Icon/codesandbox.svg"), "Data Processing")
+        experiment_list_widget = QListWidgetItem(QIcon("GUI/Icon/cpu.svg"), 'Experiment')
 
         with open("GUI/QSS/QComboWidget.qss", "r") as file:
             self.SideWidget_stylesheet = file.read()
 
-        self.left_sidebar.addItem(dashboard)
-        self.left_sidebar.addItem(Data_processing)
-        self.left_sidebar.addItem(experiment)
-        self.left_sidebar.currentRowChanged.connect(self.update_menu_bar)
+        self.parent_side_bar.addItem(dashboard_list_widget)
+        self.parent_side_bar.addItem(data_processing_list_widget)
+        self.parent_side_bar.addItem(experiment_list_widget)
+        self.parent_side_bar.currentRowChanged.connect(self.update_menu_bar)
 
         # Left Sidebar
-        self.Tool_menu = QListWidget()
-        self.Tool_menu.setFont(QFont("Arial", self.Listwidgets_Font))
-        self.Tool_menu.setStyleSheet(self.QListWidget_stylesheet)
-        tool_home_item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "Help")
-        tool_settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "Settings")
+        self.help_setting_side_bar = QListWidget()
+        self.help_setting_side_bar.setFont(QFont("Arial", self.LIST_WIDGET_FONT))
+        self.help_setting_side_bar.setStyleSheet(self.QListWidget_stylesheet)
+        help_Item = QListWidgetItem(QIcon("GUI/Icon/help-circle.svg"), "Help")
+        settings_item = QListWidgetItem(QIcon("GUI/Icon/settings.svg"), "Settings")
 
-        self.Tool_menu.addItem(tool_home_item)
-        self.Tool_menu.addItem(tool_settings_item)
+        self.help_setting_side_bar.addItem(help_Item)
+        self.help_setting_side_bar.addItem(settings_item)
         # Disable item selection in the QListWidget
-        self.Tool_menu.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        self.Tool_menu.currentRowChanged.connect(self.update_tool_bar)
-        self.Tool_menu.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.Tool_menu.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        self.Tool_menu.setMinimumHeight(30)
+        self.help_setting_side_bar.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.help_setting_side_bar.currentRowChanged.connect(self.update_tool_bar)
+        self.help_setting_side_bar.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.help_setting_side_bar.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.help_setting_side_bar.setMinimumHeight(30)
 
         self.logolayout = QHBoxLayout()
         icon_label = QLabel(self)
@@ -116,30 +117,29 @@ class MainWindow(QMainWindow):
         line.setFixedHeight(5)  # Set the thickness of the line
         line.setFixedWidth(170)  # Set the length of the line
 
-
         self.logolayout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.logolayout.addStretch(1)
         self.logolayout.setSpacing(0)
         self.logolayout.setContentsMargins(0, 0, 0, 0)
-        left_sidebar_layout = QVBoxLayout()
-        left_sidebar_layout.addLayout(self.logolayout)
-        left_sidebar_layout.addWidget(line, alignment=Qt.AlignmentFlag.AlignCenter)
-        # left_sidebar_layout.addStretch(3)
-        left_sidebar_layout.addWidget(self.left_sidebar, 12)
-        left_sidebar_layout.addStretch(10)
 
-        left_sidebar_layout.addWidget(self.Tool_menu, 3)
-        left_sidebar_layout.setSpacing(0)
-        left_sidebar_layout.setContentsMargins(2, 0, 0, 0)
-
+        parent_side_bar_layout = QVBoxLayout()
+        parent_side_bar_layout.addLayout(self.logolayout)
+        parent_side_bar_layout.addWidget(line, alignment=Qt.AlignmentFlag.AlignCenter)
+        # parent_side_bar_layout.addStretch(3)
+        parent_side_bar_layout.addWidget(self.parent_side_bar, 12)
+        parent_side_bar_layout.addStretch(9)
+        parent_side_bar_layout.addWidget(self.help_setting_side_bar, 3)
+        parent_side_bar_layout.setSpacing(0)
+        parent_side_bar_layout.setContentsMargins(2, 0, 0, 0)
         # # Create a main widget to host both the left sidebar and the checkbox
-        self.left_sidebar_container = QWidget()
-        self.left_sidebar_container.setLayout(left_sidebar_layout)
+        self.parent_side_bar_container = QWidget()
+        self.parent_side_bar_container.setLayout(parent_side_bar_layout)
 
         # Right Sidebar
-        self.right_sidebar = QListWidget()
-        self.right_sidebar.setFont(QFont("Arial", self.Listwidgets_Font))
-        self.right_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
+        self.child_sidebar = QListWidget()
+        self.child_sidebar.setFont(QFont("Arial", self.LIST_WIDGET_FONT))
+        self.child_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
+
         self.hide_button_container = QWidget()
         self.hide_button_container.setStyleSheet(
             """ 
@@ -149,7 +149,7 @@ class MainWindow(QMainWindow):
         self.hide_button_layout = QVBoxLayout()
         self.hide_button_container.setFixedSize(30,910)
         self.hide_button = QPushButton(QIcon("GUI/Icon/arrow-left.svg"),'')
-        self.hide_button.clicked.connect(self.hide_show_right_sidebar)
+        self.hide_button.clicked.connect(self.hide_show_child_sidebar)
         self.hide_button.setStyleSheet("""
         QPushButton {
                                        background-color: #ECECEB ; /* Green background */
@@ -172,6 +172,7 @@ class MainWindow(QMainWindow):
         self.hide_button_layout.addWidget(self.hide_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self.hide_button_container.setLayout(self.hide_button_layout)
         self.communicator.change_page.connect(self.set_page)
+
         # Content Pages
         self.pages = QStackedWidget()
         self.pages.setStyleSheet("background-color: white;")
@@ -181,7 +182,8 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(eto.ETO())  # 3
         self.pages.addWidget(shg.SHG())  # 4
         self.pages.addWidget(qd.QD())  # 5
-        self.pages.addWidget(Setting.Settings())  # 6
+        # self.pages.addWidget(Setting.Settings())  # 6
+        self.pages.addWidget(qd.QD())
         self.pages.addWidget(ppms.PPMS())  # 7
         self.pages.addWidget(nv.NV())  # 8
         self.pages.addWidget(cs.CurrentSource6221())  # 9
@@ -192,13 +194,15 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(dsp.Lockin())  # 14
         self.pages.addWidget(sr.sr830Lockin())  # 15
         self.pages.addWidget(xps.XPS())  # 16
+        self.pages.addWidget(AboutSoftware.AboutQuDAP())  # 17
+        self.pages.addWidget(Contact.ContactQuDAP()) # 18
 
         # self.toggle_dark_mode()
         # Main Layout
         self.main_layout = QHBoxLayout()
-        self.main_layout.addWidget(self.left_sidebar_container, 1)  # Left sidebar stretch factor 1
+        self.main_layout.addWidget(self.parent_side_bar_container, 1)  # Left sidebar stretch factor 1
         self.main_layout.addWidget(self.hide_button_container, 1)
-        self.main_layout.addWidget(self.right_sidebar, 2)  # Right sidebar stretch factor 1
+        self.main_layout.addWidget(self.child_sidebar, 2)  # Right sidebar stretch factor 1
 
         self.main_layout.addWidget(self.pages, 13)  # Central content area stretch factor 4
         self.main_layout.setSpacing(0)
@@ -212,190 +216,201 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1620,800)
 
     @pyqtSlot(int, int, int)
-    def set_page(self, page, left_sidebar, right_sidebar):
+    def set_page(self, page, parent_side_bar, child_sidebar):
         self.pages.setCurrentIndex(page)
-        self.left_sidebar.setCurrentRow(left_sidebar)
-        self.right_sidebar.setCurrentRow(right_sidebar)
+        self.parent_side_bar.setCurrentRow(parent_side_bar)
+        self.child_sidebar.setCurrentRow(child_sidebar)
 
-    def hide_show_right_sidebar(self):
-        self.show = self.right_sidebar.isVisible()
+    def hide_show_child_sidebar(self):
+        self.show = self.child_sidebar.isVisible()
         if not self.show:
             try:
-                if self.currentindex == 1 or self.currentindex == 2:
-                    self.right_sidebar.show()
+                if self.CURRENT_INDEX_PARENT == 1 or self.CURRENT_INDEX_PARENT == 2 or self.PARENT_SIDE_BAR_SELECTION == 2:
+                    self.child_sidebar.show()
                     self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
             except Exception as e:
                 QMessageBox.warning(self, "Error", str(e))
         else:
-            if self.currentindex == 1 or self.currentindex == 2:
-                # self.right_sidebar.show()
-                # self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
+            if self.CURRENT_INDEX_PARENT == 1 or self.CURRENT_INDEX_PARENT == 2 or self.PARENT_SIDE_BAR_SELECTION == 2:
+                # self.child_sidebar.show()
                 self.hide_button.setIcon(QIcon("GUI/Icon/arrow-right.svg"))
-                self.right_sidebar.hide()
+                self.child_sidebar.hide()
 
     def update_menu_bar(self, current_row):
-        self.whichSideBar = 1
-        self.Tool_menu.setCurrentRow(0)  # Force clearing selection
-        self.right_sidebar.clear()
+        self.PARENT_SIDE_BAR_SELECTION = 1
+        self.help_setting_side_bar.setCurrentRow(-1)  # Force clearing selection
+        self.child_sidebar.clear()
 
-        if current_row == 0:  # FMR
-            # self.show = False
-            self.right_sidebar.hide()
+        if current_row == 0:  # dashboard page
+            self.child_sidebar.hide()
             self.hide_button.setEnabled(False)
             self.pages.setCurrentIndex(0)
-            self.currentindex = 0
+            self.CURRENT_INDEX_PARENT = 0
         else:
-            self.right_sidebar.show()
+            self.child_sidebar.show()
 
-
-        if current_row == 1:  # FMR
+        if current_row == 1:  # data processing page
             self.hide_button.setEnabled(True)
             self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
-            FMR = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "FMR")
-            VSM = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "VSM")
-            ETO = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "ETO")
-            SHG = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "SHG")
+            fmr = QListWidgetItem(QIcon("GUI/Icon/FMR.svg"), "FMR")
+            vsm = QListWidgetItem(QIcon("GUI/Icon/VSM.svg"), "VSM")
+            eto = QListWidgetItem(QIcon("GUI/Icon/ETO.svg"), "ETO")
+            shg = QListWidgetItem(QIcon("GUI/Icon/SHG.svg"), "SHG")
             data_visualization = QListWidgetItem(QIcon("GUI/Icon/bar-chart-2.svg"), "Plotting")
-            self.right_sidebar.addItem(QListWidgetItem(FMR))
-            self.right_sidebar.addItem(QListWidgetItem(VSM))
-            self.right_sidebar.addItem(QListWidgetItem(ETO))
-            self.right_sidebar.addItem(QListWidgetItem(SHG))
-            self.right_sidebar.addItem(QListWidgetItem(data_visualization))
-            self.right_sidebar.currentRowChanged.connect(self.update_data_processing)
-            self.right_sidebar.setCurrentRow(7)
+            self.child_sidebar.addItem(QListWidgetItem(fmr))
+            self.child_sidebar.addItem(QListWidgetItem(vsm))
+            self.child_sidebar.addItem(QListWidgetItem(eto))
+            self.child_sidebar.addItem(QListWidgetItem(shg))
+            self.child_sidebar.addItem(QListWidgetItem(data_visualization))
+            self.child_sidebar.currentRowChanged.connect(self.update_data_processing)
             self.pages.setCurrentIndex(0)
-            self.currentindex = 1
-            # self.left_sidebar.setEnabled(True)
+            self.CURRENT_INDEX_PARENT = 1
+            # self.parent_side_bar.setEnabled(True)
 
-        elif current_row == 2:  # VSM
+        elif current_row == 2:  # experiment page
             self.hide_button.setEnabled(True)
             self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
-            self.right_sidebar.addItem(QListWidgetItem("PPMS"))
-            self.right_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
-            self.right_sidebar.addItem(QListWidgetItem("Keithley 6221"))
-            self.right_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
-            self.right_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
-            self.right_sidebar.addItem(QListWidgetItem("sr830 Lock-in"))
-            self.right_sidebar.addItem(QListWidgetItem("XPS"))
-            self.right_sidebar.addItem(QListWidgetItem("Measure"))
-            self.right_sidebar.addItem(QListWidgetItem("Quick Test"))
-            self.right_sidebar.currentRowChanged.connect(self.update_exp_processing)
-            self.right_sidebar.setCurrentRow(7)
+            self.child_sidebar.addItem(QListWidgetItem("PPMS"))
+            self.child_sidebar.addItem(QListWidgetItem("Keithley 2182 NV"))
+            self.child_sidebar.addItem(QListWidgetItem("Keithley 6221"))
+            self.child_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
+            self.child_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
+            self.child_sidebar.addItem(QListWidgetItem("sr830 Lock-in"))
+            self.child_sidebar.addItem(QListWidgetItem("XPS"))
+            self.child_sidebar.addItem(QListWidgetItem("Measure"))
+            self.child_sidebar.addItem(QListWidgetItem("Quick Test"))
+            self.child_sidebar.currentRowChanged.connect(self.update_exp_processing)
             self.pages.setCurrentIndex(0)
-            self.currentindex = 2
+            self.CURRENT_INDEX_PARENT = 2
 
-        elif current_row == 3:  # ETO
-            self.right_sidebar.addItem(QListWidgetItem("Edit Profile"))
-            self.right_sidebar.addItem(QListWidgetItem("Notifications"))
-            self.right_sidebar.addItem(QListWidgetItem("Logout"))
-            self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(3)
-            self.currentindex = 3
-
-        elif current_row == 4:  # SHG
-            self.right_sidebar.addItem(QListWidgetItem("General Processing"))
-            self.right_sidebar.addItem(QListWidgetItem("Temperature Dependence"))
-            self.right_sidebar.addItem(QListWidgetItem("Imaging Mode"))
-            self.right_sidebar.currentRowChanged.connect(self.update_SHG)
-            self.right_sidebar.setCurrentRow(0)
-            self.pages.setCurrentIndex(6)
-            self.currentindex = 4
-
+        # elif current_row == 3:  # ETO
+        #     self.child_sidebar.addItem(QListWidgetItem("Edit Profile"))
+        #     self.child_sidebar.addItem(QListWidgetItem("Notifications"))
+        #     self.child_sidebar.addItem(QListWidgetItem("Logout"))
+        #     self.child_sidebar.setCurrentRow(0)
+        #     self.pages.setCurrentIndex(3)
+        #     self.CURRENT_INDEX_PARENT = 3
+        #
+        # elif current_row == 4:  # SHG
+        #     self.child_sidebar.addItem(QListWidgetItem("General Processing"))
+        #     self.child_sidebar.addItem(QListWidgetItem("Temperature Dependence"))
+        #     self.child_sidebar.addItem(QListWidgetItem("Imaging Mode"))
+        #     self.child_sidebar.currentRowChanged.connect(self.update_SHG)
+        #     self.child_sidebar.setCurrentRow(0)
+        #     self.pages.setCurrentIndex(6)
+        #     self.CURRENT_INDEX_PARENT = 4
 
     def update_data_processing(self, current_row):
-        if current_row == 0:  # PPMS
-            self.right_sidebar.setCurrentRow(0)
+        if current_row == 0:  # FMR
+            self.child_sidebar.setCurrentRow(0)
             self.pages.setCurrentIndex(1)
-            self.currentdpindex = 0
+            self.CURRENT_INDEX_CHILD = 0
 
-        elif current_row == 1:  # NV
-            self.right_sidebar.setCurrentRow(1)
+        elif current_row == 1:  # VSM
+            self.child_sidebar.setCurrentRow(1)
             self.pages.setCurrentIndex(2)
-            self.currentqdindex = 1
+            self.CURRENT_INDEX_CHILD = 1
 
-        elif current_row == 2:  # DC AC Current
-            self.right_sidebar.setCurrentRow(2)
+        elif current_row == 2:  # ETO
+            self.child_sidebar.setCurrentRow(2)
             self.pages.setCurrentIndex(3)
-            self.currentqdindex = 2
+            self.CURRENT_INDEX_CHILD = 2
 
-        elif current_row == 3:  # RF
-            self.right_sidebar.setCurrentRow(3)
+        elif current_row == 3:  # SHG
+            self.child_sidebar.setCurrentRow(3)
             self.pages.setCurrentIndex(4)
-            self.currentqdindex = 3
+            self.CURRENT_INDEX_CHILD = 3
 
-        elif current_row == 4:  # RF
-            self.right_sidebar.setCurrentRow(4)
+        elif current_row == 4:  # Plotting
+            self.child_sidebar.setCurrentRow(4)
             self.pages.setCurrentIndex(13)
-            self.currentqdindex = 4
-
+            self.CURRENT_INDEX_CHILD = 4
 
     def update_exp_processing(self, current_row):
-        if current_row == 0:  # General Processing
-            self.right_sidebar.setCurrentRow(0)
+        if current_row == 0:  # PPMS
+            self.child_sidebar.setCurrentRow(0)
             self.pages.setCurrentIndex(7)
-            self.currentqdindex = 0
+            self.CURRENT_INDEX_CHILD = 0
 
-        elif current_row == 1:  # Temp Dep
-            self.right_sidebar.setCurrentRow(1)
+        elif current_row == 1:  # 2182
+            self.child_sidebar.setCurrentRow(1)
             self.pages.setCurrentIndex(8)
-            self.currentqdindex = 1
+            self.CURRENT_INDEX_CHILD = 1
 
-        elif current_row == 2:  # Imaging
-            self.right_sidebar.setCurrentRow(2)
+        elif current_row == 2:  # 6221
+            self.child_sidebar.setCurrentRow(2)
             self.pages.setCurrentIndex(9)
-            self.currentqdindex = 2
+            self.CURRENT_INDEX_CHILD = 2
 
-        elif current_row == 3:  # Imaging
-            self.right_sidebar.setCurrentRow(3)
+        elif current_row == 3:  # 845
+            self.child_sidebar.setCurrentRow(3)
             self.pages.setCurrentIndex(10)
-            self.currentqdindex = 3
+            self.CURRENT_INDEX_CHILD = 3
 
-        elif current_row == 4:  # Imaging
-            self.right_sidebar.setCurrentRow(4)
+        elif current_row == 4:  # 7265
+            self.child_sidebar.setCurrentRow(4)
             self.pages.setCurrentIndex(14)
-            self.currentqdindex = 4
+            self.CURRENT_INDEX_CHILD = 4
 
-        elif current_row == 5:  # Imaging
-            self.right_sidebar.setCurrentRow(5)
+        elif current_row == 5:  # sr830
+            self.child_sidebar.setCurrentRow(5)
             self.pages.setCurrentIndex(15)
-            self.currentqdindex = 5
+            self.CURRENT_INDEX_CHILD = 5
 
-        elif current_row == 6:  # Imaging
-            self.right_sidebar.setCurrentRow(6)
+        elif current_row == 6:  # XPS
+            self.child_sidebar.setCurrentRow(6)
             self.pages.setCurrentIndex(16)
-            self.currentqdindex = 6
+            self.CURRENT_INDEX_CHILD = 6
 
-        elif current_row == 7:  # Imaging
-            self.right_sidebar.setCurrentRow(7)
+        elif current_row == 7:  # Measure
+            self.child_sidebar.setCurrentRow(7)
             self.pages.setCurrentIndex(11)
-            self.currentqdindex = 7
+            self.CURRENT_INDEX_CHILD = 7
 
-        elif current_row == 8:  # Imaging
-            self.right_sidebar.setCurrentRow(8)
+        elif current_row == 8:  # Quick Test
+            self.child_sidebar.setCurrentRow(8)
             self.pages.setCurrentIndex(11)
-            self.currentqdindex = 8
-
+            self.CURRENT_INDEX_CHILD = 8
 
     def update_tool_bar(self, current_row):
-        self.whichSideBar = 2
-        self.right_sidebar.clear()
-        self.left_sidebar.setCurrentRow(-1)  # Force clearing selection
+        self.child_sidebar.show()
+        self.hide_button.setEnabled(True)
+        self.hide_button.setIcon(QIcon("GUI/Icon/arrow-left.svg"))
+        self.PARENT_SIDE_BAR_SELECTION = 2
+        self.child_sidebar.clear()
+        self.parent_side_bar.setCurrentRow(-1)  # Force clearing selection
+
         if current_row == 0:  # Home
-            self.right_sidebar.addItem(QListWidgetItem("About this Software"))
-            self.right_sidebar.addItem(QListWidgetItem("About Us"))
-            self.right_sidebar.addItem(QListWidgetItem("Contact"))
-            self.Tool_menu.setCurrentRow(0)
-            self.pages.setCurrentIndex(5)
-            self.currentToolIndex = 0
+            self.child_sidebar.addItem(QListWidgetItem("About this Software"))
+            self.child_sidebar.addItem(QListWidgetItem("Contact"))
+            self.help_setting_side_bar.setCurrentRow(0)
+            self.child_sidebar.currentRowChanged.connect(self.update_about)
+            self.pages.setCurrentIndex(0)
+            self.CURRENT_INDEX_HELP_SETTING = 1
 
         elif current_row == 1:  # Settings
-            self.right_sidebar.addItem(QListWidgetItem("Theme"))
-            self.right_sidebar.addItem(QListWidgetItem("Notification"))
-            self.right_sidebar.addItem(QListWidgetItem("Privacy"))
-            self.Tool_menu.setCurrentRow(1)
-            self.pages.setCurrentIndex(5)
-            self.currentToolIndex = 1
+            self.child_sidebar.addItem(QListWidgetItem("Notification"))
+            self.help_setting_side_bar.setCurrentRow(1)
+            self.child_sidebar.currentRowChanged.connect(self.update_setting)
+            self.pages.setCurrentIndex(0)
+            self.CURRENT_INDEX_HELP_SETTING = 2
 
+    def update_setting(self, current_row):
+        if current_row == 0:  # Setting
+            self.child_sidebar.setCurrentRow(0)
+            self.pages.setCurrentIndex(6)
+            self.CURRENT_INDEX_CHILD = 0
+
+
+    def update_about(self, current_row):
+        if current_row == 0:  # About this software
+            self.child_sidebar.setCurrentRow(0)
+            self.pages.setCurrentIndex(17)
+            self.CURRENT_INDEX_CHILD = 0
+        elif current_row == 1:  # Contact
+            self.child_sidebar.setCurrentRow(1)
+            self.pages.setCurrentIndex(18)
+            self.CURRENT_INDEX_CHILD = 1
 
 def main(test_mode=False):
     app = QApplication(sys.argv)
