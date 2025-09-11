@@ -888,7 +888,7 @@ class NotificationSettings(QWidget):
             response = requests.post(url, data=data)
             QTimer.singleShot(2000, lambda: self.show_test_result("Telegram message sent!", True))
         elif channel == "discord":
-            self.test_result.setText("📡 Sending test to all enabled channels...")
+            self.test_result.setText("📡 Sending test to discord channel...")
             self.test_result.setStyleSheet("color: #17a2b8;")
             webhook_url = self.discord_webhook.text()
 
