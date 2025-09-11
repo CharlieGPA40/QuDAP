@@ -12,6 +12,7 @@ from email.mime.multipart import MIMEMultipart
 import json
 import os
 from pathlib import Path
+import datetime
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QGridLayout,
@@ -844,11 +845,19 @@ class NotificationSettings(QWidget):
             message = MIMEMultipart()
             message["From"] = sender_email
             message["To"] = receiver_email
-            message["Subject"] = "This is a test email"
+            priority = 'normal'
+            message["Subject"] = f"[QuDAP {priority.upper()}] Update"
+
+            if priority == "critical":
+                message['X-Priority'] = '1'
+                message['Importance'] = 'high'
+            elif priority == "high":
+                message['X-Priority'] = '2'
+                message['Importance'] = 'high'
 
             body = "This is a test email."
-            message.attach(MIMEText(body, "plain"))
 
+            message.attach(MIMEText(body, "plain"))
             # Send the email using AU's SMTP server
             try:
                 with smtplib.SMTP( self.smtp_server.text(), self.smtp_port.value()) as server:
@@ -867,7 +876,15 @@ class NotificationSettings(QWidget):
             bot_token = self.telegram_token.text()
             chat_id = self.telegram_chat_id.text()
             url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-            data = {"chat_id": chat_id, "text": "This is a test message..."}
+            priority_emoji = {
+                'low': '🔵',
+                'normal': '🟢',
+                'high': '🟠',
+                'critical': '🔴'
+            }.get('normal', '⚪')
+
+            data = {"chat_id": chat_id,
+                    "text": f"{priority_emoji} This is a test message!"}
             response = requests.post(url, data=data)
             QTimer.singleShot(2000, lambda: self.show_test_result("Telegram message sent!", True))
         elif channel == "discord":
@@ -875,10 +892,24 @@ class NotificationSettings(QWidget):
             self.test_result.setStyleSheet("color: #17a2b8;")
             webhook_url = self.discord_webhook.text()
 
-            # Message content
+            color_map = {
+                'low': 0x3498db,  # Blue
+                'normal': 0x4CBB17,  # Green
+                'high': 0xe67e22,  # Orange
+                'critical': 0xe74c3c  # Red
+            }
+
             data = {
-                "content": "This is a test message...",
-                "username": f"{self.discord_name.text()}"  # Optional: sets the sender name
+                'username': f"{self.discord_name.text()}",
+                'embeds': [{
+                    'title': 'Test Message',
+                    'description': f"```\nThis is a test message...\n```",
+                    'color': color_map.get('normal', 0x95a5a6),
+                    'footer': {
+                        'text': 'QuDAP Notification System'
+                    },
+                    'timestamp': datetime.datetime.now().isoformat()
+                }]
             }
 
             response = requests.post(webhook_url, json=data)
