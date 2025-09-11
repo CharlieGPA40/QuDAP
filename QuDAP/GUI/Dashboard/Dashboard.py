@@ -17,10 +17,10 @@ class CPU_Display(FigureCanvas):
         self.axes = fig.add_subplot(111)
         super(CPU_Display, self).__init__(fig)
         self.setParent(parent)
-        self.cpu_usage = []
-        self.ram_usage = []
-        self.time = []
-        self.cpu = cpu
+        self.CPU_USAGE = []
+        self.RAM_USAGE = []
+        self.TIME = []
+        self.CPU = cpu
         self.plot_initial()
 
     def plot_initial(self):
@@ -42,17 +42,17 @@ class CPU_Display(FigureCanvas):
 
     def update_plot(self):
         # Update the plot with new data
-        self.cpu_usage.append(psutil.cpu_percent())
-        self.ram_usage.append(psutil.virtual_memory().percent)
-        if len(self.time) > 0:
-            self.time.append(self.time[-1] + 1)
+        self.CPU_USAGE.append(psutil.cpu_percent())
+        self.RAM_USAGE.append(psutil.virtual_memory().percent)
+        if len(self.TIME) > 0:
+            self.TIME.append(self.TIME[-1] + 1)
         else:
-            self.time.append(0)
+            self.TIME.append(0)
 
-        if len(self.time) > 60:
-            self.time.pop(0)
-            self.cpu_usage.pop(0)
-            self.ram_usage.pop(0)
+        if len(self.TIME) > 60:
+            self.TIME.pop(0)
+            self.CPU_USAGE.pop(0)
+            self.RAM_USAGE.pop(0)
             self.axes.cla()
             # self.plot_initial()
 
@@ -61,16 +61,15 @@ class CPU_Display(FigureCanvas):
             self.axes.set_xlim(0, 60)
         # self.axes.cla()
         self.plot_initial()
-        if self.cpu:
+        if self.CPU:
             self.axes.set_title('CPU Utilization (%)', color='lightsteelblue')
-            self.axes.plot(self.time, self.cpu_usage, label='CPU Usage', color='lightsteelblue')
-            self.axes.fill_between(self.time, self.cpu_usage, color='lightsteelblue', alpha=0.3)
+            self.axes.plot(self.TIME, self.CPU_USAGE, label='CPU Usage', color='lightsteelblue')
+            self.axes.fill_between(self.TIME, self.CPU_USAGE, color='lightsteelblue', alpha=0.3)
         else:
             self.axes.set_title('RAM Utilization (%)', color='darkviolet')
-            self.axes.plot(self.time, self.ram_usage, label='RAM Usage', color='darkviolet')
-            self.axes.fill_between(self.time, self.ram_usage, color='darkviolet', alpha=0.3)
+            self.axes.plot(self.TIME, self.RAM_USAGE, label='RAM Usage', color='darkviolet')
+            self.axes.fill_between(self.TIME, self.RAM_USAGE, color='darkviolet', alpha=0.3)
         self.draw()
-
 
 class CustomCalendarWidget(QCalendarWidget):
     def __init__(self, parent=None):
@@ -93,7 +92,6 @@ class CustomCalendarWidget(QCalendarWidget):
             painter.setPen(QPen(Qt.PenStyle.NoPen))
             painter.setBrush(QColor('orange'))
             painter.drawEllipse(rect.center(), rect.width() // 4, rect.height() // 4)
-
 
 class Dash(QMainWindow):
     def __init__(self):
@@ -577,7 +575,6 @@ class Dash(QMainWindow):
             return super().eventFilter(obj, event)
         return False
         # return super().eventFilter(obj, event)
-
 
     def applyShadowEffect(self, widget):
         if widget.objectName() == 'shg':
