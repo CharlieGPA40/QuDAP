@@ -182,8 +182,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(eto.ETO())  # 3
         self.pages.addWidget(shg.SHG())  # 4
         self.pages.addWidget(qd.QD())  # 5
-        # self.pages.addWidget(Setting.Settings())  # 6
-        self.pages.addWidget(qd.QD())
+        self.pages.addWidget(Setting.NotificationSettings())  # 6
         self.pages.addWidget(ppms.PPMS())  # 7
         self.pages.addWidget(nv.NV())  # 8
         self.pages.addWidget(cs.CurrentSource6221())  # 9
