@@ -1,15 +1,26 @@
 [project]
 name = "QuDAP"
-version = "0.0.5"
-authors = [
-  { name="Chunli Tang", email="chunli.tang@auburn.edu" },
-]
-description = "Quantum Materials Data Acquisition and Processing (QuDAP), a Python-based and open-source software package, is designed to control and automate material characterizations based on the Physical Property Measurement System (PPMS)."
+version = "0.1.0"  # Consider semantic versioning
+description = "Quantum Materials Data Acquisition and Processing"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Chunli Tang", email = "chunli.tang@auburn.edu"}
+]
+maintainers = [
+    {name = "Chunli Tang", email = "chunli.tang@auburn.edu"}
+]
+keywords = ["PPMS", "quantum materials", "data acquisition", "instrument control"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: Microsoft :: Windows",
 ]
 
@@ -33,8 +44,14 @@ dependencies = [
     'clr'
 ]
 
+[project.scripts]
+qudap = "QuDAP.cli:main"
+qudap-gui = "QuDAP.StartGUI:main"
+
 [project.urls]
 Homepage = "https://github.com/CharlieGPA40/QuDAP"
+Documentation = "https://qudap.readthedocs.io"
+Repository = "https://github.com/CharlieGPA40/QuDAP"
 Issues = "https://github.com/CharlieGPA40/QuDAP/issues"
 
 [build-system]
