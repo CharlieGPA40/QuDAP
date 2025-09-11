@@ -1,40 +1,167 @@
 import sys
-
+import csv
+from typing import Optional, Dict, Any, List, Tuple
 import glob
+import random
+import time
+import platform
+from datetime import datetime
+import traceback
+import os
+import requests
+
+import pyvisa as visa
+import matplotlib
+import numpy as np
+if platform.system() == 'Windows':
+    import MultiPyVu as mpv  # Uncommented it on the server computer
+    from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
     QDialogButtonBox, QProgressBar, QButtonGroup, QApplication, QCompleter
 )
 from PyQt6.QtGui import QIcon, QFont
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QSettings
 from PyQt6.QtGui import QKeyEvent
-import pyvisa as visa
-import matplotlib
-import numpy as np
-import csv
 
 # for simulation purpose
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-import random
-import time
-import platform
-if platform.system() == 'Windows':
-    import MultiPyVu as mpv  # Uncommented it on the server computer
-    from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
-from datetime import datetime
-import traceback
-import os
-import requests
-# directory_path = "C:/Windows/Microsoft.NET/assembly/GAC_64/Newport.XPS.CommandInterface"
-# if os.path.isdir(directory_path):
-#     directories = [f for f in glob.glob(f"{directory_path}/*") if os.path.isdir(f)]
-#     import clr
-#     clr.AddReference(f'{directories[0]}/Newport.XPS.CommandInterface.dll')
-#     from CommandInterfaceXPS import *
+
+class NotificationManager:
+    def __init__(self):
+        self.settings = QSettings('QuDAP', 'NotificationSettings')
+        self.enabled_channels = self._load_enabled_channels()
+
+    def _load_enabled_channels(self) -> Dict[str, bool]:
+        return {
+            'email': self.settings.value('email/enabled', False, bool),
+            'telegram': self.settings.value('telegram/enabled', False, bool),
+            'discord': self.settings.value('discord/enabled', False, bool),
+        }
+
+    def should_notify(self, event_type: str) -> bool:
+        return self.settings.value(f'events/{event_type}', True, bool)
+
+    def send_notification(self, event_type: str, title: str, message: str, priority: str = "normal"):
+        if not self.should_notify(event_type):
+            return
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_message = f"{message}\n\nTime: {timestamp}"
+
+        # Send to each enabled channel
+        if self.enabled_channels.get('email'):
+            self._send_email(formatted_message, priority)
+        if self.enabled_channels.get('telegram'):
+            self._send_telegram(formatted_message, priority)
+        if self.enabled_channels.get('discord'):
+            self._send_discord(formatted_message, priority)
+
+    def _send_email(self, body: str, priority: str):
+        try:
+            # Get settings
+            smtp_server = self.settings.value('email/smtp_server', '')
+            smtp_port = self.settings.value('email/smtp_port', 587, int)
+            use_ssl = self.settings.value('email/smtp_ssl', True, bool)
+            username = self.settings.value('email/username', '')
+            password = self.settings.value('email/password', '')
+            from_email = self.settings.value('email/from_email', username)
+            to_emails = self.settings.value('email/to_emails', '').split('\n')
+
+            if not all([smtp_server, username, password, to_emails]):
+                return
+
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = from_email
+            msg['To'] = ', '.join(filter(None, to_emails))
+            msg['Subject'] = f"[QuDAP {priority.upper()}] Updates"
+
+            # Add priority headers
+            if priority == "critical":
+                msg['X-Priority'] = '1'
+                msg['Importance'] = 'high'
+            elif priority == "high":
+                msg['X-Priority'] = '2'
+                msg['Importance'] = 'high'
+
+            msg.attach(MIMEText(body, 'plain'))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                if use_ssl:
+                    server.starttls()
+                server.login(username, password)
+                server.sendmail(from_email, to_emails, msg.as_string())
+        except Exception as e:
+            print(f"Email notification error: {e}")
+
+    def _send_telegram(self, message: str, priority: str):
+        import requests
+
+        try:
+            token = self.settings.value('telegram/token', '')
+            chat_id = self.settings.value('telegram/chat_id', '')
+            url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+            if not all([token, chat_id]):
+                return
+
+            priority_emoji = {
+                'low': '🔵',
+                'normal': '🟢',
+                'high': '🟠',
+                'critical': '🔴'
+            }.get(priority, '⚪')
+
+            data = {"chat_id": chat_id,
+                    "text": f"{priority_emoji} {message}!"}
+
+            response = requests.post(url, data=data, timeout=10)
+            response.raise_for_status()
+        except Exception as e:
+            print(f"Telegram notification error: {e}")
+
+    def _send_discord(self, message: str, priority: str):
+        import requests
+
+        try:
+            webhook_url = self.settings.value('discord/webhook', '')
+            bot_name = self.settings.value('discord/name', 'QuDAP Bot')
+
+            if not webhook_url:
+                return
+
+            color_map = {
+                'low': 0x3498db,  # Blue
+                'normal': 0x4CBB17,  # Green
+                'high': 0xe67e22,  # Orange
+                'critical': 0xe74c3c  # Red
+            }
+            data = {
+                'username': bot_name,
+                'embeds': [{
+                    'title': f'Measurement Status Update',
+                    'description': f"```\n{message}\n```",
+                    'color': color_map.get(priority, 0x95a5a6),
+                    'footer': {
+                        'text': 'QuDAP Notification System'
+                    },
+                    'timestamp': datetime.now().isoformat()
+                }]
+            }
+            response = requests.post(webhook_url, json=data, timeout=10)
+            response.raise_for_status()
+
+        except Exception as e:
+            print(f"Discord notification error: {e}")
 
 class Worker(QThread):
     progress_update = pyqtSignal(int)
@@ -101,7 +228,6 @@ class Worker(QThread):
         self.demo = demo
 
     def run(self):
-
         try:
             self.measurement_instance.run_ETO(self.append_text.emit, self.progress_update.emit,
                                               self.stop_measurment.emit, self.update_ppms_temp_reading_label.emit,
@@ -158,43 +284,35 @@ class Worker(QThread):
         print("STOP")
 
 class LogWindow(QDialog):
+    settings_saved = pyqtSignal()
+
     def __init__(self):
         super().__init__()
-
-        def read_bot_token(file_path):
-            with open(file_path, 'r') as file:
-                # Read the first line, which should be the token
-                bot_token = file.readline().strip()
-            return bot_token
-
-        # Path to the text file containing the bot token
-        self.token_file_path = 'C:/Users/QDUser/Documents/Chunli Software/Data_Processing_Suite/QuDAP/GUI/QDesign/bot.txt'
-        self.file_exists = os.path.isfile(self.token_file_path)
-        if self.file_exists:
-            self.token_file = read_bot_token(self.token_file_path)
-        else:
-            self.token_file = None
+        self.SETTINGS = QSettings('QuDAP', 'LogSettings')
         self.setWindowTitle('Log Window')
         self.font = QFont("Arial", 13)
-        self.ID = None
-        self.Measurement = None
+        self.sample_id = None
+        self.measurement = None
         self.run = None
         self.folder_path = None
         self.setStyleSheet('Background: white')
         with open("GUI/SHG/QButtonWidget.qss", "r") as file:
             self.Browse_Button_stylesheet = file.read()
-        self.layout = QVBoxLayout()
-        self.User_layout = QHBoxLayout()
-        self.User_label = QLabel('User: ')
-        self.User_label.setFont(self.font)
-        self.User_entry_box = QLineEdit(self)
-        self.User_entry_box.setFont(self.font)
-        self.User_layout.addWidget(self.User_label)
-        self.User_layout.addWidget(self.User_entry_box)
+        self.init_ui()
+
+    def init_ui(self):
+        self.log_box_layout = QVBoxLayout()
+        self.user_layout = QHBoxLayout()
+        self.user_label = QLabel('User: ')
+        self.user_label.setFont(self.font)
+        self.user_entry_box = QLineEdit(self)
+        self.user_entry_box.setFont(self.font)
+        self.user_layout.addWidget(self.user_label)
+        self.user_layout.addWidget(self.user_entry_box)
 
         user_hints = ["Chunli Tang"]
-        user_completer = QCompleter(user_hints, self.User_entry_box)
-        self.User_entry_box.setCompleter(user_completer)
+        user_completer = QCompleter(user_hints, self.user_entry_box)
+        self.user_entry_box.setCompleter(user_completer)
 
         self.output_folder_layout = QHBoxLayout()
         self.output_folder_label = QLabel('Output Folder: ')
@@ -211,38 +329,39 @@ class LogWindow(QDialog):
 
         today = datetime.today()
         self.formatted_date = today.strftime("%m%d%Y")
-        self.Date_layout = QHBoxLayout()
-        self.Date_label = QLabel("Today's Date:")
-        self.Date_label.setFont(self.font)
-        self.Date_entry_box = QLineEdit(self)
-        self.Date_entry_box.setFont(self.font)
-        self.Date_entry_box.setEnabled(False)
-        self.Date_entry_box.setText(str(self.formatted_date))
-        self.Date_layout.addWidget(self.Date_label)
-        self.Date_layout.addWidget(self.Date_entry_box)
+        self.date_layout = QHBoxLayout()
+        self.date_label = QLabel("Today's Date:")
+        self.date_label.setFont(self.font)
+        self.date_entry_box = QLineEdit(self)
+        self.date_entry_box.setFont(self.font)
+        self.date_entry_box.setEnabled(False)
+        self.date_entry_box.setText(str(self.formatted_date))
+        self.date_layout.addWidget(self.date_label)
+        self.date_layout.addWidget(self.date_entry_box)
 
-        self.Sample_ID_layout = QHBoxLayout()
-        self.Sample_ID_label = QLabel("Sample ID:")
-        self.Sample_ID_label.setFont(self.font)
-        self.Sample_ID_entry_box = QLineEdit(self)
-        self.Sample_ID_entry_box.setFont(self.font)
-        self.Sample_ID_entry_box.textChanged.connect(self.update_ID)
-        self.Sample_ID_layout.addWidget(self.Sample_ID_label)
-        self.Sample_ID_layout.addWidget(self.Sample_ID_entry_box)
+        self.sample_id_layout = QHBoxLayout()
+        self.sample_id_label = QLabel("Sample ID:")
+        self.sample_id_label.setFont(self.font)
+        self.sample_id_entry_box = QLineEdit(self)
+        self.sample_id_entry_box.setFont(self.font)
+        self.sample_id_entry_box.textChanged.connect(self.update_id)
+        self.sample_id_layout.addWidget(self.sample_id_label)
+        self.sample_id_layout.addWidget(self.sample_id_entry_box)
 
-        self.Measurement_type_layout = QHBoxLayout()
-        self.Measurement_type_label = QLabel("Measurement Type:")
-        self.Measurement_type_label.setFont(self.font)
-        self.Measurement_type_entry_box = QLineEdit(self)
-        self.Measurement_type_entry_box.setFont(self.font)
-        self.Measurement_type_entry_box.textChanged.connect(self.update_measurement)
-        self.Measurement_type_layout.addWidget(self.Measurement_type_label)
-        self.Measurement_type_layout.addWidget(self.Measurement_type_entry_box)
+        self.measurement_type_layout = QHBoxLayout()
+        self.measurement_type_label = QLabel("Measurement Type:")
+        self.measurement_type_label.setFont(self.font)
+        self.measurement_type_entry_box = QLineEdit(self)
+        self.measurement_type_entry_box.setFont(self.font)
+        self.measurement_type_entry_box.textChanged.connect(self.update_measurement)
+        self.measurement_type_layout.addWidget(self.measurement_type_label)
+        self.measurement_type_layout.addWidget(self.measurement_type_entry_box)
 
         measurement_hints = ["ETO", "ETO_Rxx_in_plane", "ETO_Rxx_out_of_plane", "ETO_Rxy_in_plane","ETO_Rxy_out_of_plane", 
-                             "ETO_Rxy_Rxx_in_plane", "ETO_Rxy_Rxx_out_of_plane"]
-        measurement_completer = QCompleter(measurement_hints, self.Measurement_type_entry_box)
-        self.Measurement_type_entry_box.setCompleter(measurement_completer)
+                             "ETO_Rxy_Rxx_in_plane", "ETO_Rxy_Rxx_out_of_plane", "FMR_field_mod_in_plane", "FMR_field_mod_out_of_plane",
+                             "FMR_amp_mod_in_plane", "FMR_amp_mod_out_of_plane"]
+        measurement_completer = QCompleter(measurement_hints, self.measurement_type_entry_box)
+        self.measurement_type_entry_box.setCompleter(measurement_completer)
 
         self.run_number_layout = QHBoxLayout()
         self.run_number_label = QLabel("Run Number:")
@@ -264,45 +383,52 @@ class LogWindow(QDialog):
         self.example_file_name = QLabel()
 
         self.random_number = random.randint(100000, 999999)
-        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.sample_id}_{self.measurement}_300_K_20_uA_Run_{self.run}.txt"
 
-        self.button_box.setStyleSheet(self.Browse_Button_stylesheet)
+        self.load_log_info_button_layout = QHBoxLayout()
+        self.submit_dialog_button = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.submit_dialog_button.setStyleSheet(self.Browse_Button_stylesheet)
+        self.load_log_info_button = QPushButton('Load Previous Info')
+        self.load_log_info_button.setStyleSheet(self.Browse_Button_stylesheet)
+        self.load_log_info_button.clicked.connect(self.load_settings)
+        self.load_log_info_button_layout.addWidget(self.load_log_info_button)
+        self.load_log_info_button_layout.addWidget(self.submit_dialog_button)
+
         self.example_file_name.setText(self.file_name)
-        self.layout.addLayout(self.User_layout)
-        self.layout.addLayout(self.output_folder_layout)
-        self.layout.addLayout(self.Date_layout)
-        self.layout.addLayout(self.Sample_ID_layout)
-        self.layout.addLayout(self.Measurement_type_layout)
-        self.layout.addLayout(self.run_number_layout)
-        self.layout.addLayout(self.comment_layout)
-        self.layout.addWidget(self.button_box)
-        self.layout.addWidget(self.example_file_name)
+        self.log_box_layout.addLayout(self.user_layout)
+        self.log_box_layout.addLayout(self.output_folder_layout)
+        self.log_box_layout.addLayout(self.date_layout)
+        self.log_box_layout.addLayout(self.sample_id_layout)
+        self.log_box_layout.addLayout(self.measurement_type_layout)
+        self.log_box_layout.addLayout(self.run_number_layout)
+        self.log_box_layout.addLayout(self.comment_layout)
+        self.log_box_layout.addLayout(self.load_log_info_button_layout)
+        self.log_box_layout.addWidget(self.example_file_name)
 
-        self.setLayout(self.layout)
+        self.setLayout(self.log_box_layout)
 
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
+        self.submit_dialog_button.accepted.connect(self.accept)
+        self.submit_dialog_button.rejected.connect(self.reject)
 
-    def update_ID(self, text):
+    def update_id(self, text):
         # Replace spaces with underscores in the text
-        self.ID = self.Sample_ID_entry_box.text()
-        self.ID = text.replace(" ", "_")
-        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
+        self.sample_id = self.sample_id_entry_box.text()
+        self.sample_id = text.replace(" ", "_")
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.sample_id}_{self.measurement}_300_K_20_uA_Run_{self.run}.txt"
         self.example_file_name.setText(self.file_name)
 
     def update_measurement(self, text):
         # Replace spaces with underscores in the text
-        self.Measurement = self.Measurement_type_entry_box.text()
-        self.Measurement = text.replace(" ", "_")
-        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.txt"
+        self.measurement = self.measurement_type_entry_box.text()
+        self.measurement = text.replace(" ", "_")
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.sample_id}_{self.measurement}_300_K_20_uA_Run_{self.run}.txt"
         self.example_file_name.setText(self.file_name)
 
     def update_run_number(self, text):
         # Replace spaces with underscores in the text
         self.run = self.run_number_entry_box.text()
         self.run = text.replace(" ", "_")
-        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}_300_K_20_uA_Run_{self.run}.csv"
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.sample_id}_{self.measurement}_300_K_20_uA_Run_{self.run}.csv"
         self.example_file_name.setText(self.file_name)
 
     def open_folder_dialog(self):
@@ -311,18 +437,32 @@ class LogWindow(QDialog):
             self.folder_path = self.folder_path +'/'
             self.folder_entry_box.setText(self.folder_path)
 
+    def load_settings(self):
+        # Load email settings
+        self.user_entry_box.setText(self.SETTINGS.value('log/username', ''))
+        self.folder_entry_box.setText(self.SETTINGS.value('log/folder_path', '')+'/')
+        self.sample_id_entry_box.setText(self.SETTINGS.value('log/sample_id', ''))
+        self.measurement_type_entry_box.setText(self.SETTINGS.value('log/measurement', ''))
+        self.run_number_entry_box.setText(self.SETTINGS.value('log/run', ''))
+
     def accept(self):
-        self.User = self.User_entry_box.text()
-        self.commemt = self.comment_entry_box.text()
-        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.ID}_{self.Measurement}"
+        self.user = self.user_entry_box.text()
+        self.comment = self.comment_entry_box.text()
+        self.file_name = f"{self.random_number}_{self.formatted_date}_{self.sample_id}_{self.measurement}"
         # Call the inherited accept method to close the dialog
-        if self.User != '' and self.folder_path != '' and self.commemt != '' and self.ID != '' and self.Measurement != '' and self.run != '':
+        if self.user != '' and self.folder_path != '' and self.sample_id != '' and self.measurement != '' and self.run != '':
+            self.SETTINGS.setValue('log/username', self.user)
+            self.SETTINGS.setValue('log/folder_path', self.folder_path)
+            self.SETTINGS.setValue('log/sample_id', self.sample_id)
+            self.SETTINGS.setValue('log/measurement', self.measurement)
+            self.SETTINGS.setValue('log/run', self.run)
+            self.settings_saved.emit()
             super().accept()
         else:
             QMessageBox.warning(self, 'Warning', 'Please enter the log completely!')
 
     def get_text(self):
-        return self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt, self.User
+        return self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=100, height=4, dpi=300):
@@ -360,21 +500,7 @@ class Measurement(QMainWindow):
             return
 
     def init_ui(self):
-        def read_bot_token(file_path):
-            with open(file_path, 'r') as file:
-                # Read the first line, which should be the token
-                bot_token = file.readline().strip()
-            return bot_token
 
-        # Path to the text file containing the bot token
-        self.token_file_path = 'C:/Users/QDUser/Documents/Chunli Software/Data_Processing_Suite/QuDAP/GUI/QDesign/bot.txt'
-        self.file_exists = os.path.isfile(self.token_file_path)
-        if self.file_exists:
-            self.token_file = read_bot_token(self.token_file_path)
-            self.telegram = True
-        else:
-            self.token_file = None
-            self.telegram = False
         titlefont = QFont("Arial", 20)
         self.font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
@@ -2000,8 +2126,8 @@ class Measurement(QMainWindow):
                 except Exception:
                     pass
                 self.running = True
-                self.folder_path, self.file_name, self.formatted_date, self.ID, self.Measurement, self.run, self.commemt, self.User = dialog.get_text()
-
+                self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user = dialog.get_text()
+                print("PASS HERE 4")
                 self.log_box = QTextEdit(self)
                 self.log_box.setReadOnly(True)  # Make the log box read-only
                 self.progress_bar = QProgressBar(self)
@@ -2290,12 +2416,12 @@ class Measurement(QMainWindow):
                 f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
                 today = datetime.today()
                 self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
-                f.write(f"User: {self.User}\n")
+                f.write(f"User: {self.user}\n")
                 f.write(f"Today's Date: {self.formatted_date_csv}\n")
-                f.write(f"Sample ID: {self.ID}\n")
-                f.write(f"Measurement Type: {self.Measurement}\n")
+                f.write(f"Sample ID: {self.sample_id}\n")
+                f.write(f"Measurement Type: {self.measurement}\n")
                 f.write(f"Run: {self.run}\n")
-                f.write(f"Comment: {self.commemt}\n")
+                f.write(f"Comment: {self.comment}\n")
                 f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
                 f.write(f"Experiment Temperature (K): {temp_log}\n")
                 f.write(f"Experiment Current: {listToString(current)}\n")
@@ -2309,7 +2435,7 @@ class Measurement(QMainWindow):
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
                 if self.file_exists:
-                    self.send_telegram_notification(f"{self.User} is running {self.Measurement} on {self.ID}")
+                    self.send_telegram_notification(f"{self.user} is running {self.measurement} on {self.sample_id}")
                 if self.ppms_field_mode_fixed_radio.isChecked():
                     self.field_mode_fixed = True
                 else:
@@ -2357,8 +2483,8 @@ class Measurement(QMainWindow):
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
                 self.stop_measurement()
-                if self.file_exists:
-                    self.send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+                # if self.file_exists:
+                #     self.send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
                 self.client_keep_going = False
                 self.connect_btn.setText('Start Client')
                 self.connect_btn_clicked = False
@@ -2368,8 +2494,8 @@ class Measurement(QMainWindow):
                 tb_str = traceback.format_exc()
                 self.stop_measurement()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-                if self.file_exists:
-                    self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
+                # if self.file_exists:
+                #     self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
 
     def save_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled, save, temp, current):
 
@@ -2387,7 +2513,7 @@ class Measurement(QMainWindow):
         self.canvas.draw()
 
         if save:
-            self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.ID, self.Measurement, self.run, temp, current))
+            self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.sample_id, self.measurement, self.run, temp, current))
             time.sleep(5)
             
 
@@ -2415,7 +2541,7 @@ class Measurement(QMainWindow):
             if self.telegram:
                 bot_token = self.token_file
                 chat_id = "5733353343"
-                image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.ID, self.Measurement, self.run, temp, current)
+                image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.sample_id, self.measurement, self.run, temp, current)
                 print(image_path)
                 if not os.path.exists(image_path):
                     print("No Such File.")
