@@ -3029,6 +3029,9 @@ class Measurement(QMainWindow):
                                         self.channel1_field_avg_array.append(channel1_field_avg_sig)
                                         resistance_chan_1_avg = channel1_avg_sig / float(current[j])
                                         update_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black', True, False)
+                                    else:
+                                        resistance_chan_1_avg = 0
+                                        channel1_avg_sig = 0
                                     if self.channel2_avg_array_temp:
                                         channel2_avg_sig = sum(self.channel2_avg_array_temp) / len(self.channel2_avg_array_temp)
                                         channel2_field_avg_sig = sum(self.channel2_field_avg_array_temp) / len(
@@ -3038,6 +3041,9 @@ class Measurement(QMainWindow):
                                         resistance_chan_2_avg = channel2_avg_sig / float(current[j])
                                         update_plot(self.channel2_field_avg_array, self.channel2_avg_array, 'red', True, False)
                                         # Append the data to the CSV file
+                                    else:
+                                        resistance_chan_2_avg = 0
+                                        channel2_avg_sig = 0
                                     with open(csv_filename_avg, "a", newline="") as csvfile:
                                         csv_writer = csv.writer(csvfile)
 
@@ -3238,6 +3244,9 @@ class Measurement(QMainWindow):
                                         resistance_chan_1_avg = channel1_avg_sig / float(current[j])
                                         update_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black',
                                                     True, False)
+                                    else:
+                                        resistance_chan_1_avg = 0
+                                        channel1_avg_sig = 0
                                     if self.channel2_avg_array_temp:
                                         channel2_avg_sig = sum(self.channel2_avg_array_temp) / len(
                                             self.channel2_avg_array_temp)
@@ -3249,6 +3258,9 @@ class Measurement(QMainWindow):
                                         update_plot(self.channel2_field_avg_array, self.channel2_avg_array, 'red', True,
                                                     False)
                                         # Append the data to the CSV file
+                                    else:
+                                        resistance_chan_2_avg = 0
+                                        channel2_avg_sig = 0
                                     with open(csv_filename_avg, "a", newline="") as csvfile:
                                         csv_writer = csv.writer(csvfile)
 
@@ -3363,7 +3375,7 @@ class Measurement(QMainWindow):
                                     "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                             counter = 0
-                            while currentField >= botField:
+                            while currentField >= botField + 1:
                                 if not running():
                                     stop_measurement()
                                     return
@@ -3529,7 +3541,7 @@ class Measurement(QMainWindow):
                             counter = 0
                             current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)/2
                             progress_update(int(current_progress))
-                            while currentField <= topField:
+                            while currentField <= topField - 1:
                                 if not running():
                                     print('Not Running')
                                     stop_measurement()
