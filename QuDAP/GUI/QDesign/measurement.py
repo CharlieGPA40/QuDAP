@@ -48,7 +48,7 @@ class NotificationManager:
         }
 
 
-    def send_notification(self, message: str, priority: str = "normal"):
+    def send_notification(self, message: str, priority: str = "normal", image_path: str = None):
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         formatted_message = f"{message}\n\nTime: {timestamp}"
@@ -57,7 +57,7 @@ class NotificationManager:
         if self.enabled_channels.get('email'):
             self._send_email(formatted_message, priority)
         if self.enabled_channels.get('telegram'):
-            self._send_telegram(formatted_message, priority)
+            self._send_telegram(formatted_message, priority, image_path)
         if self.enabled_channels.get('discord'):
             self._send_discord(formatted_message, priority)
 
@@ -99,7 +99,7 @@ class NotificationManager:
         except Exception as e:
             print(f"Email notification error: {e}")
 
-    def _send_telegram(self, message: str, priority: str):
+    def _send_telegram(self, message: str, priority: str, image_file: str = None):
         import requests
 
         try:
@@ -120,7 +120,12 @@ class NotificationManager:
             data = {"chat_id": chat_id,
                     "text": f"{priority_emoji} {message}!"}
 
+            if image_file:
+                files = {"photo": image_file}
+                response = requests.post(url, data=data, files=files)
+
             response = requests.post(url, data=data, timeout=10)
+
             response.raise_for_status()
         except Exception as e:
             print(f"Telegram notification error: {e}")
@@ -2565,7 +2570,7 @@ class Measurement(QMainWindow):
         if save:
             self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.sample_id, self.measurement, self.run, temp, current))
             time.sleep(5)
-            
+
 
             def send_image(bot_token, chat_id, image_path, caption=None):
                 url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
@@ -2588,16 +2593,13 @@ class Measurement(QMainWindow):
                 except Exception as e:
                     return {"ok": False, "error": str(e)}
 
-            if self.telegram:
-                bot_token = self.token_file
-                chat_id = "5733353343"
-                image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.sample_id, self.measurement, self.run, temp, current)
-                print(image_path)
-                if not os.path.exists(image_path):
-                    print("No Such File.")
-                caption = f"Data preview"
-                response = send_image(bot_token, chat_id, image_path, caption)
-                print(response)
+
+            image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.sample_id, self.measurement, self.run, temp, current)
+            if not os.path.exists(image_path):
+                print("No Such File.")
+            caption = f"Data preview"
+            NotificationManager().send_notification(message=f"Data preview - {caption}", image_path=image_path)
+
 
     def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
 
