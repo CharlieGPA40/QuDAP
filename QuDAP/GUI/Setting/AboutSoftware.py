@@ -4,7 +4,7 @@ A modern, aesthetically pleasing about page for the QuDAP software
 """
 
 import sys
-from QuDAP import __version__
+from __init__ import __version__
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QGroupBox, QScrollArea, QFrame, QGridLayout,
