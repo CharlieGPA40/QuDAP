@@ -2682,6 +2682,7 @@ class Measurement(QMainWindow):
             Fast_fieldRate = 220
             tempRate_init = 20
             zeroField = 0
+            demag_field = 5
             start_time = time.time()
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
@@ -2781,6 +2782,53 @@ class Measurement(QMainWindow):
                         csv_filename_avg = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_avg.csv"
                         csv_filename_zero_field = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_zero_field.csv"
 
+
+
+                        # number_of_current = number_of_current - 1
+                        time.sleep(5)
+                        client.set_field(demag_field,
+                                         Fast_fieldRate,
+                                         client.field.approach_mode.linear,  # linear/oscillate
+                                         client.field.driven_mode.driven)
+                        append_text(f'Waiting for {demag_field} Oe Field used for demagnetization... \n', 'blue')
+                        time.sleep(10)
+                        while True:
+                            if not running():
+                                stop_measurement()
+                                return
+                            time.sleep(15)
+                            try:
+                                F, sF = client.get_field()
+                            except SystemExit as e:
+                                error_message(e, e)
+                                NotificationManager().send_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection", 'critical')
+                            update_ppms_field_reading_label(str(F), 'Oe')
+                            append_text(f'Status: {sF}\n', 'red')
+                            if sF == 'Holding (driven)':
+                                break
+                        client.set_field(zeroField,
+                                         Fast_fieldRate,
+                                         client.field.approach_mode.oscillate,  # linear/oscillate
+                                         client.field.driven_mode.driven)
+                        append_text(f'Waiting for {zeroField} Oe Field for Demagnetization... \n', 'blue')
+                        time.sleep(10)
+                        while True:
+                            if not running():
+                                stop_measurement()
+                                return
+                            time.sleep(15)
+                            try:
+                                F, sF = client.get_field()
+                            except SystemExit as e:
+                                error_message(e, e)
+                                NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
+                            update_ppms_field_reading_label(str(F), 'Oe')
+                            append_text(f'Status: {sF}\n', 'red')
+                            if sF == 'Holding (driven)':
+                                break
+
                         if Keithley_2182_Connected:
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
@@ -2827,50 +2875,6 @@ class Measurement(QMainWindow):
                                                      Chan_2_voltage, MyTemp, current[j]])
                                 append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
-                        # number_of_current = number_of_current - 1
-                        time.sleep(5)
-                        client.set_field(topField,
-                                         Fast_fieldRate,
-                                         client.field.approach_mode.linear,  # linear/oscillate
-                                         client.field.driven_mode.driven)
-                        append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
-                        time.sleep(10)
-                        while True:
-                            if not running():
-                                stop_measurement()
-                                return
-                            time.sleep(15)
-                            try:
-                                F, sF = client.get_field()
-                            except SystemExit as e:
-                                error_message(e, e)
-                                NotificationManager().send_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection", 'critical')
-                            update_ppms_field_reading_label(str(F), 'Oe')
-                            append_text(f'Status: {sF}\n', 'red')
-                            if sF == 'Holding (driven)':
-                                break
-                        client.set_field(zeroField,
-                                         Fast_fieldRate,
-                                         client.field.approach_mode.oscillate,  # linear/oscillate
-                                         client.field.driven_mode.driven)
-                        append_text(f'Waiting for {zeroField} Oe Field for Demagnetization... \n', 'blue')
-                        time.sleep(10)
-                        while True:
-                            if not running():
-                                stop_measurement()
-                                return
-                            time.sleep(15)
-                            try:
-                                F, sF = client.get_field()
-                            except SystemExit as e:
-                                error_message(e, e)
-                                NotificationManager().send_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
-                            update_ppms_field_reading_label(str(F), 'Oe')
-                            append_text(f'Status: {sF}\n', 'red')
-                            if sF == 'Holding (driven)':
-                                break
                         if Ketihley_6221_Connected:
                             keithley_6221.write(":OUTP OFF")  # Set source function to current
                             keithley_6221.write("CURRent:RANGe:AUTO ON \n")
