@@ -3244,6 +3244,7 @@ class Measurement(QMainWindow):
                                         resistance_chan_1_avg = channel1_avg_sig / float(current[j])
                                         update_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black',
                                                     True, False)
+
                                     else:
                                         resistance_chan_1_avg = 0
                                         channel1_avg_sig = 0
@@ -3667,10 +3668,18 @@ class Measurement(QMainWindow):
                                 # currentField, sF = client.get_field()
                                 # update_ppms_field_reading_label(str(currentField), 'Oe')
                         if Keithley_2182_Connected:
-                            if nv_channel_1_enabled:
-                               save_plot(self.field_array, self.channel1_array, 'black', True, False, True, str(TempList[i]), str(current[j]))
-                            if nv_channel_2_enabled:
-                               save_plot(self.field_array, self.channel2_array, 'red', False, True, True, str(TempList[i]), str(current[j]))
+                            if field_mode_fixed:
+                                if nv_channel_1_enabled:
+                                    save_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black', True, False, True,
+                                              str(TempList[i]), str(current[j]))
+                                if nv_channel_2_enabled:
+                                    save_plot(self.channel2_field_avg_array, self.channel2_avg_array, 'red', False, True, True,
+                                              str(TempList[i]), str(current[j]))
+                            else:
+                                if nv_channel_1_enabled:
+                                   save_plot(self.field_array, self.channel1_array, 'black', True, False, True, str(TempList[i]), str(current[j]))
+                                if nv_channel_2_enabled:
+                                   save_plot(self.field_array, self.channel2_array, 'red', False, True, True, str(TempList[i]), str(current[j]))
                         elif DSP7265_Connected:
                             save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, str(TempList[i]), str(current[j]))
                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
