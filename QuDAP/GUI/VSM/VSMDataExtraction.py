@@ -27,7 +27,6 @@ else:
     version_info = platform.win32_ver()
     version, build, service_pack, extra = version_info
     build_number = int(build.split('.')[2])
-    print(version, build_number)
     # try:
     #     if version == "10" and build_number >= 22000:
     #         from QuDAP.VSM.qd import *
