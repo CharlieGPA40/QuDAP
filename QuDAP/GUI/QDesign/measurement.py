@@ -2835,45 +2835,49 @@ class Measurement(QMainWindow):
                         time.sleep(2)  # Wait for the configuration to complete
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
+                        k = 0
                         MyField, sF = client.get_field()
                         update_ppms_field_reading_label(str(MyField), 'Oe')
-                        self.field_array.append(MyField)
-                        if Keithley_2182_Connected:
-                            try:
-                                if nv_channel_1_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 1")
-                                    volt = keithley_2182nv.query("READ?")
-                                    Chan_1_voltage = float(volt)
-                                    append_text(f"Channel 1 Zero Field Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                            except Exception as e:
-                                QMessageBox.warning(self, 'Warning', str(e))
 
-                            if nv_channel_2_enabled:
-                                keithley_2182nv.write("SENS:CHAN 2")
-                                volt2 = keithley_2182nv.query("READ?")
-                                Chan_2_voltage = float(volt2)
-                                update_nv_channel_2_label(str(Chan_2_voltage))
-                                append_text(f"Channel 2 Zero Field Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                        while k < fix_field_avg:
+                            if Keithley_2182_Connected:
+                                MyField, sF = client.get_field()
+                                update_ppms_field_reading_label(str(MyField), 'Oe')
+                                try:
+                                    if nv_channel_1_enabled:
+                                        keithley_2182nv.write("SENS:CHAN 1")
+                                        volt = keithley_2182nv.query("READ?")
+                                        Chan_1_voltage = float(volt)
+                                        append_text(f"Channel 1 Zero Field Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                except Exception as e:
+                                    QMessageBox.warning(self, 'Warning', str(e))
 
-                            # Calculate the average voltage
-                            resistance_chan_1 = Chan_1_voltage / float(current[j])
-                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+                                if nv_channel_2_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 2")
+                                    volt2 = keithley_2182nv.query("READ?")
+                                    Chan_2_voltage = float(volt2)
+                                    update_nv_channel_2_label(str(Chan_2_voltage))
+                                    append_text(f"Channel 2 Zero Field Voltage: {str(Chan_2_voltage)} V\n", 'green')
 
-                            # Append the data to the CSV file
-                            with open(csv_filename_zero_field, "a", newline="") as csvfile:
-                                csv_writer = csv.writer(csvfile)
+                                # Calculate the average voltage
+                                resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                resistance_chan_2 = Chan_2_voltage / float(current[j])
 
-                                if csvfile.tell() == 0:  # Check if file is empty
-                                    csv_writer.writerow(
-                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
-                                         "Channel 2 "
-                                         "Resistance ("
-                                         "Ohm)",
-                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+                                # Append the data to the CSV file
+                                with open(csv_filename_zero_field, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
 
-                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                     Chan_2_voltage, MyTemp, current[j]])
-                                append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
+                                             "Channel 2 "
+                                             "Resistance ("
+                                             "Ohm)",
+                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                    csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                         Chan_2_voltage, MyTemp, current[j]])
+                                    append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
                         if Ketihley_6221_Connected:
                             keithley_6221.write(":OUTP OFF")  # Set source function to current
