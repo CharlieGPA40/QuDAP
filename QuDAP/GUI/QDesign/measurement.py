@@ -2911,6 +2911,7 @@ class Measurement(QMainWindow):
                         currentField = topField
                         deltaH, user_field_rate = deltaH_chk(currentField)
                         number_of_field_update = number_of_field
+                        self.field_array = []
                         self.channel1_field_array = []
                         self.channel2_field_array = []
                         self.channel1_field_avg_array = []
