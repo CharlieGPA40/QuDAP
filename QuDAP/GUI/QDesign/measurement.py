@@ -2675,7 +2675,6 @@ class Measurement(QMainWindow):
                         user_field_rate = zone3_field_rate
                 return deltaH, user_field_rate
 
-
             NotificationManager().send_notification(message="The measurement has been started successfully.")
 
             number_of_current = len(current)
@@ -2778,6 +2777,9 @@ class Measurement(QMainWindow):
                     for j in range(Curlen):
                         NotificationManager().send_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                         clear_plot()
+                        csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
+                        csv_filename_avg = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_avg.csv"
+                        csv_filename_zero_field = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_zero_field.csv"
 
                         if Keithley_2182_Connected:
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
@@ -2794,12 +2796,7 @@ class Measurement(QMainWindow):
                                     keithley_2182nv.write("SENS:CHAN 1")
                                     volt = keithley_2182nv.query("READ?")
                                     Chan_1_voltage = float(volt)
-                                    update_nv_channel_1_label(str(Chan_1_voltage))
-                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-
-                                    self.channel1_array.append(Chan_1_voltage)
-                                    # # Drop off the first y element, append a new one.
-                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                    append_text(f"Channel 1 Zero Field Voltage: {str(Chan_1_voltage)} V\n", 'green')
                             except Exception as e:
                                 QMessageBox.warning(self, 'Warning', str(e))
 
@@ -2808,17 +2805,14 @@ class Measurement(QMainWindow):
                                 volt2 = keithley_2182nv.query("READ?")
                                 Chan_2_voltage = float(volt2)
                                 update_nv_channel_2_label(str(Chan_2_voltage))
-                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                self.channel2_array.append(Chan_2_voltage)
-                                # # Drop off the first y element, append a new one.
-                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                append_text(f"Channel 2 Zero Field Voltage: {str(Chan_2_voltage)} V\n", 'green')
 
                             # Calculate the average voltage
                             resistance_chan_1 = Chan_1_voltage / float(current[j])
                             resistance_chan_2 = Chan_2_voltage / float(current[j])
 
                             # Append the data to the CSV file
-                            with open(csv_filename, "a", newline="") as csvfile:
+                            with open(csv_filename_zero_field, "a", newline="") as csvfile:
                                 csv_writer = csv.writer(csvfile)
 
                                 if csvfile.tell() == 0:  # Check if file is empty
@@ -2834,6 +2828,7 @@ class Measurement(QMainWindow):
                                 append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
                         # number_of_current = number_of_current - 1
+                        time.sleep(5)
                         client.set_field(topField,
                                          Fast_fieldRate,
                                          client.field.approach_mode.linear,  # linear/oscillate
@@ -2883,9 +2878,7 @@ class Measurement(QMainWindow):
                             keithley_6221.write(":OUTP ON")  # Turn on the output
                             append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
 
-                        csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
-                        csv_filename_avg = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_avg.csv"
-                        csv_filename_zero_field = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_zero_field.csv"
+
                         self.pts = 0
                         currentField = topField
                         deltaH, user_field_rate = deltaH_chk(currentField)
