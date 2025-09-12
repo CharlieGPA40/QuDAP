@@ -380,7 +380,7 @@ class MainWindow(QMainWindow):
         self.parent_side_bar.setCurrentRow(-1)  # Force clearing selection
 
         if current_row == 0:  # Home
-            self.child_sidebar.addItem(QListWidgetItem("About this Software"))
+            self.child_sidebar.addItem(QListWidgetItem("About Software"))
             self.child_sidebar.addItem(QListWidgetItem("Contact"))
             self.help_setting_side_bar.setCurrentRow(0)
             self.child_sidebar.currentRowChanged.connect(self.update_about)
