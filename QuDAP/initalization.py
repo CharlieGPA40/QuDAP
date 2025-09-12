@@ -413,6 +413,7 @@ class MainWindow(QMainWindow):
 
 def main(test_mode=False):
     app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
     communicator = Communicator()
     app.setStyleSheet("QWidget { background-color: #ECECEB; }")
     window = MainWindow(communicator)
