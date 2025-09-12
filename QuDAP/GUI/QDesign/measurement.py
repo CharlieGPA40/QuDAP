@@ -47,12 +47,8 @@ class NotificationManager:
             'discord': self.settings.value('discord/enabled', False, bool),
         }
 
-    def should_notify(self, event_type: str) -> bool:
-        return self.settings.value(f'events/{event_type}', True, bool)
 
-    def send_notification(self, event_type: str, title: str, message: str, priority: str = "normal"):
-        if not self.should_notify(event_type):
-            return
+    def send_notification(self, message: str, priority: str = "normal"):
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         formatted_message = f"{message}\n\nTime: {timestamp}"
@@ -438,12 +434,25 @@ class LogWindow(QDialog):
             self.folder_entry_box.setText(self.folder_path)
 
     def load_settings(self):
-        # Load email settings
-        self.user_entry_box.setText(self.SETTINGS.value('log/username', ''))
-        self.folder_entry_box.setText(self.SETTINGS.value('log/folder_path', '')+'/')
-        self.sample_id_entry_box.setText(self.SETTINGS.value('log/sample_id', ''))
-        self.measurement_type_entry_box.setText(self.SETTINGS.value('log/measurement', ''))
-        self.run_number_entry_box.setText(self.SETTINGS.value('log/run', ''))
+        settings = QSettings("QuDAP", "LogSettings")
+        settings_file = settings.fileName()
+        if os.path.exists(settings_file):
+            try:
+                self.user = self.SETTINGS.value('log/username', '')
+                self.user_entry_box.setText(self.user)
+                self.folder_path = self.SETTINGS.value('log/folder_path', '')+'/'
+                self.folder_entry_box.setText(self.folder_path)
+                self.sample_id = self.SETTINGS.value('log/sample_id', '')
+                self.sample_id_entry_box.setText(self.sample_id)
+                self.measurement = self.SETTINGS.value('log/measurement', '')
+                self.measurement_type_entry_box.setText(self.measurement)
+                self.run = self.SETTINGS.value('log/run', '')
+                self.run_number_entry_box.setText(self.run)
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                QMessageBox.warning(self, 'Warning', f'No record found! {tb_str}')
+        else:
+            QMessageBox.warning(self, 'Warning', f'No record found!')
 
     def accept(self):
         self.user = self.user_entry_box.text()
@@ -487,6 +496,7 @@ class Measurement(QMainWindow):
             self.keithley_6221 = None
             self.DSP7265 = None
             self.worker = None  # Initialize the worker to None
+            self.notification = NotificationManager()
             self.init_ui()
             self.ppms_field_One_zone_radio_enabled = False
             self.ppms_field_Two_zone_radio_enabled = False
@@ -500,7 +510,6 @@ class Measurement(QMainWindow):
             return
 
     def init_ui(self):
-
         titlefont = QFont("Arial", 20)
         self.font = QFont("Arial", 13)
         self.setStyleSheet("background-color: white;")
@@ -1099,16 +1108,20 @@ class Measurement(QMainWindow):
                 self.Field_setup_Zone_2 = False
                 self.Field_setup_Zone_3 = False
 
-                self.ppms_field_mode_fast_radio = QRadioButton("Continuous Sweep")
-                self.ppms_field_mode_fast_radio.setFont(self.font)
-                self.ppms_field_mode_fast_radio.setChecked(True)
-                self.ppms_field_mode_fixed_radio = QRadioButton("Fixed Field")
-                self.ppms_field_mode_fixed_radio.setFont(self.font)
-                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fast_radio)
-                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_mode_fixed_radio)
+                self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
+                self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
+                self.ppms_field_cointinous_mode_radio_button.setChecked(True)
+                self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
+
+                self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
+                self.ppms_field_fixed_mode_radio_button.setFont(self.font)
+                self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
+
+                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
+                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
                 self.ppms_field_mode_buttom_group = QButtonGroup()
-                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fast_radio)
-                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_mode_fixed_radio)
+                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
+                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
 
                 self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
                 self.ppms_field_zone_number_label.setFont(self.font)
@@ -1233,8 +1246,8 @@ class Measurement(QMainWindow):
                 if not self.demo_mode:
                     self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
                     time.sleep(2)
-                    Model_2182 = self.keithley_2182nv.query('*IDN?')
-                    QMessageBox.information(self, "Connected", F"Connected to {Model_2182}")
+                    model_2182 = self.keithley_2182nv.query('*IDN?')
+                    QMessageBox.information(self, "Connected", F"Connected to {model_2182}")
                 else:
                     QMessageBox.information(self, "Connected", F"Connected to Model K2182 Demo")
                 #  Simulation pysim----------------------------------------------------------
@@ -1541,7 +1554,6 @@ class Measurement(QMainWindow):
         except Exception as e:
             pass
 
-
     def dsp726_IMODE_selection(self):
         try:
             self.clear_layout(self.dsp7265_mode_contain_layout)
@@ -1708,6 +1720,22 @@ class Measurement(QMainWindow):
     def dsp725_auto_meas(self):
         self.DSP7265.write('ASM')
 
+    def disable_step_field(self):
+        if self.ppms_field_cointinous_mode_radio_button.isChecked():
+            if self.ppms_field_One_zone_radio.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(False)
+            elif self.ppms_field_Two_zone_radio.isChecked():
+                self.ppms_zone2_field_step_entry.setEnabled(False)
+            elif self.ppms_field_Three_zone_radio.isChecked():
+                self.ppms_zone3_field_step_entry.setEnabled(False)
+        else:
+            if self.ppms_field_One_zone_radio.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(True)
+            elif self.ppms_field_Two_zone_radio.isChecked():
+                self.ppms_zone2_field_step_entry.setEnabled(True)
+            elif self.ppms_field_Three_zone_radio.isChecked():
+                self.ppms_zone3_field_step_entry.setEnabled(True)
+
     def field_zone_selection(self):
         if self.ppms_field_One_zone_radio.isChecked() and self.Field_setup_Zone_1 == False:
             self.ppms_field_One_zone_radio.setChecked(False)
@@ -1754,6 +1782,10 @@ class Measurement(QMainWindow):
         self.ppms_zone1_field_step_label.setFont(self.font)
         self.ppms_zone1_field_step_entry = QLineEdit()
         self.ppms_zone1_field_step_entry.setFont(self.font)
+        if self.ppms_field_cointinous_mode_radio_button.isChecked():
+            self.ppms_zone1_field_step_entry.setEnabled(False)
+        else:
+            self.ppms_zone1_field_step_entry.setEnabled(True)
         self.ppms_zone1_field_rate_label = QLabel('Rate (Oe/sec): ')
         self.ppms_zone1_field_rate_label.setFont(self.font)
         self.ppms_zone1_field_rate_entry = QLineEdit()
@@ -1796,7 +1828,10 @@ class Measurement(QMainWindow):
         self.ppms_zone2_field_step_label.setFont(self.font)
         self.ppms_zone2_field_step_entry = QLineEdit()
         self.ppms_zone2_field_step_entry.setFont(self.font)
-
+        if self.ppms_field_cointinous_mode_radio_button.isChecked():
+            self.ppms_zone2_field_step_entry.setEnabled(False)
+        else:
+            self.ppms_zone2_field_step_entry.setEnabled(True)
         self.ppms_zone2_field_rate_label = QLabel('Rate (Oe/sec): ')
         self.ppms_zone2_field_rate_label.setFont(self.font)
         self.ppms_zone2_field_rate_entry = QLineEdit()
@@ -1842,7 +1877,10 @@ class Measurement(QMainWindow):
         self.ppms_zone3_field_step_label.setFont(self.font)
         self.ppms_zone3_field_step_entry = QLineEdit()
         self.ppms_zone3_field_step_entry.setFont(self.font)
-
+        if self.ppms_field_cointinous_mode_radio_button.isChecked():
+            self.ppms_zone3_field_step_entry.setEnabled(False)
+        else:
+            self.ppms_zone3_field_step_entry.setEnabled(True)
         self.ppms_zone3_field_rate_label = QLabel('Rate (Oe/sec): ')
         self.ppms_zone3_field_rate_label.setFont(self.font)
         self.ppms_zone3_field_rate_entry = QLineEdit()
@@ -2082,7 +2120,6 @@ class Measurement(QMainWindow):
         except Exception:
             pass
 
-
     def stop_measurement(self):
         try:
             self.keithley_6221.write(":OUTP OFF")
@@ -2101,8 +2138,7 @@ class Measurement(QMainWindow):
             if self.worker is not None:
                 self.worker.stop()
                 self.worker = None
-                if self.file_exists:
-                    self.send_telegram_notification("Experiment Stop!")
+                NotificationManager().send_notification("Experiment Stop!", 'critical')
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         # try:
@@ -2127,7 +2163,6 @@ class Measurement(QMainWindow):
                     pass
                 self.running = True
                 self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user = dialog.get_text()
-                print("PASS HERE 4")
                 self.log_box = QTextEdit(self)
                 self.log_box.setReadOnly(True)  # Make the log box read-only
                 self.progress_bar = QProgressBar(self)
@@ -2153,8 +2188,7 @@ class Measurement(QMainWindow):
                 self.main_layout.addWidget(self.progress_bar)
                 self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.log_box.clear()
-
-                # self.send_email('Measurement Started', "start", 'czt0036@auburn.edu')
+                self.notification.send_notification(message="Measurement Start")
                 if self.Ketihley_6221_Connected:
                     self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
                     if self.demo_mode:
@@ -2212,9 +2246,7 @@ class Measurement(QMainWindow):
                         zone_1_end = float(self.ppms_zone1_temp_to_entry.text()) + float(
                             self.ppms_zone1_temp_step_entry.text())
                         zone_1_step = float(self.ppms_zone1_temp_step_entry.text())
-                        print(zone_1_start, zone_1_end, zone_1_step)
                         TempList = [round(float(i), 2) for i in float_range(zone_1_start, zone_1_end, zone_1_step)]
-                        print(TempList)
                         tempRate = round(float(self.ppms_zone1_temp_rate_entry.text()), 2)
                     elif self.ppms_temp_Two_zone_radio.isChecked():
                         zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
@@ -2311,7 +2343,7 @@ class Measurement(QMainWindow):
                         number_of_field_zone3)
 
                 topField = self.zone1_top_field
-                botField = -1 * self.zone1_top_field
+                botField = self.zone1_bot_field
 
                 self.append_text('Start initializing Current...!\n', 'blue')
                 # =============================== Set the current ==================================== #
@@ -2434,9 +2466,8 @@ class Measurement(QMainWindow):
                 if self.DSP7265_Connected:
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
-                if self.file_exists:
-                    self.send_telegram_notification(f"{self.user} is running {self.measurement} on {self.sample_id}")
-                if self.ppms_field_mode_fixed_radio.isChecked():
+                NotificationManager().send_notification(f"{self.user} is running {self.measurement} on {self.sample_id}")
+                if self.ppms_field_fixed_mode_radio_button.isChecked():
                     self.field_mode_fixed = True
                 else:
                     self.field_mode_fixed = False
@@ -2483,8 +2514,7 @@ class Measurement(QMainWindow):
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
                 self.stop_measurement()
-                # if self.file_exists:
-                #     self.send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+                self.notification.send_notification(message="Your measurement went wrong, possible PPMS client lost connection")
                 self.client_keep_going = False
                 self.connect_btn.setText('Start Client')
                 self.connect_btn_clicked = False
@@ -2494,8 +2524,8 @@ class Measurement(QMainWindow):
                 tb_str = traceback.format_exc()
                 self.stop_measurement()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-                # if self.file_exists:
-                #     self.send_telegram_notification(f"Error-{tb_str} {str(e)}")
+
+                self.notification.send_notification(message=f"Error-{tb_str} {str(e)}")
 
     def save_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled, save, temp, current):
 
@@ -2622,30 +2652,6 @@ class Measurement(QMainWindow):
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
                 Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running, demo):
         try:
-            def read_bot_token(file_path):
-                with open(file_path, 'r') as file:
-                    # Read the first line, which should be the token
-                    bot_token = file.readline().strip()
-                return bot_token
-
-            # Path to the text file containing the bot token
-            # self.token_file_path = 'C:\Users\QDUser\Documents\Chunli Software\Data_Processing_Suite\QuDAP\GUI\QDesign\bot.txt'
-            token_file_path = 'C:/Users/QDUser/Documents/Chunli Software/Data_Processing_Suite/QuDAP/GUI/QDesign/bot.txt'
-            file_exists = os.path.isfile(token_file_path)
-            if file_exists:
-                token_file = read_bot_token(token_file_path)
-                telegram = True
-            else:
-                telegram = False
-            
-            def send_telegram_notification(message):
-                bot_token = token_file
-                chat_id = "5733353343"
-                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-                data = {"chat_id": chat_id, "text": message}
-                response = requests.post(url, data=data)
-                return response.json()
-
             def deltaH_chk(currentField):
                 if ppms_field_One_zone_radio_enabled:
                     deltaH = zone1_step_field
@@ -2667,12 +2673,11 @@ class Measurement(QMainWindow):
                     elif (currentField > -1 * zone3_top_field and currentField < zone3_top_field):
                         deltaH = zone3_step_field
                         user_field_rate = zone3_field_rate
-
                 return deltaH, user_field_rate
 
-            if file_exists:
-                if telegram:
-                    send_telegram_notification("The measurement has been started successfully.")
+
+            NotificationManager().send_notification(message="The measurement has been started successfully.")
+
             number_of_current = len(current)
             number_of_temp = len(TempList)
             Fast_fieldRate = 220
@@ -2681,6 +2686,7 @@ class Measurement(QMainWindow):
             start_time = time.time()
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
+            fix_field_avg = 21
             time.sleep(5)
             if demo:
                 append_text(f'Temperature = 300 K\n', 'purple')
@@ -2702,8 +2708,7 @@ class Measurement(QMainWindow):
                     update_ppms_field_reading_label(str(field), 'Oe')
                 except SystemExit as e:
                     error_message(e,e)
-                    if file_exists:
-                        send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+                    NotificationManager().send_notification(message="Your measurement went wrong, possible PPMS client lost connection", priority='critical')
             # ----------------- Loop Down ----------------------#
             Curlen = len(current)
             templen = len(TempList)
@@ -2731,9 +2736,8 @@ class Measurement(QMainWindow):
                             F, sF = client.get_field()
                         except SystemExit as e:
                             error_message(e, e)
-                            if file_exists:
-                                send_telegram_notification(
-                                    "Your measurement went wrong, possible PPMS client lost connection")
+                            NotificationManager().send_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection", "critical")
                         update_ppms_field_reading_label(str(F), 'Oe')
                         append_text(f'Status: {sF}\n', 'red')
                         if sF == 'Holding (driven)':
@@ -2772,9 +2776,62 @@ class Measurement(QMainWindow):
                         time.sleep(300)
 
                     for j in range(Curlen):
-                        if file_exists:
-                            send_telegram_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
+                        NotificationManager().send_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                         clear_plot()
+
+                        if Keithley_2182_Connected:
+                            keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
+                            keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+                        time.sleep(2)  # Wait for the configuration to complete
+                        Chan_1_voltage = 0
+                        Chan_2_voltage = 0
+                        MyField, sF = client.get_field()
+                        update_ppms_field_reading_label(str(MyField), 'Oe')
+                        self.field_array.append(MyField)
+                        if Keithley_2182_Connected:
+                            try:
+                                if nv_channel_1_enabled:
+                                    keithley_2182nv.write("SENS:CHAN 1")
+                                    volt = keithley_2182nv.query("READ?")
+                                    Chan_1_voltage = float(volt)
+                                    update_nv_channel_1_label(str(Chan_1_voltage))
+                                    append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+
+                                    self.channel1_array.append(Chan_1_voltage)
+                                    # # Drop off the first y element, append a new one.
+                                    update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                            except Exception as e:
+                                QMessageBox.warning(self, 'Warning', str(e))
+
+                            if nv_channel_2_enabled:
+                                keithley_2182nv.write("SENS:CHAN 2")
+                                volt2 = keithley_2182nv.query("READ?")
+                                Chan_2_voltage = float(volt2)
+                                update_nv_channel_2_label(str(Chan_2_voltage))
+                                append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                self.channel2_array.append(Chan_2_voltage)
+                                # # Drop off the first y element, append a new one.
+                                update_plot(self.field_array, self.channel2_array, 'red', False, True)
+
+                            # Calculate the average voltage
+                            resistance_chan_1 = Chan_1_voltage / float(current[j])
+                            resistance_chan_2 = Chan_2_voltage / float(current[j])
+
+                            # Append the data to the CSV file
+                            with open(csv_filename, "a", newline="") as csvfile:
+                                csv_writer = csv.writer(csvfile)
+
+                                if csvfile.tell() == 0:  # Check if file is empty
+                                    csv_writer.writerow(
+                                        ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
+                                         "Channel 2 "
+                                         "Resistance ("
+                                         "Ohm)",
+                                         "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                     Chan_2_voltage, MyTemp, current[j]])
+                                append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
 
                         # number_of_current = number_of_current - 1
                         client.set_field(topField,
@@ -2792,9 +2849,8 @@ class Measurement(QMainWindow):
                                 F, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                if file_exists:
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
+                                NotificationManager().send_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             update_ppms_field_reading_label(str(F), 'Oe')
                             append_text(f'Status: {sF}\n', 'red')
                             if sF == 'Holding (driven)':
@@ -2814,9 +2870,8 @@ class Measurement(QMainWindow):
                                 F, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                if file_exists:
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
+                                NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             update_ppms_field_reading_label(str(F), 'Oe')
                             append_text(f'Status: {sF}\n', 'red')
                             if sF == 'Holding (driven)':
@@ -2829,18 +2884,25 @@ class Measurement(QMainWindow):
                             append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
 
                         csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
+                        csv_filename_avg = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_avg.csv"
+                        csv_filename_zero_field = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_zero_field.csv"
                         self.pts = 0
                         currentField = topField
                         deltaH, user_field_rate = deltaH_chk(currentField)
                         number_of_field_update = number_of_field
-                        self.field_array = []
+                        self.channel1_field_array = []
+                        self.channel2_field_array = []
+                        self.channel1_field_avg_array = []
+                        self.channel2_field_avg_array = []
+                        self.field_avg_array = []
                         self.channel1_array = []
                         self.channel2_array = []
+                        self.channel1_avg_array = []
+                        self.channel2_avg_array = []
                         self.lockin_x = []
                         self.lockin_y = []
                         self.lockin_mag = []
                         self.lockin_pahse = []
-
 
                         if field_mode_fixed:
                             while currentField >= botField:
@@ -2865,14 +2927,12 @@ class Measurement(QMainWindow):
                                         MyField, sF = client.get_field()
                                     except SystemExit as e:
                                         error_message(e, e)
-                                        if file_exists:
-                                            send_telegram_notification(
-                                                "Your measurement went wrong, possible PPMS client lost connection")
+                                        NotificationManager().send_notification(
+                                                "Your measurement went wrong, possible PPMS client lost connection", 'crtical')
                                     update_ppms_field_reading_label(str(MyField), 'Oe')
                                     append_text(f'Status: {sF}\n', 'blue')
                                     if sF == 'Holding (driven)':
                                         break
-
 
                                 # ----------------------------- Measure NV voltage -------------------
                                 append_text(f'Saving data for {MyField} Oe \n', 'green')
@@ -2882,51 +2942,94 @@ class Measurement(QMainWindow):
                                 time.sleep(2)  # Wait for the configuration to complete
                                 Chan_1_voltage = 0
                                 Chan_2_voltage = 0
+                                k = 0
                                 MyField, sF = client.get_field()
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
-                                self.field_array.append(MyField)
+                                self.channel1_avg_array_temp = []
+                                self.channel2_avg_array_temp = []
+                                self.channel1_field_avg_array_temp = []
+                                self.channel2_field_avg_array_temp = []
                                 if Keithley_2182_Connected:
-                                    try:
-                                        if nv_channel_1_enabled:
-                                            keithley_2182nv.write("SENS:CHAN 1")
-                                            volt = keithley_2182nv.query("READ?")
-                                            Chan_1_voltage = float(volt)
-                                            update_nv_channel_1_label(str(Chan_1_voltage))
-                                            append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                    while k < fix_field_avg:
+                                        try:
+                                            if nv_channel_1_enabled:
+                                                keithley_2182nv.write("SENS:CHAN 1")
+                                                volt = keithley_2182nv.query("READ?")
+                                                Chan_1_voltage = float(volt)
+                                                update_nv_channel_1_label(str(Chan_1_voltage))
+                                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                                self.channel1_array.append(Chan_1_voltage)
+                                                self.channel1_field_array.append(MyField)
+                                                self.channel1_avg_array_temp.append(Chan_1_voltage)
+                                                self.channel1_field_avg_array_temp.append(MyField)
+                                                # update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                        except Exception as e:
+                                            QMessageBox.warning(self, 'Warning', str(e))
 
-                                            self.channel1_array.append(Chan_1_voltage)
-                                            # # Drop off the first y element, append a new one.
-                                            update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                    except Exception as e:
-                                        QMessageBox.warning(self, 'Warning', str(e))
+                                        if nv_channel_2_enabled:
+                                            keithley_2182nv.write("SENS:CHAN 2")
+                                            volt2 = keithley_2182nv.query("READ?")
+                                            Chan_2_voltage = float(volt2)
+                                            update_nv_channel_2_label(str(Chan_2_voltage))
+                                            append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                            self.channel2_array.append(Chan_2_voltage)
+                                            self.channel2_field_array.append(MyField)
+                                            self.channel2_avg_array_temp.append(Chan_2_voltage)
+                                            self.channel2_field_avg_array_temp.append(MyField)
+                                            # update_plot(self.field_array, self.channel2_array, 'red', False, True)
 
-                                    if nv_channel_2_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 2")
-                                        volt2 = keithley_2182nv.query("READ?")
-                                        Chan_2_voltage = float(volt2)
-                                        update_nv_channel_2_label(str(Chan_2_voltage))
-                                        append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                        self.channel2_array.append(Chan_2_voltage)
-                                        # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
+                                        # Calculate the average voltage
+                                        resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                        resistance_chan_2 = Chan_2_voltage / float(current[j])
 
-                                    # Calculate the average voltage
-                                    resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                    resistance_chan_2 = Chan_2_voltage / float(current[j])
+                                        # Append the data to the CSV file
+                                        with open(csv_filename, "a", newline="") as csvfile:
+                                            csv_writer = csv.writer(csvfile)
 
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
+                                            if csvfile.tell() == 0:  # Check if file is empty
+                                                csv_writer.writerow(
+                                                    ["Field (Oe)", "Channel 1 Resistance (Ohm)",
+                                                     "Channel 1 Voltage (V)", "Channel 2 "
+                                                                              "Resistance ("
+                                                                              "Ohm)",
+                                                     "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                            csv_writer.writerow(
+                                                [MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                 Chan_2_voltage, MyTemp, current[j]])
+                                            append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                                        k += 1
+                                    if self.channel1_avg_array_temp:
+                                        channel1_avg_sig = sum(self.channel1_avg_array_temp) / len(self.channel1_avg_array_temp)
+                                        channel1_field_avg_sig = sum(self.channel1_field_avg_array_temp) / len(
+                                            self.channel1_field_avg_array_temp)
+                                        self.channel1_avg_array.append(channel1_avg_sig)
+                                        self.channel1_field_avg_array.append(channel1_field_avg_sig)
+                                        resistance_chan_1_avg = channel1_avg_sig / float(current[j])
+                                        update_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black', True, False)
+                                    if self.channel2_avg_array_temp:
+                                        channel2_avg_sig = sum(self.channel2_avg_array_temp) / len(self.channel2_avg_array_temp)
+                                        channel2_field_avg_sig = sum(self.channel2_field_avg_array_temp) / len(
+                                            self.channel2_field_avg_array_temp)
+                                        self.channel2_avg_array.append(channel2_avg_sig)
+                                        self.channel2_field_avg_array.append(channel2_field_avg_sig)
+                                        resistance_chan_2_avg = channel2_avg_sig / float(current[j])
+                                        update_plot(self.channel2_field_avg_array, self.channel2_avg_array, 'red', True, False)
+                                        # Append the data to the CSV file
+                                    with open(csv_filename_avg, "a", newline="") as csvfile:
                                         csv_writer = csv.writer(csvfile)
 
                                         if csvfile.tell() == 0:  # Check if file is empty
                                             csv_writer.writerow(
-                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                                      "Resistance ("
-                                                                                                                      "Ohm)",
+                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)",
+                                                 "Channel 1 Voltage (V)", "Channel 2 "
+                                                                          "Resistance ("
+                                                                          "Ohm)",
                                                  "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
 
-                                        csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                             Chan_2_voltage, MyTemp, current[j]])
+                                        csv_writer.writerow(
+                                            [MyField, resistance_chan_1_avg, channel1_avg_sig, resistance_chan_2_avg,
+                                             channel2_avg_sig, MyTemp, current[j]])
                                         append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
                                 elif DSP7265_Connected:
                                     try:
@@ -2966,9 +3069,8 @@ class Measurement(QMainWindow):
                                     MyField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    if file_exists:
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    NotificationManager().send_notification(
+                                            "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
                                 MyTemp, sT = client.get_temperature()
                                 update_ppms_temp_reading_label(str(MyTemp), 'K')
@@ -3004,8 +3106,7 @@ class Measurement(QMainWindow):
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
                             deltaH, user_field_rate = deltaH_chk(currentField)
-                            if file_exists:
-                                send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                            NotificationManager().send_notification(f"Starting the second half of measurement - ramping field up")
                             current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
                             progress_update(int(current_progress))
                             while currentField <= topField:
@@ -3033,9 +3134,8 @@ class Measurement(QMainWindow):
                                         MyField, sF = client.get_field()
                                     except SystemExit as e:
                                         error_message(e, e)
-                                        if file_exists:
-                                            send_telegram_notification(
-                                                "Your measurement went wrong, possible PPMS client lost connection")
+                                        NotificationManager().send_notification(
+                                                "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                     update_ppms_field_reading_label(str(MyField), 'Oe')
                                     append_text(f'Status: {sF}\n', 'blue')
                                     if sF == 'Holding (driven)':
@@ -3051,51 +3151,97 @@ class Measurement(QMainWindow):
                                 time.sleep(2)  # Wait for the configuration to complete
                                 MyField, sF = client.get_field()
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
-                                self.field_array.append(MyField)
+                                k = 0
+                                self.channel1_avg_array_temp = []
+                                self.channel2_avg_array_temp = []
+                                self.channel1_field_avg_array_temp = []
+                                self.channel2_field_avg_array_temp = []
                                 if Keithley_2182_Connected:
-                                    if nv_channel_1_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 1")
-                                        volt = keithley_2182nv.query("READ?")
-                                        Chan_1_voltage = float(volt)
-                                        update_nv_channel_1_label(str(Chan_1_voltage))
-                                        append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                        self.channel1_array.append(Chan_1_voltage)
-                                        update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                    if nv_channel_2_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 2")
-                                        volt2 = keithley_2182nv.query("READ?")
-                                        Chan_2_voltage = float(volt2)
-                                        update_nv_channel_2_label(str(Chan_2_voltage))
-                                        append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                        self.channel2_array.append(Chan_2_voltage)
-                                        # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.channel2_array, 'red', False, True)
-                                    resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                    resistance_chan_2 = Chan_2_voltage / float(current[j])
+                                    while k < fix_field_avg:
+                                        try:
+                                            if nv_channel_1_enabled:
+                                                keithley_2182nv.write("SENS:CHAN 1")
+                                                volt = keithley_2182nv.query("READ?")
+                                                Chan_1_voltage = float(volt)
+                                                update_nv_channel_1_label(str(Chan_1_voltage))
+                                                append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                                self.channel1_array.append(Chan_1_voltage)
+                                                self.channel1_field_array.append(MyField)
+                                                self.channel1_avg_array_temp.append(Chan_1_voltage)
+                                                self.channel1_field_avg_array_temp.append(MyField)
+                                                # update_plot(self.field_array, self.channel1_array, 'black', True, False)
+                                        except Exception as e:
+                                            QMessageBox.warning(self, 'Warning', str(e))
 
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
+                                        if nv_channel_2_enabled:
+                                            keithley_2182nv.write("SENS:CHAN 2")
+                                            volt2 = keithley_2182nv.query("READ?")
+                                            Chan_2_voltage = float(volt2)
+                                            update_nv_channel_2_label(str(Chan_2_voltage))
+                                            append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
+                                            self.channel2_array.append(Chan_2_voltage)
+                                            self.channel2_field_array.append(MyField)
+                                            self.channel2_avg_array_temp.append(Chan_2_voltage)
+                                            self.channel2_field_avg_array_temp.append(MyField)
+                                            # update_plot(self.field_array, self.channel2_array, 'red', False, True)
+
+                                        # Calculate the average voltage
+                                        resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                        resistance_chan_2 = Chan_2_voltage / float(current[j])
+
+                                        # Append the data to the CSV file
+                                        with open(csv_filename, "a", newline="") as csvfile:
+                                            csv_writer = csv.writer(csvfile)
+
+                                            if csvfile.tell() == 0:  # Check if file is empty
+                                                csv_writer.writerow(
+                                                    ["Field (Oe)", "Channel 1 Resistance (Ohm)",
+                                                     "Channel 1 Voltage (V)", "Channel 2 "
+                                                                              "Resistance ("
+                                                                              "Ohm)",
+                                                     "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                            csv_writer.writerow(
+                                                [MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                 Chan_2_voltage, MyTemp, current[j]])
+                                            append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                                        k += 1
+                                    if self.channel1_avg_array_temp:
+                                        channel1_avg_sig = sum(self.channel1_avg_array_temp) / len(
+                                            self.channel1_avg_array_temp)
+                                        channel1_field_avg_sig = sum(self.channel1_field_avg_array_temp) / len(
+                                            self.channel1_field_avg_array_temp)
+                                        self.channel1_avg_array.append(channel1_avg_sig)
+                                        self.channel1_field_avg_array.append(channel1_field_avg_sig)
+                                        resistance_chan_1_avg = channel1_avg_sig / float(current[j])
+                                        update_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black',
+                                                    True, False)
+                                    if self.channel2_avg_array_temp:
+                                        channel2_avg_sig = sum(self.channel2_avg_array_temp) / len(
+                                            self.channel2_avg_array_temp)
+                                        channel2_field_avg_sig = sum(self.channel2_field_avg_array_temp) / len(
+                                            self.channel2_field_avg_array_temp)
+                                        self.channel2_avg_array.append(channel2_avg_sig)
+                                        self.channel2_field_avg_array.append(channel2_field_avg_sig)
+                                        resistance_chan_2_avg = channel2_avg_sig / float(current[j])
+                                        update_plot(self.channel2_field_avg_array, self.channel2_avg_array, 'red', True,
+                                                    False)
+                                        # Append the data to the CSV file
+                                    with open(csv_filename_avg, "a", newline="") as csvfile:
                                         csv_writer = csv.writer(csvfile)
 
                                         if csvfile.tell() == 0:  # Check if file is empty
                                             csv_writer.writerow(
-                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)", "Channel 2 "
-                                                                                                                      "Resistance ("
-                                                                                                                      "Ohm)",
+                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)",
+                                                 "Channel 1 Voltage (V)", "Channel 2 "
+                                                                          "Resistance ("
+                                                                          "Ohm)",
                                                  "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-                                        try:
-                                            MyField, sF = client.get_field()
-                                            update_ppms_field_reading_label(str(MyField), 'Oe')
-                                            MyTemp, sT = client.get_temperature()
-                                            update_ppms_temp_reading_label(str(MyTemp), 'K')
-                                        except SystemExit as e:
-                                            error_message(e, e)
-                                            if file_exists:
-                                                send_telegram_notification(
-                                                    "Your measurement went wrong, possible PPMS client lost connection")
-                                        csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                             Chan_2_voltage, MyTemp, current[j]])
-                                        self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
+
+                                        csv_writer.writerow(
+                                            [MyField, resistance_chan_1_avg, channel1_avg_sig, resistance_chan_2_avg,
+                                             channel2_avg_sig, MyTemp, current[j]])
+                                        append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
                                 elif DSP7265_Connected:
                                     try:
                                         X = float(DSP7265.query("X."))  # Read the measurement result
@@ -3163,9 +3309,8 @@ class Measurement(QMainWindow):
                                                  client.field.driven_mode.driven)
                             except SystemExit as e:
                                 error_message(e, e)
-                                if file_exists:
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
+                                NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                             time.sleep(4)
                             MyField, sF = client.get_field()
@@ -3180,9 +3325,8 @@ class Measurement(QMainWindow):
                                         break
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    if file_exists:
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    NotificationManager().send_notification(
+                                            "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             time.sleep(20)
                             deltaH, user_field_rate = deltaH_chk(MyField)
                             currentField = MyField
@@ -3193,9 +3337,8 @@ class Measurement(QMainWindow):
                                                  client.field.driven_mode.driven)
                             except SystemExit as e:
                                 error_message(e, e)
-                                if file_exists:
-                                    send_telegram_notification(
-                                        "Your measurement went wrong, possible PPMS client lost connection")
+                                NotificationManager().send_notification(
+                                    "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                             counter = 0
                             while currentField >= botField:
@@ -3213,9 +3356,8 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    if file_exists:
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -3331,8 +3473,7 @@ class Measurement(QMainWindow):
                                 # update_ppms_field_reading_label(str(currentField), 'Oe')
 
                             # ----------------- Loop Up ----------------------#
-                            if file_exists:
-                                send_telegram_notification(f"Starting the second half of measurement - ramping field up")
+                            NotificationManager().send_notification(f"Starting the second half of measurement - ramping field up")
                             currentField = botField
                             client.set_field(currentField,
                                              user_field_rate,
@@ -3349,9 +3490,8 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    if file_exists:
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
                                 if sF == 'Holding (driven)':
@@ -3382,9 +3522,8 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    if file_exists:
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -3502,8 +3641,8 @@ class Measurement(QMainWindow):
                             save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, str(TempList[i]), str(current[j]))
                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
-                        if file_exists:
-                            send_telegram_notification(f"{str(TempList[i])} K, {current_mag[j]} {current_unit} measurement has finished")
+                        NotificationManager().send_notification(
+                            "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                         current_progress = int((i+1) * (j+1) / totoal_progress * 100)
                         progress_update(int(current_progress))
                 time.sleep(2)
@@ -3532,8 +3671,7 @@ class Measurement(QMainWindow):
                 total_runtime = (end_time - start_time) / 3600
                 self.log_box.append(f"Total runtime: {total_runtime} hours\n")
                 self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
-                if file_exists:
-                    send_telegram_notification("The measurement has been completed successfully.")
+                NotificationManager().send_notification("The measurement has been completed successfully.")
                 progress_update(int=100)
                 append_text("You measuremnt is finished!", 'green')
                 stop_measurement()
@@ -3560,8 +3698,7 @@ class Measurement(QMainWindow):
                         time.sleep(300)
 
                     for j in range(Curlen):
-                        if file_exists:
-                            send_telegram_notification(
+                        NotificationManager().send_notification(
                                 f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                         clear_plot()
 
@@ -3697,8 +3834,7 @@ class Measurement(QMainWindow):
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
                             deltaH, user_field_rate = deltaH_chk(currentField)
-                            if file_exists:
-                                send_telegram_notification(
+                            NotificationManager().send_notification(
                                     f"Starting the second half of measurement - ramping field up")
                             current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
                             progress_update(int(current_progress))
@@ -3813,9 +3949,8 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    if file_exists:
-                                        send_telegram_notification(
-                                            "Your measurement went wrong, possible PPMS client lost connection")
+                                    NotificationManager().send_notification(
+                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Saving data for {currentField} Oe \n', 'green')
 
@@ -4011,18 +4146,12 @@ class Measurement(QMainWindow):
                         progress_update(int(current_progress))
 
         except SystemExit as e:
-            if file_exists:
-                send_telegram_notification("Your measurement went wrong, possible PPMS client lost connection")
+            NotificationManager().send_notification(
+                "Your measurement went wrong, possible PPMS client lost connection", 'critical')
             error_message(e,e)
             stop_measurement()
 
-    def send_telegram_notification(self, message):
-        bot_token = self.token_file
-        chat_id = "5733353343"
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        data = {"chat_id": chat_id, "text": message}
-        response = requests.post(url, data=data)
-        return response.json()
+
 
 
 
