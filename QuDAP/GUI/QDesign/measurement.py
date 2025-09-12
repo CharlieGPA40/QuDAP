@@ -2898,7 +2898,7 @@ class Measurement(QMainWindow):
                                     csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
-
+                            k+=1
                         if Ketihley_6221_Connected:
                             keithley_6221.write(":OUTP OFF")  # Set source function to current
                             keithley_6221.write("CURRent:RANGe:AUTO ON \n")
