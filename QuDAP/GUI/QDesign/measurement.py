@@ -2305,18 +2305,27 @@ class Measurement(QMainWindow):
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
                     self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
-                    self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
                     self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
+                    if self.ppms_field_fixed_mode_radio_button.isChecked():
+                        self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    else:
+                        self.zone1_step_field = 1.0
                     number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
                     number_of_field = np.abs(number_of_field_zone1)
                 elif self.ppms_field_Two_zone_radio.isChecked():
                     self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
                     self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
-                    self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    if self.ppms_field_fixed_mode_radio_button.isChecked():
+                        self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    else:
+                        self.zone1_step_field = 1.0
                     self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
                     self.zone2_top_field = float(self.ppms_zone2_from_entry.text())
                     self.zone2_bot_field = float(self.ppms_zone2_to_entry.text())
-                    self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+                    if self.ppms_field_fixed_mode_radio_button.isChecked():
+                        self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+                    else:
+                        self.zone2_step_field = 1.0
                     self.zone2_field_rate = float(self.ppms_zone2_field_rate_entry.text())
                     # Need to think about it
                     number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
@@ -2325,15 +2334,26 @@ class Measurement(QMainWindow):
                 elif self.ppms_field_Three_zone_radio.isChecked():
                     self.zone1_top_field = float(self.ppms_zone1_from_entry.text())
                     self.zone1_bot_field = float(self.ppms_zone1_to_entry.text())
-                    self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    if self.ppms_field_fixed_mode_radio_button.isChecked():
+                        self.zone1_step_field = float(self.ppms_zone1_field_step_entry.text())
+                    else:
+                        self.zone1_step_field = 1.0
                     self.zone1_field_rate = float(self.ppms_zone1_field_rate_entry.text())
                     self.zone2_top_field = float(self.ppms_zone2_from_entry.text())
                     self.zone2_bot_field = float(self.ppms_zone2_to_entry.text())
-                    self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+                    if self.ppms_field_fixed_mode_radio_button.isChecked():
+                        self.zone2_step_field = float(self.ppms_zone2_field_step_entry.text())
+                    else:
+                        self.zone2_step_field = 1.0
+                    self.zone2_field_rate = float(self.ppms_zone2_field_rate_entry.text())
                     self.zone2_field_rate = float(self.ppms_zone1_field_rate_entry.text())
                     self.zone3_top_field = float(self.ppms_zone3_from_entry.text())
                     self.zone3_bot_field = float(self.ppms_zone3_to_entry.text())
-                    self.zone3_step_field = float(self.ppms_zone3_field_step_entry.text())
+                    if self.ppms_field_fixed_mode_radio_button.isChecked():
+                        self.zone3_step_field = float(self.ppms_zone3_field_step_entry.text())
+                    else:
+                        self.zone3_step_field = 1.0
+                    self.zone2_field_rate = float(self.ppms_zone2_field_rate_entry.text())
                     self.zone3_field_rate = float(self.ppms_zone3_field_rate_entry.text())
                     # Need to think about it
                     number_of_field_zone1 = 2 * (self.zone1_top_field - self.zone1_bot_field) / self.zone1_step_field
