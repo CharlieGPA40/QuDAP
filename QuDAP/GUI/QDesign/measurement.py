@@ -123,8 +123,8 @@ class NotificationManager:
             if image_file:
                 files = {"photo": image_file}
                 response = requests.post(url, data=data, files=files)
-
-            response = requests.post(url, data=data, timeout=10)
+            else:
+                response = requests.post(url, data=data, timeout=10)
 
             response.raise_for_status()
         except Exception as e:
@@ -2598,7 +2598,7 @@ class Measurement(QMainWindow):
             if not os.path.exists(image_path):
                 print("No Such File.")
             caption = f"Data preview"
-            NotificationManager().send_notification(message=f"Data preview - {caption}", image_path=image_path)
+            NotificationManager().send_notification(message=f"Data Saved - {caption}", image_path=image_path)
 
 
     def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
