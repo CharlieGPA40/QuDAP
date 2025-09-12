@@ -24,16 +24,19 @@ if system != "Windows":
     print("Not running on Windows")
     from VSM.qd import *
 else:
-    version_info = platform.win32_ver()
-    version, build, service_pack, extra = version_info
-    build_number = int(build.split('.')[2])
-    if version == "10" and build_number >= 22000:
+    # version_info = platform.win32_ver()
+    # version, build, service_pack, extra = version_info
+    # build_number = int(build.split('.')[2])
+    # if version == "10" and build_number >= 22000:
+    #     from QuDAP.VSM.qd import *
+    # elif version == "10":
+    #     from VSM.qd import *
+    # else:
+    #     print("Unknown Windows version")
+    try:
         from QuDAP.VSM.qd import *
-    elif version == "10":
+    except ImportError:
         from VSM.qd import *
-    else:
-        print("Unknown Windows version")
-
 
 try:
     from pptx import Presentation
