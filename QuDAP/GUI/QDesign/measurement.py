@@ -1767,7 +1767,7 @@ class Measurement(QMainWindow):
             self.dsp_freq_text.setFont(self.font)
             self.dsp_freq_entry_box = QLineEdit()
             self.dsp_freq_entry_box.setFont(self.font)
-            self.dsp7265_freq_layout.addWidget(self.dsp_tc_text)
+            self.dsp7265_freq_layout.addWidget(self.dsp_freq_text)
             self.dsp7265_freq_layout.addWidget(self.dsp_freq_entry_box)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_freq_layout)
 
