@@ -2641,7 +2641,7 @@ class Measurement(QMainWindow):
                             self.stop_measurement()
                             return
                         current = [f"{self.single_ac_current[i]}{ac_range_selected_unit}" for i in
-                                   range(len(self.single_DC_current))]
+                                   range(len(self.single_ac_current))]
                         current_mag = [f"{self.single_ac_current[i]}" for i in range(len(self.single_ac_current))]
 
                     else:
