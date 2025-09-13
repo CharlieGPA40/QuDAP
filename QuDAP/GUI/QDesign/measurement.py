@@ -2621,7 +2621,7 @@ class Measurement(QMainWindow):
                         self.single_ac_current = self.keithley_6221_ac_single_entry.text()
                         self.single_ac_current = self.single_ac_current.replace(" ", "")
                         self.single_ac_current = [float(item) for item in self.single_ac_current.split(',')]
-                        self.ac_single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
+                        self.ac_single_unit = self.keithley_6221_ac_single_combobox.currentIndex()
                         if self.ac_single_unit != 0:
                             if self.ac_single_unit == 1:  # mA
                                 ac_range_selected_unit = 'e-3'
