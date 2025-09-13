@@ -1892,7 +1892,7 @@ class Measurement(QMainWindow):
 
     def dsp7265_freq_setting(self):
         freq = self.dsp7265_freq_entry_box.text()
-        self.DSP7265.write(f'FREQ {freq}')
+        self.DSP7265.write(f'OF. {freq}')
 
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
