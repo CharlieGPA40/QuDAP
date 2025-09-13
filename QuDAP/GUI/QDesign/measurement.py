@@ -2930,9 +2930,9 @@ class Measurement(QMainWindow):
             number_of_current = len(current)
             number_of_temp = len(TempList)
             Fast_fieldRate = 220
-            tempRate_init = 20
+            tempRate_init = 50
             zeroField = 0
-            demag_field = 5
+            demag_field = 10000
             start_time = time.time()
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
