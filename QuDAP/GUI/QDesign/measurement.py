@@ -522,6 +522,9 @@ class Measurement(QMainWindow):
             self.nv_NPLC = None
             self.keithley_6221_dc_config = False
             self.keithley_6221_ac_config = False
+            self.ac_current_freq = None
+            self.ac_current_offset = None
+            self.ac_current_waveform = None
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
