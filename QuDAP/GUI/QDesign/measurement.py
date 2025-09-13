@@ -2651,15 +2651,16 @@ class Measurement(QMainWindow):
                     self.ac_current_freq = self.keithley_6221_ac_freq_entry_box.text()
                     self.ac_current_offset = self.keithley_6221_ac_offset_entry_box.text()
                     self.ac_offset_unit = self.keithley_6221_ac_offset_units_combo.currentIndex()
-                    if self.ac_offset_unit != 0:
-                        if self.ac_offset_unit == 1:  # mA
-                            ac_offset_unit = 'e-3'
-                        elif self.ac_offset_unit == 2:  # uA
-                            ac_offset_unit = 'e-6'
-                        elif self.ac_offset_unit == 3:  # nA
-                            ac_offset_unit = 'e-9'
-                        elif self.ac_offset_unit == 4:  # pA
-                            ac_offset_unit = 'e-12'
+                    if self.ac_offset_unit == 0:
+                        ac_offset_unit = ''
+                    elif self.ac_offset_unit == 1:  # mA
+                        ac_offset_unit = 'e-3'
+                    elif self.ac_offset_unit == 2:  # uA
+                        ac_offset_unit = 'e-6'
+                    elif self.ac_offset_unit == 3:  # nA
+                        ac_offset_unit = 'e-9'
+                    elif self.ac_offset_unit == 4:  # pA
+                        ac_offset_unit = 'e-12'
                     self.ac_current_offset = self.ac_current_offset + ac_offset_unit
 
                 if self.Keithley_2182_Connected:
