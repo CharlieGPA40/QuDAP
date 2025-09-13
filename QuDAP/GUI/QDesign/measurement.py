@@ -1745,7 +1745,7 @@ class Measurement(QMainWindow):
             self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_sens_layout)
             # TC
-            self.dsp726_TC_layout = QHBoxLayout()
+            self.dsp7265_TC_layout = QHBoxLayout()
             self.dsp7265_TC_combo = QComboBox()
             self.dsp7265_TC_combo.setFont(self.font)
             self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
@@ -1757,18 +1757,26 @@ class Measurement(QMainWindow):
             self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
             self.dsp_tc_text = QLabel('Time constant:')
             self.dsp_tc_text.setFont(self.font)
-            self.dsp726_TC_layout.addWidget(self.dsp_tc_text)
-            self.dsp726_TC_layout.addWidget(self.dsp7265_TC_combo)
-            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
+            self.dsp7265_TC_layout.addWidget(self.dsp_tc_text)
+            self.dsp7265_TC_layout.addWidget(self.dsp7265_TC_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_TC_layout)
 
             # frequency
             self.dsp7265_freq_layout = QHBoxLayout()
-            self.dsp_freq_text = QLabel('Frequency:')
-            self.dsp_freq_text.setFont(self.font)
-            self.dsp_freq_entry_box = QLineEdit()
-            self.dsp_freq_entry_box.setFont(self.font)
-            self.dsp7265_freq_layout.addWidget(self.dsp_freq_text)
-            self.dsp7265_freq_layout.addWidget(self.dsp_freq_entry_box)
+            self.dsp7265_freq_text = QLabel('Frequency:')
+            self.dsp7265_freq_text.setFont(self.font)
+            self.dsp7265_freq_entry_box = QLineEdit()
+            self.dsp7265_freq_entry_box.setFont(self.font)
+            self.dsp7265_freq_unit_text = QLabel('Hz')
+            self.dsp7265_freq_unit_text.setFont(self.font)
+            self.dsp7265_submit_button = QPushButton('Auto Sens.')
+            self.dsp7265_submit_button.setStyleSheet(self.Button_stylesheet)
+            self.dsp7265_submit_button.clicked.connect(self.dsp725_auto_sens)
+
+            self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_text)
+            self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_entry_box)
+            self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_unit_text)
+            self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_freq_layout)
 
 
@@ -1831,7 +1839,7 @@ class Measurement(QMainWindow):
             self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_sens_layout)
             # TC
-            self.dsp726_TC_layout = QHBoxLayout()
+            self.dsp7265_TC_layout = QHBoxLayout()
             self.dsp7265_TC_combo = QComboBox()
             self.dsp7265_TC_combo.setFont(self.font)
             self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
@@ -1843,9 +1851,9 @@ class Measurement(QMainWindow):
             self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
             self.dsp_tc_text = QLabel('Time constant:')
             self.dsp_tc_text.setFont(self.font)
-            self.dsp726_TC_layout.addWidget(self.dsp_tc_text)
-            self.dsp726_TC_layout.addWidget(self.dsp7265_TC_combo)
-            self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
+            self.dsp7265_TC_layout.addWidget(self.dsp_tc_text)
+            self.dsp7265_TC_layout.addWidget(self.dsp7265_TC_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_TC_layout)
 
         elif self.dsp_IMODE_index == 3:
             self.DSP7265.write('IMODE 2')
@@ -1881,6 +1889,10 @@ class Measurement(QMainWindow):
 
     def dsp725_auto_meas(self):
         self.DSP7265.write('ASM')
+
+    def dsp7265_freq_setting(self):
+        freq = self.dsp7265_freq_entry_box.text()
+        self.DSP7265.write(f'FREQ {freq}')
 
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
@@ -2678,7 +2690,7 @@ class Measurement(QMainWindow):
                 if self.Keithley_2182_Connected:
                     self.nv_NPLC = self.NPLC_entry.text()
                 if self.DSP7265_Connected:
-                    lockin_freq = self.dsp_freq_entry_box.text()
+                    lockin_freq = self.dsp7265_freq_entry_box.text()
                     self.DSP7265.write(f'FREQ {lockin_freq}')
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
