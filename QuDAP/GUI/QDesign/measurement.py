@@ -1769,9 +1769,9 @@ class Measurement(QMainWindow):
             self.dsp7265_freq_entry_box.setFont(self.font)
             self.dsp7265_freq_unit_text = QLabel('Hz')
             self.dsp7265_freq_unit_text.setFont(self.font)
-            self.dsp7265_submit_button = QPushButton('Auto Sens.')
+            self.dsp7265_submit_button = QPushButton('Submit')
             self.dsp7265_submit_button.setStyleSheet(self.Button_stylesheet)
-            self.dsp7265_submit_button.clicked.connect(self.dsp725_auto_sens)
+            self.dsp7265_submit_button.clicked.connect(self.dsp7265_freq_setting)
 
             self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_text)
             self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_entry_box)
