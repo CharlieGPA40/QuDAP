@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
     QDialogButtonBox, QProgressBar, QButtonGroup, QApplication, QCompleter
 )
-from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtGui import QIcon, QFont, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QSettings
 from PyQt6.QtGui import QKeyEvent
 
@@ -186,7 +186,8 @@ class Worker(QThread):
                  ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled, zone1_step_field, zone2_step_field,
                  zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
                  zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, BNC845RF_Connected,
-                 DSP7265_Connected, demo):
+                 DSP7265_Connected, demo, keithley_6221_dc_config, keithley_6221_ac_config, ac_current_waveform, ac_current_freq,
+                 ac_current_offset):
         super().__init__()
         self.measurement_instance = measurement_instance
         self.running = True
@@ -227,6 +228,11 @@ class Worker(QThread):
         self.BNC845RF_Connected = BNC845RF_Connected
         self.DSP7265_Connected = DSP7265_Connected
         self.demo = demo
+        self.keithley_6221_dc_config = keithley_6221_dc_config
+        self.keithley_6221_ac_config = keithley_6221_ac_config
+        self.ac_current_waveform = ac_current_waveform
+        self.ac_current_freq = ac_current_freq
+        self.ac_current_offset = ac_current_offset
 
     def run(self):
         try:
@@ -270,7 +276,12 @@ class Worker(QThread):
                                               BNC845RF_Connected=self.BNC845RF_Connected,
                                               DSP7265_Connected=self.DSP7265_Connected,
                                               running=lambda: self.running,
-                                              demo=self.demo)
+                                              demo=self.demo,
+                                              keithley_6221_dc_config=self.keithley_6221_dc_config,
+                                              keithley_6221_ac_config=self.keithley_6221_ac_config,
+                                              ac_current_waveform=self.ac_current_waveform,
+                                              ac_current_freq=self.ac_current_freq,
+                                              ac_current_offset=self.ac_current_offset)
             self.running = False
             self.stop()
             return
@@ -509,6 +520,8 @@ class Measurement(QMainWindow):
             self.nv_channel_1_enabled = None
             self.nv_channel_2_enabled = None
             self.nv_NPLC = None
+            self.keithley_6221_dc_config = False
+            self.keithley_6221_ac_config = False
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -1479,12 +1492,12 @@ class Measurement(QMainWindow):
         self.keithley_6221_DC_radio = QRadioButton("DC")
         self.keithley_6221_DC_radio.setFont(self.font)
         self.keithley_6221_DC_radio.toggled.connect(self.Keithley_6221_DC)
-        self.keithley_6221_AC_radio = QRadioButton("AC")
-        self.keithley_6221_AC_radio.setFont(self.font)
-        self.keithley_6221_AC_radio.toggled.connect(self.Keithley_6221_AC)
+        self.keithley_6221_ac_radio = QRadioButton("AC")
+        self.keithley_6221_ac_radio.setFont(self.font)
+        self.keithley_6221_ac_radio.toggled.connect(self.Keithley_6221_ac)
         self.keithley_6221_radio_button_layout = QHBoxLayout()
         self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_DC_radio)
-        self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_AC_radio)
+        self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_ac_radio)
         self.Keithey_6221_main_layout.addLayout(self.keithley_6221_radio_button_layout)
 
         self.Keithey_curSour_layout = QVBoxLayout()
@@ -1551,13 +1564,142 @@ class Measurement(QMainWindow):
         self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_range_checkbox)
         self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_single_checkbox)
 
-    def Keithley_6221_AC(self):
-        self.keithley_6221_AC_layout = QHBoxLayout()
-        self.keithley_6221_DC = QCheckBox('Channel 2:')
+    def Keithley_6221_ac(self):
         try:
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
             pass
+
+        self.keithley_6221_ac_range_single_layout = QVBoxLayout()
+        self.keithley_6221_ac_range_layout = QHBoxLayout()
+        self.keithley_6221_ac_range_checkbox = QRadioButton('Range')
+        # self.keithley_6221_ac_range_checkbox.stateChanged.connect(self.on_6221_ac_toggle)
+        self.keithley_6221_ac_range_checkbox.setFont(self.font)
+        self.keithley_6221_ac_range_from_label = QLabel('From:')
+        self.keithley_6221_ac_range_from_label.setFont(self.font)
+        self.keithley_6221_ac_range_init_entry = QLineEdit()
+        self.keithley_6221_ac_range_init_entry.setFont(self.font)
+        self.keithley_6221_ac_range_to_label = QLabel('to')
+        self.keithley_6221_ac_range_to_label.setFont(self.font)
+        self.keithley_6221_ac_range_final_entry = QLineEdit()
+        self.keithley_6221_ac_range_final_entry.setFont(self.font)
+        self.keithley_6221_ac_range_step_label = QLabel('Step Size:')
+        self.keithley_6221_ac_range_step_label.setFont(self.font)
+        self.keithley_6221_ac_range_step_entry = QLineEdit()
+        self.keithley_6221_ac_range_step_entry.setFont(self.font)
+        self.keithley_6221_ac_range_combobox = QComboBox()
+        self.keithley_6221_ac_range_combobox.setFont(self.font)
+        self.keithley_6221_ac_range_combobox.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_ac_range_combobox.addItems(["Select Units", "mA", "µA", "nA", "pA"])
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_checkbox)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_from_label)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_init_entry)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_to_label)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_final_entry)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_step_label)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_step_entry)
+        self.keithley_6221_ac_range_layout.addWidget(self.keithley_6221_ac_range_combobox)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_range_layout)
+        self.keithley_6221_ac_single_layout = QHBoxLayout()
+        self.keithley_6221_ac_single_checkbox = QRadioButton('List')
+        # self.keithley_6221_ac_single_checkbox.stateChanged.connect(self.on_6221_ac_toggle)
+        self.keithley_6221_ac_single_checkbox.setFont(self.font)
+
+        self.keithley_6221_ac_single_entry = QLineEdit()
+        self.keithley_6221_ac_single_entry.setFont(self.font)
+        self.keithley_6221_ac_single_combobox = QComboBox()
+        self.keithley_6221_ac_single_combobox.setFont(self.font)
+        self.keithley_6221_ac_single_combobox.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_ac_single_combobox.addItems(["Select Units", "mA", "µA", "nA", "pA"])
+        self.keithley_6221_ac_single_layout.addWidget(self.keithley_6221_ac_single_checkbox)
+        self.keithley_6221_ac_single_layout.addWidget(self.keithley_6221_ac_single_entry)
+        self.keithley_6221_ac_single_layout.addWidget(self.keithley_6221_ac_single_combobox)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_single_layout)
+
+        self.keithley_6221_ac_wave_func_layout = QHBoxLayout()
+        self.keithley_6221_ac_wave_func_label = QLabel("Wave Function:")
+        self.keithley_6221_ac_wave_func_label.setFont(self.font)
+        self.keithley_6221_ac_waveform_combo_box = QComboBox()
+        self.keithley_6221_ac_waveform_combo_box.setFont(self.font)
+        self.keithley_6221_ac_waveform_combo_box.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_ac_waveform_combo_box.addItems(["Select Funcs"])  # 0
+        self.keithley_6221_ac_waveform_combo_box.addItems(["SINE"])  # 1
+        self.keithley_6221_ac_waveform_combo_box.addItems(["SQUARE"])  # 2
+        self.keithley_6221_ac_waveform_combo_box.addItems(["RAMP"])  # 3
+        self.keithley_6221_ac_waveform_combo_box.addItems(["ARB(x)"])  # 3
+        self.keithley_6221_ac_wave_func_layout.addWidget(self.keithley_6221_ac_wave_func_label)
+        self.keithley_6221_ac_wave_func_layout.addWidget(self.keithley_6221_ac_waveform_combo_box)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_wave_func_layout)
+
+        # self.keithley_6221_ac_amp_layout = QHBoxLayout()
+        # self.keithley_6221_ac_amp_label = QLabel("Amplitude:")
+        # self.keithley_6221_ac_amp_label.setFont(self.font)
+        # self.keithley_6221_ac_amp_entry_box = QLineEdit()
+        # self.keithley_6221_ac_amp_entry_box.setFont(self.font)
+        # self.keithley_6221_ac_amp_validator = QDoubleValidator(0, 105, 10)
+        # self.keithley_6221_ac_amp_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        # self.keithley_6221_ac_amp_entry_box.setValidator(self.keithley_6221_ac_amp_validator)
+        # self.keithley_6221_ac_amp_entry_box.setPlaceholderText("2pA to 105mA")
+        # self.keithley_6221_ac_amp_entry_box.setFixedHeight(30)
+        # self.keithley_6221_ac_amp_units_combo = QComboBox()
+        # self.keithley_6221_ac_amp_units_combo.setFont(self.font)
+        # self.keithley_6221_ac_amp_units_combo.setStyleSheet(self.QCombo_stylesheet)
+        # self.keithley_6221_ac_amp_units_combo.addItems(["Select Units"])  # 0
+        # self.keithley_6221_ac_amp_units_combo.addItems(["mA"])  # 1
+        # self.keithley_6221_ac_amp_units_combo.addItems(["µA"])  # 2
+        # self.keithley_6221_ac_amp_units_combo.addItems(["nA"])  # 3
+        # self.keithley_6221_ac_amp_units_combo.addItems(["pA"])  # 3
+        # self.keithley_6221_ac_amp_layout.addWidget(self.keithley_6221_ac_amp_label)
+        # self.keithley_6221_ac_amp_layout.addWidget(self.keithley_6221_ac_amp_entry_box)
+        # self.keithley_6221_ac_amp_layout.addWidget(self.keithley_6221_ac_amp_units_combo)
+        # self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_amp_layout)
+
+        self.keithley_6221_ac_freq_layout = QHBoxLayout()
+        self.keithley_6221_ac_freq_label = QLabel("Frequency:")
+        self.keithley_6221_ac_freq_label.setFont(self.font)
+        self.keithley_6221_ac_freq_entry_box = QLineEdit()
+        self.keithley_6221_ac_freq_entry_box.setFont(self.font)
+        self.keithley_6221_ac_freq_validator = QDoubleValidator(0.00, 100000, 5)
+        self.keithley_6221_ac_freq_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.keithley_6221_ac_freq_entry_box.setValidator(self.keithley_6221_ac_freq_validator)
+        self.keithley_6221_ac_freq_entry_box.setPlaceholderText("0Hz to 100KHz")
+        self.keithley_6221_ac_freq_entry_box.setFixedHeight(30)
+        self.keithley_6221_ac_freq_unit_label = QLabel("Hz")
+        self.keithley_6221_ac_freq_unit_label.setFont(self.font)
+        self.keithley_6221_ac_freq_layout.addWidget(self.keithley_6221_ac_freq_label)
+        self.keithley_6221_ac_freq_layout.addWidget(self.keithley_6221_ac_freq_entry_box)
+        self.keithley_6221_ac_freq_layout.addWidget(self.keithley_6221_ac_freq_unit_label)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_freq_layout)
+
+        self.keithley_6221_ac_offset_layout = QHBoxLayout()
+        self.keithley_6221_ac_offset_label = QLabel("Offset:")
+        self.keithley_6221_ac_offset_label.setFont(self.font)
+        self.keithley_6221_ac_offset_entry_box = QLineEdit()
+        self.keithley_6221_ac_offset_entry_box.setFont(self.font)
+        # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
+        self.keithley_6221_ac_offset_validator = QDoubleValidator(-105, 105, 10)
+        self.keithley_6221_ac_offset_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.keithley_6221_ac_offset_entry_box.setValidator(self.keithley_6221_ac_offset_validator)
+        self.keithley_6221_ac_offset_entry_box.setPlaceholderText("0 to ±105mA")
+        self.keithley_6221_ac_offset_entry_box.setFixedHeight(30)
+        self.keithley_6221_ac_offset_units_combo = QComboBox()
+        self.keithley_6221_ac_offset_units_combo.setFont(self.font)
+        self.keithley_6221_ac_offset_units_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_ac_offset_units_combo.addItems(["Select Units"])  # 0
+        self.keithley_6221_ac_offset_units_combo.addItems(["mA"])  # 1
+        self.keithley_6221_ac_offset_units_combo.addItems(["µA"])  # 2
+        self.keithley_6221_ac_offset_units_combo.addItems(["nA"])  # 3
+        self.keithley_6221_ac_offset_units_combo.addItems(["pA"])  # 3
+        self.keithley_6221_ac_offset_layout.addWidget(self.keithley_6221_ac_offset_label)
+        self.keithley_6221_ac_offset_layout.addWidget(self.keithley_6221_ac_offset_entry_box)
+        self.keithley_6221_ac_offset_layout.addWidget(self.keithley_6221_ac_offset_units_combo)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_offset_layout)
+
+        self.Keithey_curSour_layout.addLayout(self.keithley_6221_ac_range_single_layout)
+
+        self.keithley_6221_ac_selection_btn_group = QButtonGroup()
+        self.keithley_6221_ac_selection_btn_group.addButton(self.keithley_6221_ac_range_checkbox)
+        self.keithley_6221_ac_selection_btn_group.addButton(self.keithley_6221_ac_single_checkbox)
 
     def dsp726_IMODE_selection(self):
         try:
@@ -2373,6 +2515,7 @@ class Measurement(QMainWindow):
                 self.append_text('Start initializing Current...!\n', 'blue')
                 # =============================== Set the current ==================================== #
                 if self.keithley_6221_DC_radio.isChecked():
+                    self.keithley_6221_dc_config = True
                     if self.keithley_6221_DC_range_checkbox.isChecked():
                         init_current = float(self.keithley_6221_DC_range_init_entry.text())
                         final_current = float(self.keithley_6221_DC_range_final_entry.text())
@@ -2430,10 +2573,92 @@ class Measurement(QMainWindow):
                         QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
                         self.stop_measurement()
                         return
-                elif self.keithley_6221_AC_radio.isChecked():
-                    QMessageBox.warning(self, "New Feature is coming", 'Abort')
-                    self.stop_measurement()
-                    return
+                elif self.keithley_6221_ac_radio.isChecked():
+                    self.keithley_6221_ac_config = True
+                    if self.keithley_6221_ac_range_checkbox.isChecked():
+                        init_current = float(self.keithley_6221_ac_range_init_entry.text())
+                        final_current = float(self.keithley_6221_ac_range_final_entry.text())
+                        step_current = float(self.keithley_6221_ac_range_step_entry.text())
+                        self.ac_range_unit = self.keithley_6221_ac_range_combobox.currentIndex()
+                        if self.ac_range_unit != 0:
+                            if self.ac_range_unit == 1:  # mA
+                                ac_range_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.ac_range_unit == 2:  # uA
+                                ac_range_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.ac_range_unit == 3:  # nA
+                                ac_range_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.ac_range_unit == 4:  # pA
+                                ac_range_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{i}{ac_range_selected_unit}" for i in
+                                   float_range(init_current, final_current + step_current, step_current)]
+                        current_mag = [f"{i}" for i in
+                                       float_range(init_current, final_current + step_current, step_current)]
+                    elif self.keithley_6221_ac_single_checkbox.isChecked():
+                        self.single_ac_current = self.keithley_6221_ac_single_entry.text()
+                        self.single_ac_current = self.single_ac_current.replace(" ", "")
+                        self.single_ac_current = [float(item) for item in self.single_ac_current.split(',')]
+                        self.ac_single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
+                        if self.ac_single_unit != 0:
+                            if self.ac_single_unit == 1:  # mA
+                                ac_range_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.ac_single_unit == 2:  # uA
+                                ac_range_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.ac_single_unit == 3:  # nA
+                                ac_range_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.ac_single_unit == 4:  # pA
+                                ac_range_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{self.single_ac_current[i]}{ac_range_selected_unit}" for i in
+                                   range(len(self.single_DC_current))]
+                        current_mag = [f"{self.single_ac_current[i]}" for i in range(len(self.single_ac_current))]
+
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                        self.stop_measurement()
+                        return
+
+                    ac_current_waveform_index = self.keithley_6221_ac_waveform_combo_box.currentIndex()
+                    if ac_current_waveform_index !=0:
+                        if self.ac_single_unit == 1:  # sine
+                            self.ac_current_waveform = "SIN"
+                        elif self.ac_single_unit == 2:  # square
+                            self.ac_current_waveform = "SQU"
+                        elif self.ac_single_unit == 3:  # ramp
+                            self.ac_current_waveform = "RAMP"
+                        elif self.ac_single_unit == 4:  # arbx
+                            self.ac_current_waveform = "ARB0"
+
+                    self.ac_current_freq = self.keithley_6221_ac_freq_entry_box.text()
+                    self.ac_current_offset = self.keithley_6221_ac_offset_entry_box.text()
+                    self.ac_offset_unit = self.keithley_6221_ac_offset_units_combo.currentIndex()
+                    if self.ac_offset_unit != 0:
+                        if self.ac_offset_unit == 1:  # mA
+                            ac_offset_unit = 'e-3'
+                        elif self.ac_offset_unit == 2:  # uA
+                            ac_offset_unit = 'e-6'
+                        elif self.ac_offset_unit == 3:  # nA
+                            ac_offset_unit = 'e-9'
+                        elif self.ac_offset_unit == 4:  # pA
+                            ac_offset_unit = 'e-12'
+                    self.ac_current_offset = self.ac_current_offset + ac_offset_unit
+
                 if self.Keithley_2182_Connected:
                     self.nv_NPLC = self.NPLC_entry.text()
 
@@ -2518,7 +2743,9 @@ class Measurement(QMainWindow):
                                      self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
                                      self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
                                      self.zone2_field_rate,self.zone3_field_rate, self.Keithley_2182_Connected,
-                                     self.Ketihley_6221_Connected,self.BNC845RF_Connected,self.DSP7265_Connected, self.demo_mode)  # Create a worker instance
+                                     self.Ketihley_6221_Connected,self.BNC845RF_Connected,self.DSP7265_Connected, self.demo_mode,
+                                     self.keithley_6221_dc_config, self.keithley_6221_ac_config, self.ac_current_waveform,
+                                     self.ac_current_freq, self.ac_current_offset)  # Create a worker instance
                 self.worker.progress_update.connect(self.update_progress)
                 self.worker.append_text.connect(self.append_text)
                 self.worker.stop_measurment.connect(self.stop_measurement)
@@ -2672,7 +2899,8 @@ class Measurement(QMainWindow):
                 ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled,zone1_step_field,
                 zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
-                Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running, demo):
+                Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running, demo, keithley_6221_dc_config,
+                keithley_6221_ac_config, ac_current_waveform, ac_current_freq, ac_current_offset):
         try:
             def deltaH_chk(currentField):
                 if ppms_field_One_zone_radio_enabled:
@@ -2854,6 +3082,7 @@ class Measurement(QMainWindow):
                         if Keithley_2182_Connected:
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
+
                         time.sleep(2)  # Wait for the configuration to complete
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
@@ -2862,9 +3091,9 @@ class Measurement(QMainWindow):
                         update_ppms_field_reading_label(str(MyField), 'Oe')
 
                         while k < fix_field_avg:
+                            MyField, sF = client.get_field()
+                            update_ppms_field_reading_label(str(MyField), 'Oe')
                             if Keithley_2182_Connected:
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
                                 try:
                                     if nv_channel_1_enabled:
                                         keithley_2182nv.write("SENS:CHAN 1")
@@ -2900,14 +3129,52 @@ class Measurement(QMainWindow):
                                     csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
                                                          Chan_2_voltage, MyTemp, current[j]])
                                     append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                            elif DSP7265_Connected:
+                                try:
+                                    X = float(DSP7265.query("X."))  # Read the measurement result
+                                    Y = float(DSP7265.query("Y."))  # Read the measurement result
+                                    Mag = float(DSP7265.query("MAG."))  # Read the measurement result
+                                    Phase = float(DSP7265.query("PHA."))  # Read the measurement result
+                                    update_lockin_label(str(Mag), str(Phase))
+
+                                except Exception as e:
+                                    QMessageBox.warning(self, "Reading Error", f'{e}')
+
+                                resistance_chan_1 = X / float(current[j])
+                                # Append the data to the CSV file
+                                with open(csv_filename_zero_field, "a", newline="") as csvfile:
+                                    csv_writer = csv.writer(csvfile)
+
+                                    if csvfile.tell() == 0:  # Check if file is empty
+                                        csv_writer.writerow(
+                                            ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
+                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
+                                             "Temperature (K)", "Current (A)"])
+
+                                    csv_writer.writerow(
+                                        [MyField, resistance_chan_1, Mag, X, Y,
+                                         Phase, MyTemp, current[j]])
+                                    self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
                             k+=1
                         if Ketihley_6221_Connected:
-                            keithley_6221.write(":OUTP OFF")  # Set source function to current
-                            keithley_6221.write("CURRent:RANGe:AUTO ON \n")
-                            keithley_6221.write(f'CURR {current[j]} \n')
-                            keithley_6221.write(":OUTP ON")  # Turn on the output
-                            append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
+                            keithley_6221.write('CLE')
+                            if keithley_6221_dc_config:
+                                keithley_6221.write(":OUTP OFF")  # Set source function to current
+                                keithley_6221.write("CURRent:RANGe:AUTO ON \n")
+                                keithley_6221.write(f'CURR {current[j]} \n')
+                                keithley_6221.write(":OUTP ON")  # Turn on the output
+                                append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
 
+                            if keithley_6221_ac_config:
+                                keithley_6221.write("SOUR:WAVE:ABOR \n")
+                                keithley_6221.write('CURR:RANG:AUTO ON \n')
+                                keithley_6221.write(f'SOUR:WAVE:FUNC {ac_current_waveform} \n')
+                                keithley_6221.write(f'SOUR:WAVE:AMPL {current[j]} \n')
+                                keithley_6221.write(f'SOUR:WAVE:FREQ {ac_current_freq} \n')
+                                keithley_6221.write(f'SOUR:WAVE:OFFset {ac_current_offset} \n')
+                                keithley_6221.write('SOUR:WAVE:RANG BEST \n')
+                                keithley_6221.write('SOUR:WAVE:ARM \n')
+                                keithley_6221.write('SOUR:WAVE:INIT \n')
 
                         self.pts = 0
                         currentField = topField
@@ -3068,13 +3335,13 @@ class Measurement(QMainWindow):
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                         update_lockin_label(str(Mag), str(Phase))
-                                        # self.lockin_x.append(X)
+                                        self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
                                         # self.lockin_pahse.append(Phase)
-
-                                            # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                        self.field_array.append(MyField)
+                                        # # Drop off the first y element, append a new one.
+                                        update_plot(self.field_array, self.lockin_x, 'black', True, False)
                                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                     except Exception as e:
                                         QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -3286,13 +3553,14 @@ class Measurement(QMainWindow):
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                         update_lockin_label(str(Mag), str(Phase))
-                                        # self.lockin_x.append(X)
+                                        self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
                                         # self.lockin_pahse.append(Phase)
+                                        self.field_array.append(MyField)
 
                                             # # Drop off the first y element, append a new one.
-                                        update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                        update_plot(self.field_array, self.lockin_x, 'black', True, False)
                                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                     except Exception as e:
                                         QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -3449,14 +3717,14 @@ class Measurement(QMainWindow):
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                         update_lockin_label(str(Mag), str(Phase))
-                                        # self.lockin_x.append(X)
+                                        self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
                                         # self.lockin_pahse.append(Phase)
                                         if counter % 20 == 0:
                                             counter = 0
                                             # # Drop off the first y element, append a new one.
-                                            update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                            update_plot(self.field_array, self.lockin_x, 'black', True, False)
                                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                     except Exception as e:
                                         QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -3613,14 +3881,14 @@ class Measurement(QMainWindow):
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
                                         update_lockin_label(str(Mag), str(Phase))
-                                        # self.lockin_x.append(X)
+                                        self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
                                         # self.lockin_pahse.append(Phase)
                                         if counter % 20 == 0:
                                             counter = 0
                                         # # Drop off the first y element, append a new one.
-                                            update_plot(self.field_array, self.lockin_mag, 'black', True, False)
+                                            update_plot(self.field_array, self.lockin_x, 'black', True, False)
                                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                     except Exception as e:
                                         QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -3683,7 +3951,7 @@ class Measurement(QMainWindow):
                                 if nv_channel_2_enabled:
                                    save_plot(self.field_array, self.channel2_array, 'red', False, True, True, str(TempList[i]), str(current[j]))
                         elif DSP7265_Connected:
-                            save_plot(self.field_array, self.lockin_mag, 'black', True, False, True, str(TempList[i]), str(current[j]))
+                            save_plot(self.field_array, self.lockin_x, 'black', True, False, True, str(TempList[i]), str(current[j]))
                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
                         NotificationManager().send_notification(
@@ -3706,8 +3974,14 @@ class Measurement(QMainWindow):
                 append_text(f'Finisehd Field = {field} {fieldUnits}\n', 'red')
                 update_ppms_field_reading_label(str(field), 'Oe')
                 if Ketihley_6221_Connected:
-                    keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
-                    keithley_6221.write(":OUTP OFF")  # Turn off the output
+                    if keithley_6221_dc_config:
+                        keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
+                        keithley_6221.write(":OUTP OFF")  # Turn off the output
+                    if keithley_6221_ac_config:
+                        keithley_6221.write("SOUR:WAVE:ABOR \n")
+                        keithley_6221.write(f'SOUR:WAVE:AMPL 0 \n')
+                        keithley_6221.write(f'SOUR:WAVE:FREQ 0 \n')
+                        keithley_6221.write(f'SOUR:WAVE:OFFset 0 \n')
                 append_text("DC current is set to: 0.00 A\n", 'red')
                 # keithley_6221_Curr_Src.close()
 
