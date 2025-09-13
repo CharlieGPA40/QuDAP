@@ -1677,7 +1677,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_ac_offset_layout = QHBoxLayout()
         self.keithley_6221_ac_offset_label = QLabel("Offset:")
         self.keithley_6221_ac_offset_label.setFont(self.font)
-        self.keithley_6221_ac_offset_entry_box = QLineEdit()
+        self.keithley_6221_ac_offset_entry_box = QLineEdit('0')
         self.keithley_6221_ac_offset_entry_box.setFont(self.font)
         # self.cur_field_entry_box.setValidator(IntegerValidator(-10000, 10000))
         self.keithley_6221_ac_offset_validator = QDoubleValidator(-105, 105, 10)
@@ -1760,6 +1760,18 @@ class Measurement(QMainWindow):
             self.dsp726_TC_layout.addWidget(self.dsp_tc_text)
             self.dsp726_TC_layout.addWidget(self.dsp7265_TC_combo)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_TC_layout)
+
+            # frequency
+            self.dsp7265_freq_layout = QHBoxLayout()
+            self.dsp_freq_text = QLabel('Frequency:')
+            self.dsp_freq_text.setFont(self.font)
+            self.dsp_freq_entry_box = QLineEdit()
+            self.dsp_freq_entry_box.setFont(self.font)
+            self.dsp7265_freq_layout.addWidget(self.dsp_tc_text)
+            self.dsp7265_freq_layout.addWidget(self.dsp_freq_entry_box)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_freq_layout)
+
+
 
             self.dsp7265_auto_button_layout = QHBoxLayout()
             self.dsp7265_auto_sense = QPushButton('Auto Sens.')
@@ -2665,7 +2677,9 @@ class Measurement(QMainWindow):
 
                 if self.Keithley_2182_Connected:
                     self.nv_NPLC = self.NPLC_entry.text()
-
+                if self.DSP7265_Connected:
+                    lockin_freq = self.dsp_freq_entry_box.text()
+                    self.DSP7265.write(f'FREQ {lockin_freq}')
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
                     self.ppms_field_Two_zone_radio_enabled = False
