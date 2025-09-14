@@ -26,6 +26,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QSettings, QTime, QTimer
 from PyQt6.QtGui import QFont, QPixmap, QColor, QDesktopServices, QIcon
 
+import QuDAP.GUI.VSM.VSM
+
+
 class AnimatedCard(QFrame):
     """Animated card widget with hover effects"""
 
@@ -834,7 +837,10 @@ class NotificationSettings(QWidget):
 
     def send_test_notification(self, channel):
         """Send test notification to specified channel"""
-        image_path = 'logo.png'
+        current_path = os.getcwd()
+        image_path = current_path + '\GUI\Setting\logo.png'
+        print(image_path)
+        print(os.path.exists(image_path))
         if channel == "email" and self.email_enabled.isChecked():
             self.test_result.setText("📧 Sending test email...")
             self.test_result.setStyleSheet("color: #17a2b8;")
@@ -919,7 +925,7 @@ class NotificationSettings(QWidget):
                     files = {'photo': photo_file}
                     data = {
                         'chat_id': chat_id,
-                        'caption': data
+                        'caption': data + ' with image!'
                     }
                     response = requests.post(url, data=data, files=files, timeout=30)
             else:
@@ -983,7 +989,7 @@ class NotificationSettings(QWidget):
                 response = requests.post(webhook_url, json=data, timeout=10)
 
 
-            if response.status_code == 204:
+            if response.status_code == 204 or response.status_code == 200:
                 QTimer.singleShot(2000, lambda: self.show_test_result("Discord message sent!", True))
             else:
                 QMessageBox.warning(self, 'Warning', f"Failed to send message: {response.status_code} - {response.text}")
