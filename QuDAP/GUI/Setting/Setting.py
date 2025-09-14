@@ -26,8 +26,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QSettings, QTime, QTimer
 from PyQt6.QtGui import QFont, QPixmap, QColor, QDesktopServices, QIcon
 
-import QuDAP.GUI.VSM.VSM
-
 
 class AnimatedCard(QFrame):
     """Animated card widget with hover effects"""
