@@ -402,6 +402,7 @@ class LogWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.SETTINGS = QSettings('QuDAP', 'LogSettings')
+
         self.setWindowTitle('Log Window')
         self.font = QFont("Arial", 13)
         self.sample_id = None
@@ -412,6 +413,8 @@ class LogWindow(QDialog):
         with open("GUI/SHG/QButtonWidget.qss", "r") as file:
             self.Browse_Button_stylesheet = file.read()
         self.init_ui()
+        # Load settings after UI is initialized
+        QTimer.singleShot(0, self.load_settings)
 
     def init_ui(self):
         self.log_box_layout = QVBoxLayout()
@@ -551,25 +554,21 @@ class LogWindow(QDialog):
             self.folder_entry_box.setText(self.folder_path)
 
     def load_settings(self):
-        settings = QSettings("QuDAP", "LogSettings")
-        settings_file = settings.fileName()
-        if os.path.exists(settings_file):
-            try:
-                self.user = self.SETTINGS.value('log/username', '')
-                self.user_entry_box.setText(self.user)
-                self.folder_path = self.SETTINGS.value('log/folder_path', '')+'/'
-                self.folder_entry_box.setText(self.folder_path)
-                self.sample_id = self.SETTINGS.value('log/sample_id', '')
-                self.sample_id_entry_box.setText(self.sample_id)
-                self.measurement = self.SETTINGS.value('log/measurement', '')
-                self.measurement_type_entry_box.setText(self.measurement)
-                self.run = self.SETTINGS.value('log/run', '')
-                self.run_number_entry_box.setText(self.run)
-            except SystemExit as e:
-                tb_str = traceback.format_exc()
-                QMessageBox.warning(self, 'Warning', f'No record found! {tb_str}')
-        else:
-            QMessageBox.warning(self, 'Warning', f'No record found!')
+        try:
+            self.user = self.SETTINGS.value('log/username', '')
+            self.user_entry_box.setText(self.user)
+            self.folder_path = self.SETTINGS.value('log/folder_path', '')+'/'
+            self.folder_entry_box.setText(self.folder_path)
+            self.sample_id = self.SETTINGS.value('log/sample_id', '')
+            self.sample_id_entry_box.setText(self.sample_id)
+            self.measurement = self.SETTINGS.value('log/measurement', '')
+            self.measurement_type_entry_box.setText(self.measurement)
+            self.run = self.SETTINGS.value('log/run', '')
+            self.run_number_entry_box.setText(self.run)
+        except SystemExit as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, 'Warning', f'No record found! {tb_str}')
+
 
     def accept(self):
         self.user = self.user_entry_box.text()
