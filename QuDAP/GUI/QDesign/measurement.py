@@ -19,6 +19,8 @@ if platform.system() == 'Windows':
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
+from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
@@ -35,6 +37,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
+
 class NotificationManager:
     def __init__(self):
         self.settings = QSettings('QuDAP', 'NotificationSettings')
@@ -47,21 +50,48 @@ class NotificationManager:
             'discord': self.settings.value('discord/enabled', False, bool),
         }
 
+    # PRIMARY FUNCTIONS - Choose between these two
 
-    def send_notification(self, message: str, priority: str = "normal", image_path: str = None):
+    def send_message(self, message: str, priority: str = "normal"):
+        """Send text-only notification to all enabled channels"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_message = f"{message}\n\nTime: {timestamp}"
+
+        # Send to each enabled channel (text only)
+        if self.enabled_channels.get('email'):
+            self._send_email(formatted_message, priority)
+        if self.enabled_channels.get('telegram'):
+            self._send_telegram(formatted_message, priority)
+        if self.enabled_channels.get('discord'):
+            self._send_discord(formatted_message, priority)
+
+    def send_message_with_image(self, message: str, image_path: str, priority: str = "normal"):
+        """Send notification with image to all enabled channels"""
+        if not self._is_valid_image(image_path):
+            print(f"Invalid image path: {image_path}. Sending text-only notification.")
+            self.send_message(message, priority)
+            return
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         formatted_message = f"{message}\n\nTime: {timestamp}"
 
-        # Send to each enabled channel
+        # Send to each enabled channel (with image)
         if self.enabled_channels.get('email'):
-            self._send_email(formatted_message, priority)
+            self._send_email(formatted_message, priority, image_path)
         if self.enabled_channels.get('telegram'):
             self._send_telegram(formatted_message, priority, image_path)
         if self.enabled_channels.get('discord'):
-            self._send_discord(formatted_message, priority)
+            self._send_discord(formatted_message, priority, image_path)
 
-    def _send_email(self, body: str, priority: str):
+    # LEGACY FUNCTION - Keep for backward compatibility
+    def send_notification(self, message: str, priority: str = "normal", image_path: str = None):
+        """Legacy function - automatically chooses between text-only and image based on image_path"""
+        if image_path:
+            self.send_message_with_image(message, image_path, priority)
+        else:
+            self.send_message(message, priority)
+
+    def _send_email(self, body: str, priority: str, image_path: str = None):
         try:
             # Get settings
             smtp_server = self.settings.value('email/smtp_server', '')
@@ -91,21 +121,43 @@ class NotificationManager:
 
             msg.attach(MIMEText(body, 'plain'))
 
+            # Attach image if provided
+            if image_path and os.path.exists(image_path):
+                try:
+                    with open(image_path, 'rb') as f:
+                        img_data = f.read()
+
+                    # Determine image type
+                    image_type = Path(image_path).suffix.lower()
+                    if image_type in ['.jpg', '.jpeg']:
+                        img = MIMEImage(img_data, 'jpeg')
+                    elif image_type == '.png':
+                        img = MIMEImage(img_data, 'png')
+                    elif image_type == '.gif':
+                        img = MIMEImage(img_data, 'gif')
+                    else:
+                        img = MIMEBase('application', 'octet-stream')
+                        img.set_payload(img_data)
+                        encoders.encode_base64(img)
+
+                    img.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(image_path)}"')
+                    msg.attach(img)
+                except Exception as e:
+                    print(f"Error attaching image to email: {e}")
+
             with smtplib.SMTP(smtp_server, smtp_port) as server:
                 if use_ssl:
                     server.starttls()
                 server.login(username, password)
                 server.sendmail(from_email, to_emails, msg.as_string())
+
         except Exception as e:
             print(f"Email notification error: {e}")
 
-    def _send_telegram(self, message: str, priority: str, image_file: str = None):
-        import requests
-
+    def _send_telegram(self, message: str, priority: str, image_path: str = None):
         try:
             token = self.settings.value('telegram/token', '')
             chat_id = self.settings.value('telegram/chat_id', '')
-            url = f"https://api.telegram.org/bot{token}/sendMessage"
 
             if not all([token, chat_id]):
                 return
@@ -117,22 +169,34 @@ class NotificationManager:
                 'critical': '🔴'
             }.get(priority, '⚪')
 
-            data = {"chat_id": chat_id,
-                    "text": f"{priority_emoji} {message}!"}
+            formatted_message = f"{priority_emoji} {message}"
 
-            if image_file:
-                files = {"photo": image_file}
-                response = requests.post(url, data=data, files=files)
+            if image_path and os.path.exists(image_path):
+                # Send photo with caption
+                url = f"https://api.telegram.org/bot{token}/sendPhoto"
+
+                with open(image_path, 'rb') as photo_file:
+                    files = {'photo': photo_file}
+                    data = {
+                        'chat_id': chat_id,
+                        'caption': formatted_message
+                    }
+                    response = requests.post(url, data=data, files=files, timeout=30)
             else:
+                # Send text message only
+                url = f"https://api.telegram.org/bot{token}/sendMessage"
+                data = {
+                    'chat_id': chat_id,
+                    'text': formatted_message
+                }
                 response = requests.post(url, data=data, timeout=10)
 
             response.raise_for_status()
+
         except Exception as e:
             print(f"Telegram notification error: {e}")
 
-    def _send_discord(self, message: str, priority: str):
-        import requests
-
+    def _send_discord(self, message: str, priority: str, image_path: str = None):
         try:
             webhook_url = self.settings.value('discord/webhook', '')
             bot_name = self.settings.value('discord/name', 'QuDAP Bot')
@@ -146,23 +210,58 @@ class NotificationManager:
                 'high': 0xe67e22,  # Orange
                 'critical': 0xe74c3c  # Red
             }
-            data = {
-                'username': bot_name,
-                'embeds': [{
-                    'title': f'Measurement Status Update',
-                    'description': f"```\n{message}\n```",
-                    'color': color_map.get(priority, 0x95a5a6),
-                    'footer': {
-                        'text': 'QuDAP Notification System'
-                    },
-                    'timestamp': datetime.now().isoformat()
-                }]
+
+            embed = {
+                'title': 'Measurement Status Update',
+                'description': f"```\n{message}\n```",
+                'color': color_map.get(priority, 0x95a5a6),
+                'footer': {'text': 'QuDAP Notification System'},
+                'timestamp': datetime.now().isoformat()
             }
-            response = requests.post(webhook_url, json=data, timeout=10)
+
+            if image_path and os.path.exists(image_path):
+                # Upload image as attachment and reference it in embed
+                with open(image_path, 'rb') as image_file:
+                    files = {'file': (os.path.basename(image_path), image_file, 'image/png')}
+
+                    # Add image to embed
+                    embed['image'] = {'url': f"attachment://{os.path.basename(image_path)}"}
+
+                    payload = {
+                        'username': bot_name,
+                        'embeds': [embed]
+                    }
+
+                    response = requests.post(
+                        webhook_url,
+                        data={'payload_json': str(payload).replace("'", '"')},
+                        files=files,
+                        timeout=30
+                    )
+            else:
+                # Send without image
+                data = {
+                    'username': bot_name,
+                    'embeds': [embed]
+                }
+                response = requests.post(webhook_url, json=data, timeout=10)
+
             response.raise_for_status()
 
         except Exception as e:
             print(f"Discord notification error: {e}")
+
+    def _is_valid_image(self, image_path: str) -> bool:
+        """Check if the file exists and has a valid image extension"""
+        if not image_path or not os.path.exists(image_path):
+            return False
+
+        valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
+        return Path(image_path).suffix.lower() in valid_extensions
+
+    def refresh_enabled_channels(self):
+        """Reload enabled channels from settings"""
+        self.enabled_channels = self._load_enabled_channels()
 
 class Worker(QThread):
     progress_update = pyqtSignal(int)
@@ -2312,7 +2411,7 @@ class Measurement(QMainWindow):
             if self.worker is not None:
                 self.worker.stop()
                 self.worker = None
-                NotificationManager().send_notification("Experiment Stop!", 'critical')
+                NotificationManager().send_message("Experiment Stop!", 'critical')
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         # try:
@@ -2746,7 +2845,7 @@ class Measurement(QMainWindow):
                 if self.DSP7265_Connected:
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
-                NotificationManager().send_notification(f"{self.user} is running {self.measurement} on {self.sample_id}")
+                NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
                 if self.ppms_field_fixed_mode_radio_button.isChecked():
                     self.field_mode_fixed = True
                 else:
@@ -2855,7 +2954,7 @@ class Measurement(QMainWindow):
             if not os.path.exists(image_path):
                 print("No Such File.")
             caption = f"Data preview"
-            NotificationManager().send_notification(message=f"Data Saved - {caption}", image_path=image_path)
+            NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
 
 
     def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
@@ -2955,7 +3054,7 @@ class Measurement(QMainWindow):
                         user_field_rate = zone3_field_rate
                 return deltaH, user_field_rate
 
-            NotificationManager().send_notification(message="The measurement has been started successfully.")
+            NotificationManager().send_message(message="The measurement has been started successfully.")
 
             number_of_current = len(current)
             number_of_temp = len(TempList)
@@ -2988,7 +3087,7 @@ class Measurement(QMainWindow):
                     update_ppms_field_reading_label(str(field), 'Oe')
                 except SystemExit as e:
                     error_message(e,e)
-                    NotificationManager().send_notification(message="Your measurement went wrong, possible PPMS client lost connection", priority='critical')
+                    NotificationManager().send_message(message="Your measurement went wrong, possible PPMS client lost connection", priority='critical')
             # ----------------- Loop Down ----------------------#
             Curlen = len(current)
             templen = len(TempList)
@@ -3016,7 +3115,7 @@ class Measurement(QMainWindow):
                             F, sF = client.get_field()
                         except SystemExit as e:
                             error_message(e, e)
-                            NotificationManager().send_notification(
+                            NotificationManager().send_message(
                                     "Your measurement went wrong, possible PPMS client lost connection", "critical")
                         update_ppms_field_reading_label(str(F), 'Oe')
                         append_text(f'Status: {sF}\n', 'red')
@@ -3056,7 +3155,7 @@ class Measurement(QMainWindow):
                         time.sleep(300)
 
                     for j in range(Curlen):
-                        NotificationManager().send_notification(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
+                        NotificationManager().send_message(f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                         clear_plot()
                         csv_filename = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}.csv"
                         csv_filename_avg = f"{folder_path}{file_name}_{TempList[i]}_K_{current_mag[j]}_{current_unit}_Run_{run}_avg.csv"
@@ -3081,7 +3180,7 @@ class Measurement(QMainWindow):
                                 F, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                NotificationManager().send_notification(
+                                NotificationManager().send_message(
                                     "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             update_ppms_field_reading_label(str(F), 'Oe')
                             append_text(f'Status: {sF}\n', 'red')
@@ -3102,7 +3201,7 @@ class Measurement(QMainWindow):
                                 F, sF = client.get_field()
                             except SystemExit as e:
                                 error_message(e, e)
-                                NotificationManager().send_notification(
+                                NotificationManager().send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             update_ppms_field_reading_label(str(F), 'Oe')
                             append_text(f'Status: {sF}\n', 'red')
@@ -3246,7 +3345,7 @@ class Measurement(QMainWindow):
                                         MyField, sF = client.get_field()
                                     except SystemExit as e:
                                         error_message(e, e)
-                                        NotificationManager().send_notification(
+                                        NotificationManager().send_message(
                                                 "Your measurement went wrong, possible PPMS client lost connection", 'crtical')
                                     update_ppms_field_reading_label(str(MyField), 'Oe')
                                     append_text(f'Status: {sF}\n', 'blue')
@@ -3394,7 +3493,7 @@ class Measurement(QMainWindow):
                                     MyField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    NotificationManager().send_notification(
+                                    NotificationManager().send_message(
                                             "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(MyField), 'Oe')
                                 MyTemp, sT = client.get_temperature()
@@ -3431,7 +3530,7 @@ class Measurement(QMainWindow):
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
                             deltaH, user_field_rate = deltaH_chk(currentField)
-                            NotificationManager().send_notification(f"Starting the second half of measurement - ramping field up")
+                            NotificationManager().send_message(f"Starting the second half of measurement - ramping field up")
                             current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
                             progress_update(int(current_progress))
                             while currentField <= topField:
@@ -3459,7 +3558,7 @@ class Measurement(QMainWindow):
                                         MyField, sF = client.get_field()
                                     except SystemExit as e:
                                         error_message(e, e)
-                                        NotificationManager().send_notification(
+                                        NotificationManager().send_message(
                                                 "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                     update_ppms_field_reading_label(str(MyField), 'Oe')
                                     append_text(f'Status: {sF}\n', 'blue')
@@ -3642,7 +3741,7 @@ class Measurement(QMainWindow):
                                                  client.field.driven_mode.driven)
                             except SystemExit as e:
                                 error_message(e, e)
-                                NotificationManager().send_notification(
+                                NotificationManager().send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
                             time.sleep(4)
@@ -3658,7 +3757,7 @@ class Measurement(QMainWindow):
                                         break
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    NotificationManager().send_notification(
+                                    NotificationManager().send_message(
                                             "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             time.sleep(20)
                             deltaH, user_field_rate = deltaH_chk(MyField)
@@ -3670,7 +3769,7 @@ class Measurement(QMainWindow):
                                                  client.field.driven_mode.driven)
                             except SystemExit as e:
                                 error_message(e, e)
-                                NotificationManager().send_notification(
+                                NotificationManager().send_message(
                                     "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             append_text(f'Set the field to {str(botField)} Oe and then collect data \n', 'purple')
                             counter = 0
@@ -3689,7 +3788,7 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    NotificationManager().send_notification(
+                                    NotificationManager().send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Saving data for {currentField} Oe \n', 'green')
@@ -3806,7 +3905,7 @@ class Measurement(QMainWindow):
                                 # update_ppms_field_reading_label(str(currentField), 'Oe')
 
                             # ----------------- Loop Up ----------------------#
-                            NotificationManager().send_notification(f"Starting the second half of measurement - ramping field up")
+                            NotificationManager().send_message(f"Starting the second half of measurement - ramping field up")
                             currentField = botField
                             client.set_field(currentField,
                                              user_field_rate,
@@ -3823,7 +3922,7 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    NotificationManager().send_notification(
+                                    NotificationManager().send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Status: {sF}\n', 'blue')
@@ -3855,7 +3954,7 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    NotificationManager().send_notification(
+                                    NotificationManager().send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Saving data for {currentField} Oe \n', 'green')
@@ -3982,7 +4081,7 @@ class Measurement(QMainWindow):
                             save_plot(self.field_array, self.lockin_x, 'black', True, False, True, str(TempList[i]), str(current[j]))
                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
-                        NotificationManager().send_notification(
+                        NotificationManager().send_message(
                             "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                         current_progress = int((i+1) * (j+1) / totoal_progress * 100)
                         progress_update(int(current_progress))
@@ -4018,7 +4117,7 @@ class Measurement(QMainWindow):
                 total_runtime = (end_time - start_time) / 3600
                 self.log_box.append(f"Total runtime: {total_runtime} hours\n")
                 self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
-                NotificationManager().send_notification("The measurement has been completed successfully.")
+                NotificationManager().send_message("The measurement has been completed successfully.")
                 progress_update(int=100)
                 append_text("You measuremnt is finished!", 'green')
                 stop_measurement()
@@ -4045,7 +4144,7 @@ class Measurement(QMainWindow):
                         time.sleep(300)
 
                     for j in range(Curlen):
-                        NotificationManager().send_notification(
+                        NotificationManager().send_message(
                                 f"Starting measurement at temperature {str(TempList[i])} K, {current_mag[j]} {current_unit}")
                         clear_plot()
 
@@ -4181,7 +4280,7 @@ class Measurement(QMainWindow):
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
                             deltaH, user_field_rate = deltaH_chk(currentField)
-                            NotificationManager().send_notification(
+                            NotificationManager().send_message(
                                     f"Starting the second half of measurement - ramping field up")
                             current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
                             progress_update(int(current_progress))
@@ -4296,7 +4395,7 @@ class Measurement(QMainWindow):
                                     currentField, sF = client.get_field()
                                 except SystemExit as e:
                                     error_message(e, e)
-                                    NotificationManager().send_notification(
+                                    NotificationManager().send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 update_ppms_field_reading_label(str(currentField), 'Oe')
                                 append_text(f'Saving data for {currentField} Oe \n', 'green')
@@ -4493,7 +4592,7 @@ class Measurement(QMainWindow):
                         progress_update(int(current_progress))
 
         except SystemExit as e:
-            NotificationManager().send_notification(
+            NotificationManager().send_message(
                 "Your measurement went wrong, possible PPMS client lost connection", 'critical')
             error_message(e,e)
             stop_measurement()
