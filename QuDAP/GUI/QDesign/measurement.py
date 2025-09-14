@@ -3121,8 +3121,6 @@ class Measurement(QMainWindow):
                         update_ppms_field_reading_label(str(MyField), 'Oe')
 
                         while k < fix_field_avg:
-                            MyField, sF = client.get_field()
-                            update_ppms_field_reading_label(str(MyField), 'Oe')
                             if Keithley_2182_Connected:
                                 try:
                                     if nv_channel_1_enabled:
@@ -3240,8 +3238,8 @@ class Measurement(QMainWindow):
                                                  client.field.driven_mode.driven)
                                 append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
                                 time.sleep(4)
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
+                                # MyField, sF = client.get_field()
+                                # update_ppms_field_reading_label(str(MyField), 'Oe')
                                 while True:
                                     time.sleep(1)
                                     try:
@@ -3453,8 +3451,8 @@ class Measurement(QMainWindow):
                                 append_text(f'Waiting for {Fieldsetpoint} Oe Field \n', 'red')
                                 time.sleep(4)
 
-                                MyField, sF = client.get_field()
-                                update_ppms_field_reading_label(str(MyField), 'Oe')
+                                # MyField, sF = client.get_field()
+                                # update_ppms_field_reading_label(str(MyField), 'Oe')
                                 while True:
                                     time.sleep(1)
                                     try:
