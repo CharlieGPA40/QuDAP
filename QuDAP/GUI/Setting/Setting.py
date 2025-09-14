@@ -8,7 +8,9 @@ import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
+from email.mime.image import MIMEImage
+from email.mime.base import MIMEBase
+from email import encoders
 import json
 import os
 from pathlib import Path
@@ -832,6 +834,7 @@ class NotificationSettings(QWidget):
 
     def send_test_notification(self, channel):
         """Send test notification to specified channel"""
+        image_path = 'logo.png'
         if channel == "email" and self.email_enabled.isChecked():
             self.test_result.setText("📧 Sending test email...")
             self.test_result.setStyleSheet("color: #17a2b8;")
@@ -858,6 +861,29 @@ class NotificationSettings(QWidget):
             body = "This is a test email."
 
             message.attach(MIMEText(body, "plain"))
+
+            try:
+                with open(image_path, 'rb') as f:
+                    img_data = f.read()
+
+                # Determine image type
+                image_type = Path(image_path).suffix.lower()
+                if image_type in ['.jpg', '.jpeg']:
+                    img = MIMEImage(img_data, 'jpeg')
+                elif image_type == '.png':
+                    img = MIMEImage(img_data, 'png')
+                elif image_type == '.gif':
+                    img = MIMEImage(img_data, 'gif')
+                else:
+                    img = MIMEBase('application', 'octet-stream')
+                    img.set_payload(img_data)
+                    encoders.encode_base64(img)
+
+                img.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(image_path)}"')
+                message.attach(img)
+            except Exception as e:
+                print(f"Error attaching image to email: {e}")
+
             # Send the email using AU's SMTP server
             try:
                 with smtplib.SMTP( self.smtp_server.text(), self.smtp_port.value()) as server:
@@ -875,7 +901,7 @@ class NotificationSettings(QWidget):
             # Implement actual Telegram sending here
             bot_token = self.telegram_token.text()
             chat_id = self.telegram_chat_id.text()
-            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+
             priority_emoji = {
                 'low': '🔵',
                 'normal': '🟢',
@@ -883,8 +909,28 @@ class NotificationSettings(QWidget):
                 'critical': '🔴'
             }.get('normal', '⚪')
 
-            data = {"chat_id": chat_id,
-                    "text": f"{priority_emoji} This is a test message!"}
+            data = f"{priority_emoji} This is a test message!"
+
+            if image_path and os.path.exists(image_path):
+                # Send photo with caption
+                url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+
+                with open(image_path, 'rb') as photo_file:
+                    files = {'photo': photo_file}
+                    data = {
+                        'chat_id': chat_id,
+                        'caption': data
+                    }
+                    response = requests.post(url, data=data, files=files, timeout=30)
+            else:
+                # Send text message only
+                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                data = {
+                    'chat_id': chat_id,
+                    'text': data
+                }
+                response = requests.post(url, data=data, timeout=10)
+
             response = requests.post(url, data=data)
             QTimer.singleShot(2000, lambda: self.show_test_result("Telegram message sent!", True))
         elif channel == "discord":
@@ -899,20 +945,43 @@ class NotificationSettings(QWidget):
                 'critical': 0xe74c3c  # Red
             }
 
-            data = {
-                'username': f"{self.discord_name.text()}",
-                'embeds': [{
-                    'title': 'Test Message',
+            embed = {
+                'title': 'Test Message',
                     'description': f"```\nThis is a test message...\n```",
                     'color': color_map.get('normal', 0x95a5a6),
                     'footer': {
                         'text': 'QuDAP Notification System'
                     },
                     'timestamp': datetime.datetime.now().isoformat()
-                }]
             }
 
-            response = requests.post(webhook_url, json=data)
+            if image_path and os.path.exists(image_path):
+                # Upload image as attachment and reference it in embed
+                with open(image_path, 'rb') as image_file:
+                    files = {'file': (os.path.basename(image_path), image_file, 'image/png')}
+
+                    # Add image to embed
+                    embed['image'] = {'url': f"attachment://{os.path.basename(image_path)}"}
+
+                    payload = {
+                        'username': f"{self.discord_name.text()}",
+                        'embeds': [embed]
+                    }
+
+                    response = requests.post(
+                        webhook_url,
+                        data={'payload_json': str(payload).replace("'", '"')},
+                        files=files,
+                        timeout=30
+                    )
+            else:
+                # Send without image
+                data = {
+                    'username': f"{self.discord_name.text()}",
+                    'embeds': [embed]
+                }
+                response = requests.post(webhook_url, json=data, timeout=10)
+
 
             if response.status_code == 204:
                 QTimer.singleShot(2000, lambda: self.show_test_result("Discord message sent!", True))
