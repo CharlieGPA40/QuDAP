@@ -2790,9 +2790,8 @@ class Measurement(QMainWindow):
 
                 if self.Keithley_2182_Connected:
                     self.nv_NPLC = self.NPLC_entry.text()
-                if self.DSP7265_Connected:
-                    lockin_freq = self.dsp7265_freq_entry_box.text()
-                    self.DSP7265.write(f'FREQ {lockin_freq}')
+
+
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
                     self.ppms_field_Two_zone_radio_enabled = False
