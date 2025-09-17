@@ -282,7 +282,6 @@ class Dash(QMainWindow):
         self.vsm_ccntainer.setLayout(vsm_layout)
         self.vsm_ccntainer.setObjectName('vsm')
         self.initShadowEffect(self.vsm_ccntainer)
-
         # self.widget_layout.addSpacing(35)
         # self.widget_layout.addWidget(self.measure_ccntainer, 1)
         # self.widget_layout.addSpacing(80)
@@ -412,9 +411,9 @@ class Dash(QMainWindow):
         USB_icon_label.setPixmap(USB_pixmap)
         USB_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Value
+
         USB_icon_connection_layout = QVBoxLayout()
         USB_icon_connection_layout.addWidget(USB_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
-
         USB_connection_layout = QVBoxLayout()
         self.USB_Label = QLabel('USB Connection:')
         self.USB_number_Label = QLabel('0')
@@ -501,9 +500,9 @@ class Dash(QMainWindow):
         self.cpu = CPU_Display(self,cpu=True)
         self.cpu_container_layout.addWidget(self.cpu)
         self.cpu_container.setLayout(self.cpu_container_layout)
-        self.chart_timer = QTimer(self)
-        self.chart_timer.timeout.connect(self.cpu.update_plot)
-        self.chart_timer.start(1000)  # Update every second
+        self.cpu_timer = QTimer(self)
+        self.cpu_timer.timeout.connect(self.cpu.update_plot)
+        self.cpu_timer.start(1000)  # Update every second
 
         self.ram_container = QWidget()
         self.ram_container.setStyleSheet(
@@ -519,10 +518,10 @@ class Dash(QMainWindow):
         self.ram = CPU_Display(self, cpu=False)
         self.ram_container_layout.addWidget(self.ram)
         self.ram_container.setLayout(self.ram_container_layout)
-        self.chart_timer = QTimer(self)
-        self.chart_timer.timeout.connect(self.ram.update_plot)
-        self.chart_timer.start(1000)  # Update every second
 
+        self.ram_timer = QTimer(self)
+        self.ram_timer.timeout.connect(self.ram.update_plot)
+        self.ram_timer.start(1000)  # Update every second
 
         self.pc_status_layout = QHBoxLayout()
         self.pc_status_layout.addWidget(self.cpu_container)
