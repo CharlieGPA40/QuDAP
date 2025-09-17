@@ -665,14 +665,20 @@ class Measurement(QMainWindow):
         #  ---------------------------- PART 2 --------------------------------
         with open("GUI/QSS/QButtonWidget.qss", "r") as file:
             self.Button_stylesheet = file.read()
-        self.Preset_group_box = QGroupBox("Experiment Preset")
-
+        self.preset_group_box = QGroupBox("Experiment Preset")
+        self.preset_group_box.setStyleSheet("""                                     
+                                                QGroupBox {
+                                                    background-color: white;
+                                                }
+                                                            """)
         self.ETO_radio_buttom = QRadioButton("ETO")
         self.ETO_radio_buttom.setFont(self.font)
         self.FMR_radio_buttom = QRadioButton("FMR")
         self.FMR_radio_buttom.setFont(self.font)
         self.Demo_radio_buttom = QRadioButton("Demo")
         self.Demo_radio_buttom.setFont(self.font)
+
+
         self.reset_preset_buttom = QPushButton("Reset")
         self.select_preset_buttom = QPushButton("Select")
         self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
@@ -697,13 +703,13 @@ class Measurement(QMainWindow):
 
         self.preset_layout.addLayout(self.radio_btn_layout)
         self.preset_layout.addLayout(self.select_preset_btn_layout)
-        self.Preset_group_box.setLayout(self.preset_layout)
+        self.preset_group_box.setLayout(self.preset_layout)
 
         self.preset_container = QWidget()
         self.preset_container.setFixedSize(380, 180)
 
         self.preset_container_layout = QHBoxLayout()
-        self.preset_container_layout.addWidget(self.Preset_group_box, 1)
+        self.preset_container_layout.addWidget(self.preset_group_box, 1)
         self.preset_container.setLayout(self.preset_container_layout)
 
         self.instrument_connection_layout = QHBoxLayout()
