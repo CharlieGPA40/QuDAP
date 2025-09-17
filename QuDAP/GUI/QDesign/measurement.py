@@ -27,10 +27,10 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QSizePolicy, QWidget, QMessageBox, QGroupBox, QFileDialog, QVBoxLayout, QLabel, QHBoxLayout,
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
-    QDialogButtonBox, QProgressBar, QButtonGroup, QApplication, QCompleter
+    QDialogButtonBox, QProgressBar, QButtonGroup, QApplication, QCompleter, QToolButton
 )
-from PyQt6.QtGui import QIcon, QFont, QDoubleValidator
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QSettings
+from PyQt6.QtGui import QIcon, QFont, QDoubleValidator, QIcon
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QSettings, QSize
 from PyQt6.QtGui import QKeyEvent
 
 # for simulation purpose
@@ -1863,7 +1863,15 @@ class Measurement(QMainWindow):
             self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_sens_layout)
             # TC
-            self.dsp7265_TC_layout = QHBoxLayout()
+            self.dsp7265_tc_layout = QHBoxLayout()
+            self.dsp_tc_text = QLabel('Time constant:')
+            self.dsp_tc_text.setFont(self.font)
+
+            hint_button = QToolButton()
+            hint_button.setIcon(QIcon.fromTheme("help-about"))  # You can use a custom icon path here
+            hint_button.setIconSize(QSize(24, 24))
+            hint_button.setToolTip("Select the time constant that is 5 to 10 times larger than 1/f")
+
             self.dsp7265_TC_combo = QComboBox()
             self.dsp7265_TC_combo.setFont(self.font)
             self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
@@ -1873,11 +1881,11 @@ class Measurement(QMainWindow):
                     , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
                  "10 ks", "20 ks", "50 ks", "100 ks"])
             self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
-            self.dsp_tc_text = QLabel('Time constant:')
-            self.dsp_tc_text.setFont(self.font)
-            self.dsp7265_TC_layout.addWidget(self.dsp_tc_text)
-            self.dsp7265_TC_layout.addWidget(self.dsp7265_TC_combo)
-            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_TC_layout)
+
+            self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
+            self.dsp7265_tc_layout.addWidget(hint_button)
+            self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_tc_layout)
 
             # frequency
             self.dsp7265_freq_layout = QHBoxLayout()
@@ -1963,7 +1971,7 @@ class Measurement(QMainWindow):
             self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp726_sens_layout)
             # TC
-            self.dsp7265_TC_layout = QHBoxLayout()
+            self.dsp7265_tc_layout = QHBoxLayout()
             self.dsp7265_TC_combo = QComboBox()
             self.dsp7265_TC_combo.setFont(self.font)
             self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
@@ -1975,9 +1983,9 @@ class Measurement(QMainWindow):
             self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
             self.dsp_tc_text = QLabel('Time constant:')
             self.dsp_tc_text.setFont(self.font)
-            self.dsp7265_TC_layout.addWidget(self.dsp_tc_text)
-            self.dsp7265_TC_layout.addWidget(self.dsp7265_TC_combo)
-            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_TC_layout)
+            self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
+            self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
+            self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_tc_layout)
 
         elif self.dsp_IMODE_index == 3:
             self.DSP7265.write('IMODE 2')
