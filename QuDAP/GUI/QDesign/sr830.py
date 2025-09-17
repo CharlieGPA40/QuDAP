@@ -266,7 +266,7 @@ class sr830Lockin(QMainWindow):
         self.main_layout.addWidget(self.Lockin_reading_group_box)
         # main_layout.addWidget(voltage_reading_group_box)
         self.main_layout.addLayout(graphing_layout)
-        self.setLayout(self.main_layout)
+        # self.setLayout(self.main_layout)
         self.setCentralWidget(self.scroll_area)
         #  ---------------------------- Style Sheet --------------------------------
         with open("GUI/QSS/QButtonWidget.qss", "r") as file:
