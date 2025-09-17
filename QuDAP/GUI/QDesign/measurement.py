@@ -413,8 +413,8 @@ class LogWindow(QDialog):
         with open("GUI/SHG/QButtonWidget.qss", "r") as file:
             self.Browse_Button_stylesheet = file.read()
         self.init_ui()
-        # Load settings after UI is initialized
-        QTimer.singleShot(0, self.load_settings)
+        # # Load settings after UI is initialized
+        # QTimer.singleShot(0, self.load_settings)
 
     def init_ui(self):
         self.log_box_layout = QVBoxLayout()
@@ -557,7 +557,7 @@ class LogWindow(QDialog):
         try:
             self.user = self.SETTINGS.value('log/username', '')
             self.user_entry_box.setText(self.user)
-            self.folder_path = self.SETTINGS.value('log/folder_path', '')+'/'
+            self.folder_path = self.SETTINGS.value('log/folder_path', '')
             self.folder_entry_box.setText(self.folder_path)
             self.sample_id = self.SETTINGS.value('log/sample_id', '')
             self.sample_id_entry_box.setText(self.sample_id)
@@ -1431,7 +1431,7 @@ class Measurement(QMainWindow):
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
         else:
             self.instru_connect_btn.setText('Connect')
-            self.close_keithley_2182()
+            self.close_dsp7265()
             self.DSP7265_Connected = False
 
     def close_keithley_2182(self):
@@ -1538,10 +1538,22 @@ class Measurement(QMainWindow):
         self.dsp7265_phase_reading_layout.addWidget(self.dsp7265_phase_reading_label)
         self.dsp7265_phase_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
 
-        # self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
-        # self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
+        self.dsp7265_freq_reading_layout = QHBoxLayout()
+        self.dsp7265_freq_reading_label = QLabel('Frequency: ')
+        self.dsp7265_freq_reading_value_label = QLabel('N/A')
+        self.dsp7265_freq_reading_unit_label = QLabel('Hz')
+        self.dsp7265_freq_reading_label.setFont(self.font)
+        self.dsp7265_freq_reading_value_label.setFont(self.font)
+        self.dsp7265_freq_reading_unit_label.setFont(self.font)
+        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_label)
+        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
+        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
+        freq = self.DSP7265.write('FRQ[.]')
+        self.dsp7265_freq_reading_value_label.setText(freq)
+
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_freq_reading_layout)
         self.dsp7265_main_layout.addStretch(1)
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
@@ -1875,6 +1887,13 @@ class Measurement(QMainWindow):
             self.dsp7265_freq_entry_box.setFont(self.font)
             self.dsp7265_freq_unit_text = QLabel('Hz')
             self.dsp7265_freq_unit_text.setFont(self.font)
+            self.dsp7265_ref_channel_combo = QComboBox()
+            self.dsp7265_ref_channel_combo.setFont(self.font)
+            self.dsp7265_ref_channel_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.dsp7265_ref_channel_combo.addItems(
+                ["Select Ref Channel", "INT", "EXT REAR", "EXT FRONT"])
+            self.dsp7265_ref_channel_combo.currentIndexChanged.connect(self.dsp726_ref_channel_selection)
+
             self.dsp7265_submit_button = QPushButton('Submit')
             self.dsp7265_submit_button.setStyleSheet(self.Button_stylesheet)
             self.dsp7265_submit_button.clicked.connect(self.dsp7265_freq_setting)
@@ -1882,6 +1901,7 @@ class Measurement(QMainWindow):
             self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_text)
             self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_entry_box)
             self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_unit_text)
+            self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
             self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
             self.dsp7265_mode_contain_layout.addLayout(self.dsp7265_freq_layout)
 
@@ -1907,8 +1927,6 @@ class Measurement(QMainWindow):
             self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
             self.dsp7265_button_container.setFixedHeight(50)
             self.dsp7265_mode_contain_layout.addWidget(self.dsp7265_button_container)
-
-
 
 
         elif self.dsp_IMODE_index == 2:
@@ -1987,6 +2005,11 @@ class Measurement(QMainWindow):
         if self.dsp_tc_index != 0:
             self.DSP7265.write(f'TC {str(self.dsp_tc_index-1)}')
 
+    def dsp726_ref_channel_selection(self):
+        self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
+        if self.dsp_ref_channel_index != 0:
+            self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
+
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
         
@@ -1999,6 +2022,8 @@ class Measurement(QMainWindow):
     def dsp7265_freq_setting(self):
         freq = self.dsp7265_freq_entry_box.text()
         self.DSP7265.write(f'OF. {freq}')
+        cur_freq = self.DSP7265.write('FRQ[.]')
+        self.dsp7265_freq_reading_value_label.setText(cur_freq)
 
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
@@ -4126,7 +4151,7 @@ class Measurement(QMainWindow):
                 NotificationManager().send_message("The measurement has been completed successfully.")
                 progress_update(int=100)
                 append_text("You measuremnt is finished!", 'green')
-                stop_measurement()
+                # stop_measurement()
                 measurement_finished()
                 return
             else:
