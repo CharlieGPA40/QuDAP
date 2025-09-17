@@ -837,8 +837,7 @@ class NotificationSettings(QWidget):
         """Send test notification to specified channel"""
         current_path = os.getcwd()
         image_path = current_path + '\GUI\Setting\logo.png'
-        print(image_path)
-        print(os.path.exists(image_path))
+
         if channel == "email" and self.email_enabled.isChecked():
             self.test_result.setText("📧 Sending test email...")
             self.test_result.setStyleSheet("color: #17a2b8;")
