@@ -139,7 +139,6 @@ class MainWindow(QMainWindow):
         self.child_sidebar = QListWidget()
         self.child_sidebar.setFont(QFont("Arial", self.LIST_WIDGET_FONT))
         self.child_sidebar.setStyleSheet(self.QListWidget_middle_stylesheet)
-
         self.hide_button_container = QWidget()
         self.hide_button_container.setStyleSheet(
             """ 
@@ -172,7 +171,6 @@ class MainWindow(QMainWindow):
         self.hide_button_layout.addWidget(self.hide_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self.hide_button_container.setLayout(self.hide_button_layout)
         self.communicator.change_page.connect(self.set_page)
-
         # Content Pages
         self.pages = QStackedWidget()
         self.pages.setStyleSheet("background-color: white;")
