@@ -1507,22 +1507,95 @@ class Measurement(QMainWindow):
         self.dsp7265_mode_contain_layout = QVBoxLayout()
         self.dsp7265_main_layout.addLayout(self.dsp7265_mode_contain_layout)
 
-        self.dsp7265_reading_layout = QVBoxLayout()
-        # self.dsp7265_x_reading_layout = QHBoxLayout()
-        # self.dsp7265_x_reading_label = QLabel('X: ')
-        # self.dsp7265_x_reading_label.setFont(self.font)
-        # self.dsp7265_x_reading_value_label = QLabel('N/A')
-        # self.dsp7265_x_reading_value_label.setFont(self.font)
-        # self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_label)
-        # self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_value_label)
-        #
-        # self.dsp7265_y_reading_layout = QHBoxLayout()
-        # self.dsp7265_y_reading_label = QLabel('Y: ')
-        # self.dsp7265_y_reading_value_label = QLabel('N/A')
-        # self.dsp7265_y_reading_label.setFont(self.font)
-        # self.dsp7265_y_reading_value_label.setFont(self.font)
-        # self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_label)
-        # self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_value_label)
+        self.dsp7265_setting_reading_layout = QVBoxLayout()
+        # Sensitivity
+        self.dsp726_sens_layout = QHBoxLayout()
+        self.dsp7265_sens_combo = QComboBox()
+        self.dsp7265_sens_combo.setFont(self.font)
+        self.dsp7265_sens_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_sens_combo.addItems(
+            ["Select Sensitivity", "2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV",
+             "1 \u00B5V", "2 \u00B5V", "5 \u00B5V", "10 \u00B5V", "20 \u00B5V", "50 \u00B5V", "100 \u00B5V",
+             "200 \u00B5V", "500 \u00B5V", "1 mV", "2 mV", "5 mV", "10 mV", "20 mV", "50 mV", "100 mV", "200 mV",
+             "500 mV",
+             "1 V", "Auto"])
+        self.dsp7265_sens_combo.currentIndexChanged.connect(self.dsp726_sens_selection)
+        self.dsp_sens_text = QLabel('Sensitivity:')
+        self.dsp_sens_text.setFont(self.font)
+        self.dsp726_sens_layout.addWidget(self.dsp_sens_text)
+        self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
+        self.dsp7265_setting_reading_layout.addLayout(self.dsp726_sens_layout)
+        # TC
+        self.dsp7265_tc_layout = QHBoxLayout()
+        self.dsp_tc_text = QLabel('Time constant:')
+        self.dsp_tc_text.setFont(self.font)
+
+        hint_button = QToolButton()
+        hint_button.setIcon(QIcon.fromTheme("help-about"))  # You can use a custom icon path here
+        hint_button.setIconSize(QSize(24, 24))
+        hint_button.setToolTip("Select the time constant that is 5 to 10 times larger than 1/f")
+
+        self.dsp7265_TC_combo = QComboBox()
+        self.dsp7265_TC_combo.setFont(self.font)
+        self.dsp7265_TC_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_TC_combo.addItems(
+            ["Select Input Mode", "10 \u00B5s", "20 \u00B5s", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
+                , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
+                , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
+             "10 ks", "20 ks", "50 ks", "100 ks"])
+        self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
+
+        self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
+        self.dsp7265_tc_layout.addWidget(hint_button)
+        self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
+        self.dsp7265_setting_reading_layout.addLayout(self.dsp7265_tc_layout)
+
+        # frequency
+        self.dsp7265_freq_layout = QHBoxLayout()
+        self.dsp7265_freq_text = QLabel('Frequency:')
+        self.dsp7265_freq_text.setFont(self.font)
+        self.dsp7265_freq_entry_box = QLineEdit()
+        self.dsp7265_freq_entry_box.setFont(self.font)
+        self.dsp7265_freq_unit_text = QLabel('Hz')
+        self.dsp7265_freq_unit_text.setFont(self.font)
+        self.dsp7265_ref_channel_combo = QComboBox()
+        self.dsp7265_ref_channel_combo.setFont(self.font)
+        self.dsp7265_ref_channel_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_ref_channel_combo.addItems(
+            ["Select Ref Channel", "INT", "EXT REAR", "EXT FRONT"])
+        self.dsp7265_ref_channel_combo.currentIndexChanged.connect(self.dsp726_ref_channel_selection)
+
+        self.dsp7265_submit_button = QPushButton('Submit')
+        self.dsp7265_submit_button.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_submit_button.clicked.connect(self.dsp7265_freq_setting)
+
+        self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_text)
+        self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_entry_box)
+        self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_unit_text)
+        self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
+        self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
+        self.dsp7265_setting_reading_layout.addLayout(self.dsp7265_freq_layout)
+
+        self.dsp7265_auto_button_layout = QHBoxLayout()
+        self.dsp7265_auto_sense = QPushButton('Auto Sens.')
+        self.dsp7265_auto_sense.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_auto_sense.clicked.connect(self.dsp725_auto_sens)
+
+        self.dsp7265_auto_phase = QPushButton('Auto Phase')
+        self.dsp7265_auto_phase.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_auto_phase.clicked.connect(self.dsp725_auto_phase)
+
+        self.dsp7265_auto_Measurement = QPushButton('Auto Meas.')
+        self.dsp7265_auto_Measurement.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_auto_Measurement.clicked.connect(self.dsp725_auto_meas)
+
+        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_sense)
+        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_phase)
+        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_Measurement)
+        self.dsp7265_button_container = QWidget()
+        self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
+        self.dsp7265_button_container.setFixedHeight(50)
+        self.dsp7265_setting_reading_layout.addWidget(self.dsp7265_button_container)
 
         self.dsp7265_mag_reading_layout = QHBoxLayout()
         self.dsp7265_mag_reading_label = QLabel('Magnitude: ')
