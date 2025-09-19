@@ -1517,14 +1517,14 @@ class Measurement(QMainWindow):
         self.dsp7265_lf_n1_combo.setStyleSheet(self.QCombo_stylesheet)
         self.dsp7265_lf_n1_combo.addItems(
             ["Select Line Frequency", "off", "Enable 50 or 60 Hz notch filter", "Enable 100 or 120 Hz notch filter", "Enable both filter"])
-        self.dsp7265_lf_n1_combo.currentIndexChanged.connect(self.dsp7265_lf_selection)
+        self.dsp7265_lf_n1_combo.currentIndexChanged.connect(self.dsp7265_lf_n1_selection)
 
         self.dsp7265_lf_n2_combo = QComboBox()
         self.dsp7265_lf_n2_combo.setFont(self.font)
         self.dsp7265_lf_n2_combo.setStyleSheet(self.QCombo_stylesheet)
         self.dsp7265_lf_n2_combo.addItems(
             ["Select Center Frequency", "60 Hz (and/or 120 Hz)", "50 Hz (and/or 100 Hz)"])
-        self.dsp7265_lf_n2_combo.currentIndexChanged.connect(self.dsp7265_lf_selection)
+        self.dsp7265_lf_n2_combo.currentIndexChanged.connect(self.dsp7265_lf_n2_selection)
 
         self.dsp_lf_n1_text = QLabel('Line Filter:')
         self.dsp_lf_n1_text.setFont(self.font)
@@ -1999,7 +1999,7 @@ class Measurement(QMainWindow):
 
             self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
-    def dsp7265_lf_selection(self):
+    def dsp7265_lf_n1_selection(self):
         self.dsp7265_lf_n1_index = self.dsp7265_lf_n1_combo.currentIndex()
         self.dsp7265_lf_n2_index = self.dsp7265_lf_n2_combo.currentIndex()
         if self.dsp7265_lf_n1_index != 0:
@@ -2007,6 +2007,12 @@ class Measurement(QMainWindow):
                 self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, 0]')
             else:
                 self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, {str(self.dsp7265_lf_n2_index - 1)}]')
+
+    def dsp7265_lf_n2_selection(self):
+        self.dsp7265_lf_n1_index = self.dsp7265_lf_n1_combo.currentIndex()
+        self.dsp7265_lf_n2_index = self.dsp7265_lf_n2_combo.currentIndex()
+        if self.dsp7265_lf_n2_index != 0:
+            self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, {str(self.dsp7265_lf_n2_index - 1)}]')
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
