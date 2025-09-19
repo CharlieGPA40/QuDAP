@@ -1508,6 +1508,29 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addLayout(self.dsp7265_mode_contain_layout)
 
         # self.dsp7265_setting_reading_layout = QVBoxLayout()
+        # Line Filter
+        self.dsp7265_lf_layout = QHBoxLayout()
+        self.dsp7265_lf_n1_combo = QComboBox()
+        self.dsp7265_lf_n1_combo.setFont(self.font)
+        self.dsp7265_lf_n1_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_lf_n1_combo.addItems(
+            ["Select Line Frequency", "off", "Enable 50 or 60 Hz notch filter", "Enable 100 or 120 Hz notch filter", "Enable both filter"])
+        self.dsp7265_lf_n1_combo.currentIndexChanged.connect(self.dsp7265_lf_selection)
+
+        self.dsp7265_lf_n2_combo = QComboBox()
+        self.dsp7265_lf_n2_combo.setFont(self.font)
+        self.dsp7265_lf_n2_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_lf_n2_combo.addItems(
+            ["Select Center Frequency", "60 Hz (and/or 120 Hz)", "50 Hz (and/or 100 Hz)"])
+        self.dsp7265_lf_n2_combo.currentIndexChanged.connect(self.dsp7265_lf_selection)
+
+        self.dsp_lf_n1_text = QLabel('Line Filter:')
+        self.dsp_lf_n1_text.setFont(self.font)
+        self.dsp7265_lf_layout.addWidget(self.dsp_lf_n1_text)
+        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n1_combo)
+        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n2_combo)
+        self.dsp7265_main_layout.addLayout(self.dsp7265_lf_layout)
+
         # Sensitivity
         self.dsp726_sens_layout = QHBoxLayout()
         self.dsp7265_sens_combo = QComboBox()
@@ -1525,6 +1548,7 @@ class Measurement(QMainWindow):
         self.dsp726_sens_layout.addWidget(self.dsp_sens_text)
         self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
         self.dsp7265_main_layout.addLayout(self.dsp726_sens_layout)
+
         # TC
         self.dsp7265_tc_layout = QHBoxLayout()
         self.dsp_tc_text = QLabel('Time constant:')
@@ -1971,6 +1995,15 @@ class Measurement(QMainWindow):
             self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
             cur_freq = self.DSP7265.query('FRQ[.]')/1000
             self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+
+    def dsp7265_lf_selection(self):
+        self.dsp7265_lf_n1_index = self.dsp7265_lf_n1_combo.currentIndex()
+        self.dsp7265_lf_n2_index = self.dsp7265_lf_n1_combo.currentIndex()
+        if self.dsp7265_lf_n1_index != 0:
+            if self.dsp7265_lf_n2_index == 0:
+                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, 0]')
+            else:
+                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, {str(self.dsp7265_lf_n2_index - 1)}]')
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
