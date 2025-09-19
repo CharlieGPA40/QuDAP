@@ -322,7 +322,7 @@ class CurrentSource6221(QWidget):
                     else:
                         self.keithley_6221 = rm.open_resource(self.current_connection, timeout=10000)
                         time.sleep(2)
-                        Model_6221 = self.keithley_2182nv.query('*IDN?')
+                        Model_6221 = self.keithley_6221.query('*IDN?')
                         self.isConnect = True
                         self.keithley_6221.write("OUTPut OFF")
                         self.current_gpib_label.setText(f"{self.current_connection} Connection Success!")
