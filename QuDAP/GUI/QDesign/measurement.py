@@ -1426,6 +1426,8 @@ class Measurement(QMainWindow):
                 self.DSP7265_Connected = True
                 QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
                 self.instru_connect_btn.setText('Disconnect')
+                self.dsp7265_ref_freq = str(self.DSP7265.write('FRQ[.]'))
+
                 self.dsp7265_Window()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
@@ -1548,8 +1550,7 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
-        # freq = str(self.DSP7265.write('FRQ[.]'))
-        # self.dsp7265_freq_reading_value_label.setText(freq)
+        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
 
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
