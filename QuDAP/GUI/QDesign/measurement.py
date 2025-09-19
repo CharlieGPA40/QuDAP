@@ -1547,9 +1547,9 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_label.setFont(self.font)
         self.dsp7265_freq_reading_value_label.setFont(self.font)
         self.dsp7265_freq_reading_unit_label.setFont(self.font)
-        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_label)
-        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
-        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
+        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_label)
+        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_value_label)
+        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
         self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
 
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
