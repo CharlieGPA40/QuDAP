@@ -1426,7 +1426,9 @@ class Measurement(QMainWindow):
                 self.DSP7265_Connected = True
                 QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
                 self.instru_connect_btn.setText('Disconnect')
-                self.dsp7265_ref_freq = str(self.DSP7265.query('FRQ[.]')/1000)
+                cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+                self.dsp7265_ref_freq = str(cur_freq)
+
 
                 self.dsp7265_Window()
             except visa.errors.VisaIOError:
@@ -1993,7 +1995,8 @@ class Measurement(QMainWindow):
         self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
         if self.dsp_ref_channel_index != 0:
             self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
-            cur_freq = self.DSP7265.query('FRQ[.]')/1000
+            cur_freq = float(self.DSP7265.query('FRQ[.]'))/1000
+
             self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
     def dsp7265_lf_selection(self):
@@ -2017,7 +2020,7 @@ class Measurement(QMainWindow):
     def dsp7265_freq_setting(self):
         freq = self.dsp7265_freq_entry_box.text()
         self.DSP7265.write(f'OF. {freq}')
-        cur_freq = self.DSP7265.query('FRQ[.]') / 1000
+        cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
         self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
     def disable_step_field(self):
