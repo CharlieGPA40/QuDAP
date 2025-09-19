@@ -1548,7 +1548,7 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_phase_reading_value_label)
-        freq = self.DSP7265.write('FRQ[.]')
+        freq = str(self.DSP7265.write('FRQ[.]'))
         self.dsp7265_freq_reading_value_label.setText(freq)
 
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
