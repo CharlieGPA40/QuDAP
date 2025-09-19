@@ -1507,7 +1507,7 @@ class Measurement(QMainWindow):
         self.dsp7265_mode_contain_layout = QVBoxLayout()
         self.dsp7265_main_layout.addLayout(self.dsp7265_mode_contain_layout)
 
-        self.dsp7265_setting_reading_layout = QVBoxLayout()
+        # self.dsp7265_setting_reading_layout = QVBoxLayout()
         # Sensitivity
         self.dsp726_sens_layout = QHBoxLayout()
         self.dsp7265_sens_combo = QComboBox()
@@ -1524,7 +1524,7 @@ class Measurement(QMainWindow):
         self.dsp_sens_text.setFont(self.font)
         self.dsp726_sens_layout.addWidget(self.dsp_sens_text)
         self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
-        self.dsp7265_setting_reading_layout.addLayout(self.dsp726_sens_layout)
+        self.dsp7265_main_layout.addLayout(self.dsp726_sens_layout)
         # TC
         self.dsp7265_tc_layout = QHBoxLayout()
         self.dsp_tc_text = QLabel('Time constant:')
@@ -1548,7 +1548,7 @@ class Measurement(QMainWindow):
         self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
         self.dsp7265_tc_layout.addWidget(hint_button)
         self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
-        self.dsp7265_setting_reading_layout.addLayout(self.dsp7265_tc_layout)
+        self.dsp7265_main_layout.addLayout(self.dsp7265_tc_layout)
 
         # frequency
         self.dsp7265_freq_layout = QHBoxLayout()
@@ -1574,7 +1574,7 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_unit_text)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
-        self.dsp7265_setting_reading_layout.addLayout(self.dsp7265_freq_layout)
+        self.dsp7265_main_layout.addLayout(self.dsp7265_freq_layout)
 
         self.dsp7265_auto_button_layout = QHBoxLayout()
         self.dsp7265_auto_sense = QPushButton('Auto Sens.')
@@ -1595,7 +1595,7 @@ class Measurement(QMainWindow):
         self.dsp7265_button_container = QWidget()
         self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
         self.dsp7265_button_container.setFixedHeight(50)
-        self.dsp7265_setting_reading_layout.addWidget(self.dsp7265_button_container)
+        self.dsp7265_main_layout.addWidget(self.dsp7265_button_container)
 
         self.dsp7265_reading_layout = QVBoxLayout()
         self.dsp7265_mag_reading_layout = QHBoxLayout()
@@ -1629,6 +1629,7 @@ class Measurement(QMainWindow):
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_freq_reading_layout)
+
         self.dsp7265_main_layout.addStretch(1)
         self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
 
