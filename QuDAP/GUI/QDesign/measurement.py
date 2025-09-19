@@ -1426,7 +1426,7 @@ class Measurement(QMainWindow):
                 self.DSP7265_Connected = True
                 QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
                 self.instru_connect_btn.setText('Disconnect')
-                self.dsp7265_ref_freq = str(self.DSP7265.query('FRQ[.]'))
+                self.dsp7265_ref_freq = str(self.DSP7265.query('FRQ[.]')/1000)
 
                 self.dsp7265_Window()
             except visa.errors.VisaIOError:
@@ -1532,7 +1532,7 @@ class Measurement(QMainWindow):
 
         hint_button = QToolButton()
         hint_button.setIcon(QIcon.fromTheme("help-about"))  # You can use a custom icon path here
-        hint_button.setIconSize(QSize(24, 24))
+        hint_button.setIconSize(QSize(20, 20))
         hint_button.setToolTip("Select the time constant that is 5 to 10 times larger than 1/f")
 
         self.dsp7265_TC_combo = QComboBox()
@@ -1543,9 +1543,10 @@ class Measurement(QMainWindow):
                 , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
                 , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
              "10 ks", "20 ks", "50 ks", "100 ks"])
-        self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp726_TC_selection)
+        self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp7265_tc_selection)
 
         self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
+        self.dsp7265_tc_layout.addStretch(1)
         self.dsp7265_tc_layout.addWidget(hint_button)
         self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
         self.dsp7265_main_layout.addLayout(self.dsp7265_tc_layout)
@@ -1624,7 +1625,7 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_value_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
-        # self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
+        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
 
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
@@ -1959,7 +1960,7 @@ class Measurement(QMainWindow):
         elif self.dsp_sens_index > 27:
             self.DSP7265.write('AS')
 
-    def dsp726_TC_selection(self):
+    def dsp7265_tc_selection(self):
         self.dsp_tc_index = self.dsp7265_TC_combo.currentIndex()
         if self.dsp_tc_index != 0:
             self.DSP7265.write(f'TC {str(self.dsp_tc_index-1)}')
@@ -1968,6 +1969,8 @@ class Measurement(QMainWindow):
         self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
         if self.dsp_ref_channel_index != 0:
             self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
+            cur_freq = self.DSP7265.query('FRQ[.]')/1000
+            self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
@@ -1981,8 +1984,8 @@ class Measurement(QMainWindow):
     def dsp7265_freq_setting(self):
         freq = self.dsp7265_freq_entry_box.text()
         self.DSP7265.write(f'OF. {freq}')
-        cur_freq = self.DSP7265.query('FRQ[.]')
-        self.dsp7265_freq_reading_value_label.setText(cur_freq)
+        cur_freq = self.DSP7265.query('FRQ[.]') / 1000
+        self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
