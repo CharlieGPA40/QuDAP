@@ -2002,6 +2002,7 @@ class Measurement(QMainWindow):
     def dsp7265_lf_selection(self):
         self.dsp7265_lf_n1_index = self.dsp7265_lf_n1_combo.currentIndex()
         self.dsp7265_lf_n2_index = self.dsp7265_lf_n1_combo.currentIndex()
+        print(self.dsp7265_lf_n1_index, self.dsp7265_lf_n2_index)
         if self.dsp7265_lf_n1_index != 0:
             if self.dsp7265_lf_n2_index == 0:
                 self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, 0]')
