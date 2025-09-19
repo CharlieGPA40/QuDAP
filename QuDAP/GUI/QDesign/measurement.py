@@ -1597,6 +1597,7 @@ class Measurement(QMainWindow):
         self.dsp7265_button_container.setFixedHeight(50)
         self.dsp7265_setting_reading_layout.addWidget(self.dsp7265_button_container)
 
+        self.dsp7265_reading_layout = QVBoxLayout()
         self.dsp7265_mag_reading_layout = QHBoxLayout()
         self.dsp7265_mag_reading_label = QLabel('Magnitude: ')
         self.dsp7265_mag_reading_value_label = QLabel('N/A')
