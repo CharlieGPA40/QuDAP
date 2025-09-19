@@ -1997,10 +1997,11 @@ class Measurement(QMainWindow):
     def dsp726_ref_channel_selection(self):
         self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
         if self.dsp_ref_channel_index != 0:
+            print(self.dsp_ref_channel_index)
             self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
-            cur_freq = float(self.DSP7265.query('FRQ[.]'))/1000
-
-            self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+            # cur_freq = float(self.DSP7265.query('FRQ[.]'))/1000
+            #
+            # self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
     def dsp7265_lf_selection(self):
         self.dsp7265_lf_n1_index = self.dsp7265_lf_n1_combo.currentIndex()
