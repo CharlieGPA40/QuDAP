@@ -2872,7 +2872,7 @@ class Measurement(QMainWindow):
                 os.makedirs(self.folder_path, exist_ok=True)
                 self.random_number = random.randint(100000, 999999)
                 f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
-                today = datetime.today()
+                today = datetime.datetime.today()
                 self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
                 f.write(f"User: {self.user}\n")
                 f.write(f"Today's Date: {self.formatted_date_csv}\n")
