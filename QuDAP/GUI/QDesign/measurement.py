@@ -443,7 +443,7 @@ class LogWindow(QDialog):
         self.output_folder_layout.addWidget(self.folder_entry_box)
         self.output_folder_layout.addWidget(self.browse_button)
 
-        today = datetime.today()
+        today = datetime.datetime.today()
         self.formatted_date = today.strftime("%m%d%Y")
         self.date_layout = QHBoxLayout()
         self.date_label = QLabel("Today's Date:")
