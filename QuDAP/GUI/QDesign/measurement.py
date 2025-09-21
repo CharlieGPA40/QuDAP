@@ -3128,6 +3128,16 @@ class Measurement(QMainWindow):
                     NotificationManager().send_message(
                         f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
 
+            def set_temperature(set_point, temp_rate):
+                try:
+                    client.set_temperature(set_point,
+                                           temp_rate,
+                                           client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+                except SystemExit as e:
+                    tb_str = traceback.format_exc()
+                    NotificationManager().send_message(
+                        f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
             def set_field(set_point, field_rate):
                 try:
                     client.set_field(set_point,
@@ -3216,28 +3226,25 @@ class Measurement(QMainWindow):
                         if sF == 'Holding (driven)':
                             break
                     append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
-                    Tempsetpoint = TempList[i]
+                    temp_set_point = TempList[i]
                     if i == 0:
-                        client.set_temperature(Tempsetpoint,
-                                               tempRate_init,
-                                               client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+                        set_temperature(temp_set_point, tempRate_init)
                     else:
-                        client.set_temperature(Tempsetpoint,
-                                               tempRate,
-                                               client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
-                    append_text(f'Waiting for {Tempsetpoint} K Temperature\n', 'red')
+                        set_temperature(temp_set_point, tempRate)
+                    append_text(f'Waiting for {temp_set_point} K Temperature\n', 'red')
                     time.sleep(4)
 
-                    MyTemp, temp_unit, sT = read_temperature()
+                    MyTemp, sT, temp_unit = read_temperature()
                     update_ppms_temp_reading_label(str(MyTemp), str(temp_unit), sT)
                     while True:
                         if not running():
                             stop_measurement()
                             return
                         time.sleep(1.5)
-                        MyTemp, temp_unit, sT = read_temperature()
+                        MyTemp, sT, temp_unit = read_temperature()
                         update_ppms_temp_reading_label(str(MyTemp), str(temp_unit), sT)
                         append_text(f'Temperature Status: {sT}\n', 'blue')
+                        print(sT)
                         if sT == 'Stable':
                             break
                     if i == 0:
@@ -3562,7 +3569,7 @@ class Measurement(QMainWindow):
 
                                 MyField, sF, field_unit = read_field()
                                 update_ppms_field_reading_label(str(MyField), field_unit, sF)
-                                MyTemp, temp_unit, sT = read_temperature()
+                                MyTemp, sT, temp_unit = read_temperature()
                                 update_ppms_temp_reading_label(str(MyTemp), str(temp_unit), sT)
                                 # ----------------------------- Measure NV voltage -------------------
                                 deltaH, user_field_rate = deltaH_chk(currentField)
@@ -4108,7 +4115,7 @@ class Measurement(QMainWindow):
                                  client.field.driven_mode.driven)
                 append_text('Waiting for Zero Field', 'red')
                 time.sleep(2)
-                temperature, temp_unit, status = read_temperature()
+                temperature, status, temp_unit = read_temperature()
                 append_text(f'Finished Temperature = {temperature} {temp_unit}', 'green')
                 update_ppms_temp_reading_label(str(temperature), str(temp_unit), status)
                 time.sleep(2)
@@ -4144,10 +4151,10 @@ class Measurement(QMainWindow):
                     append_text(f'Waiting for 0 Oe Field for Temperature... \n', 'orange')
                     time.sleep(10)
                     append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
-                    Tempsetpoint = TempList[i]
-                    append_text(f'Waiting for {Tempsetpoint} K Temperature\n', 'red')
+                    temp_set_point = TempList[i]
+                    append_text(f'Waiting for {temp_set_point} K Temperature\n', 'red')
                     time.sleep(4)
-                    update_ppms_temp_reading_label(str(Tempsetpoint), 'K', 'chasing')
+                    update_ppms_temp_reading_label(str(temp_set_point), 'K', 'chasing')
                     append_text(f'Temperature Status: Stable\n', 'blue')
 
                     if i == 0:
@@ -4253,8 +4260,8 @@ class Measurement(QMainWindow):
 
                                         csv_writer.writerow(
                                             [currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                             Chan_2_voltage, Tempsetpoint, current[j]])
-                                        append_text(f'Data Saved for {currentField} Oe at {Tempsetpoint} K', 'green')
+                                             Chan_2_voltage, temp_set_point, current[j]])
+                                        append_text(f'Data Saved for {currentField} Oe at {temp_set_point} K', 'green')
 
 
 
@@ -4356,8 +4363,8 @@ class Measurement(QMainWindow):
 
                                         csv_writer.writerow(
                                             [currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                             Chan_2_voltage, Tempsetpoint, current[j]])
-                                        self.log_box.append(f'Data Saved for {currentField} Oe at {Tempsetpoint} K\n')
+                                             Chan_2_voltage, temp_set_point, current[j]])
+                                        self.log_box.append(f'Data Saved for {currentField} Oe at {temp_set_point} K\n')
 
                                 # ----------------------------- Measure NV voltage -------------------
                                 deltaH, user_field_rate = deltaH_chk(currentField)
@@ -4452,8 +4459,8 @@ class Measurement(QMainWindow):
 
                                         csv_writer.writerow(
                                             [currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                             Chan_2_voltage, Tempsetpoint, current[j]])
-                                        append_text(f'Data Saved for {currentField} Oe at {Tempsetpoint} K', 'green')
+                                             Chan_2_voltage, temp_set_point, current[j]])
+                                        append_text(f'Data Saved for {currentField} Oe at {temp_set_point} K', 'green')
 
                                 # ----------------------------- Measure NV voltage -------------------
                                 deltaH, user_field_rate = deltaH_chk(currentField)
@@ -4554,8 +4561,8 @@ class Measurement(QMainWindow):
 
                                         csv_writer.writerow(
                                             [currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                             Chan_2_voltage, Tempsetpoint, current[j]])
-                                        self.log_box.append(f'Data Saved for {currentField} Oe at {Tempsetpoint} K\n')
+                                             Chan_2_voltage, temp_set_point, current[j]])
+                                        self.log_box.append(f'Data Saved for {currentField} Oe at {temp_set_point} K\n')
 
 
                                 # ----------------------------- Measure NV voltage -------------------
