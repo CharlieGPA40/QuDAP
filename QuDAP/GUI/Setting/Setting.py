@@ -955,7 +955,7 @@ class NotificationSettings(QWidget):
                     'footer': {
                         'text': 'QuDAP Notification System'
                     },
-                    'timestamp': datetime.datetime.now().isoformat()
+                    'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat()
             }
 
             if image_path and os.path.exists(image_path):

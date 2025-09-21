@@ -218,7 +218,7 @@ class NotificationManager:
                 'description': f"```\n{message}\n```",
                 'color': color_map.get(priority, 0x95a5a6),
                 'footer': {'text': 'QuDAP Notification System'},
-                'timestamp': datetime.now().strftime("%m-%d-%Y %H:%M:%S")
+                'timestamp': datetime.now(datetime.timezone.utc).isoformat()
             }
 
             if image_path and os.path.exists(image_path):
@@ -2431,6 +2431,7 @@ class Measurement(QMainWindow):
     def stop_measurement(self):
         try:
             self.keithley_6221.write(":OUTP OFF")
+            self.keithley_6221.write("SOUR:WAVE:ABOR \n")
             self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
         except Exception:
@@ -2990,7 +2991,6 @@ class Measurement(QMainWindow):
             caption = f"Data preview"
             NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
 
-
     def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
 
         if channel_1_enabled:
@@ -3026,7 +3026,26 @@ class Measurement(QMainWindow):
         QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
 
     def measurement_finished(self):
-        self.stop_btn.click()
+        try:
+            self.keithley_6221.write(":OUTP OFF")
+            self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+            self.keithley_2182nv.write("*RST")
+            self.keithley_2182nv.write("*CLS")
+        except Exception:
+            pass
+
+        self.running = False
+        self.ppms_field_One_zone_radio_enabled = False
+        self.ppms_field_Two_zone_radio_enabled = False
+        self.ppms_field_Three_zone_radio_enabled = False
+        self.nv_channel_1_enabled = None
+        self.nv_channel_2_enabled = None
+        try:
+            if self.worker is not None:
+                self.worker.stop()
+                self.worker = None
+        except Exception:
+            QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):
@@ -3120,6 +3139,7 @@ class Measurement(QMainWindow):
                     append_text(f'Field = {field} {fieldUnits}\n', 'purple')
                     update_ppms_field_reading_label(str(field), 'Oe', status)
                 except SystemExit as e:
+                    stop_measurement()
                     error_message(e,e)
                     NotificationManager().send_message(message="Your measurement went wrong, possible PPMS client lost connection", priority='critical')
             # ----------------- Loop Down ----------------------#
