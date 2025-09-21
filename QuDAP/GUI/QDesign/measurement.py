@@ -56,7 +56,8 @@ class NotificationManager:
 
     def send_message(self, message: str, priority: str = "normal"):
         """Send text-only notification to all enabled channels"""
-        timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        # timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        timestamp = datetime.datetime.now()
         formatted_message = f"{message}\n\nTime: {timestamp}"
 
         # Send to each enabled channel (text only)
@@ -74,7 +75,8 @@ class NotificationManager:
             self.send_message(message, priority)
             return
 
-        timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        # timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        timestamp = datetime.datetime.now()
         formatted_message = f"{message}\n\nTime: {timestamp}"
 
         # Send to each enabled channel (with image)
@@ -3244,7 +3246,6 @@ class Measurement(QMainWindow):
                         MyTemp, sT, temp_unit = read_temperature()
                         update_ppms_temp_reading_label(str(MyTemp), str(temp_unit), sT)
                         append_text(f'Temperature Status: {sT}\n', 'blue')
-                        print(sT)
                         if sT == 'Stable':
                             break
                     if i == 0:
