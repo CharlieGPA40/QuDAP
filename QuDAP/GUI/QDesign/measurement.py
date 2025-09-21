@@ -5,7 +5,7 @@ import glob
 import random
 import time
 import platform
-from datetime import datetime
+import datetime
 import traceback
 import os
 import requests
@@ -56,7 +56,7 @@ class NotificationManager:
 
     def send_message(self, message: str, priority: str = "normal"):
         """Send text-only notification to all enabled channels"""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         formatted_message = f"{message}\n\nTime: {timestamp}"
 
         # Send to each enabled channel (text only)
@@ -74,7 +74,7 @@ class NotificationManager:
             self.send_message(message, priority)
             return
 
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         formatted_message = f"{message}\n\nTime: {timestamp}"
 
         # Send to each enabled channel (with image)
@@ -218,7 +218,7 @@ class NotificationManager:
                 'description': f"```\n{message}\n```",
                 'color': color_map.get(priority, 0x95a5a6),
                 'footer': {'text': 'QuDAP Notification System'},
-                'timestamp': datetime.now(datetime.timezone.utc).isoformat()
+                'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat()
             }
 
             if image_path and os.path.exists(image_path):
