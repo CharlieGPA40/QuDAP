@@ -1559,11 +1559,7 @@ class Measurement(QMainWindow):
         self.dsp7265_tc_layout = QHBoxLayout()
         self.dsp_tc_text = QLabel('Time constant:')
         self.dsp_tc_text.setFont(self.font)
-
-        hint_button = QToolButton()
-        hint_button.setIcon(QIcon.fromTheme("help-about"))  # You can use a custom icon path here
-        hint_button.setIconSize(QSize(20, 20))
-        hint_button.setToolTip("Select the time constant that is 5 to 10 times larger than 1/f")
+        self.dsp_tc_text.setToolTip("Select the time constant that is 5 to 10 times larger than 1/f")
 
         self.dsp7265_TC_combo = QComboBox()
         self.dsp7265_TC_combo.setFont(self.font)
@@ -1576,8 +1572,6 @@ class Measurement(QMainWindow):
         self.dsp7265_TC_combo.currentIndexChanged.connect(self.dsp7265_tc_selection)
 
         self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
-        self.dsp7265_tc_layout.addStretch(1)
-        self.dsp7265_tc_layout.addWidget(hint_button)
         self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
         self.dsp7265_main_layout.addLayout(self.dsp7265_tc_layout)
 
