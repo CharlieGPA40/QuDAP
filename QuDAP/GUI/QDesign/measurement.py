@@ -1384,7 +1384,7 @@ class Measurement(QMainWindow):
                 time.sleep(2)
                 self.Keithley_2182_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
-                self.keithley2182_Window()
+                self.keithley2182_window_ui()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
         else:
@@ -1670,7 +1670,7 @@ class Measurement(QMainWindow):
         self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
 
-    def keithley2182_Window(self):
+    def keithley2182_window_ui(self):
         self.Keithley_2182_Container = QWidget(self)
         self.keithley_2182_groupbox = QGroupBox('Keithley 2182nv')
 
@@ -1678,10 +1678,7 @@ class Measurement(QMainWindow):
         self.NPLC_layout = QHBoxLayout()
         self.NPLC_Label = QLabel('NPLC:')
         self.NPLC_Label.setFont(self.font)
-        hint_button = QToolButton()
-        hint_button.setIcon(QIcon.fromTheme("help-about"))  # You can use a custom icon path here
-        hint_button.setIconSize(QSize(20, 20))
-        hint_button.setToolTip("Number of power line cycle (Integration time - N/60 or N/50);\n"
+        self.NPLC_Label.setToolTip("Number of power line cycle (Integration time - N/60 or N/50);\n"
                                "1). 0.1 for fast speed high noise;\n"
                                "2). 1 for medium integration time\n"
                                "3). 5 for slow integration time.")
@@ -1691,13 +1688,35 @@ class Measurement(QMainWindow):
         self.NPLC_entry.setFont(self.font)
         self.NPLC_entry.setText('5')
         self.NPLC_layout.addWidget(self.NPLC_Label)
-        self.NPLC_layout.addWidget(hint_button)
         self.NPLC_layout.addStretch(1)
         self.NPLC_layout.addWidget(self.NPLC_entry)
         self.NPLC_layout.addStretch(1)
 
-        # This section for low pass filter
+        # This section for line sync
+        self.keithley_2182_lsync_layout = QHBoxLayout()
+        self.keithley_2182_lsync_checkbox = QCheckBox('Line Synchronization')
+        self.keithley_2182_lsync_checkbox.setFont(self.font)
+        self.keithley_2182_lsync_checkbox.setToolTip("This is the filter to synchronize the power line frequency.")
+        self.keithley_2182_lsync_checkbox.setChecked(True)
+        self.keithley_2182_lsync_layout.addWidget(self.keithley_2182_lsync_checkbox)
 
+        # This section for line sync
+        self.keithley_2182_filter_layout = QHBoxLayout()
+        self.keithley_2182_digital_filter_radio = QRadioButton("Digital Filter")
+        self.keithley_2182_digital_filter_radio.setFont(self.font)
+        self.keithley_2182_analog_filter_radio = QRadioButton("Analog Filter")
+        self.keithley_2182_analog_filter_radio.setFont(self.font)
+        self.keithley_2182_no_filter_radio = QRadioButton("OFF")
+        self.keithley_2182_no_filter_radio.setFont(self.font)
+        self.keithley_2182_no_filter_radio.setChecked(True)
+        self.keithley_2182_filter_layout.addWidget(self.keithley_2182_digital_filter_radio)
+        self.keithley_2182_filter_layout.addWidget(self.keithley_2182_analog_filter_radio)
+        self.keithley_2182_filter_layout.addWidget(self.keithley_2182_no_filter_radio)
+
+        self.keithley_2182_filter_button_group = QButtonGroup()
+        self.keithley_2182_filter_button_group.addButton(self.keithley_2182_digital_filter_radio, 0)
+        self.keithley_2182_filter_button_group.addButton(self.keithley_2182_analog_filter_radio, 1)
+        self.keithley_2182_filter_button_group.addButton(self.keithley_2182_no_filter_radio, 2)
 
         self.keithley_2182_channel_1_layout = QHBoxLayout()
         self.keithley_2182_channel_1_checkbox = QCheckBox('Channel 1:')
@@ -1717,6 +1736,8 @@ class Measurement(QMainWindow):
 
         self.keithley_2182_main_layout = QVBoxLayout()
         self.keithley_2182_main_layout.addLayout(self.NPLC_layout)
+        self.keithley_2182_main_layout.addLayout(self.keithley_2182_lsync_layout)
+        self.keithley_2182_main_layout.addLayout(self.keithley_2182_filter_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_1_layout)
         self.keithley_2182_main_layout.addLayout(self.keithley_2182_channel_2_layout)
         self.keithley_2182_groupbox.setLayout(self.keithley_2182_main_layout)
@@ -2436,6 +2457,7 @@ class Measurement(QMainWindow):
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
+
             # self.keithley_6221.close()
             # self.keithley_2182nv.close()
             # self.DSP7265.close()
@@ -2537,6 +2559,31 @@ class Measurement(QMainWindow):
                             # Initialize and configure the instrument
                             self.keithley_2182nv.write("*RST")
                             self.keithley_2182nv.write("*CLS")
+                            if self.keithley_2182_lsync_checkbox.isChecked():
+                                self.keithley_2182nv.write(":SYST:LSYNC ON")
+                            else:
+                                self.keithley_2182nv.write(":SYST:LSYNC OFF")
+                            keithley_2182_filter_index = self.keithley_2182_filter_button_group.checkedId()
+                            if keithley_2182_filter_index == 0:
+                                if self.keithley_2182_channel_1_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT ON")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
+                                elif self.keithley_2182_channel_2_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT ON")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
+                            elif keithley_2182_filter_index == 1:
+                                if self.keithley_2182_channel_1_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT ON")
+                                elif self.keithley_2182_channel_2_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT ON")
+                            elif keithley_2182_filter_index == 2:
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
+
                             time.sleep(2)  # Wait for the reset to complete.
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
@@ -3298,7 +3345,7 @@ class Measurement(QMainWindow):
                         if Keithley_2182_Connected:
                             keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
                             keithley_2182nv.write(f"SENS:VOLT:DC:NPLC {nv_NPLC}")
-                            keithley_2182nv.write(f"SENS:VOLT:DC:LPAS ON")
+                            keithley_2182nv.write(f"SENS:VOLT:DC:LPAS OFF")
                         time.sleep(2)  # Wait for the configuration to complete
                         Chan_1_voltage = 0
                         Chan_2_voltage = 0
