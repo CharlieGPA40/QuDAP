@@ -3250,7 +3250,7 @@ class Measurement(QMainWindow):
         self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progess)} %')
 
     def update_eto_average_label(self):
-        avg = self.eto_measurement_status_average_reading_label.text()
+        avg = self.eto_setting_average_line_edit.text()
         self.eto_measurement_status_average_reading_label.setText(f'{str(avg)}')
         return int(avg)
 
