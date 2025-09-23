@@ -282,6 +282,7 @@ class Worker(QThread):
     save_plot = pyqtSignal(list, list, str, bool, bool, bool, str, str)
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
+    update_measurement_progress = pyqtSignal(str, str, str)
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
@@ -290,7 +291,7 @@ class Worker(QThread):
                  zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
                  zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, BNC845RF_Connected,
                  DSP7265_Connected, demo, keithley_6221_dc_config, keithley_6221_ac_config, ac_current_waveform, ac_current_freq,
-                 ac_current_offset):
+                 ac_current_offset, eto_number_of_avg, init_temp_rate, demag_field):
         super().__init__()
         self.measurement_instance = measurement_instance
         self.running = True
@@ -336,6 +337,10 @@ class Worker(QThread):
         self.ac_current_waveform = ac_current_waveform
         self.ac_current_freq = ac_current_freq
         self.ac_current_offset = ac_current_offset
+        self.eto_number_of_avg = eto_number_of_avg
+        self.init_temp_rate = init_temp_rate
+        self.demag_field = demag_field
+
 
     def run(self):
         try:
@@ -349,6 +354,7 @@ class Worker(QThread):
                                               self.clear_plot.emit, self.update_plot.emit, self.save_plot.emit,
                                               self.measurement_finished.emit,
                                               self.error_message.emit,
+                                              self.update_measurement_progress.emit,
                                               keithley_6221 =self.keithley_6221,
                                               keithley_2182nv=self.keithley_2182nv,
                                               DSP7265=self.DSP7265,
@@ -384,7 +390,11 @@ class Worker(QThread):
                                               keithley_6221_ac_config=self.keithley_6221_ac_config,
                                               ac_current_waveform=self.ac_current_waveform,
                                               ac_current_freq=self.ac_current_freq,
-                                              ac_current_offset=self.ac_current_offset)
+                                              ac_current_offset=self.ac_current_offset,
+                                              eto_number_of_avg=self.eto_number_of_avg,
+                                              init_temp_rate=self.init_temp_rate,
+                                              demag_field=self.demag_field
+                                              )
             self.running = False
             self.stop()
             return
@@ -969,8 +979,9 @@ class Measurement(QMainWindow):
                 self.instrument_container.setLayout(self.instrument_main_layout)
                 self.instrument_connection_layout.addWidget(self.instrument_container)
 
-                self.PPMS_measurement_setup_layout = QHBoxLayout()
-                self.Instruments_Content_Layout.addLayout(self.PPMS_measurement_setup_layout)
+                # self.PPMS_measurement_setup_layout = QHBoxLayout()
+                self.eto_ppms_layout = QVBoxLayout()
+                self.Instruments_Content_Layout.addLayout(self.eto_ppms_layout)
 
                 self.xpsmeasurement_setup_layout = QHBoxLayout()
                 self.Instruments_Content_Layout.addLayout(self.xpsmeasurement_setup_layout)
@@ -1026,8 +1037,6 @@ class Measurement(QMainWindow):
                 self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
                 self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
                 self.refresh_btn.setStyleSheet(self.Button_stylesheet)
-
-
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -1162,6 +1171,7 @@ class Measurement(QMainWindow):
                     self.client.open()
                 else:
                     self.client = None
+                self.PPMS_measurement_setup_layout = QHBoxLayout()
                 self.connect_btn.setText('Stop Client')
                 self.connect_btn_clicked = True
                 self.server_btn.setEnabled(False)
@@ -1277,6 +1287,10 @@ class Measurement(QMainWindow):
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box)
+
+                self.eto_ppms_layout.addLayout(self.eto_setup_ui())
+                self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
+
             except SystemExit as e:
                 QMessageBox.critical(self, 'Client connection failed!', 'Please try again')
 
@@ -1289,6 +1303,108 @@ class Measurement(QMainWindow):
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
             self.server_btn.setEnabled(True)
+
+    def eto_setup_ui(self):
+        eto_reading_setting_layout = QHBoxLayout()
+        eto_status_reading_group_box = QGroupBox('Measurement Status')
+        eto_status_setting_group_box = QGroupBox('ETO Setting')
+
+        eto_status_reading_group_box.setLayout(self.eto_measurement_status_ui())
+        eto_status_setting_group_box.setLayout(self.eto_setting_ui())
+        eto_status_reading_group_box.setFixedWidth(560)
+        eto_status_setting_group_box.setFixedWidth(560)
+
+        eto_reading_setting_layout.addWidget(eto_status_reading_group_box)
+        eto_reading_setting_layout.addWidget(eto_status_setting_group_box)
+
+        return eto_reading_setting_layout
+
+    def eto_measurement_status_ui(self):
+        eto_measurement_status_layout = QVBoxLayout()
+
+        eto_measurement_status_average_layout = QHBoxLayout()
+        eto_measurement_status_average_label = QLabel('Number of Average:')
+        eto_measurement_status_average_label.setFont(self.font)
+        self.eto_measurement_status_average_reading_label = QLabel('NA')
+        self.eto_measurement_status_average_reading_label.setFont(self.font)
+        eto_measurement_status_average_layout.addWidget(eto_measurement_status_average_label)
+        eto_measurement_status_average_layout.addWidget(self.eto_measurement_status_average_reading_label)
+
+        eto_measurement_status_time_remaining_layout = QHBoxLayout()
+        eto_measurement_status_time_remaining_label = QLabel('Time Remaining')
+        eto_measurement_status_time_remaining_label.setFont(self.font)
+        eto_measurement_status_time_remaining_layout.addWidget(eto_measurement_status_time_remaining_label)
+
+        eto_measurement_status_time_remaining_in_days_layout = QHBoxLayout()
+        eto_measurement_status_time_remaining_in_days_label = QLabel('In Days:')
+        eto_measurement_status_time_remaining_in_days_label.setFont(self.font)
+        self.eto_measurement_status_time_remaining_in_days_reading_label = QLabel('NA')
+        self.eto_measurement_status_time_remaining_in_days_reading_label.setFont(self.font)
+        eto_measurement_status_time_remaining_in_days_layout.addWidget(eto_measurement_status_time_remaining_in_days_label)
+        eto_measurement_status_time_remaining_in_days_layout.addWidget(self.eto_measurement_status_time_remaining_in_days_reading_label)
+
+        eto_measurement_status_time_remaining_in_mins_layout = QHBoxLayout()
+        eto_measurement_status_time_remaining_in_mins_label = QLabel('In Minutes:')
+        eto_measurement_status_time_remaining_in_mins_label.setFont(self.font)
+        self.eto_measurement_status_time_remaining_in_mins_reading_label = QLabel('NA')
+        self.eto_measurement_status_time_remaining_in_mins_reading_label.setFont(self.font)
+        eto_measurement_status_time_remaining_in_mins_layout.addWidget(
+            eto_measurement_status_time_remaining_in_mins_label)
+        eto_measurement_status_time_remaining_in_mins_layout.addWidget(
+            self.eto_measurement_status_time_remaining_in_mins_reading_label)
+
+        eto_measurement_status_cur_percent_layout = QHBoxLayout()
+        eto_measurement_status_cur_percent_label = QLabel('Current Percentage:')
+        eto_measurement_status_cur_percent_label.setFont(self.font)
+        self.eto_measurement_status_cur_percent_reading_label = QLabel('NA')
+        self.eto_measurement_status_cur_percent_reading_label.setFont(self.font)
+        eto_measurement_status_cur_percent_layout.addWidget(
+            eto_measurement_status_cur_percent_label)
+        eto_measurement_status_cur_percent_layout.addWidget(
+            self.eto_measurement_status_cur_percent_reading_label)
+
+        eto_measurement_status_layout.addLayout(eto_measurement_status_average_layout)
+        eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_layout)
+        eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_in_days_layout)
+        eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_in_mins_layout)
+        eto_measurement_status_layout.addLayout(eto_measurement_status_cur_percent_layout)
+        return eto_measurement_status_layout
+
+    def eto_setting_ui(self):
+        eto_setting_layout = QVBoxLayout()
+
+        eto_setting_average_layout = QHBoxLayout()
+        eto_setting_average_label = QLabel('Number of Average')
+        eto_setting_average_label.setToolTip('This setting only works for fixed field selection')
+        eto_setting_average_label.setFont(self.font)
+        self.eto_setting_average_line_edit = QLineEdit()
+        self.eto_setting_average_line_edit.setFont(self.font)
+        eto_setting_average_layout.addWidget(eto_setting_average_label)
+        eto_setting_average_layout.addStretch(1)
+        eto_setting_average_layout.addWidget(self.eto_setting_average_line_edit)
+
+        eto_setting_init_temp_rate_layout = QHBoxLayout()
+        eto_setting_init_temp_rate_label = QLabel('Initial Temperature Rate (K/min):')
+        eto_setting_init_temp_rate_label.setFont(self.font)
+        self.eto_setting_init_temp_rate_line_edit = QLineEdit('50')
+        self.eto_setting_init_temp_rate_line_edit.setFont(self.font)
+        eto_setting_init_temp_rate_layout.addWidget(eto_setting_init_temp_rate_label)
+        eto_setting_init_temp_rate_layout.addStretch(1)
+        eto_setting_init_temp_rate_layout.addWidget(self.eto_setting_init_temp_rate_line_edit)
+
+        eto_setting_demag_field_layout = QHBoxLayout()
+        eto_setting_demag_field_label = QLabel('Demagnetization Field (Oe):')
+        eto_setting_demag_field_label.setFont(self.font)
+        self.eto_setting_demag_field_line_edit = QLineEdit('10000')
+        self.eto_setting_demag_field_line_edit.setFont(self.font)
+        eto_setting_demag_field_layout.addWidget(eto_setting_demag_field_label)
+        eto_setting_demag_field_layout.addStretch(1)
+        eto_setting_demag_field_layout.addWidget(self.eto_setting_demag_field_line_edit)
+
+        eto_setting_layout.addLayout(eto_setting_average_layout)
+        eto_setting_layout.addLayout(eto_setting_init_temp_rate_layout)
+        eto_setting_layout.addLayout(eto_setting_demag_field_layout)
+        return eto_setting_layout
 
     def connect_devices(self):
         # self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
@@ -2527,6 +2643,9 @@ class Measurement(QMainWindow):
                 self.main_layout.addWidget(self.progress_bar)
                 self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.log_box.clear()
+                eto_number_of_avg = self.update_eto_average_label()
+                init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
+                demag_field = float(self.eto_setting_demag_field_line_edit.text())
                 self.notification.send_notification(message="Measurement Start")
                 if self.Ketihley_6221_Connected:
                     self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
@@ -2595,12 +2714,12 @@ class Measurement(QMainWindow):
                         self.stop_measurement()
                         return
                     self.append_text('DSP Lock-in 7265 connected!\n', 'green')
+
                 def float_range(start, stop, step):
                     current = start
                     while current < stop:
                         yield current
                         current += step
-
                 try:
                     self.append_text('Start initializing parameters...!\n', 'orange')
                     self.append_text('Start initializing Temperatures...!\n', 'blue')
@@ -2880,7 +2999,6 @@ class Measurement(QMainWindow):
                 if self.Keithley_2182_Connected:
                     self.nv_NPLC = self.NPLC_entry.text()
 
-
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
                     self.ppms_field_Two_zone_radio_enabled = False
@@ -2964,7 +3082,8 @@ class Measurement(QMainWindow):
                                      self.zone2_field_rate,self.zone3_field_rate, self.Keithley_2182_Connected,
                                      self.Ketihley_6221_Connected,self.BNC845RF_Connected,self.DSP7265_Connected, self.demo_mode,
                                      self.keithley_6221_dc_config, self.keithley_6221_ac_config, self.ac_current_waveform,
-                                     self.ac_current_freq, self.ac_current_offset)  # Create a worker instance
+                                     self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
+                                     demag_field)  # Create a worker instance
                 self.worker.progress_update.connect(self.update_progress)
                 self.worker.append_text.connect(self.append_text)
                 self.worker.stop_measurment.connect(self.stop_measurement)
@@ -2979,6 +3098,7 @@ class Measurement(QMainWindow):
                 self.worker.clear_plot.connect(self.clear_plot)
                 self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.error_message.connect(self.error_popup)
+                self.worker.update_measurement_progress.connect(self.update_measurement_progress)
                 self.worker.start()  # Start the worker thread
                 # self.worker.wait()
                 # self.stop_measurement()
@@ -3124,11 +3244,20 @@ class Measurement(QMainWindow):
         self.dsp7265_mag_reading_value_label.setText(f'{str(mag)} volts')
         self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
+    def update_measurement_progress(self, day, min, progess):
+        self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)}')
+        self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)}')
+        self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progess)} %')
+
+    def update_eto_average_label(self):
+        avg = self.eto_measurement_status_average_reading_label.text()
+        self.eto_measurement_status_average_reading_label.setText(f'str{avg}')
+        return avg
+
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, update_lockin_label, clear_plot, update_plot,
-                save_plot,
-                measurement_finished, error_message,
+                save_plot, measurement_finished, error_message, update_measurement_progress,
                 keithley_6221, keithley_2182nv, DSP7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
@@ -3137,7 +3266,9 @@ class Measurement(QMainWindow):
                 zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
                 Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running, demo, keithley_6221_dc_config,
-                keithley_6221_ac_config, ac_current_waveform, ac_current_freq, ac_current_offset):
+                keithley_6221_ac_config, ac_current_waveform, ac_current_freq, ac_current_offset,
+                eto_number_of_avg, init_temp_rate, demag_field
+                ):
         try:
             def deltaH_chk(currentField):
                 if ppms_field_One_zone_radio_enabled:
@@ -3218,13 +3349,10 @@ class Measurement(QMainWindow):
             number_of_current = len(current)
             number_of_temp = len(TempList)
             fast_field_rate = 220
-            tempRate_init = 50
             zero_field = 0
-            demag_field = 10000
             start_time = time.time()
             append_text('Measurement Start....\n', 'red')
             user_field_rate = zone1_field_rate
-            fix_field_avg = 21
             time.sleep(5)
             if demo:
                 append_text(f'Temperature = 300 K\n', 'purple')
@@ -3271,7 +3399,7 @@ class Measurement(QMainWindow):
                     append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
                     temp_set_point = TempList[i]
                     if i == 0:
-                        set_temperature(temp_set_point, tempRate_init)
+                        set_temperature(temp_set_point, init_temp_rate)
                     else:
                         set_temperature(temp_set_point, tempRate)
                     append_text(f'Waiting for {temp_set_point} K Temperature\n', 'red')
@@ -3347,7 +3475,7 @@ class Measurement(QMainWindow):
                         MyField, sF, field_unit = read_field()
                         update_ppms_field_reading_label(str(MyField), field_unit, sF)
 
-                        while k < fix_field_avg:
+                        while k < eto_number_of_avg:
                             if Keithley_2182_Connected:
                                 try:
                                     if nv_channel_1_enabled:
@@ -3487,7 +3615,7 @@ class Measurement(QMainWindow):
                                 self.channel1_field_avg_array_temp = []
                                 self.channel2_field_avg_array_temp = []
                                 if Keithley_2182_Connected:
-                                    while k < fix_field_avg:
+                                    while k < eto_number_of_avg:
                                         try:
                                             if nv_channel_1_enabled:
                                                 keithley_2182nv.write("SENS:CHAN 1")
@@ -3685,7 +3813,7 @@ class Measurement(QMainWindow):
                                 self.channel1_field_avg_array_temp = []
                                 self.channel2_field_avg_array_temp = []
                                 if Keithley_2182_Connected:
-                                    while k < fix_field_avg:
+                                    while k < eto_number_of_avg:
                                         try:
                                             if nv_channel_1_enabled:
                                                 keithley_2182nv.write("SENS:CHAN 1")
