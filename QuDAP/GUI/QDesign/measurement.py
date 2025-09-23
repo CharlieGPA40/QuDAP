@@ -1325,7 +1325,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_average_layout = QHBoxLayout()
         eto_measurement_status_average_label = QLabel('Number of Average:')
         eto_measurement_status_average_label.setFont(self.font)
-        self.eto_measurement_status_average_reading_label = QLabel('NA')
+        self.eto_measurement_status_average_reading_label = QLabel('21')
         self.eto_measurement_status_average_reading_label.setFont(self.font)
         eto_measurement_status_average_layout.addWidget(eto_measurement_status_average_label)
         eto_measurement_status_average_layout.addWidget(self.eto_measurement_status_average_reading_label)
