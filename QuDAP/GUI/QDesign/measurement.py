@@ -3251,8 +3251,8 @@ class Measurement(QMainWindow):
 
     def update_eto_average_label(self):
         avg = self.eto_measurement_status_average_reading_label.text()
-        self.eto_measurement_status_average_reading_label.setText(f'str{avg}')
-        return avg
+        self.eto_measurement_status_average_reading_label.setText(f'{str(avg)}')
+        return int(avg)
 
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
