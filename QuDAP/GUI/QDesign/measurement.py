@@ -282,7 +282,7 @@ class Worker(QThread):
     save_plot = pyqtSignal(list, list, str, bool, bool, bool, str, str)
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
-    update_measurement_progress = pyqtSignal(str, str, str)
+    update_measurement_progress = pyqtSignal(float, float, float)
     update_dsp7265_freq_label = pyqtSignal()
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
