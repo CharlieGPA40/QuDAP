@@ -283,6 +283,7 @@ class Worker(QThread):
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
     update_measurement_progress = pyqtSignal(str, str, str)
+    update_dsp7265_freq_label = pyqtSignal()
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
@@ -291,7 +292,7 @@ class Worker(QThread):
                  zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
                  zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, BNC845RF_Connected,
                  DSP7265_Connected, demo, keithley_6221_dc_config, keithley_6221_ac_config, ac_current_waveform, ac_current_freq,
-                 ac_current_offset, eto_number_of_avg, init_temp_rate, demag_field):
+                 ac_current_offset, eto_number_of_avg, init_temp_rate, demag_field, record_zero_field):
         super().__init__()
         self.measurement_instance = measurement_instance
         self.running = True
@@ -340,6 +341,7 @@ class Worker(QThread):
         self.eto_number_of_avg = eto_number_of_avg
         self.init_temp_rate = init_temp_rate
         self.demag_field = demag_field
+        self.record_zero_field = record_zero_field
 
 
     def run(self):
@@ -355,6 +357,7 @@ class Worker(QThread):
                                               self.measurement_finished.emit,
                                               self.error_message.emit,
                                               self.update_measurement_progress.emit,
+                                              self.update_dsp7265_freq_label.emit,
                                               keithley_6221 =self.keithley_6221,
                                               keithley_2182nv=self.keithley_2182nv,
                                               DSP7265=self.DSP7265,
@@ -393,7 +396,8 @@ class Worker(QThread):
                                               ac_current_offset=self.ac_current_offset,
                                               eto_number_of_avg=self.eto_number_of_avg,
                                               init_temp_rate=self.init_temp_rate,
-                                              demag_field=self.demag_field
+                                              demag_field=self.demag_field,
+                                              record_zero_field=self.record_zero_field
                                               )
             self.running = False
             self.stop()
@@ -1298,7 +1302,7 @@ class Measurement(QMainWindow):
             if self.client is not None:
                 if not self.demo_mode:
                     self.client.close_client()
-            self.clear_layout(self.PPMS_measurement_setup_layout)
+            self.clear_layout(self.eto_ppms_layout)
             self.client_keep_going = False
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
@@ -1343,6 +1347,16 @@ class Measurement(QMainWindow):
         eto_measurement_status_time_remaining_in_days_layout.addWidget(eto_measurement_status_time_remaining_in_days_label)
         eto_measurement_status_time_remaining_in_days_layout.addWidget(self.eto_measurement_status_time_remaining_in_days_reading_label)
 
+        eto_measurement_status_time_remaining_in_hours_layout = QHBoxLayout()
+        eto_measurement_status_time_remaining_in_hours_label = QLabel('In Hours:')
+        eto_measurement_status_time_remaining_in_hours_label.setFont(self.font)
+        self.eto_measurement_status_time_remaining_in_hours_reading_label = QLabel('NA')
+        self.eto_measurement_status_time_remaining_in_hours_reading_label.setFont(self.font)
+        eto_measurement_status_time_remaining_in_hours_layout.addWidget(
+            eto_measurement_status_time_remaining_in_hours_label)
+        eto_measurement_status_time_remaining_in_hours_layout.addWidget(
+            self.eto_measurement_status_time_remaining_in_hours_reading_label)
+
         eto_measurement_status_time_remaining_in_mins_layout = QHBoxLayout()
         eto_measurement_status_time_remaining_in_mins_label = QLabel('In Minutes:')
         eto_measurement_status_time_remaining_in_mins_label.setFont(self.font)
@@ -1366,6 +1380,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_layout.addLayout(eto_measurement_status_average_layout)
         eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_layout)
         eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_in_days_layout)
+        eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_in_hours_layout)
         eto_measurement_status_layout.addLayout(eto_measurement_status_time_remaining_in_mins_layout)
         eto_measurement_status_layout.addLayout(eto_measurement_status_cur_percent_layout)
         return eto_measurement_status_layout
@@ -1401,9 +1416,13 @@ class Measurement(QMainWindow):
         eto_setting_demag_field_layout.addStretch(1)
         eto_setting_demag_field_layout.addWidget(self.eto_setting_demag_field_line_edit)
 
+        self.eto_setting_zero_field_record_check_box = QCheckBox('Record Zero Field')
+        self.eto_setting_zero_field_record_check_box.setFont(self.font)
+
         eto_setting_layout.addLayout(eto_setting_average_layout)
         eto_setting_layout.addLayout(eto_setting_init_temp_rate_layout)
         eto_setting_layout.addLayout(eto_setting_demag_field_layout)
+        eto_setting_layout.addWidget(self.eto_setting_zero_field_record_check_box)
         return eto_setting_layout
 
     def connect_devices(self):
@@ -2157,7 +2176,6 @@ class Measurement(QMainWindow):
             else:
                 self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, {str(self.dsp7265_lf_n2_index - 1)}]')
 
-
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
         
@@ -2643,10 +2661,34 @@ class Measurement(QMainWindow):
                 self.main_layout.addWidget(self.progress_bar)
                 self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.log_box.clear()
+
+                self.folder_path = self.folder_path + f'Run_{self.run}/'
+                os.makedirs(self.folder_path, exist_ok=True)
+                self.random_number = random.randint(100000, 999999)
+
+                f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
+                today = datetime.datetime.today()
+                self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
+                f.write(f"User: {self.user}\n")
+                f.write(f"Today's Date: {self.formatted_date_csv}\n")
+                f.write(f"Sample ID: {self.sample_id}\n")
+                f.write(f"Measurement Type: {self.measurement}\n")
+                f.write(f"Run: {self.run}\n")
+                f.write(f"Comment: {self.comment}\n")
+
                 eto_number_of_avg = self.update_eto_average_label()
+                f.write(f"Number of Average: {eto_number_of_avg}\n")
+
                 init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
                 demag_field = float(self.eto_setting_demag_field_line_edit.text())
+                f.write(f"Demagnetization Field: {demag_field}\n")
                 self.notification.send_notification(message="Measurement Start")
+                if self.eto_setting_zero_field_record_check_box.isChecked():
+                    record_zero_field = True
+                    f.write(f"Record Zero Field: Yes\n")
+                else:
+                    record_zero_field = False
+                    f.write(f"Record Zero Field: No\n")
                 if self.Ketihley_6221_Connected:
                     self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
                     if self.demo_mode:
@@ -2655,6 +2697,7 @@ class Measurement(QMainWindow):
                         try:
                             model_6221 = self.keithley_6221.query('*IDN?')
                             self.append_text(str(model_6221), 'green')
+                            f.write(f"Instrument: Keithley 6221 enabled\n")
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
                             self.stop_measurement()
@@ -2672,12 +2715,18 @@ class Measurement(QMainWindow):
                             # Initialize and configure the instrument
                             self.keithley_2182nv.write("*RST")
                             self.keithley_2182nv.write("*CLS")
+                            f.write(f"Instrument: Keithley 2182nv enabled\n")
+                            self.nv_NPLC = self.NPLC_entry.text()
+                            f.write(f"\tNPLC (time constant): {self.nv_NPLC} \n")
                             if self.keithley_2182_lsync_checkbox.isChecked():
                                 self.keithley_2182nv.write(":SYST:LSYNC ON")
+                                f.write(f"\tLine Synchronization: Enabled \n")
                             else:
                                 self.keithley_2182nv.write(":SYST:LSYNC OFF")
+                                f.write(f"\tLine Synchronization: Disabled \n")
                             keithley_2182_filter_index = self.keithley_2182_filter_button_group.checkedId()
                             if keithley_2182_filter_index == 0:
+                                f.write(f"\tFilter: Digital Filter On \n")
                                 if self.keithley_2182_channel_1_checkbox.isChecked():
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT ON")
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
@@ -2685,6 +2734,7 @@ class Measurement(QMainWindow):
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT ON")
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
                             elif keithley_2182_filter_index == 1:
+                                f.write(f"\tFilter: Analog Filter On \n")
                                 if self.keithley_2182_channel_1_checkbox.isChecked():
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT ON")
@@ -2692,11 +2742,24 @@ class Measurement(QMainWindow):
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
                                     self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT ON")
                             elif keithley_2182_filter_index == 2:
+                                f.write(f"\tFilter: All Filters Off \n")
                                 self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
                                 self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
                                 self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
                                 self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
+                            if self.keithley_2182_channel_1_checkbox.isChecked():
+                                self.nv_channel_1_enabled = True
+                                f.write(f"\tChannel 1: enabled \n")
+                            else:
+                                self.nv_channel_1_enabled = False
+                                f.write(f"\tChannel 1: disabled \n")
 
+                            if self.keithley_2182_channel_2_checkbox.isChecked():
+                                self.nv_channel_2_enabled = True
+                                f.write(f"\tChannel 2: enabled \n")
+                            else:
+                                self.nv_channel_2_enabled = False
+                                f.write(f"\tChannel 2: disabled \n")
                             time.sleep(2)  # Wait for the reset to complete.
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
@@ -2708,6 +2771,7 @@ class Measurement(QMainWindow):
                     try:
                         model_7265 = self.DSP7265.query('ID')
                         self.log_box.append(str(model_7265))
+                        f.write(f"Instrument: DSP 7265 enabled\n")
                         time.sleep(2)  # Wait for the reset to complete
                     except visa.errors.VisaIOError as e:
                         QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
@@ -2725,6 +2789,7 @@ class Measurement(QMainWindow):
                     self.append_text('Start initializing Temperatures...!\n', 'blue')
                     TempList = []
                     if self.ppms_temp_One_zone_radio.isChecked():
+
                         zone_1_start = float(self.ppms_zone1_temp_from_entry.text())
                         zone_1_end = float(self.ppms_zone1_temp_to_entry.text()) + float(
                             self.ppms_zone1_temp_step_entry.text())
@@ -2851,6 +2916,7 @@ class Measurement(QMainWindow):
                 self.append_text('Start initializing Current...!\n', 'blue')
                 # =============================== Set the current ==================================== #
                 if self.keithley_6221_DC_radio.isChecked():
+                    f.write(f"\tKeithley 6221 DC current: enabled\n")
                     self.keithley_6221_dc_config = True
                     if self.keithley_6221_DC_range_checkbox.isChecked():
                         init_current = float(self.keithley_6221_DC_range_init_entry.text())
@@ -2910,6 +2976,7 @@ class Measurement(QMainWindow):
                         self.stop_measurement()
                         return
                 elif self.keithley_6221_ac_radio.isChecked():
+                    f.write(f"\tKeithley 6221 AC current: enabled\n")
                     self.keithley_6221_ac_config = True
                     if self.keithley_6221_ac_range_checkbox.isChecked():
                         init_current = float(self.keithley_6221_ac_range_init_entry.text())
@@ -2974,14 +3041,19 @@ class Measurement(QMainWindow):
                     if ac_current_waveform_index !=0:
                         if self.ac_single_unit == 1:  # sine
                             self.ac_current_waveform = "SIN"
+                            f.write("\tKeithley 6221 AC waveform: SIN\n")
                         elif self.ac_single_unit == 2:  # square
                             self.ac_current_waveform = "SQU"
+                            f.write("\tKeithley 6221 AC waveform: SQU\n")
                         elif self.ac_single_unit == 3:  # ramp
                             self.ac_current_waveform = "RAMP"
+                            f.write("\tKeithley 6221 AC waveform: RAMP\n")
                         elif self.ac_single_unit == 4:  # arbx
                             self.ac_current_waveform = "ARB0"
+                            f.write("\tKeithley 6221 AC waveform: ARB0\n")
 
                     self.ac_current_freq = self.keithley_6221_ac_freq_entry_box.text()
+                    f.write(f"\tKeithley 6221 AC frequency: {self.ac_current_freq}\n")
                     self.ac_current_offset = self.keithley_6221_ac_offset_entry_box.text()
                     self.ac_offset_unit = self.keithley_6221_ac_offset_units_combo.currentIndex()
                     if self.ac_offset_unit == 0:
@@ -2995,9 +3067,7 @@ class Measurement(QMainWindow):
                     elif self.ac_offset_unit == 4:  # pA
                         ac_offset_unit = 'e-12'
                     self.ac_current_offset = self.ac_current_offset + ac_offset_unit
-
-                if self.Keithley_2182_Connected:
-                    self.nv_NPLC = self.NPLC_entry.text()
+                    f.write(f"\tKeithley 6221 AC offset: {self.ac_current_offset}\n")
 
                 if self.ppms_field_One_zone_radio.isChecked():
                     self.ppms_field_One_zone_radio_enabled = True
@@ -3029,45 +3099,25 @@ class Measurement(QMainWindow):
 
                 temp_log = str(TempList)
                 self.append_text('Create Log...!\n', 'green')
-                self.folder_path = self.folder_path + f'Run_{self.run}/'
-                os.makedirs(self.folder_path, exist_ok=True)
-                self.random_number = random.randint(100000, 999999)
-                f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
-                today = datetime.datetime.today()
-                self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
-                f.write(f"User: {self.user}\n")
-                f.write(f"Today's Date: {self.formatted_date_csv}\n")
-                f.write(f"Sample ID: {self.sample_id}\n")
-                f.write(f"Measurement Type: {self.measurement}\n")
-                f.write(f"Run: {self.run}\n")
-                f.write(f"Comment: {self.comment}\n")
+
+
                 f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
                 f.write(f"Experiment Temperature (K): {temp_log}\n")
-                f.write(f"Experiment Current: {listToString(current)}\n")
-                if self.Keithley_2182_Connected:
-                    f.write(f"Instrument: Keithley 2182\n")
-                if self.Ketihley_6221_Connected:
-                    f.write(f"Instrument: Keithley 6221\n")
+                if self.ppms_field_fixed_mode_radio_button.isChecked():
+                    self.field_mode_fixed = True
+                    f.write(f"Experiment Field Mode: Fixed field mode\n")
+                else:
+                    self.field_mode_fixed = False
+                    f.write(f"Experiment Field Mode: Continuous sweep\n")
+
+                    f.write(f"Experiment Current: {listToString(current)}\n")
                 if self.BNC845RF_Connected:
                     f.write(f"Instrument: BNC845RF\n")
                 if self.DSP7265_Connected:
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
-                if self.ppms_field_fixed_mode_radio_button.isChecked():
-                    self.field_mode_fixed = True
-                else:
-                    self.field_mode_fixed = False
-                if self.Keithley_2182_Connected:
-                    if self.keithley_2182_channel_1_checkbox.isChecked():
-                        self.nv_channel_1_enabled = True
-                    else:
-                        self.nv_channel_1_enabled = False
 
-                    if self.keithley_2182_channel_2_checkbox.isChecked():
-                        self.nv_channel_2_enabled = True
-                    else:
-                        self.nv_channel_2_enabled = False
                 self.canvas.axes.cla()
                 self.canvas.axes_2.cla()
                 self.canvas.draw()
@@ -3083,7 +3133,7 @@ class Measurement(QMainWindow):
                                      self.Ketihley_6221_Connected,self.BNC845RF_Connected,self.DSP7265_Connected, self.demo_mode,
                                      self.keithley_6221_dc_config, self.keithley_6221_ac_config, self.ac_current_waveform,
                                      self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
-                                     demag_field)  # Create a worker instance
+                                     demag_field, record_zero_field)  # Create a worker instance
                 self.worker.progress_update.connect(self.update_progress)
                 self.worker.append_text.connect(self.append_text)
                 self.worker.stop_measurment.connect(self.stop_measurement)
@@ -3099,6 +3149,7 @@ class Measurement(QMainWindow):
                 self.worker.measurement_finished.connect(self.measurement_finished)
                 self.worker.error_message.connect(self.error_popup)
                 self.worker.update_measurement_progress.connect(self.update_measurement_progress)
+                self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
                 self.worker.start()  # Start the worker thread
                 # self.worker.wait()
                 # self.stop_measurement()
@@ -3244,20 +3295,25 @@ class Measurement(QMainWindow):
         self.dsp7265_mag_reading_value_label.setText(f'{str(mag)} volts')
         self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
-    def update_measurement_progress(self, day, min, progess):
-        self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)}')
-        self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)}')
-        self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progess)} %')
+    def update_measurement_progress(self, day, hour, min):
+        self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)} days')
+        self.eto_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} days')
+        self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)} mins')
+        # self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progess)} %')
 
     def update_eto_average_label(self):
         avg = self.eto_setting_average_line_edit.text()
         self.eto_measurement_status_average_reading_label.setText(f'{str(avg)}')
         return int(avg)
 
+    def update_dsp7265_freq_label(self):
+        cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+        self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, update_lockin_label, clear_plot, update_plot,
-                save_plot, measurement_finished, error_message, update_measurement_progress,
+                save_plot, measurement_finished, error_message, update_measurement_progress, update_dsp7265_freq_label,
                 keithley_6221, keithley_2182nv, DSP7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
@@ -3267,7 +3323,7 @@ class Measurement(QMainWindow):
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
                 Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running, demo, keithley_6221_dc_config,
                 keithley_6221_ac_config, ac_current_waveform, ac_current_freq, ac_current_offset,
-                eto_number_of_avg, init_temp_rate, demag_field
+                eto_number_of_avg, init_temp_rate, demag_field, record_zero_field
                 ):
         try:
             def deltaH_chk(currentField):
@@ -3475,71 +3531,6 @@ class Measurement(QMainWindow):
                         MyField, sF, field_unit = read_field()
                         update_ppms_field_reading_label(str(MyField), field_unit, sF)
 
-                        while k < eto_number_of_avg:
-                            if Keithley_2182_Connected:
-                                try:
-                                    if nv_channel_1_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 1")
-                                        volt = keithley_2182nv.query("READ?")
-                                        Chan_1_voltage = float(volt)
-                                        append_text(f"Channel 1 Zero Field Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                except Exception as e:
-                                    QMessageBox.warning(self, 'Warning', str(e))
-
-                                if nv_channel_2_enabled:
-                                    keithley_2182nv.write("SENS:CHAN 2")
-                                    volt2 = keithley_2182nv.query("READ?")
-                                    Chan_2_voltage = float(volt2)
-                                    update_nv_channel_2_label(str(Chan_2_voltage))
-                                    append_text(f"Channel 2 Zero Field Voltage: {str(Chan_2_voltage)} V\n", 'green')
-
-                                # Calculate the average voltage
-                                resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                resistance_chan_2 = Chan_2_voltage / float(current[j])
-
-                                # Append the data to the CSV file
-                                with open(csv_filename_zero_field, "a", newline="") as csvfile:
-                                    csv_writer = csv.writer(csvfile)
-
-                                    if csvfile.tell() == 0:  # Check if file is empty
-                                        csv_writer.writerow(
-                                            ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
-                                             "Channel 2 "
-                                             "Resistance ("
-                                             "Ohm)",
-                                             "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-
-                                    csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                                         Chan_2_voltage, MyTemp, current[j]])
-                                    append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
-                            elif DSP7265_Connected:
-                                try:
-                                    X = float(DSP7265.query("X."))  # Read the measurement result
-                                    Y = float(DSP7265.query("Y."))  # Read the measurement result
-                                    Mag = float(DSP7265.query("MAG."))  # Read the measurement result
-                                    Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                    update_lockin_label(str(Mag), str(Phase))
-
-                                except Exception as e:
-                                    QMessageBox.warning(self, "Reading Error", f'{e}')
-
-                                resistance_chan_1 = X / float(current[j])
-                                # Append the data to the CSV file
-                                with open(csv_filename_zero_field, "a", newline="") as csvfile:
-                                    csv_writer = csv.writer(csvfile)
-
-                                    if csvfile.tell() == 0:  # Check if file is empty
-                                        csv_writer.writerow(
-                                            ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                             "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
-                                             "Temperature (K)", "Current (A)"])
-
-                                    csv_writer.writerow(
-                                        [MyField, resistance_chan_1, Mag, X, Y,
-                                         Phase, MyTemp, current[j]])
-                                    self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
-                            k+=1
-                            time.sleep(0.2)
                         if Ketihley_6221_Connected:
                             keithley_6221.write('CLE')
                             if keithley_6221_dc_config:
@@ -3559,6 +3550,76 @@ class Measurement(QMainWindow):
                                 keithley_6221.write('SOUR:WAVE:RANG BEST \n')
                                 keithley_6221.write('SOUR:WAVE:ARM \n')
                                 keithley_6221.write('SOUR:WAVE:INIT \n')
+
+                        if DSP7265_Connected:
+                            update_dsp7265_freq_label()
+
+                        if record_zero_field:
+                            while k < eto_number_of_avg:
+                                if Keithley_2182_Connected:
+                                    try:
+                                        if nv_channel_1_enabled:
+                                            keithley_2182nv.write("SENS:CHAN 1")
+                                            volt = keithley_2182nv.query("READ?")
+                                            Chan_1_voltage = float(volt)
+                                            append_text(f"Channel 1 Zero Field Voltage: {str(Chan_1_voltage)} V\n", 'green')
+                                    except Exception as e:
+                                        QMessageBox.warning(self, 'Warning', str(e))
+
+                                    if nv_channel_2_enabled:
+                                        keithley_2182nv.write("SENS:CHAN 2")
+                                        volt2 = keithley_2182nv.query("READ?")
+                                        Chan_2_voltage = float(volt2)
+                                        update_nv_channel_2_label(str(Chan_2_voltage))
+                                        append_text(f"Channel 2 Zero Field Voltage: {str(Chan_2_voltage)} V\n", 'green')
+
+                                    # Calculate the average voltage
+                                    resistance_chan_1 = Chan_1_voltage / float(current[j])
+                                    resistance_chan_2 = Chan_2_voltage / float(current[j])
+
+                                    # Append the data to the CSV file
+                                    with open(csv_filename_zero_field, "a", newline="") as csvfile:
+                                        csv_writer = csv.writer(csvfile)
+
+                                        if csvfile.tell() == 0:  # Check if file is empty
+                                            csv_writer.writerow(
+                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
+                                                 "Channel 2 "
+                                                 "Resistance ("
+                                                 "Ohm)",
+                                                 "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
+
+                                        csv_writer.writerow([MyField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
+                                                             Chan_2_voltage, MyTemp, current[j]])
+                                        append_text(f'Data Saved for {MyField} Oe at {MyTemp} K', 'green')
+                                elif DSP7265_Connected:
+                                    try:
+                                        X = float(DSP7265.query("X."))  # Read the measurement result
+                                        Y = float(DSP7265.query("Y."))  # Read the measurement result
+                                        Mag = float(DSP7265.query("MAG."))  # Read the measurement result
+                                        Phase = float(DSP7265.query("PHA."))  # Read the measurement result
+                                        update_lockin_label(str(Mag), str(Phase))
+
+                                    except Exception as e:
+                                        QMessageBox.warning(self, "Reading Error", f'{e}')
+
+                                    resistance_chan_1 = X / float(current[j])
+                                    # Append the data to the CSV file
+                                    with open(csv_filename_zero_field, "a", newline="") as csvfile:
+                                        csv_writer = csv.writer(csvfile)
+
+                                        if csvfile.tell() == 0:  # Check if file is empty
+                                            csv_writer.writerow(
+                                                ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
+                                                 "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
+                                                 "Temperature (K)", "Current (A)"])
+
+                                        csv_writer.writerow(
+                                            [MyField, resistance_chan_1, Mag, X, Y,
+                                             Phase, MyTemp, current[j]])
+                                        self.log_box.append(f'Data Saved for {MyField} Oe at {MyTemp} K\n')
+                                k+=1
+                                time.sleep(0.2)
 
                         self.pts = 0
                         currentField = topField
@@ -3588,7 +3649,7 @@ class Measurement(QMainWindow):
                                 append_text(f'Loop is at {currentField} Oe Field Up \n', 'blue')
                                 field_set_point = currentField
                                 append_text(f'Set the field to {field_set_point} Oe and then collect data \n', 'blue')
-                                set_field(field_set_point, user_field_rate)
+                                set_field(field_set_point, fast_field_rate)
 
                                 time.sleep(4)
                                 while True:
@@ -3769,6 +3830,7 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes, total_time_in_seconds)
 
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
@@ -3966,6 +4028,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
                         else:
                             set_field(topField, fast_field_rate)
 
@@ -4114,6 +4178,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
 
                             # ----------------- Loop Up ----------------------#
                             NotificationManager().send_message(f"Starting the second half of measurement - ramping field up")
@@ -4257,6 +4323,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
                         if Keithley_2182_Connected:
                             if field_mode_fixed:
                                 if nv_channel_1_enabled:
@@ -4468,6 +4536,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
 
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
@@ -4564,6 +4634,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
                         else:
 
                             append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
@@ -4665,6 +4737,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
 
                             # ----------------- Loop Up ----------------------#
 
@@ -4763,6 +4837,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
+                                                            total_time_in_seconds)
                         if Keithley_2182_Connected:
                             if nv_channel_1_enabled:
                                 save_plot(self.field_array, self.channel1_array, 'black', True, False, True,
