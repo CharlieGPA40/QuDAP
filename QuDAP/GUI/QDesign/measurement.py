@@ -290,7 +290,7 @@ class Worker(QThread):
                  field_mode_fixed, nv_channel_1_enabled, nv_channel_2_enabled,nv_NPLC, ppms_field_One_zone_radio_enabled,
                  ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled, zone1_step_field, zone2_step_field,
                  zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
-                 zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, BNC845RF_Connected,
+                 zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, BNC845RF_CONNECTED,
                  DSP7265_Connected, demo, keithley_6221_dc_config, keithley_6221_ac_config, ac_current_waveform, ac_current_freq,
                  ac_current_offset, eto_number_of_avg, init_temp_rate, demag_field, record_zero_field):
         super().__init__()
@@ -330,7 +330,7 @@ class Worker(QThread):
         self.zone3_field_rate = zone3_field_rate
         self.Keithley_2182_Connected = Keithley_2182_Connected
         self.Ketihley_6221_Connected = Ketihley_6221_Connected
-        self.BNC845RF_Connected = BNC845RF_Connected
+        self.BNC845RF_CONNECTED = BNC845RF_CONNECTED
         self.DSP7265_Connected = DSP7265_Connected
         self.demo = demo
         self.keithley_6221_dc_config = keithley_6221_dc_config
@@ -385,7 +385,7 @@ class Worker(QThread):
                                               zone3_field_rate=self.zone3_field_rate,
                                               Keithley_2182_Connected=self.Keithley_2182_Connected,
                                               Ketihley_6221_Connected=self.Ketihley_6221_Connected,
-                                              BNC845RF_Connected=self.BNC845RF_Connected,
+                                              BNC845RF_CONNECTED=self.BNC845RF_CONNECTED,
                                               DSP7265_Connected=self.DSP7265_Connected,
                                               running=lambda: self.running,
                                               demo=self.demo,
@@ -621,7 +621,7 @@ class Measurement(QMainWindow):
             self.telegram = False
             self.Keithley_2182_Connected = False
             self.Ketihley_6221_Connected = False
-            self.BNC845RF_Connected = False
+            self.BNC845RF_CONNECTED = False
             self.DSP7265_Connected = False
             self.field_mode_fixed = None
             self.keithley_2182nv = None
@@ -1056,7 +1056,7 @@ class Measurement(QMainWindow):
         self.connection_ports = [instr for instr in instruments]
         self.Keithley_2182_Connected = False
         self.Ketihley_6221_Connected = False
-        self.BNC845RF_Connected = False
+        self.BNC845RF_CONNECTED = False
         self.DSP7265_Connected = False
         self.instru_connect_btn.setText('Connect')
         self.connection_combo.clear()
@@ -1335,7 +1335,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_average_layout.addWidget(self.eto_measurement_status_average_reading_label)
 
         eto_measurement_status_time_remaining_layout = QHBoxLayout()
-        eto_measurement_status_time_remaining_label = QLabel('Time Remaining')
+        eto_measurement_status_time_remaining_label = QLabel('Estimated Time Remaining')
         eto_measurement_status_time_remaining_label.setFont(self.font)
         eto_measurement_status_time_remaining_layout.addWidget(eto_measurement_status_time_remaining_label)
 
@@ -1466,17 +1466,17 @@ class Measurement(QMainWindow):
                     return None
                 elif self.current_connection_index == 1:
                     try:
-                        self.connect_keithley_2182()
+                        self.connect_bnc_845_rf()
                     except Exception as e:
-                        self.Keithley_2182_Connected = False
+                        self.BNC845RF_CONNECTED = False
                         tb_str = traceback.format_exc()
                         QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
                 elif self.current_connection_index == 2:
                     try:
-                        self.connect_keithley_6221()
+                        self.connect_dsp7265()
                     except Exception as e:
-                        self.Ketihley_6221_Connected = False
+                        self.DSP7265_Connected = False
                         tb_str = traceback.format_exc()
                         QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
@@ -1574,6 +1574,23 @@ class Measurement(QMainWindow):
             self.close_dsp7265()
             self.DSP7265_Connected = False
 
+    def connect_bnc_845_rf(self):
+        if self.BNC845RF_CONNECTED == False:
+            try:
+                self.bnc845rf = self.rm.open_resource(self.current_connection, timeout=10000)
+                time.sleep(2)
+                bnc845rf_model = self.DSP7265.query('*IDN?')
+                self.BNC845RF_CONNECTED = True
+                QMessageBox.information(self, "Connected", F"Connected to {bnc845rf_model}")
+                self.instru_connect_btn.setText('Disconnect')
+                self.bnc845rf_window_ui()
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+        else:
+            self.instru_connect_btn.setText('Connect')
+            self.close_dsp7265()
+            self.DSP7265_Connected = False
+
     def close_keithley_2182(self):
         try:
             if not self.demo_mode:
@@ -1603,25 +1620,60 @@ class Measurement(QMainWindow):
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
+    def close_bnc8465rf(self):
+        try:
+            self.bnc845rf.close()
+            self.BNC845RF_CONNECTED = False
+            self.clear_layout(self.bnc845rf_contianer_layout)
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
     def instru_combo_index_change(self):
         self.current_connection_index = self.Instruments_combo.currentIndex()
-        if self.current_connection_index == 1:
-            if self.Keithley_2182_Connected:
-                self.instru_connect_btn.setText('Disconnect')
-            else:
-                self.instru_connect_btn.setText('Connect')
+        if self.ETO_radio_buttom.isChecked() or self.Demo_radio_buttom.isChecked():
+            if self.current_connection_index == 1:
+                if self.Keithley_2182_Connected:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
+            elif self.current_connection_index == 2:
+                if self.Ketihley_6221_Connected:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
 
-        elif self.current_connection_index == 2:
-            if self.Ketihley_6221_Connected:
-                self.instru_connect_btn.setText('Disconnect')
-            else:
-                self.instru_connect_btn.setText('Connect')
+            elif self.current_connection_index == 3:
+                if self.DSP7265_Connected:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
+        elif self.FMR_radio_buttom.isChecked():
+            if self.current_connection_index == 1:
+                if self.BNC845RF_CONNECTED:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
 
-        elif self.current_connection_index == 3:
-            if self.DSP7265_Connected:
-                self.instru_connect_btn.setText('Disconnect')
-            else:
-                self.instru_connect_btn.setText('Connect')
+            elif self.current_connection_index == 2:
+                if self.DSP7265_Connected:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
+    def bnc845rf_window_ui(self):
+        self.bnc845rf_contianer_layout = QHBoxLayout()
+        self.bnc845rf_container = QWidget(self)
+
+        self.bnc845rf_reading_groupbox =QGroupBox("BNC 845RF Reading")
+        self.bnc845rf_reading_groupbox.setLayout(self.dsp7265_main_layout)
+        self.bnc845rf_reading_groupbox.setFixedWidth(560)
+
+        self.bnc845rf_setting_groupbox =QGroupBox("BNC 845RF Setting")
+        self.bnc845rf_setting_groupbox.setLayout(self.dsp7265_main_layout)
+        self.bnc845rf_setting_groupbox.setFixedWidth(560)
+
+    def bnc845rf_window_reading_ui(self):
+        None
 
     def dsp7265_Window(self):
         self.dsp726_Container = QWidget(self)
@@ -3111,7 +3163,7 @@ class Measurement(QMainWindow):
                     f.write(f"Experiment Field Mode: Continuous sweep\n")
 
                     f.write(f"Experiment Current: {listToString(current)}\n")
-                if self.BNC845RF_Connected:
+                if self.BNC845RF_CONNECTED:
                     f.write(f"Instrument: BNC845RF\n")
                 if self.DSP7265_Connected:
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
@@ -3130,7 +3182,7 @@ class Measurement(QMainWindow):
                                      self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
                                      self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
                                      self.zone2_field_rate,self.zone3_field_rate, self.Keithley_2182_Connected,
-                                     self.Ketihley_6221_Connected,self.BNC845RF_Connected,self.DSP7265_Connected, self.demo_mode,
+                                     self.Ketihley_6221_Connected,self.BNC845RF_CONNECTED,self.DSP7265_Connected, self.demo_mode,
                                      self.keithley_6221_dc_config, self.keithley_6221_ac_config, self.ac_current_waveform,
                                      self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
                                      demag_field, record_zero_field)  # Create a worker instance
@@ -3297,7 +3349,7 @@ class Measurement(QMainWindow):
 
     def update_measurement_progress(self, day, hour, min):
         self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)} days')
-        self.eto_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} days')
+        self.eto_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} hours')
         self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)} mins')
         # self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progess)} %')
 
@@ -3321,7 +3373,7 @@ class Measurement(QMainWindow):
                 ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled,zone1_step_field,
                 zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
-                Ketihley_6221_Connected, BNC845RF_Connected, DSP7265_Connected, running, demo, keithley_6221_dc_config,
+                Ketihley_6221_Connected, BNC845RF_CONNECTED, DSP7265_Connected, running, demo, keithley_6221_dc_config,
                 keithley_6221_ac_config, ac_current_waveform, ac_current_freq, ac_current_offset,
                 eto_number_of_avg, init_temp_rate, demag_field, record_zero_field
                 ):
@@ -3830,7 +3882,7 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes, total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours, totoal_time_in_minutes)
 
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
@@ -4028,8 +4080,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
                         else:
                             set_field(topField, fast_field_rate)
 
@@ -4178,8 +4230,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
 
                             # ----------------- Loop Up ----------------------#
                             NotificationManager().send_message(f"Starting the second half of measurement - ramping field up")
@@ -4323,8 +4375,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
                         if Keithley_2182_Connected:
                             if field_mode_fixed:
                                 if nv_channel_1_enabled:
@@ -4536,8 +4588,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
 
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
@@ -4634,8 +4686,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
                         else:
 
                             append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
@@ -4737,8 +4789,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
 
                             # ----------------- Loop Up ----------------------#
 
@@ -4837,8 +4889,8 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, totoal_time_in_minutes,
-                                                            total_time_in_seconds)
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes)
                         if Keithley_2182_Connected:
                             if nv_channel_1_enabled:
                                 save_plot(self.field_array, self.channel1_array, 'black', True, False, True,
