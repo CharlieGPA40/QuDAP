@@ -1579,7 +1579,7 @@ class Measurement(QMainWindow):
             try:
                 self.bnc845rf = self.rm.open_resource(self.current_connection, timeout=10000)
                 time.sleep(2)
-                bnc845rf_model = self.DSP7265.query('*IDN?')
+                bnc845rf_model = self.bnc845rf.query('*IDN?')
                 self.BNC845RF_CONNECTED = True
                 QMessageBox.information(self, "Connected", F"Connected to {bnc845rf_model}")
                 self.instru_connect_btn.setText('Disconnect')
@@ -1660,6 +1660,7 @@ class Measurement(QMainWindow):
                     self.instru_connect_btn.setText('Disconnect')
                 else:
                     self.instru_connect_btn.setText('Connect')
+
     def bnc845rf_window_ui(self):
         self.bnc845rf_contianer_layout = QHBoxLayout()
         self.bnc845rf_container = QWidget(self)
