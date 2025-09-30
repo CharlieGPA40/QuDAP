@@ -1595,6 +1595,8 @@ class Measurement(QMainWindow):
                     time.sleep(2)
                     DSPModel = self.DSP7265.query('ID')
                     QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
+                    self.read_sr7265_settings(self.DSP7265)
+
                     cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
                     self.dsp7265_ref_freq = str(cur_freq)
                     cur_sense = float(self.DSP7265.query('SEN.')) / 1000
@@ -1955,7 +1957,51 @@ class Measurement(QMainWindow):
         self.dsp7265_reading_layout.addLayout(self.dsp7265_sensitivity_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_time_constant_reading_layout)
         return self.dsp7265_reading_layout
-    
+
+    def read_sr7265_settings(self, instrument):
+        # Frequency
+        cur_freq = float(instrument.query('FRQ[.]')) / 1000
+        ref_freq = str(cur_freq)
+
+        # Reference source
+        ref = int(instrument.query("IE"))
+        ref_sources = {0: "Internal", 1: "External TTL", 2: "External Analog"}
+        ref_source = ref_sources.get(ref, "Unknown")
+
+        # Time constant
+        tc_idx = int(instrument.query("TC"))
+        tc_values = ["10 \u00B5s", "20 \u00B5s", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
+                , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
+                , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
+             "10 ks", "20 ks", "50 ks", "100 ks"]
+        time_constant = tc_values[tc_idx] if tc_idx < len(tc_values) else "Unknown"
+
+        # Sensitivity
+        sen_idx = int(instrument.query("SEN"))
+        mode = int(instrument.query("IMODE"))
+
+        if mode > 0:  # Current mode
+            sen_values = ["2fA", "5fA", "10fA", "20fA", "50fA", "100fA", "200fA",
+                          "500fA", "1pA", "2pA", "5pA", "10pA", "20pA", "50pA",
+                          "100pA", "200pA", "500pA", "1nA", "2nA", "5nA", "10nA",
+                          "20nA", "50nA", "100nA", "200nA", "500nA", "1\u00B5A"]
+        else:  # Voltage mode
+            sen_values = ["2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV",
+             "1 \u00B5V", "2 \u00B5V", "5 \u00B5V", "10 \u00B5V", "20 \u00B5V", "50 \u00B5V", "100 \u00B5V",
+             "200 \u00B5V", "500 \u00B5V", "1 mV", "2 mV", "5 mV", "10 mV", "20 mV", "50 mV", "100 mV", "200 mV",
+             "500 mV",
+             "1 V", "Auto"]
+
+        sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
+        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage"
+        # return {
+        #     "Reference": ref_source,
+        #     "Frequency": ref_freq,
+        #     "Time Constant": time_constant,
+        #     "Sensitivity": sensitivity,
+        #     "Mode": "Current" if mode > 0 else "Voltage"
+        # }
+
     def keithley2182_window_ui(self):
         self.Keithley_2182_Container = QWidget(self)
         self.keithley_2182_groupbox = QGroupBox('Keithley 2182nv')
