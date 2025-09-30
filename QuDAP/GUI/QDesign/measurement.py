@@ -290,7 +290,7 @@ class Worker(QThread):
     save_plot = pyqtSignal(list, list, str, bool, bool, bool, str, str)
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
-    update_measurement_progress = pyqtSignal(float, float, float)
+    update_measurement_progress = pyqtSignal(float, float, float, float)
     update_dsp7265_freq_label = pyqtSignal()
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
@@ -724,6 +724,7 @@ class Measurement(QMainWindow):
         self.radio_btn_layout = QHBoxLayout()
         self.radio_btn_layout.addStretch(2)
         self.radio_btn_layout.addWidget(self.eto_radio_button)
+
         self.radio_btn_layout.addStretch(1)
         self.radio_btn_layout.addWidget(self.fmr_radio_button)
         self.radio_btn_layout.addStretch(2)
@@ -811,11 +812,19 @@ class Measurement(QMainWindow):
         self.select_preset_buttom.setEnabled(True)
 
     def preset_reset(self):
+        def reset_button(button):
+            button.setAutoExclusive(False)
+            button.setChecked(False)
+            button.setAutoExclusive(True)
+
         try:
             self.PRESET = False
             self.running = False
             self.clear_layout(self.Instruments_Content_Layout)
             try:
+                reset_button(self.eto_radio_button)
+                reset_button(self.fmr_radio_button)
+                reset_button(self.demo_radio_buttom)
                 self.clear_layout(self.measurement_type_layout)
                 self.clear_layout(self.graphing_layout)
                 self.clear_layout(self.buttons_layout)
@@ -1423,15 +1432,17 @@ class Measurement(QMainWindow):
         eto_setting_average_layout.addWidget(eto_setting_average_label)
         eto_setting_average_layout.addStretch(1)
         eto_setting_average_layout.addWidget(self.eto_setting_average_line_edit)
+        eto_setting_layout.addLayout(eto_setting_average_layout)
 
         eto_setting_init_temp_rate_layout = QHBoxLayout()
-        eto_setting_init_temp_rate_label = QLabel('Initial Temperature Rate (K/min):')
+        eto_setting_init_temp_rate_label = QLabel('Temperature Ramping Rate (K/min):')
         eto_setting_init_temp_rate_label.setFont(self.font)
         self.eto_setting_init_temp_rate_line_edit = QLineEdit('50')
         self.eto_setting_init_temp_rate_line_edit.setFont(self.font)
         eto_setting_init_temp_rate_layout.addWidget(eto_setting_init_temp_rate_label)
         eto_setting_init_temp_rate_layout.addStretch(1)
         eto_setting_init_temp_rate_layout.addWidget(self.eto_setting_init_temp_rate_line_edit)
+        eto_setting_layout.addLayout(eto_setting_init_temp_rate_layout)
 
         eto_setting_demag_field_layout = QHBoxLayout()
         eto_setting_demag_field_label = QLabel('Demagnetization Field (Oe):')
@@ -1441,14 +1452,13 @@ class Measurement(QMainWindow):
         eto_setting_demag_field_layout.addWidget(eto_setting_demag_field_label)
         eto_setting_demag_field_layout.addStretch(1)
         eto_setting_demag_field_layout.addWidget(self.eto_setting_demag_field_line_edit)
-
-        self.eto_setting_zero_field_record_check_box = QCheckBox('Record Zero Field')
-        self.eto_setting_zero_field_record_check_box.setFont(self.font)
-
-        eto_setting_layout.addLayout(eto_setting_average_layout)
-        eto_setting_layout.addLayout(eto_setting_init_temp_rate_layout)
         eto_setting_layout.addLayout(eto_setting_demag_field_layout)
-        eto_setting_layout.addWidget(self.eto_setting_zero_field_record_check_box)
+
+        if self.ETO_FIELD_DEP:
+            self.eto_setting_zero_field_record_check_box = QCheckBox('Record Zero Field')
+            self.eto_setting_zero_field_record_check_box.setFont(self.font)
+            eto_setting_layout.addWidget(self.eto_setting_zero_field_record_check_box)
+
         return eto_setting_layout
 
     def connect_devices(self):
@@ -1929,7 +1939,7 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_value_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
-        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
+        # self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
 
         self.dsp7265_sensitivity_reading_layout = QHBoxLayout()
         self.dsp7265_sensitivity_reading_label = QLabel('Sensitivity: ')
@@ -1938,7 +1948,7 @@ class Measurement(QMainWindow):
         self.dsp7265_sensitivity_reading_value_label.setFont(self.font)
         self.dsp7265_sensitivity_reading_layout.addWidget(self.dsp7265_sensitivity_reading_label)
         self.dsp7265_sensitivity_reading_layout.addWidget(self.dsp7265_sensitivity_reading_value_label)
-        self.dsp7265_sensitivity_reading_value_label.setText(self.dsp7265_cur_sense)
+        # self.dsp7265_sensitivity_reading_value_label.setText(self.dsp7265_cur_sense)
 
         self.dsp7265_time_constant_reading_layout = QHBoxLayout()
         self.dsp7265_time_constant_reading_label = QLabel('Time Constant: ')
@@ -1947,7 +1957,16 @@ class Measurement(QMainWindow):
         self.dsp7265_time_constant_reading_value_label.setFont(self.font)
         self.dsp7265_time_constant_reading_layout.addWidget(self.dsp7265_time_constant_reading_label)
         self.dsp7265_time_constant_reading_layout.addWidget(self.dsp7265_time_constant_reading_value_label)
-        self.dsp7265_time_constant_reading_value_label.setText(self.dsp7265_cur_tc)
+        # self.dsp7265_time_constant_reading_value_label.setText(self.dsp7265_cur_tc)
+
+        self.dsp7265_reference_layout = QHBoxLayout()
+        self.dsp7265_reference_label = QLabel('Reference: ')
+        self.dsp7265_reference_value_label = QLabel('N/A')
+        self.dsp7265_reference_label.setFont(self.font)
+        self.dsp7265_reference_value_label.setFont(self.font)
+        self.dsp7265_reference_layout.addWidget(self.dsp7265_reference_label)
+        self.dsp7265_reference_layout.addWidget(self.dsp7265_reference_value_label)
+        # self.dsp7265_reference_value_label.setText(self.dsp7265_ref_source)
 
         self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
@@ -1993,14 +2012,8 @@ class Measurement(QMainWindow):
              "1 V", "Auto"]
 
         sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
+
         return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage"
-        # return {
-        #     "Reference": ref_source,
-        #     "Frequency": ref_freq,
-        #     "Time Constant": time_constant,
-        #     "Sensitivity": sensitivity,
-        #     "Mode": "Current" if mode > 0 else "Voltage"
-        # }
 
     def keithley2182_window_ui(self):
         self.Keithley_2182_Container = QWidget(self)
@@ -3500,11 +3513,11 @@ class Measurement(QMainWindow):
         self.dsp7265_mag_reading_value_label.setText(f'{str(mag)} volts')
         self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
-    def update_measurement_progress(self, day, hour, min):
+    def update_measurement_progress(self, day, hour, min, progress):
         self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)} days')
         self.eto_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} hours')
         self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)} mins')
-        # self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progess)} %')
+        self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progress)} %')
 
     def update_eto_average_label(self):
         avg = self.eto_setting_average_line_edit.text()
@@ -4035,7 +4048,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                update_measurement_progress(total_time_in_days, total_time_in_hours, totoal_time_in_minutes)
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
+                                update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes, current_progress * 100)
 
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
@@ -4233,8 +4251,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
                         else:
                             set_field(topField, fast_field_rate)
 
@@ -4383,8 +4405,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
 
                             # ----------------- Loop Up ----------------------#
                             NotificationManager().send_message(f"Starting the second half of measurement - ramping field up")
@@ -4512,6 +4538,7 @@ class Measurement(QMainWindow):
                                 single_measurement_end = time.time()
                                 Single_loop = single_measurement_end - single_measurement_start
                                 number_of_field_update = number_of_field_update - 1
+
                                 total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
                                         number_of_temp - i)
                                 totoal_time_in_minutes = total_time_in_seconds / 60
@@ -4528,8 +4555,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
                         if Keithley_2182_Connected:
                             if field_mode_fixed:
                                 if nv_channel_1_enabled:
@@ -4741,8 +4772,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
 
                             # ----------------- Loop Up ----------------------#
                             currentField = botField
@@ -4839,8 +4874,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
                         else:
 
                             append_text(f'Waiting for {topField} Oe Field... \n', 'blue')
@@ -4942,8 +4981,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
 
                             # ----------------- Loop Up ----------------------#
 
@@ -5042,8 +5085,12 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
+                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp) / 3600
+                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes)
+                                                            totoal_time_in_minutes, current_progress * 100)
                         if Keithley_2182_Connected:
                             if nv_channel_1_enabled:
                                 save_plot(self.field_array, self.channel1_array, 'black', True, False, True,
