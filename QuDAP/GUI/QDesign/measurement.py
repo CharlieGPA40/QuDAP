@@ -267,6 +267,14 @@ class NotificationManager:
         """Reload enabled channels from settings"""
         self.enabled_channels = self._load_enabled_channels()
 
+class WideComboBox(QComboBox):
+    def showPopup(self):
+        # Get the popup view
+        popup = self.view()
+        # Resize the popup width
+        popup.setMinimumWidth(300)  # Set desired width here
+        super().showPopup()
+
 class Worker(QThread):
     progress_update = pyqtSignal(int)
     append_text = pyqtSignal(str, str)
@@ -614,11 +622,15 @@ class MplCanvas(FigureCanvas):
 class Measurement(QMainWindow):
     def __init__(self):
         super().__init__()
-
         try:
-            self.preseted = False
+            self.PRESET = False
+            self.ETO_SELECTED = False
+            self.FMR_SELECTED = False
+            self.ETO_IV = False
+            self.ETO_FIELD_DEP = False
+            self.ETO_TEMP_DEP = False
+            self.FMR_ST_FMR = False
             self.demo_mode = False
-            self.telegram = False
             self.Keithley_2182_Connected = False
             self.Ketihley_6221_Connected = False
             self.BNC845RF_CONNECTED = False
@@ -681,22 +693,27 @@ class Measurement(QMainWindow):
         #  ---------------------------- PART 2 --------------------------------
         with open("GUI/QSS/QButtonWidget.qss", "r") as file:
             self.Button_stylesheet = file.read()
+        with open("GUI/QSS/QComboWidget.qss", "r") as file:
+            self.QCombo_stylesheet = file.read()
         self.preset_group_box = QGroupBox("Experiment Preset")
         self.preset_group_box.setStyleSheet("""                                     
                                                 QGroupBox {
                                                     background-color: white;
                                                 }
                                                             """)
-        self.ETO_radio_buttom = QRadioButton("ETO")
-        self.ETO_radio_buttom.setFont(self.font)
-        self.FMR_radio_buttom = QRadioButton("FMR")
-        self.FMR_radio_buttom.setFont(self.font)
-        self.Demo_radio_buttom = QRadioButton("Demo")
-        self.Demo_radio_buttom.setFont(self.font)
-
+        self.eto_radio_button = QRadioButton("ETO")
+        self.eto_radio_button.setFont(self.font)
+        self.eto_radio_button.toggled.connect(self.eto_measurement_selection)
+        self.fmr_radio_button = QRadioButton("FMR")
+        self.fmr_radio_button.setFont(self.font)
+        self.fmr_radio_button.toggled.connect(self.fmr_measurement_selection)
+        self.demo_radio_buttom = QRadioButton("Demo")
+        self.demo_radio_buttom.setFont(self.font)
+        self.demo_radio_buttom.toggled.connect(self.demo_selection)
 
         self.reset_preset_buttom = QPushButton("Reset")
         self.select_preset_buttom = QPushButton("Select")
+        self.select_preset_buttom.setEnabled(False)
         self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
         self.reset_preset_buttom.setStyleSheet(self.Button_stylesheet)
 
@@ -706,18 +723,21 @@ class Measurement(QMainWindow):
         self.preset_layout = QVBoxLayout()
         self.radio_btn_layout = QHBoxLayout()
         self.radio_btn_layout.addStretch(2)
-        self.radio_btn_layout.addWidget(self.ETO_radio_buttom)
+        self.radio_btn_layout.addWidget(self.eto_radio_button)
         self.radio_btn_layout.addStretch(1)
-        self.radio_btn_layout.addWidget(self.FMR_radio_buttom)
+        self.radio_btn_layout.addWidget(self.fmr_radio_button)
         self.radio_btn_layout.addStretch(2)
-        self.radio_btn_layout.addWidget(self.Demo_radio_buttom)
+        self.radio_btn_layout.addWidget(self.demo_radio_buttom)
         self.radio_btn_layout.addStretch(2)
+
+        self.measurement_type_layout = QHBoxLayout()
 
         self.select_preset_btn_layout = QHBoxLayout()
         self.select_preset_btn_layout.addWidget(self.reset_preset_buttom)
         self.select_preset_btn_layout.addWidget(self.select_preset_buttom)
 
         self.preset_layout.addLayout(self.radio_btn_layout)
+        self.preset_layout.addLayout(self.measurement_type_layout)
         self.preset_layout.addLayout(self.select_preset_btn_layout)
         self.preset_group_box.setLayout(self.preset_layout)
 
@@ -738,12 +758,65 @@ class Measurement(QMainWindow):
         # Set the scroll area as the central widget of the main window
         self.setCentralWidget(self.scroll_area)
 
+    def eto_measurement_selection(self):
+        try:
+            self.select_preset_buttom.setEnabled(False)
+            self.FMR_SELECTED = False
+            self.ETO_SELECTED = True
+            eto_measurement_layout = QHBoxLayout()
+            eto_measurement_label = QLabel('Measurement Type:')
+            eto_measurement_label.setFont(self.font)
+            self.eto_measurement_combo_box = WideComboBox()
+            self.eto_measurement_combo_box.setFont(self.font)
+            self.eto_measurement_combo_box.setStyleSheet(self.QCombo_stylesheet)
+            self.eto_measurement_combo_box.addItems(
+                [" ", "I-V", "ETO Field Dependence", "ETO Temperature Dependence"])
+            self.eto_measurement_combo_box.currentIndexChanged.connect(self.preset_validation)
+            eto_measurement_layout.addWidget(eto_measurement_label)
+            eto_measurement_layout.addWidget(self.eto_measurement_combo_box)
+            self.clear_layout(self.measurement_type_layout)
+            self.measurement_type_layout.addLayout(eto_measurement_layout)
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+    def fmr_measurement_selection(self):
+        try:
+            self.select_preset_buttom.setEnabled(False)
+            self.ETO_SELECTED = False
+            self.FMR_SELECTED = True
+            fmr_measurement_layout = QHBoxLayout()
+            fmr_measurement_label = QLabel('Measurement Type:')
+            fmr_measurement_label.setFont(self.font)
+            self.fmr_measurement_combo_box = QComboBox()
+            self.fmr_measurement_combo_box.setFont(self.font)
+            self.fmr_measurement_combo_box.setStyleSheet(self.QCombo_stylesheet)
+            self.fmr_measurement_combo_box.addItems(
+                [" ", "ST-FMR", "Coming Soon"])
+            self.fmr_measurement_combo_box.currentIndexChanged.connect(self.preset_validation)
+            fmr_measurement_layout.addWidget(fmr_measurement_label)
+            fmr_measurement_layout.addWidget(self.fmr_measurement_combo_box)
+            self.clear_layout(self.measurement_type_layout)
+            self.measurement_type_layout.addLayout(fmr_measurement_layout)
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+    def demo_selection(self):
+        self.ETO_SELECTED = False
+        self.FMR_SELECTED = False
+        self.clear_layout(self.measurement_type_layout)
+        self.select_preset_buttom.setEnabled(True)
+
     def preset_reset(self):
         try:
-            self.preseted = False
+            self.PRESET = False
             self.running = False
             self.clear_layout(self.Instruments_Content_Layout)
             try:
+                self.clear_layout(self.measurement_type_layout)
                 self.clear_layout(self.graphing_layout)
                 self.clear_layout(self.buttons_layout)
                 self.instrument_connection_layout.removeWidget(self.ppms_container)
@@ -764,6 +837,7 @@ class Measurement(QMainWindow):
                 self.keithley_6221.close()
                 self.keithley_2182nv.close()
                 self.DSP7265.close()
+                self.bnc845rf.close()
             except Exception as e:
                 pass
         except Exception as e:
@@ -771,24 +845,53 @@ class Measurement(QMainWindow):
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
             return
 
+    def preset_validation(self):
+        if self.ETO_SELECTED:
+            if self.eto_measurement_combo_box.currentIndex() == 1:
+                self.select_preset_buttom.setEnabled(False)
+            else:
+                self.select_preset_buttom.setEnabled(True)
+        elif self.FMR_SELECTED:
+            if self.fmr_measurement_combo_box.currentIndex() == 0:
+                self.select_preset_buttom.setEnabled(False)
+            else:
+                self.select_preset_buttom.setEnabled(True)
+
     def preset_select(self):
+        if self.ETO_SELECTED:
+            if self.eto_measurement_combo_box.currentIndex() == 1:
+                self.ETO_IV = True
+            elif self.eto_measurement_combo_box.currentIndex() == 2:
+                self.ETO_FIELD_DEP = True
+            elif self.eto_measurement_combo_box.currentIndex() == 3:
+                self.ETO_TEMP_DEP = True
+            else:
+                self.ETO_IV = False
+                self.ETO_FIELD_DEP = False
+                self.ETO_TEMP_DEP = False
+        elif self.FMR_SELECTED:
+            if self.fmr_measurement_combo_box.currentIndex() == 1:
+                self.FMR_ST_FMR = True
+            else:
+                self.FMR_ST_FMR = False
+        else:
+            self.ETO_IV = False
+            self.ETO_FIELD_DEP = False
+            self.ETO_TEMP_DEP = False
+            self.FMR_ST_FMR = False
+
         try:
-            if self.preseted == False:
-                self.preseted = True
-                with open("GUI/QSS/QComboWidget.qss", "r") as file:
-                    self.QCombo_stylesheet = file.read()
+            if self.PRESET == False:
+                self.PRESET = True
+
                 # --------------------------------------- Part connection ----------------------------
                 self.ppms_container = QWidget()
                 self.ppms_main_layout = QHBoxLayout()
                 self.connection_group_box = QGroupBox("PPMS Connection")
                 self.connection_box_layout = QVBoxLayout()
 
-                self.xps_container = QWidget()
-                self.xps_main_layout = QHBoxLayout()
-                self.xps_connection_group_box = QGroupBox("XPS Connection")
-                self.xps_connection_box_layout = QVBoxLayout()
                 # --------------------------------------- Part connection_PPMS ----------------------------
-                if self.Demo_radio_buttom.isChecked():
+                if self.demo_radio_buttom.isChecked():
                     self.demo_mode = True
                     self.ppms_connection = QVBoxLayout()
                     self.ppms_host_connection_layout = QHBoxLayout()
@@ -833,60 +936,6 @@ class Measurement(QMainWindow):
                     self.instrument_connection_layout.addWidget(self.ppms_container)
                     self.server_btn.setStyleSheet(self.Button_stylesheet)
                     self.connect_btn.setStyleSheet(self.Button_stylesheet)
-                    # try:
-                    #     self.xps_connection = QVBoxLayout()
-                    #     self.xps_host_connection_layout = QHBoxLayout()
-                    #     self.xps_username_connection_layout = QHBoxLayout()
-                    #     self.xps_password_connection_layout = QHBoxLayout()
-                    #     self.xps_connection_button_layout = QHBoxLayout()
-                    #
-                    #     self.xps_host_label = QLabel("XPS Host:")
-                    #     self.xps_host_label.setFont(self.font)
-                    #     self.xps_host_entry_box = QLineEdit("192.168.254.254")
-                    #     self.xps_host_entry_box.setFont(self.font)
-                    #     self.xps_host_entry_box.setFixedHeight(30)
-                    #
-                    #     self.xps_port_label = QLabel("Username:")
-                    #     self.xps_port_label.setFont(self.font)
-                    #     self.xps_port_entry_box = QLineEdit("5001")
-                    #     self.xps_port_entry_box.setFont(self.font)
-                    #     self.xps_port_entry_box.setFixedHeight(30)
-                    #
-                    #
-                    #     self.xps_server_btn = QPushButton('Start Service')
-                    #     self.xps_server_btn_clicked = False
-                    #     self.xps_server_btn.clicked.connect(self.xps_start_server)
-                    #
-                    #     self.xps_host_connection_layout.addWidget(self.xps_host_label, 1)
-                    #     self.xps_host_connection_layout.addWidget(self.xps_host_entry_box, 2)
-                    #
-                    #     self.xps_username_connection_layout.addWidget(self.xps_port_label, 1)
-                    #     self.xps_username_connection_layout.addWidget(self.xps_port_entry_box, 2)
-                    #
-                    #
-                    #     self.xps_password_connection_layout.addStretch(1)
-                    #     self.xps_connection_button_layout.addWidget(self.xps_server_btn)
-                    #     # self.xps_connection_container = QWidget()
-                    #     # self.xps_connection_container.setFixedSize(380, 40)
-                    #
-                    #     self.xps_connection.addLayout(self.xps_host_connection_layout)
-                    #     self.xps_connection.addLayout(self.xps_username_connection_layout)
-                    #     self.xps_connection.addLayout(self.xps_password_connection_layout)
-                    #     self.xps_connection.addLayout(self.xps_connection_button_layout)
-                    #
-                    #     self.xps_connection_group_box.setLayout(self.xps_connection)
-                    #     self.xps_main_layout.addWidget(self.xps_connection_group_box)
-                    #     self.xps_container.setFixedSize(380, 180)
-                    #     self.xps_container.setLayout(self.xps_main_layout)
-                    #
-                    #     self.instrument_connection_layout.addWidget(self.xps_container)
-                    #
-                    #
-                    #     self.xps_server_btn.setStyleSheet(self.Button_stylesheet)
-                    #
-                    # except SystemExit as e:
-                    #     tb_str = traceback.format_exc()
-                    #     QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                 else:
                     self.ppms_connection = QVBoxLayout()
                     self.ppms_host_connection_layout = QHBoxLayout()
@@ -943,19 +992,17 @@ class Measurement(QMainWindow):
                 self.instru_cnt_btn_layout = QHBoxLayout()
                 self.Instruments_sel_label = QLabel("Select Instruments:")
                 self.Instruments_sel_label.setFont(self.font)
-                self.Instruments_combo = QComboBox()
-                self.Instruments_combo.setFont(self.font)
-                self.Instruments_combo.setStyleSheet(self.QCombo_stylesheet)
-                if self.ETO_radio_buttom.isChecked():
-                    self.Instruments_combo.addItems(
+                self.instruments_selection_combo_box = QComboBox()
+                self.instruments_selection_combo_box.setFont(self.font)
+                self.instruments_selection_combo_box.setStyleSheet(self.QCombo_stylesheet)
+                if self.eto_radio_button.isChecked():
+                    self.instruments_selection_combo_box.addItems(
                         ["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
-                elif self.FMR_radio_buttom.isChecked():
-                    self.Instruments_combo.addItems(["Select Instruments","BNC 845 RF", "DSP 7265 Lock-in"])
-                # elif self.PaP_radio_buttom.isChecked():
-                #     self.Instruments_combo.addItems(["Select Instruments","sr830 Lock-in", "DSP 7265 Lock-in"])
-                elif self.Demo_radio_buttom.isChecked():
-                    self.Instruments_combo.addItems(["Select Instruments", "Keithley 2182 nv", "Keithley 6221"])
-                self.Instruments_combo.currentIndexChanged.connect(self.instru_combo_index_change)
+                elif self.fmr_radio_button.isChecked():
+                    self.instruments_selection_combo_box.addItems(["Select Instruments","BNC 845 RF", "DSP 7265 Lock-in"])
+                elif self.demo_radio_buttom.isChecked():
+                    self.instruments_selection_combo_box.addItems(["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
+                self.instruments_selection_combo_box.currentIndexChanged.connect(self.instru_combo_index_change)
                 self.Instruments_port_label = QLabel("Channel:")
                 self.Instruments_port_label.setFont(self.font)
                 self.connection_combo = QComboBox()
@@ -967,7 +1014,7 @@ class Measurement(QMainWindow):
                 self.instru_connect_btn = QPushButton('Connect')
                 self.instru_connect_btn.clicked.connect(self.connect_devices)
                 self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
-                self.instru_select_layout.addWidget(self.Instruments_combo, 2)
+                self.instru_select_layout.addWidget(self.instruments_selection_combo_box, 2)
 
                 self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
                 self.instru_connection_layout.addWidget(self.connection_combo, 3)
@@ -986,9 +1033,6 @@ class Measurement(QMainWindow):
                 # self.PPMS_measurement_setup_layout = QHBoxLayout()
                 self.eto_ppms_layout = QVBoxLayout()
                 self.Instruments_Content_Layout.addLayout(self.eto_ppms_layout)
-
-                self.xpsmeasurement_setup_layout = QHBoxLayout()
-                self.Instruments_Content_Layout.addLayout(self.xpsmeasurement_setup_layout)
 
                 self.Instruments_measurement_setup_layout = QHBoxLayout()
                 self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
@@ -1065,6 +1109,7 @@ class Measurement(QMainWindow):
         if self.demo_mode:
             self.connection_combo.addItems(["K2182 Demo"])
             self.connection_combo.addItems(["K6221 Demo"])
+            self.connection_combo.addItems(["DSP7265 Demo"])
 
     def check_validator(self, validator_model, entry):
         try:
@@ -1085,47 +1130,6 @@ class Measurement(QMainWindow):
                     child.widget().deleteLater()
                 if child.layout() is not None:
                     self.clear_layout(child.layout())
-
-    # def xps_start_server(self):
-    #     if self.xps_server_btn_clicked == False:
-    #         self.xps_server_btn_clicked = True
-    #         self.xps_server_btn.setText('Stop Service')
-    #         directory_path = "C:/Windows/Microsoft.NET/assembly/GAC_64/Newport.XPS.CommandInterface"
-    #         if os.path.isdir(directory_path):
-    #             directories = [f for f in glob.glob(f"{directory_path}/*") if os.path.isdir(f)]
-    #
-    #             try:
-    #                 # Define the controller's IP address and port
-    #                 self.host = self.xps_host_entry_box.displayText()
-    #                 self.port = int(self.xps_port_entry_box.displayText())
-    #
-    #                 myXPS = XPS()
-    #                 timeout = 1000
-    #                 result = myXPS.OpenInstrument(self.host, self.port, timeout)
-    #                 if result == 0:
-    #                     print('Open ', self.host, ":", self.port, " => Successful")
-    #                 else:
-    #                     QMessageBox.critical(self, 'Fail to connect', 'Please try again')
-    #
-    #
-    #             except SystemExit as e:
-    #                 QMessageBox.critical(self, 'No Server detected', 'Please check connection again')
-    #                 self.server_btn.setText('Start Server')
-    #                 event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-    #                 QApplication.sendEvent(self, event)
-    #                 event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-    #                 QApplication.sendEvent(self, event)
-    #                 return
-    #         else:
-    #             QMessageBox.critical(self, 'No driver detected', 'Please check whether the driver is properly installed!')
-    #             self.server_btn.setText('Start Server')
-    #             event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-    #             QApplication.sendEvent(self, event)
-    #             event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-    #             QApplication.sendEvent(self, event)
-    #     else:
-    #         self.xps_server_btn_clicked = False
-    #         self.xps_server_btn.setText('Start Service')
 
     def start_server(self):
         if self.server_btn_clicked == False:
@@ -1181,116 +1185,20 @@ class Measurement(QMainWindow):
                 self.server_btn.setEnabled(False)
                 self.client_keep_going = True
                 self.ppms_reading_group_box = QGroupBox('PPMS Status')
-                self.ppms_Temp_group_box = QGroupBox('Temperature Setup')
-                self.ppms_Field_group_box = QGroupBox('Field Setup')
-                self.ppms_reading_layout = QVBoxLayout()
-                self.ppms_temp_layout = QHBoxLayout()
-                self.ppms_temp_label = QLabel('Temperature (K):')
-                self.ppms_temp_label.setFont(self.font)
-                self.ppms_reading_temp_label = QLabel('N/A K')
-                self.ppms_reading_temp_label.setFont(self.font)
-                self.ppms_temp_layout.addWidget(self.ppms_temp_label)
-                self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
-                self.ppms_field_layout = QHBoxLayout()
-                self.ppms_field_label = QLabel('Field (Oe):')
-                self.ppms_field_label.setFont(self.font)
-                self.ppms_reading_field_label = QLabel('N/A Oe')
-                self.ppms_reading_field_label.setFont(self.font)
-                self.ppms_field_layout.addWidget(self.ppms_field_label)
-                self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
+                self.ppms_temp_group_box = QGroupBox('Temperature Setup')
+                self.ppms_field_group_box = QGroupBox('Field Setup')
+                
+                self.ppms_reading_group_box.setLayout(self.ppms_status_reading_ui())
+                self.ppms_temp_group_box.setLayout(self.ppms_temperature_setup_ui())
+                self.ppms_field_group_box.setLayout(self.ppms_field_setup_ui())
 
-                self.ppms_chamber_layout = QHBoxLayout()
-                self.ppms_chamber_label = QLabel('Chamber Status:')
-                self.ppms_chamber_label.setFont(self.font)
-                self.ppms_reading_chamber_label = QLabel('N/A')
-                self.ppms_reading_chamber_label.setFont(self.font)
-                self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
-                self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
-
-                self.ppms_reading_layout.addLayout(self.ppms_temp_layout)
-                self.ppms_reading_layout.addLayout(self.ppms_field_layout)
-                self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
-
-                self.ppms_reading_group_box.setLayout(self.ppms_reading_layout)
-                self.ppms_temp_setting_layout = QVBoxLayout()
-                self.ppms_temp_radio_buttom_layout = QHBoxLayout()
-                self.ppms_zone_temp_layout = QVBoxLayout()
-                self.Temp_setup_Zone_1 = False
-                self.Temp_setup_Zone_2 = False
-                self.Temp_setup_Zone_3 = False
-                self.Temp_setup_Zone_Cus = False
-                self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
-                self.ppms_temp_zone_number_label.setFont(self.font)
-                self.ppms_temp_One_zone_radio = QRadioButton("1")
-                self.ppms_temp_One_zone_radio.setFont(self.font)
-                self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
-                self.ppms_temp_Two_zone_radio = QRadioButton("2")
-                self.ppms_temp_Two_zone_radio.setFont(self.font)
-                self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
-                self.ppms_temp_Three_zone_radio = QRadioButton("3")
-                self.ppms_temp_Three_zone_radio.setFont(self.font)
-                self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
-                self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
-                self.ppms_temp_Customize_zone_radio.setFont(self.font)
-                self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
-                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
-                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
-                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
-                self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
-                self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
-                self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
-                self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
-                self.ppms_Temp_group_box.setLayout(self.ppms_temp_setting_layout)
-
-                self.ppms_field_setting_layout = QVBoxLayout()
-                self.ppms_field_mode_buttom_layout = QHBoxLayout()
-                self.ppms_field_radio_buttom_layout = QHBoxLayout()
-                self.ppms_zone_field_layout = QVBoxLayout()
-
-                self.Field_setup_Zone_1 = False
-                self.Field_setup_Zone_2 = False
-                self.Field_setup_Zone_3 = False
-
-                self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
-                self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
-                self.ppms_field_cointinous_mode_radio_button.setChecked(True)
-                self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
-
-                self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
-                self.ppms_field_fixed_mode_radio_button.setFont(self.font)
-                self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
-
-                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
-                self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
-                self.ppms_field_mode_buttom_group = QButtonGroup()
-                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
-                self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
-
-                self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
-                self.ppms_field_zone_number_label.setFont(self.font)
-                self.ppms_field_One_zone_radio = QRadioButton("1")
-                self.ppms_field_One_zone_radio.setFont(self.font)
-                self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
-                self.ppms_field_Two_zone_radio = QRadioButton("2")
-                self.ppms_field_Two_zone_radio.setFont(self.font)
-                self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
-                self.ppms_field_Three_zone_radio = QRadioButton("3")
-                self.ppms_field_Three_zone_radio.setFont(self.font)
-                self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
-                self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
-                self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
-                self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
-                self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
-                self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
-                self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
-                self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
-                self.ppms_Field_group_box.setLayout(self.ppms_field_setting_layout)
                 self.ppms_reading_group_box.setFixedWidth(340)
-                self.ppms_Temp_group_box.setFixedWidth(350)
-                self.ppms_Field_group_box.setFixedWidth(420)
+                self.ppms_temp_group_box.setFixedWidth(350)
+                self.ppms_field_group_box.setFixedWidth(420)
+
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Temp_group_box)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_Field_group_box)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_temp_group_box)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_field_group_box)
 
                 self.eto_ppms_layout.addLayout(self.eto_setup_ui())
                 self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
@@ -1307,14 +1215,132 @@ class Measurement(QMainWindow):
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
             self.server_btn.setEnabled(True)
+    
+    def ppms_status_reading_ui(self):
+        self.ppms_reading_layout = QVBoxLayout()
+        self.ppms_temp_layout = QHBoxLayout()
+        self.ppms_temp_label = QLabel('Temperature (K):')
+        self.ppms_temp_label.setFont(self.font)
+        self.ppms_reading_temp_label = QLabel('N/A K')
+        self.ppms_reading_temp_label.setFont(self.font)
+        self.ppms_temp_layout.addWidget(self.ppms_temp_label)
+        self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
+        self.ppms_field_layout = QHBoxLayout()
+        self.ppms_field_label = QLabel('Field (Oe):')
+        self.ppms_field_label.setFont(self.font)
+        self.ppms_reading_field_label = QLabel('N/A Oe')
+        self.ppms_reading_field_label.setFont(self.font)
+        self.ppms_field_layout.addWidget(self.ppms_field_label)
+        self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
 
+        self.ppms_chamber_layout = QHBoxLayout()
+        self.ppms_chamber_label = QLabel('Chamber Status:')
+        self.ppms_chamber_label.setFont(self.font)
+        self.ppms_reading_chamber_label = QLabel('N/A')
+        self.ppms_reading_chamber_label.setFont(self.font)
+        self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
+        self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
+
+        self.ppms_reading_layout.addLayout(self.ppms_temp_layout)
+        self.ppms_reading_layout.addLayout(self.ppms_field_layout)
+        self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
+        return self.ppms_reading_layout
+        
+    def ppms_temperature_setup_ui(self):
+        if self.ETO_FIELD_DEP:
+            self.ppms_temp_setting_layout = QVBoxLayout()
+            self.ppms_temp_radio_buttom_layout = QHBoxLayout()
+            self.ppms_zone_temp_layout = QVBoxLayout()
+            self.Temp_setup_Zone_1 = False
+            self.Temp_setup_Zone_2 = False
+            self.Temp_setup_Zone_3 = False
+            self.Temp_setup_Zone_Cus = False
+            self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.ppms_temp_zone_number_label.setFont(self.font)
+            self.ppms_temp_One_zone_radio = QRadioButton("1")
+            self.ppms_temp_One_zone_radio.setFont(self.font)
+            self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
+            self.ppms_temp_Two_zone_radio = QRadioButton("2")
+            self.ppms_temp_Two_zone_radio.setFont(self.font)
+            self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
+            self.ppms_temp_Three_zone_radio = QRadioButton("3")
+            self.ppms_temp_Three_zone_radio.setFont(self.font)
+            self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
+            self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
+            self.ppms_temp_Customize_zone_radio.setFont(self.font)
+            self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
+            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
+            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
+            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
+            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
+            self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
+            self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
+            self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
+
+        return self.ppms_temp_setting_layout
+    
+    def ppms_field_setup_ui(self):
+        if self.ETO_FIELD_DEP:
+            self.ppms_field_setting_layout = QVBoxLayout()
+            self.ppms_field_mode_buttom_layout = QHBoxLayout()
+            self.ppms_field_radio_buttom_layout = QHBoxLayout()
+            self.ppms_zone_field_layout = QVBoxLayout()
+
+            self.Field_setup_Zone_1 = False
+            self.Field_setup_Zone_2 = False
+            self.Field_setup_Zone_3 = False
+
+            self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
+            self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
+            self.ppms_field_cointinous_mode_radio_button.setChecked(True)
+            self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
+
+            self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
+            self.ppms_field_fixed_mode_radio_button.setFont(self.font)
+            self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
+
+            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
+            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
+            self.ppms_field_mode_buttom_group = QButtonGroup()
+            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
+            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
+
+            self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.ppms_field_zone_number_label.setFont(self.font)
+            self.ppms_field_One_zone_radio = QRadioButton("1")
+            self.ppms_field_One_zone_radio.setFont(self.font)
+            self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
+            self.ppms_field_Two_zone_radio = QRadioButton("2")
+            self.ppms_field_Two_zone_radio.setFont(self.font)
+            self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
+            self.ppms_field_Three_zone_radio = QRadioButton("3")
+            self.ppms_field_Three_zone_radio.setFont(self.font)
+            self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
+            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
+            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
+            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
+            self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
+            self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
+            self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
+            self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
+        return self.ppms_field_setting_layout
+    
     def eto_setup_ui(self):
         eto_reading_setting_layout = QHBoxLayout()
         eto_status_reading_group_box = QGroupBox('Measurement Status')
-        eto_status_setting_group_box = QGroupBox('ETO Setting')
-
         eto_status_reading_group_box.setLayout(self.eto_measurement_status_ui())
-        eto_status_setting_group_box.setLayout(self.eto_setting_ui())
+        if self.ETO_IV:
+            eto_status_setting_group_box = QGroupBox('ETO I-V Setting')
+            eto_status_setting_group_box.setLayout(self.eto_field_dep_setting_ui())
+        elif self.ETO_FIELD_DEP:
+            eto_status_setting_group_box = QGroupBox('ETO Field Dependence Setting')
+            eto_status_setting_group_box.setLayout(self.eto_field_dep_setting_ui())
+        elif self.ETO_TEMP_DEP:
+            eto_status_setting_group_box = QGroupBox('ETO Temperature Dependence Setting')
+            eto_status_setting_group_box.setLayout(self.eto_field_dep_setting_ui())
+        else:
+            eto_status_setting_group_box = QGroupBox('ETO Setting')
+
         eto_status_reading_group_box.setFixedWidth(560)
         eto_status_setting_group_box.setFixedWidth(560)
 
@@ -1385,7 +1411,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_layout.addLayout(eto_measurement_status_cur_percent_layout)
         return eto_measurement_status_layout
 
-    def eto_setting_ui(self):
+    def eto_field_dep_setting_ui(self):
         eto_setting_layout = QVBoxLayout()
 
         eto_setting_average_layout = QHBoxLayout()
@@ -1428,9 +1454,9 @@ class Measurement(QMainWindow):
     def connect_devices(self):
         # self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
         self.rm = visa.ResourceManager()
-        self.current_connection_index = self.Instruments_combo.currentIndex()
+        self.current_connection_index = self.instruments_selection_combo_box.currentIndex()
         self.current_connection = self.connection_combo.currentText()
-        if self.ETO_radio_buttom.isChecked():
+        if self.eto_radio_button.isChecked():
             try:
                 if self.current_connection_index == 0:
                     return None
@@ -1460,7 +1486,7 @@ class Measurement(QMainWindow):
                         self.instru_connect_btn.setText('Connect')
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-        elif self.FMR_radio_buttom.isChecked():
+        elif self.fmr_radio_button.isChecked():
             try:
                 if self.current_connection_index == 0:
                     return None
@@ -1482,7 +1508,7 @@ class Measurement(QMainWindow):
                         self.instru_connect_btn.setText('Connect')
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-        if self.Demo_radio_buttom.isChecked():
+        if self.demo_radio_buttom.isChecked():
 
             if self.current_connection_index == 0:
                 return None
@@ -1499,6 +1525,14 @@ class Measurement(QMainWindow):
                     self.connect_keithley_6221()
                 except Exception as e:
                     self.Ketihley_6221_Connected = False
+                    tb_str = traceback.format_exc()
+                    QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+                    self.instru_connect_btn.setText('Connect')
+            elif self.current_connection_index == 3:
+                try:
+                    self.connect_dsp7265()
+                except Exception as e:
+                    self.DSP7265_Connected = False
                     tb_str = traceback.format_exc()
                     QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                     self.instru_connect_btn.setText('Connect')
@@ -1556,15 +1590,24 @@ class Measurement(QMainWindow):
     def connect_dsp7265(self):
         if self.DSP7265_Connected == False:
             try:
-                self.DSP7265 = self.rm.open_resource(self.current_connection, timeout=10000)
-                time.sleep(2)
-                DSPModel = self.DSP7265.query('ID')
+                if not self.demo_mode:
+                    self.DSP7265 = self.rm.open_resource(self.current_connection, timeout=10000)
+                    time.sleep(2)
+                    DSPModel = self.DSP7265.query('ID')
+                    QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
+                    cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+                    self.dsp7265_ref_freq = str(cur_freq)
+                    cur_sense = float(self.DSP7265.query('SEN.')) / 1000
+                    self.dsp7265_cur_sense = str(cur_sense)
+                    cur_tc = float(self.DSP7265.query('TC.')) / 1000
+                    self.dsp7265_cur_tc = str(cur_tc)
+                else:
+                    QMessageBox.information(self, "Connected", F"Connected to Model DSP 7265")
+                    self.dsp7265_ref_freq = '1000'
+                    self.dsp7265_cur_sense = '1 V'
+                    self.dsp7265_cur_tc = '20 ms'
                 self.DSP7265_Connected = True
-                QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
                 self.instru_connect_btn.setText('Disconnect')
-                cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
-                self.dsp7265_ref_freq = str(cur_freq)
-
 
                 self.dsp7265_Window()
             except visa.errors.VisaIOError:
@@ -1613,9 +1656,10 @@ class Measurement(QMainWindow):
 
     def close_dsp7265(self):
         try:
-            self.DSP7265.close()
+            if not self.demo_mode:
+                self.DSP7265.close()
             self.DSP7265_Connected = False
-            self.clear_layout(self.DSP7265_contain_layout)
+            self.clear_layout(self.dsp7265_main_layout)
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -1630,8 +1674,8 @@ class Measurement(QMainWindow):
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def instru_combo_index_change(self):
-        self.current_connection_index = self.Instruments_combo.currentIndex()
-        if self.ETO_radio_buttom.isChecked() or self.Demo_radio_buttom.isChecked():
+        self.current_connection_index = self.instruments_selection_combo_box.currentIndex()
+        if self.eto_radio_button.isChecked() or self.demo_radio_buttom.isChecked():
             if self.current_connection_index == 1:
                 if self.Keithley_2182_Connected:
                     self.instru_connect_btn.setText('Disconnect')
@@ -1648,7 +1692,7 @@ class Measurement(QMainWindow):
                     self.instru_connect_btn.setText('Disconnect')
                 else:
                     self.instru_connect_btn.setText('Connect')
-        elif self.FMR_radio_buttom.isChecked():
+        elif self.fmr_radio_button.isChecked():
             if self.current_connection_index == 1:
                 if self.BNC845RF_CONNECTED:
                     self.instru_connect_btn.setText('Disconnect')
@@ -1666,67 +1710,68 @@ class Measurement(QMainWindow):
         self.bnc845rf_container = QWidget(self)
 
         self.bnc845rf_reading_groupbox =QGroupBox("BNC 845RF Reading")
-        self.bnc845rf_reading_groupbox.setLayout(self.dsp7265_main_layout)
+        self.bnc845rf_reading_groupbox.setLayout(self.dsp7265_setting_layout)
         self.bnc845rf_reading_groupbox.setFixedWidth(560)
 
         self.bnc845rf_setting_groupbox =QGroupBox("BNC 845RF Setting")
-        self.bnc845rf_setting_groupbox.setLayout(self.dsp7265_main_layout)
+        self.bnc845rf_setting_groupbox.setLayout(self.dsp7265_setting_layout)
         self.bnc845rf_setting_groupbox.setFixedWidth(560)
 
     def bnc845rf_window_reading_ui(self):
         None
 
     def dsp7265_Window(self):
-        self.dsp726_Container = QWidget(self)
-        self.dsp726_groupbox = QGroupBox('DSP 7265')
+        # self.dsp726_Container = QWidget(self)
 
-        self.dsp7265_main_layout = QVBoxLayout()
+        self.dsp7265_reading_groupbox = QGroupBox('DSP 7265 Reading')
+        self.dsp7265_setting_groupbox = QGroupBox('DSP 7265 Setting')
 
+        self.dsp7265_setting_layout = QVBoxLayout()
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_imode_ui())
+        self.dsp7265_mode_contain_layout = QVBoxLayout()
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_mode_contain_layout)
+        # Line Filter
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_line_filter_ui())
+        # Sensitivity
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_sensitivity_ui())
+        # TC
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_time_constant_ui())
+        # frequency
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_frequency_ui())
+        # auto sensitivity
+        self.dsp7265_setting_layout.addWidget(self.dsp7265_auto_sensitivity_ui())
+
+        # reading
+        self.dsp7265_reading_parameter_layout = QVBoxLayout()
+        self.dsp7265_reading_parameter_layout.addLayout(self.dsp7265_reading_ui())
+
+        self.dsp7265_setting_groupbox.setLayout(self.dsp7265_setting_layout)
+        self.dsp7265_reading_groupbox.setLayout(self.dsp7265_reading_parameter_layout)
+
+        self.dsp7265_reading_groupbox.setFixedWidth(520)
+        self.dsp7265_setting_groupbox.setFixedWidth(620)
+
+        self.dsp7265_main_layout = QHBoxLayout()
+        self.dsp7265_main_layout.addWidget(self.dsp7265_reading_groupbox)
+        self.dsp7265_main_layout.addWidget(self.dsp7265_setting_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.dsp7265_main_layout)
+    
+    def dsp7265_imode_ui(self):
         self.dsp726_IMODE_layout = QHBoxLayout()
         self.dsp7265_IMODE_combo = QComboBox()
         self.dsp7265_IMODE_combo.setFont(self.font)
         self.dsp7265_IMODE_combo.setStyleSheet(self.QCombo_stylesheet)
         self.dsp7265_IMODE_combo.addItems(
             ["Select Input Mode", "Current mode off", "High bandwidth current mode", "Low noise current mode"])
-        self.dsp7265_IMODE_combo.currentIndexChanged.connect(self.dsp726_IMODE_selection)
+        self.dsp7265_IMODE_combo.currentIndexChanged.connect(self.dsp7265_imode_selection)
         self.dsp_imode_text = QLabel('IMODE:')
         self.dsp_imode_text.setFont(self.font)
         self.dsp726_IMODE_layout.addWidget(self.dsp_imode_text)
         self.dsp726_IMODE_layout.addWidget(self.dsp7265_IMODE_combo)
-        self.dsp7265_main_layout.addLayout(self.dsp726_IMODE_layout)
-
-        self.dsp7265_mode_contain_layout = QVBoxLayout()
-        self.dsp7265_main_layout.addLayout(self.dsp7265_mode_contain_layout)
-
-        # self.dsp7265_setting_reading_layout = QVBoxLayout()
-        # Line Filter
-        self.dsp7265_lf_layout = QHBoxLayout()
-        self.dsp7265_lf_n1_combo = QComboBox()
-        self.dsp7265_lf_n1_combo.setFont(self.font)
-        self.dsp7265_lf_n1_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.dsp7265_lf_n1_combo.addItems(
-            ["Select Line Frequency", "off", "Enable 50 or 60 Hz notch filter", "Enable 100 or 120 Hz notch filter", "Enable both filter"])
-
-        self.dsp7265_lf_n2_combo = QComboBox()
-        self.dsp7265_lf_n2_combo.setFont(self.font)
-        self.dsp7265_lf_n2_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.dsp7265_lf_n2_combo.addItems(
-            ["Select Center Frequency", "60 Hz (and/or 120 Hz)", "50 Hz (and/or 100 Hz)"])
-        self.dsp7265_lf_submit_button = QPushButton('Submit')
-        self.dsp7265_lf_submit_button.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_lf_submit_button.clicked.connect(self.dsp7265_lf_selection)
-
-
-        self.dsp_lf_n1_text = QLabel('Line Filter:')
-        self.dsp_lf_n1_text.setFont(self.font)
-        self.dsp7265_lf_layout.addWidget(self.dsp_lf_n1_text)
-        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n1_combo)
-        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n2_combo)
-        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_submit_button)
-        self.dsp7265_main_layout.addLayout(self.dsp7265_lf_layout)
-
-        # Sensitivity
-        self.dsp726_sens_layout = QHBoxLayout()
+        return self.dsp726_IMODE_layout
+    
+    def dsp7265_sensitivity_ui(self):
+        self.dsp7265_sens_layout = QHBoxLayout()
         self.dsp7265_sens_combo = QComboBox()
         self.dsp7265_sens_combo.setFont(self.font)
         self.dsp7265_sens_combo.setStyleSheet(self.QCombo_stylesheet)
@@ -1739,11 +1784,11 @@ class Measurement(QMainWindow):
         self.dsp7265_sens_combo.currentIndexChanged.connect(self.dsp726_sens_selection)
         self.dsp_sens_text = QLabel('Sensitivity:')
         self.dsp_sens_text.setFont(self.font)
-        self.dsp726_sens_layout.addWidget(self.dsp_sens_text)
-        self.dsp726_sens_layout.addWidget(self.dsp7265_sens_combo)
-        self.dsp7265_main_layout.addLayout(self.dsp726_sens_layout)
-
-        # TC
+        self.dsp7265_sens_layout.addWidget(self.dsp_sens_text)
+        self.dsp7265_sens_layout.addWidget(self.dsp7265_sens_combo)
+        return self.dsp7265_sens_layout
+    
+    def dsp7265_time_constant_ui(self):
         self.dsp7265_tc_layout = QHBoxLayout()
         self.dsp_tc_text = QLabel('Time constant:')
         self.dsp_tc_text.setFont(self.font)
@@ -1761,9 +1806,35 @@ class Measurement(QMainWindow):
 
         self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
         self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
-        self.dsp7265_main_layout.addLayout(self.dsp7265_tc_layout)
+        return self.dsp7265_tc_layout
+    
+    def dsp7265_line_filter_ui(self):
+        self.dsp7265_lf_layout = QHBoxLayout()
+        self.dsp7265_lf_n1_combo = WideComboBox()
+        self.dsp7265_lf_n1_combo.setFont(self.font)
+        self.dsp7265_lf_n1_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_lf_n1_combo.addItems(
+            ["Select Line Frequency", "off", "Enable 50 or 60 Hz notch filter", "Enable 100 or 120 Hz notch filter",
+             "Enable both filter"])
 
-        # frequency
+        self.dsp7265_lf_n2_combo = WideComboBox()
+        self.dsp7265_lf_n2_combo.setFont(self.font)
+        self.dsp7265_lf_n2_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_lf_n2_combo.addItems(
+            ["Select Center Frequency", "60 Hz (and/or 120 Hz)", "50 Hz (and/or 100 Hz)"])
+        self.dsp7265_lf_submit_button = QPushButton('Submit')
+        self.dsp7265_lf_submit_button.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_lf_submit_button.clicked.connect(self.dsp7265_lf_selection)
+
+        self.dsp_lf_n1_text = QLabel('Line Filter:')
+        self.dsp_lf_n1_text.setFont(self.font)
+        self.dsp7265_lf_layout.addWidget(self.dsp_lf_n1_text)
+        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n1_combo)
+        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n2_combo)
+        self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_submit_button)
+        return self.dsp7265_lf_layout
+    
+    def dsp7265_frequency_ui(self):
         self.dsp7265_freq_layout = QHBoxLayout()
         self.dsp7265_freq_text = QLabel('Frequency:')
         self.dsp7265_freq_text.setFont(self.font)
@@ -1787,8 +1858,9 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_unit_text)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
-        self.dsp7265_main_layout.addLayout(self.dsp7265_freq_layout)
-
+        return self.dsp7265_freq_layout
+    
+    def dsp7265_auto_sensitivity_ui(self):
         self.dsp7265_auto_button_layout = QHBoxLayout()
         self.dsp7265_auto_sense = QPushButton('Auto Sens.')
         self.dsp7265_auto_sense.setStyleSheet(self.Button_stylesheet)
@@ -1808,9 +1880,27 @@ class Measurement(QMainWindow):
         self.dsp7265_button_container = QWidget()
         self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
         self.dsp7265_button_container.setFixedHeight(50)
-        self.dsp7265_main_layout.addWidget(self.dsp7265_button_container)
-
+        return self.dsp7265_button_container
+    
+    def dsp7265_reading_ui(self):
         self.dsp7265_reading_layout = QVBoxLayout()
+
+        self.dsp7265_x_reading_layout = QHBoxLayout()
+        self.dsp7265_x_reading_label = QLabel('X: ')
+        self.dsp7265_x_reading_value_label = QLabel('N/A')
+        self.dsp7265_x_reading_label.setFont(self.font)
+        self.dsp7265_x_reading_value_label.setFont(self.font)
+        self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_label)
+        self.dsp7265_x_reading_layout.addWidget(self.dsp7265_x_reading_value_label)
+
+        self.dsp7265_y_reading_layout = QHBoxLayout()
+        self.dsp7265_y_reading_label = QLabel('Y: ')
+        self.dsp7265_y_reading_value_label = QLabel('N/A')
+        self.dsp7265_y_reading_label.setFont(self.font)
+        self.dsp7265_y_reading_value_label.setFont(self.font)
+        self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_label)
+        self.dsp7265_y_reading_layout.addWidget(self.dsp7265_y_reading_value_label)
+
         self.dsp7265_mag_reading_layout = QHBoxLayout()
         self.dsp7265_mag_reading_label = QLabel('Magnitude: ')
         self.dsp7265_mag_reading_value_label = QLabel('N/A')
@@ -1839,19 +1929,33 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
         self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
 
+        self.dsp7265_sensitivity_reading_layout = QHBoxLayout()
+        self.dsp7265_sensitivity_reading_label = QLabel('Sensitivity: ')
+        self.dsp7265_sensitivity_reading_value_label = QLabel('N/A')
+        self.dsp7265_sensitivity_reading_label.setFont(self.font)
+        self.dsp7265_sensitivity_reading_value_label.setFont(self.font)
+        self.dsp7265_sensitivity_reading_layout.addWidget(self.dsp7265_sensitivity_reading_label)
+        self.dsp7265_sensitivity_reading_layout.addWidget(self.dsp7265_sensitivity_reading_value_label)
+        self.dsp7265_sensitivity_reading_value_label.setText(self.dsp7265_cur_sense)
+
+        self.dsp7265_time_constant_reading_layout = QHBoxLayout()
+        self.dsp7265_time_constant_reading_label = QLabel('Time Constant: ')
+        self.dsp7265_time_constant_reading_value_label = QLabel('N/A')
+        self.dsp7265_time_constant_reading_label.setFont(self.font)
+        self.dsp7265_time_constant_reading_value_label.setFont(self.font)
+        self.dsp7265_time_constant_reading_layout.addWidget(self.dsp7265_time_constant_reading_label)
+        self.dsp7265_time_constant_reading_layout.addWidget(self.dsp7265_time_constant_reading_value_label)
+        self.dsp7265_time_constant_reading_value_label.setText(self.dsp7265_cur_tc)
+
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_freq_reading_layout)
-
-        self.dsp7265_main_layout.addStretch(1)
-        self.dsp7265_main_layout.addLayout(self.dsp7265_reading_layout)
-
-        self.dsp726_groupbox.setLayout(self.dsp7265_main_layout)
-        self.dsp726_groupbox.setFixedWidth(500)
-        self.DSP7265_contain_layout = QHBoxLayout()
-        self.DSP7265_contain_layout.addWidget(self.dsp726_groupbox)
-        self.Instruments_measurement_setup_layout.addLayout(self.DSP7265_contain_layout)
-
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_sensitivity_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_time_constant_reading_layout)
+        return self.dsp7265_reading_layout
+    
     def keithley2182_window_ui(self):
         self.Keithley_2182_Container = QWidget(self)
         self.keithley_2182_groupbox = QGroupBox('Keithley 2182nv')
@@ -1935,10 +2039,10 @@ class Measurement(QMainWindow):
         self.Keithey_6221_main_layout = QVBoxLayout()
         self.keithley_6221_DC_radio = QRadioButton("DC")
         self.keithley_6221_DC_radio.setFont(self.font)
-        self.keithley_6221_DC_radio.toggled.connect(self.Keithley_6221_DC)
+        self.keithley_6221_DC_radio.toggled.connect(self.keithley_6221_dc)
         self.keithley_6221_ac_radio = QRadioButton("AC")
         self.keithley_6221_ac_radio.setFont(self.font)
-        self.keithley_6221_ac_radio.toggled.connect(self.Keithley_6221_ac)
+        self.keithley_6221_ac_radio.toggled.connect(self.keithley_6221_ac)
         self.keithley_6221_radio_button_layout = QHBoxLayout()
         self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_DC_radio)
         self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_ac_radio)
@@ -1952,7 +2056,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
 
-    def Keithley_6221_DC(self):
+    def keithley_6221_dc(self):
         try:
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
@@ -2008,7 +2112,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_range_checkbox)
         self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_single_checkbox)
 
-    def Keithley_6221_ac(self):
+    def keithley_6221_ac(self):
         try:
             self.clear_layout(self.Keithey_curSour_layout)
         except Exception as e:
@@ -2145,7 +2249,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_ac_selection_btn_group.addButton(self.keithley_6221_ac_range_checkbox)
         self.keithley_6221_ac_selection_btn_group.addButton(self.keithley_6221_ac_single_checkbox)
 
-    def dsp726_IMODE_selection(self):
+    def dsp7265_imode_selection(self):
         try:
             self.clear_layout(self.dsp7265_mode_contain_layout)
         except Exception as e:
@@ -2214,7 +2318,6 @@ class Measurement(QMainWindow):
     def dsp726_ref_channel_selection(self):
         self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
         if self.dsp_ref_channel_index != 0:
-            print(self.dsp_ref_channel_index)
             self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
             # cur_freq = float(self.DSP7265.query('FRQ[.]'))/1000
             #
@@ -2821,15 +2924,18 @@ class Measurement(QMainWindow):
                     self.append_text('Keithley 2182 connected!\n', 'green')
                 if self.DSP7265_Connected:
                     self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
-                    try:
-                        model_7265 = self.DSP7265.query('ID')
-                        self.log_box.append(str(model_7265))
-                        f.write(f"Instrument: DSP 7265 enabled\n")
-                        time.sleep(2)  # Wait for the reset to complete
-                    except visa.errors.VisaIOError as e:
-                        QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
-                        self.stop_measurement()
-                        return
+                    if self.demo_mode:
+                        self.append_text("Model DSP 7265 Demo", 'green')
+                    else:
+                        try:
+                            model_7265 = self.DSP7265.query('ID')
+                            self.log_box.append(str(model_7265))
+                            f.write(f"Instrument: DSP 7265 enabled\n")
+                            time.sleep(2)  # Wait for the reset to complete
+                        except visa.errors.VisaIOError as e:
+                            QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
+                            self.stop_measurement()
+                            return
                     self.append_text('DSP Lock-in 7265 connected!\n', 'green')
 
                 def float_range(start, stop, step):
