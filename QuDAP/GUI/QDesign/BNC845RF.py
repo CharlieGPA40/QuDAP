@@ -24,11 +24,15 @@ class Command:
     def initialize(self, instrument):
         instrument.write(':INIT ON')
 
-    def output_on(self, instrument, state: str):
+    def set_output(self, instrument, state: str):
         if state.lower == 'on':
             instrument.write(':OUTP ON')
         elif state.lower == 'off':
             instrument.write(':OUTP OFF')
+
+    def get_output(self, instrument):
+        state = instrument.query(':OUTP?')
+        return state
 
     def set_frequency(self, instrument, frequency: str):
         if 99999 < int(frequency) < 26500000001:
@@ -36,21 +40,52 @@ class Command:
         else:
             return None
 
+    def get_frequency(self, instrument):
+        frequency = instrument.query(':SOUR:FREQ?')
+        return frequency
+
     def set_power(self, instrument, power: str):
-        if -21 < int(power) < 16:
+        if -21.01 < float(power) < 15.01:
             instrument.write(':SOUR:POW {}'.format(power))
         else:
             return None
 
+    def get_power(self, instrument):
+        power = instrument.query(':SOUR:POW?')
+        return power
+
     def set_am_depth(self, instrument, am_depth: str):
-        if 0 <= int(am_depth) <= 1:
+        if 0 <= int(am_depth) <= 100:
             instrument.write(':SOUR:AM:DEPT {}'.format(am_depth))
+
+    def get_am_depth(self, instrument):
+        depth = instrument.query(':SOUR:AM:DEPT?')
+        return depth
+
+    def set_am_frequency(self, instrument, frequency: str):
+        instrument.write(':SOUR:AM:INT:FREQ {}'.format(frequency))
+
+    def get_am_frequency(self, instrument):
+        frequency = instrument.query(':SOUR:AM:INT:FREQ?')
+        return frequency
 
     def set_am_state(self, instrument, state: str):
         if state.lower == 'on':
             instrument.write(':SOUR:AM:STAT ON')
         elif state.lower == 'off':
             instrument.write(':SOUR:AM:STAT off')
+
+    def get_am_state(self, instrument):
+        state = instrument.query(':SOUR:AM:STAT?')
+        return state
+
+    def set_am_source(self, instrument, source: str):
+        if source == 'INT' or source == 'EXT':
+            instrument.write(':SOUR:AM:SOUR {}'.format(source))
+
+    def get_am_source(self, instrument):
+        source = instrument.query(':SOUR:AM:SOUR?')
+        return source
 
 class IntegerValidator(QIntValidator):
     def __init__(self, minimum, maximum):

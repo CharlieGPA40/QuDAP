@@ -1041,7 +1041,9 @@ class Measurement(QMainWindow):
 
                 # self.PPMS_measurement_setup_layout = QHBoxLayout()
                 self.eto_ppms_layout = QVBoxLayout()
+                self.fmr_ppms_layout = QVBoxLayout()
                 self.Instruments_Content_Layout.addLayout(self.eto_ppms_layout)
+                self.Instruments_Content_Layout.addLayout(self.fmr_ppms_layout)
 
                 self.Instruments_measurement_setup_layout = QHBoxLayout()
                 self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
@@ -1196,7 +1198,7 @@ class Measurement(QMainWindow):
                 self.ppms_reading_group_box = QGroupBox('PPMS Status')
                 self.ppms_temp_group_box = QGroupBox('Temperature Setup')
                 self.ppms_field_group_box = QGroupBox('Field Setup')
-                
+
                 self.ppms_reading_group_box.setLayout(self.ppms_status_reading_ui())
                 self.ppms_temp_group_box.setLayout(self.ppms_temperature_setup_ui())
                 self.ppms_field_group_box.setLayout(self.ppms_field_setup_ui())
@@ -1208,9 +1210,13 @@ class Measurement(QMainWindow):
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_temp_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_field_group_box)
+                if self.ETO_SELECTED:
+                    self.eto_ppms_layout.addLayout(self.eto_setup_ui())
+                    self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
+                elif self.FMR_SELECTED:
+                    self.fmr_ppms_layout.addLayout(self.fmr_setup_ui())
+                    self.fmr_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
 
-                self.eto_ppms_layout.addLayout(self.eto_setup_ui())
-                self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
 
             except SystemExit as e:
                 QMessageBox.critical(self, 'Client connection failed!', 'Please try again')
@@ -1220,11 +1226,12 @@ class Measurement(QMainWindow):
                 if not self.demo_mode:
                     self.client.close_client()
             self.clear_layout(self.eto_ppms_layout)
+            self.clear_layout(self.fmr_ppms_layout)
             self.client_keep_going = False
             self.connect_btn.setText('Start Client')
             self.connect_btn_clicked = False
             self.server_btn.setEnabled(True)
-    
+
     def ppms_status_reading_ui(self):
         self.ppms_reading_layout = QVBoxLayout()
         self.ppms_temp_layout = QHBoxLayout()
@@ -1254,86 +1261,86 @@ class Measurement(QMainWindow):
         self.ppms_reading_layout.addLayout(self.ppms_field_layout)
         self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
         return self.ppms_reading_layout
-        
+
     def ppms_temperature_setup_ui(self):
-        if self.ETO_FIELD_DEP:
-            self.ppms_temp_setting_layout = QVBoxLayout()
-            self.ppms_temp_radio_buttom_layout = QHBoxLayout()
-            self.ppms_zone_temp_layout = QVBoxLayout()
-            self.Temp_setup_Zone_1 = False
-            self.Temp_setup_Zone_2 = False
-            self.Temp_setup_Zone_3 = False
-            self.Temp_setup_Zone_Cus = False
-            self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
-            self.ppms_temp_zone_number_label.setFont(self.font)
-            self.ppms_temp_One_zone_radio = QRadioButton("1")
-            self.ppms_temp_One_zone_radio.setFont(self.font)
-            self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Two_zone_radio = QRadioButton("2")
-            self.ppms_temp_Two_zone_radio.setFont(self.font)
-            self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Three_zone_radio = QRadioButton("3")
-            self.ppms_temp_Three_zone_radio.setFont(self.font)
-            self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
-            self.ppms_temp_Customize_zone_radio.setFont(self.font)
-            self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
-            self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
-            self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
-            self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
-            self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
+        # if self.ETO_FIELD_DEP:
+        self.ppms_temp_setting_layout = QVBoxLayout()
+        self.ppms_temp_radio_buttom_layout = QHBoxLayout()
+        self.ppms_zone_temp_layout = QVBoxLayout()
+        self.Temp_setup_Zone_1 = False
+        self.Temp_setup_Zone_2 = False
+        self.Temp_setup_Zone_3 = False
+        self.Temp_setup_Zone_Cus = False
+        self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
+        self.ppms_temp_zone_number_label.setFont(self.font)
+        self.ppms_temp_One_zone_radio = QRadioButton("1")
+        self.ppms_temp_One_zone_radio.setFont(self.font)
+        self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_Two_zone_radio = QRadioButton("2")
+        self.ppms_temp_Two_zone_radio.setFont(self.font)
+        self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_Three_zone_radio = QRadioButton("3")
+        self.ppms_temp_Three_zone_radio.setFont(self.font)
+        self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
+        self.ppms_temp_Customize_zone_radio.setFont(self.font)
+        self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
+        self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
+        self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
+        self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
 
         return self.ppms_temp_setting_layout
-    
+
     def ppms_field_setup_ui(self):
-        if self.ETO_FIELD_DEP:
-            self.ppms_field_setting_layout = QVBoxLayout()
-            self.ppms_field_mode_buttom_layout = QHBoxLayout()
-            self.ppms_field_radio_buttom_layout = QHBoxLayout()
-            self.ppms_zone_field_layout = QVBoxLayout()
+        # if self.ETO_FIELD_DEP:
+        self.ppms_field_setting_layout = QVBoxLayout()
+        self.ppms_field_mode_buttom_layout = QHBoxLayout()
+        self.ppms_field_radio_buttom_layout = QHBoxLayout()
+        self.ppms_zone_field_layout = QVBoxLayout()
 
-            self.Field_setup_Zone_1 = False
-            self.Field_setup_Zone_2 = False
-            self.Field_setup_Zone_3 = False
+        self.Field_setup_Zone_1 = False
+        self.Field_setup_Zone_2 = False
+        self.Field_setup_Zone_3 = False
 
-            self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
-            self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
-            self.ppms_field_cointinous_mode_radio_button.setChecked(True)
-            self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
+        self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
+        self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
+        self.ppms_field_cointinous_mode_radio_button.setChecked(True)
+        self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
 
-            self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
-            self.ppms_field_fixed_mode_radio_button.setFont(self.font)
-            self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
+        self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
+        self.ppms_field_fixed_mode_radio_button.setFont(self.font)
+        self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
 
-            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
-            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
-            self.ppms_field_mode_buttom_group = QButtonGroup()
-            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
-            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
+        self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
+        self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
+        self.ppms_field_mode_buttom_group = QButtonGroup()
+        self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
+        self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
 
-            self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
-            self.ppms_field_zone_number_label.setFont(self.font)
-            self.ppms_field_One_zone_radio = QRadioButton("1")
-            self.ppms_field_One_zone_radio.setFont(self.font)
-            self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_Two_zone_radio = QRadioButton("2")
-            self.ppms_field_Two_zone_radio.setFont(self.font)
-            self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_Three_zone_radio = QRadioButton("3")
-            self.ppms_field_Three_zone_radio.setFont(self.font)
-            self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
-            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
-            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
-            self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
-            self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
-            self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
-            self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
-            self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
+        self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
+        self.ppms_field_zone_number_label.setFont(self.font)
+        self.ppms_field_One_zone_radio = QRadioButton("1")
+        self.ppms_field_One_zone_radio.setFont(self.font)
+        self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
+        self.ppms_field_Two_zone_radio = QRadioButton("2")
+        self.ppms_field_Two_zone_radio.setFont(self.font)
+        self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
+        self.ppms_field_Three_zone_radio = QRadioButton("3")
+        self.ppms_field_Three_zone_radio.setFont(self.font)
+        self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
+        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
+        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
+        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
+        self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
+        self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
+        self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
+        self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
         return self.ppms_field_setting_layout
-    
+
     def eto_setup_ui(self):
         eto_reading_setting_layout = QHBoxLayout()
         eto_status_reading_group_box = QGroupBox('Measurement Status')
@@ -1357,6 +1364,9 @@ class Measurement(QMainWindow):
         eto_reading_setting_layout.addWidget(eto_status_setting_group_box)
 
         return eto_reading_setting_layout
+
+    def fmr_setup_ui(self):
+        None
 
     def eto_measurement_status_ui(self):
         eto_measurement_status_layout = QVBoxLayout()
@@ -1680,7 +1690,7 @@ class Measurement(QMainWindow):
         try:
             self.bnc845rf.close()
             self.BNC845RF_CONNECTED = False
-            self.clear_layout(self.bnc845rf_contianer_layout)
+            self.clear_layout(self.bnc845rf_main_layout)
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -1718,120 +1728,103 @@ class Measurement(QMainWindow):
                     self.instru_connect_btn.setText('Connect')
 
     def bnc845rf_window_ui(self):
-        self.bnc845rf_contianer_layout = QHBoxLayout()
+        self.bnc845rf_main_layout = QHBoxLayout()
 
         self.bnc845rf_reading_groupbox =QGroupBox("BNC 845RF Reading")
         self.bnc845rf_reading_groupbox.setLayout(self.bnc845rf_window_reading_ui())
         self.bnc845rf_reading_groupbox.setFixedWidth(560)
 
         self.bnc845rf_setting_groupbox =QGroupBox("BNC 845RF Setting")
-        self.bnc845rf_setting_groupbox.setLayout(self.dsp7265_setting_layout)
+        self.bnc845rf_setting_groupbox.setLayout(self.bnc845rf_window_setting_ui())
         self.bnc845rf_setting_groupbox.setFixedWidth(560)
+
+        self.bnc845rf_main_layout.addWidget(self.bnc845rf_reading_groupbox)
+        self.bnc845rf_main_layout.addWidget(self.bnc845rf_setting_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.bnc845rf_main_layout)
 
     def bnc845rf_window_reading_ui(self):
         self.bnc845rf_window_reading_layout = QVBoxLayout()
 
-        self.current_frequency_layout = QHBoxLayout()
-        current_frequency_label = QLabel('Current Frequency:')
-        current_frequency_label.setFont(self.font)
-        self.current_frequency_reading_label = QLabel('N/A')
-        self.current_frequency_reading_label.setFont(self.font)
-        self.current_frequency_layout.addWidget(current_frequency_label)
-        self.current_frequency_layout.addWidget(self.current_frequency_reading_label)
+        self.bnc845rf_current_frequency_layout = QHBoxLayout()
+        bnc845rf_current_frequency_label = QLabel('Current Frequency:')
+        bnc845rf_current_frequency_label.setFont(self.font)
+        self.bnc845rf_current_frequency_reading_label = QLabel('N/A')
+        self.bnc845rf_current_frequency_reading_label.setFont(self.font)
+        self.bnc845rf_current_frequency_layout.addWidget(bnc845rf_current_frequency_label)
+        self.bnc845rf_current_frequency_layout.addWidget(self.bnc845rf_current_frequency_reading_label)
 
-        self.current_power_layout = QHBoxLayout()
-        current_power_label = QLabel('Current Power:')
-        current_power_label.setFont(self.font)
-        self.current_power_reading_label = QLabel('N/A:')
-        self.current_power_reading_label.setFont(self.font)
-        self.current_power_layout.addWidget(current_power_label)
-        self.current_power_layout.addWidget(self.current_power_reading_label)
+        self.bnc845rf_current_power_layout = QHBoxLayout()
+        bnc845rf_current_power_label = QLabel('Current Power:')
+        bnc845rf_current_power_label.setFont(self.font)
+        self.bnc845rf_current_power_reading_label = QLabel('N/A:')
+        self.bnc845rf_current_power_reading_label.setFont(self.font)
+        self.bnc845rf_current_power_layout.addWidget(bnc845rf_current_power_label)
+        self.bnc845rf_current_power_layout.addWidget(self.bnc845rf_current_power_reading_label)
 
-        self.modulation_layout = QHBoxLayout()
-        modulation_label = QLabel('Modulation Type:')
-        modulation_label.setFont(self.font)
-        self.modulation_reading_label = QLabel('N/A')
-        self.modulation_reading_label.setFont(self.font)
-        self.modulation_layout.addWidget(modulation_label)
-        self.modulation_layout.addWidget(self.modulation_reading_label)
+        self.bnc845rf_modulation_layout = QHBoxLayout()
+        bnc845rf_modulation_label = QLabel('Modulation Type:')
+        bnc845rf_modulation_label.setFont(self.font)
+        self.bnc845rf_modulation_reading_label = QLabel('N/A')
+        self.bnc845rf_modulation_reading_label.setFont(self.font)
+        self.bnc845rf_modulation_layout.addWidget(bnc845rf_modulation_label)
+        self.bnc845rf_modulation_layout.addWidget(self.bnc845rf_modulation_reading_label)
 
-        self.modulation_depth_layout = QHBoxLayout()
-        modulation_depth_label = QLabel('Modulation Depth:')
-        modulation_depth_label.setFont(self.font)
-        self.modulation_depth_reading_label = QLabel('N/A')
-        self.modulation_depth_reading_label.setFont(self.font)
-        self.modulation_depth_layout.addWidget(modulation_depth_label)
-        self.modulation_depth_layout.addWidget(self.modulation_depth_reading_label)
+        self.bnc845rf_modulation_depth_reading_layout = QHBoxLayout()
+        bnc845rf_modulation_depth_label = QLabel('Modulation Depth:')
+        bnc845rf_modulation_depth_label.setFont(self.font)
+        self.bnc845rf_modulation_depth_reading_label = QLabel('N/A')
+        self.bnc845rf_modulation_depth_reading_label.setFont(self.font)
+        self.bnc845rf_modulation_depth_reading_layout.addWidget(bnc845rf_modulation_depth_label)
+        self.bnc845rf_modulation_depth_reading_layout.addWidget(self.bnc845rf_modulation_depth_reading_label)
 
-        self.modulation_state_layout = QHBoxLayout()
-        modulation_state_label = QLabel('Modulation Depth:')
-        modulation_state_label.setFont(self.font)
-        self.modulation_state_reading_label = QLabel('N/A')
-        self.modulation_state_reading_label.setFont(self.font)
-        self.modulation_state_layout.addWidget(modulation_state_label)
-        self.modulation_state_layout.addWidget(self.modulation_state_reading_label)
+        self.bnc845rf_modulation_frequency_reading_layout = QHBoxLayout()
+        bnc845rf_modulation_frequency_label = QLabel('Modulation Depth:')
+        bnc845rf_modulation_frequency_label.setFont(self.font)
+        self.bnc845rf_modulation_frequency_reading_label = QLabel('N/A')
+        self.bnc845rf_modulation_frequency_reading_label.setFont(self.font)
+        self.bnc845rf_modulation_frequency_reading_layout.addWidget(bnc845rf_modulation_frequency_label)
+        self.bnc845rf_modulation_frequency_reading_layout.addWidget(self.bnc845rf_modulation_frequency_reading_label)
 
-        self.bnc845rf_window_reading_layout.addLayout(self.current_frequency_layout)
-        self.bnc845rf_window_reading_layout.addLayout(self.current_power_layout)
-        self.bnc845rf_window_reading_layout.addLayout(self.modulation_layout)
-        self.bnc845rf_window_reading_layout.addWidget(self.modulation_depth_layout)
-        self.bnc845rf_window_reading_layout.addWidget(self.modulation_state_layout)
+        self.bnc845rf_modulation_state_layout = QHBoxLayout()
+        bnc845rf_modulation_state_label = QLabel('Modulation State:')
+        bnc845rf_modulation_state_label.setFont(self.font)
+        self.bnc845rf_modulation_state_reading_label = QLabel('N/A')
+        self.bnc845rf_modulation_state_reading_label.setFont(self.font)
+        self.bnc845rf_modulation_state_layout.addWidget(bnc845rf_modulation_state_label)
+        self.bnc845rf_modulation_state_layout.addWidget(self.bnc845rf_modulation_state_reading_label)
+
+        self.bnc845rf_state_layout = QHBoxLayout()
+        bnc845rf_state_label = QLabel('RF State:')
+        bnc845rf_state_label.setFont(self.font)
+        self.bnc845rf_state_reading_label = QLabel('N/A')
+        self.bnc845rf_state_reading_label.setFont(self.font)
+        self.bnc845rf_state_layout.addWidget(bnc845rf_state_label)
+        self.bnc845rf_state_layout.addWidget(self.bnc845rf_state_reading_label)
+
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_current_frequency_layout)
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_current_power_layout)
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_layout)
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_depth_reading_layout)
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_frequency_reading_layout)
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_state_layout)
+        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_state_layout)
 
         return self.bnc845rf_window_reading_layout
 
     def bnc845rf_window_setting_ui(self):
-        self.bnc845rf_window_setting_layout = QVBoxLayout()
+        self.bnc845rf_setting_layout = QVBoxLayout()
 
-        self.frequency_setting_layout = QHBoxLayout()
-        current_frequency_label = QLabel('Current Frequency:')
-        current_frequency_label.setFont(self.font)
-        self.current_frequency_reading_label = QLabel('N/A')
-        self.current_frequency_reading_label.setFont(self.font)
-        self.current_frequency_layout.addWidget(current_frequency_label)
-        self.current_frequency_layout.addWidget(self.current_frequency_reading_label)
+        self.bnc845rf_power_setting_layout = QHBoxLayout()
+        bnc845rf_power_setting_label = QLabel('Power:')
+        bnc845rf_power_setting_label.setFont(self.font)
+        self.bnc845rf_power_setting_entry = QLineEdit()
+        self.bnc845rf_power_setting_entry.setFont(self.font)
+        bnc845rf_power_setting_unit_label = QLabel('dbm')
+        bnc845rf_power_setting_unit_label.setFont(self.font)
+        self.bnc845rf_power_setting_layout.addWidget(bnc845rf_power_setting_label)
+        self.bnc845rf_power_setting_layout.addWidget(self.bnc845rf_power_setting_entry)
+        self.bnc845rf_power_setting_layout.addWidget(bnc845rf_power_setting_unit_label)
 
-        self.current_power_layout = QHBoxLayout()
-        current_power_label = QLabel('Current Power:')
-        current_power_label.setFont(self.font)
-        self.current_power_reading_label = QLabel('N/A:')
-        self.current_power_reading_label.setFont(self.font)
-        self.current_power_layout.addWidget(current_power_label)
-        self.current_power_layout.addWidget(self.current_power_reading_label)
-
-        self.modulation_layout = QHBoxLayout()
-        modulation_label = QLabel('Modulation Type:')
-        modulation_label.setFont(self.font)
-        self.modulation_reading_label = QLabel('N/A')
-        self.modulation_reading_label.setFont(self.font)
-        self.modulation_layout.addWidget(modulation_label)
-        self.modulation_layout.addWidget(self.modulation_reading_label)
-
-        self.modulation_depth_layout = QHBoxLayout()
-        modulation_depth_label = QLabel('Modulation Depth:')
-        modulation_depth_label.setFont(self.font)
-        self.modulation_depth_reading_label = QLabel('N/A')
-        self.modulation_depth_reading_label.setFont(self.font)
-        self.modulation_depth_layout.addWidget(modulation_depth_label)
-        self.modulation_depth_layout.addWidget(self.modulation_depth_reading_label)
-
-        self.modulation_state_layout = QHBoxLayout()
-        modulation_state_label = QLabel('Modulation Depth:')
-        modulation_state_label.setFont(self.font)
-        self.modulation_state_reading_label = QLabel('N/A')
-        self.modulation_state_reading_label.setFont(self.font)
-        self.modulation_state_layout.addWidget(modulation_state_label)
-        self.modulation_state_layout.addWidget(self.modulation_state_reading_label)
-
-        self.bnc845rf_window_reading_layout.addLayout(self.current_frequency_layout)
-        self.bnc845rf_window_reading_layout.addLayout(self.current_power_layout)
-        self.bnc845rf_window_reading_layout.addLayout(self.modulation_layout)
-        self.bnc845rf_window_reading_layout.addWidget(self.modulation_depth_layout)
-        self.bnc845rf_window_reading_layout.addWidget(self.modulation_state_layout)
-
-        return self.bnc845rf_window_reading_layout
-
-    def bnc845rf_frequency_setup_ui(self):
-        self.bnc845rf_frequency_setting_layout = QVBoxLayout()
         self.bnc845rf_frequency_radio_buttom_layout = QHBoxLayout()
         self.bnc845rf_frequency_zone_layout = QVBoxLayout()
 
@@ -1859,43 +1852,126 @@ class Measurement(QMainWindow):
         self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_two_radio_button)
         self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_three_radio_button)
         self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_customized_radio_button)
-        self.bnc845rf_frequency_setting_layout.addWidget(self.bnc845rf_frequency_zone_number_label)
-        self.bnc845rf_frequency_setting_layout.addLayout(self.bnc845rf_frequency_radio_buttom_layout)
-        self.bnc845rf_frequency_setting_layout.addLayout(self.bnc845rf_frequency_zone_layout)
+
+        self.bnc845rf_setting_layout.addWidget(self.bnc845rf_frequency_zone_number_label)
+        self.bnc845rf_setting_layout.addLayout(self.bnc845rf_frequency_radio_buttom_layout)
+        self.bnc845rf_setting_layout.addLayout(self.bnc845rf_frequency_zone_layout)
+        self.bnc845rf_setting_layout.addLayout(self.bnc845rf_power_setting_layout)
+        self.bnc845rf_setting_layout.addLayout(self.bnc845rf_modulation_ui())
+
+        return self.bnc845rf_setting_layout
+
+    def bnc845rf_modulation_ui(self):
+        self.bnc845rf_modulation_layout =QVBoxLayout()
+
+        self.bnc845rf_modulation_select_layout = QHBoxLayout()
+        self.bnc845rf_modulation_label = QLabel('Modulation: ')
+        self.bnc845rf_modulation_label.setFont(self.font)
+        self.bnc845rf_modulation_combo = WideComboBox()
+        self.bnc845rf_modulation_combo.setFont(self.font)
+        self.bnc845rf_modulation_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.bnc845rf_modulation_combo.addItems(
+            ["Select Modulation", "Pulse Mod", "Amplitude Mod", "Frequency Mod", "Phase Mod"])
+        self.bnc845rf_modulation_combo.currentIndexChanged.connect(self.bnc845rf_modulation_selection_ui)
+        self.bnc845rf_modulation_select_layout.addWidget(self.bnc845rf_modulation_label)
+        self.bnc845rf_modulation_select_layout.addWidget(self.bnc845rf_modulation_combo)
+
+        self.bnc845rf_modulation_selected_layout = QVBoxLayout()
+
+        self.bnc845rf_modulation_layout.addLayout(self.bnc845rf_modulation_select_layout)
+        self.bnc845rf_modulation_layout.addLayout(self.bnc845rf_modulation_selected_layout)
+        return self.bnc845rf_modulation_layout
+
+    def bnc845rf_modulation_selection_ui(self):
+        try:
+            self.clear_layout(self.bnc845rf_modulation_selected_layout)
+            if self.bnc845rf_modulation_combo.currentIndex() == 1:
+                None
+            elif self.bnc845rf_modulation_combo.currentIndex() == 2:
+                self.bnc845rf_am_layout = QVBoxLayout()
+
+                bnc845rf_am_freq_layout = QHBoxLayout()
+                bnc845rf_am_freq_label = QLabel('Mod Frequency:')
+                bnc845rf_am_freq_label.setFont(self.font)
+                self.bnc845rf_am_freq_entry = QLineEdit()
+                self.bnc845rf_am_freq_entry.setFont(self.font)
+                bnc845rf_am_freq_unit_label = QLabel('Hz')
+                bnc845rf_am_freq_unit_label.setFont(self.font)
+                bnc845rf_am_freq_layout.addWidget(bnc845rf_am_freq_label)
+                bnc845rf_am_freq_layout.addWidget(self.bnc845rf_am_freq_entry)
+                bnc845rf_am_freq_layout.addWidget(bnc845rf_am_freq_unit_label)
+
+                bnc845rf_am_depth_layout = QHBoxLayout()
+                bnc845rf_am_depth_label = QLabel('Mod Frequency:')
+                bnc845rf_am_depth_label.setFont(self.font)
+                self.bnc845rf_am_depth_entry = QLineEdit()
+                self.bnc845rf_am_depth_entry.setFont(self.font)
+                bnc845rf_am_depth_unit_label = QLabel('%')
+                bnc845rf_am_depth_unit_label.setFont(self.font)
+                bnc845rf_am_depth_layout.addWidget(bnc845rf_am_depth_label)
+                bnc845rf_am_depth_layout.addWidget(self.bnc845rf_am_depth_entry)
+                bnc845rf_am_depth_layout.addWidget(bnc845rf_am_depth_unit_label)
+
+                bnc845rf_am_source_layout = QHBoxLayout()
+                bnc845rf_am_source_label = QLabel('Source:')
+                bnc845rf_am_source_label.setFont(self.font)
+                self.bnc845rf_am_source_combo = WideComboBox()
+                self.bnc845rf_am_source_combo.setFont(self.font)
+                self.bnc845rf_am_source_combo.setStyleSheet(self.QCombo_stylesheet)
+                self.bnc845rf_am_source_combo.addItems(
+                    ["INT", "EXT"])
+                bnc845rf_am_source_layout.addWidget(bnc845rf_am_source_label)
+                bnc845rf_am_source_layout.addWidget(self.bnc845rf_am_source_combo)
+
+                self.bnc845rf_am_layout.addLayout(bnc845rf_am_freq_layout)
+                self.bnc845rf_am_layout.addLayout(bnc845rf_am_depth_layout)
+                self.bnc845rf_am_layout.addLayout(bnc845rf_am_source_layout)
+                self.bnc845rf_modulation_selected_layout.addLayout(self.bnc845rf_am_layout)
+            elif self.bnc845rf_modulation_combo.currentIndex() == 3:
+                None
+            else:
+                None
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def select_frequency_zone(self):
-        if self.bnc845rf_frequency_zone_one_radio_button.isChecked() and self.bnc845rf_frequency_zone_1 == False:
-            self.bnc845rf_frequency_zone_one_radio_button.setChecked(False)
-            self.bnc845rf_frequency_zone_1 = True
-            self.bnc845rf_frequency_zone_2 = False
-            self.bnc845rf_frequency_zone_3 = False
-            self.bnc845rf_frequency_zone_customized = False
-            # self.temp_one_zone()
-            self.bnc845rf_frequency_zone_one_radio_button.setChecked(False)
-        elif self.bnc845rf_frequency_zone_two_radio_button.isChecked() and self.bnc845rf_frequency_zone_2 == False:
-            self.bnc845rf_frequency_zone_two_radio_button.setChecked(False)
-            self.bnc845rf_frequency_zone_1 = False
-            self.bnc845rf_frequency_zone_2 = True
-            self.bnc845rf_frequency_zone_3 = False
-            self.bnc845rf_frequency_zone_customized = False
-            # self.temp_two_zone()
-            self.bnc845rf_frequency_zone_two_radio_button.setChecked(False)
-        elif self.bnc845rf_frequency_zone_three_radio_button.isChecked() and self.bnc845rf_frequency_zone_3 == False:
-            self.bnc845rf_frequency_zone_three_radio_button.setChecked(False)
-            self.bnc845rf_frequency_zone_1 = False
-            self.bnc845rf_frequency_zone_2 = False
-            self.bnc845rf_frequency_zone_3 = True
-            self.bnc845rf_frequency_zone_customized = False
-            # self.temp_three_zone()
-            self.bnc845rf_frequency_zone_three_radio_button.setChecked(False)
-        elif self.bnc845rf_frequency_zone_customized_radio_button.isChecked() and self.bnc845rf_frequency_zone_customized == False:
-            self.bnc845rf_frequency_zone_customized_radio_button.setChecked(False)
-            self.bnc845rf_frequency_zone_1 = False
-            self.bnc845rf_frequency_zone_2 = False
-            self.bnc845rf_frequency_zone_3 = False
-            self.bnc845rf_frequency_zone_customized = True
-            # self.temp_customize_zone()
-            self.bnc845rf_frequency_zone_customized_radio_button.setChecked(False)
+        try:
+            if self.bnc845rf_frequency_zone_one_radio_button.isChecked() and self.bnc845rf_frequency_zone_1 == False:
+                self.bnc845rf_frequency_zone_one_radio_button.setChecked(False)
+                self.bnc845rf_frequency_zone_1 = True
+                self.bnc845rf_frequency_zone_2 = False
+                self.bnc845rf_frequency_zone_3 = False
+                self.bnc845rf_frequency_zone_customized = False
+                self.select_frequency_zone_one()
+                self.bnc845rf_frequency_zone_one_radio_button.setChecked(False)
+            elif self.bnc845rf_frequency_zone_two_radio_button.isChecked() and self.bnc845rf_frequency_zone_2 == False:
+                self.bnc845rf_frequency_zone_two_radio_button.setChecked(False)
+                self.bnc845rf_frequency_zone_1 = False
+                self.bnc845rf_frequency_zone_2 = True
+                self.bnc845rf_frequency_zone_3 = False
+                self.bnc845rf_frequency_zone_customized = False
+                self.select_frequency_zone_two()
+                self.bnc845rf_frequency_zone_two_radio_button.setChecked(False)
+            elif self.bnc845rf_frequency_zone_three_radio_button.isChecked() and self.bnc845rf_frequency_zone_3 == False:
+                self.bnc845rf_frequency_zone_three_radio_button.setChecked(False)
+                self.bnc845rf_frequency_zone_1 = False
+                self.bnc845rf_frequency_zone_2 = False
+                self.bnc845rf_frequency_zone_3 = True
+                self.bnc845rf_frequency_zone_customized = False
+                self.select_frequency_zone_three()
+                self.bnc845rf_frequency_zone_three_radio_button.setChecked(False)
+            elif self.bnc845rf_frequency_zone_customized_radio_button.isChecked() and self.bnc845rf_frequency_zone_customized == False:
+                self.bnc845rf_frequency_zone_customized_radio_button.setChecked(False)
+                self.bnc845rf_frequency_zone_1 = False
+                self.bnc845rf_frequency_zone_2 = False
+                self.bnc845rf_frequency_zone_3 = False
+                self.bnc845rf_frequency_zone_customized = True
+                self.select_frequency_zone_customize()
+                self.bnc845rf_frequency_zone_customized_radio_button.setChecked(False)
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def select_frequency_zone_one(self):
         self.bnc845rf_frequency_zone_one_freq_layout = QVBoxLayout()
@@ -1913,7 +1989,7 @@ class Measurement(QMainWindow):
         self.bnc845rf_frequency_zone_one_freq_unit_combo.setFont(self.font)
         self.bnc845rf_frequency_zone_one_freq_unit_combo.setStyleSheet(self.QCombo_stylesheet)
         self.bnc845rf_frequency_zone_one_freq_unit_combo.addItems(
-            ["Select Unit", "Hz", "kHZ", "MHz", "GHz"])
+            ["Select Unit", "Hz", "kHz", "MHz", "GHz"])
         self.bnc845rf_frequency_zone_range_layout.addWidget(self.bnc845rf_frequency_zone_one_freq_from_label)
         self.bnc845rf_frequency_zone_range_layout.addWidget(self.bnc845rf_frequency_zone_one_freq_from_entry)
         self.bnc845rf_frequency_zone_range_layout.addWidget(self.bnc845rf_frequency_zone_one_freq_to_label)
@@ -1929,7 +2005,7 @@ class Measurement(QMainWindow):
         self.bnc845rf_frequency_zone_one_freq_step_unit_combo.setFont(self.font)
         self.bnc845rf_frequency_zone_one_freq_step_unit_combo.setStyleSheet(self.QCombo_stylesheet)
         self.bnc845rf_frequency_zone_one_freq_step_unit_combo.addItems(
-            ["Select Unit", "Hz", "kHZ", "MHz", "GHz"])
+            ["Select Unit", "Hz", "kHz", "MHz", "GHz"])
         self.bnc845rf_frequency_zone_step_layout.addWidget(self.bnc845rf_frequency_zone_one_freq_step_label)
         self.bnc845rf_frequency_zone_step_layout.addWidget(self.bnc845rf_frequency_zone_one_freq_step_entry)
         self.bnc845rf_frequency_zone_step_layout.addWidget(self.bnc845rf_frequency_zone_one_freq_step_unit_combo)
@@ -1984,7 +2060,7 @@ class Measurement(QMainWindow):
         self.bnc845rf_frequency_zone_layout.addLayout(self.bnc845rf_frequency_zone_two_freq_layout)
 
     def select_frequency_zone_three(self):
-        self.temp_two_zone()
+        self.select_frequency_zone_two()
         self.bnc845rf_frequency_zone_three_freq_layout = QVBoxLayout()
 
         self.bnc845rf_frequency_zone_three_range_layout = QHBoxLayout()
@@ -2082,7 +2158,7 @@ class Measurement(QMainWindow):
         self.dsp7265_main_layout.addWidget(self.dsp7265_reading_groupbox)
         self.dsp7265_main_layout.addWidget(self.dsp7265_setting_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.dsp7265_main_layout)
-    
+
     def dsp7265_imode_ui(self):
         self.dsp726_IMODE_layout = QHBoxLayout()
         self.dsp7265_IMODE_combo = QComboBox()
@@ -2096,7 +2172,7 @@ class Measurement(QMainWindow):
         self.dsp726_IMODE_layout.addWidget(self.dsp_imode_text)
         self.dsp726_IMODE_layout.addWidget(self.dsp7265_IMODE_combo)
         return self.dsp726_IMODE_layout
-    
+
     def dsp7265_sensitivity_ui(self):
         self.dsp7265_sens_layout = QHBoxLayout()
         self.dsp7265_sens_combo = QComboBox()
@@ -2114,7 +2190,7 @@ class Measurement(QMainWindow):
         self.dsp7265_sens_layout.addWidget(self.dsp_sens_text)
         self.dsp7265_sens_layout.addWidget(self.dsp7265_sens_combo)
         return self.dsp7265_sens_layout
-    
+
     def dsp7265_time_constant_ui(self):
         self.dsp7265_tc_layout = QHBoxLayout()
         self.dsp_tc_text = QLabel('Time constant:')
@@ -2134,7 +2210,7 @@ class Measurement(QMainWindow):
         self.dsp7265_tc_layout.addWidget(self.dsp_tc_text)
         self.dsp7265_tc_layout.addWidget(self.dsp7265_TC_combo)
         return self.dsp7265_tc_layout
-    
+
     def dsp7265_line_filter_ui(self):
         self.dsp7265_lf_layout = QHBoxLayout()
         self.dsp7265_lf_n1_combo = WideComboBox()
@@ -2160,7 +2236,7 @@ class Measurement(QMainWindow):
         self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_n2_combo)
         self.dsp7265_lf_layout.addWidget(self.dsp7265_lf_submit_button)
         return self.dsp7265_lf_layout
-    
+
     def dsp7265_frequency_ui(self):
         self.dsp7265_freq_layout = QHBoxLayout()
         self.dsp7265_freq_text = QLabel('Frequency:')
@@ -2186,7 +2262,7 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
         return self.dsp7265_freq_layout
-    
+
     def dsp7265_auto_sensitivity_ui(self):
         self.dsp7265_auto_button_layout = QHBoxLayout()
         self.dsp7265_auto_sense = QPushButton('Auto Sens.')
@@ -2208,7 +2284,7 @@ class Measurement(QMainWindow):
         self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
         self.dsp7265_button_container.setFixedHeight(50)
         return self.dsp7265_button_container
-    
+
     def dsp7265_reading_ui(self):
         self.dsp7265_reading_layout = QVBoxLayout()
 
@@ -2708,7 +2784,7 @@ class Measurement(QMainWindow):
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
-        
+
     def dsp725_auto_phase(self):
         self.DSP7265.write('AQN')
 
