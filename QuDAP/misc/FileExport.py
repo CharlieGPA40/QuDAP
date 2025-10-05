@@ -438,6 +438,7 @@ class FileExport(QMainWindow):
         """)
 
     def on_item_selection_changed(self):
+        self.clear_column_selection()
         selected_items = self.file_tree.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
@@ -445,7 +446,7 @@ class FileExport(QMainWindow):
             self.open_file_in_table(self.file_path)
 
     def open_file_in_table(self, file_path):
-        self.clear_column_selection()
+        # self.clear_column_selection()
         if file_path.lower().endswith('.dat'):
             try:
                 # Comment out for testing without Loadfile
@@ -467,6 +468,7 @@ class FileExport(QMainWindow):
                         if isinstance(item, np.generic):
                             item = item.item()
                         self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+
 
                 self.table_widget.resizeColumnsToContents()
                 self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -666,9 +668,13 @@ class FileExport(QMainWindow):
 
     def handle_remove_click(self, event):
         """Handle right-click on remove label."""
-        if event.button() == Qt.MouseButton.RightButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             print("right")
+            self.file_tree.clearSelection()
+            self.clear_column_selection()
             self.remove_selected_item()
+        # if event.button() == Qt.MouseButton.LeftButton:
+        #     self.on_item_selection_changed()
 
     def remove_selected_item(self):
         """Remove the selected item from the tree."""
