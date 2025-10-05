@@ -38,7 +38,7 @@ matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from QuDAP.GUI.QDesign.BNC845RF import Command
+from QuDAP.GUI.QDesign.BNC845RF import COMMAND
 
 class NotificationManager:
     def __init__(self):
@@ -1014,7 +1014,7 @@ class Measurement(QMainWindow):
                 self.instruments_selection_combo_box.currentIndexChanged.connect(self.instru_combo_index_change)
                 self.Instruments_port_label = QLabel("Channel:")
                 self.Instruments_port_label.setFont(self.font)
-                self.connection_combo = QComboBox()
+                self.connection_combo = WideComboBox()
                 self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
                 self.connection_combo.setFont(self.font)
 

@@ -7,20 +7,12 @@ import sys
 import platform
 
 system = platform.system()
-if system != "Windows":
-    print("Not running on Windows")
-    from GUI.VSM.VSMDataExtraction import *
-    from GUI.VSM.VSMDataProcessing import *
-else:
-    version_info = platform.win32_ver()
-    version, build, service_pack, extra = version_info
-    # build_number = int(build.split('.')[2])
-    if version in ["10", "11"]:
-        # print("Windows 10")
-        from GUI.VSM.VSMDataExtraction import *
-        from GUI.VSM.VSMDataProcessing import *
-    else:
-        print("Unknown Windows version")
+try:
+    from GUI.VSM.VSMDataExtraction import VSM_Data_Extraction
+    from GUI.VSM.VSMDataProcessing import VSM_Data_Processing
+except ImportError:
+    from QuDAP.GUI.VSM.VSMDataProcessing import VSM_Data_Extraction
+    from QuDAP.GUI.VSM.VSMDataProcessing import VSM_Data_Processing
 
 class VSM(QMainWindow):
 
@@ -49,10 +41,10 @@ class VSM(QMainWindow):
         # self.tab4_layout = QVBoxLayout()
 
         # Add content to each tab
-        self.qd_data_extract_widget = VSM_Data_Extraction()
-        self.qd_data_proc_widget = VSM_Data_Processing()
-        self.tab1_layout.addWidget(self.qd_data_extract_widget)
-        self.tab2_layout.addWidget(self.qd_data_proc_widget)
+        # self.qd_data_extract_widget = VSM_Data_Extraction()
+        # self.qd_data_proc_widget = VSM_Data_Processing()
+        self.tab1_layout.addWidget(VSM_Data_Extraction())
+        self.tab2_layout.addWidget(VSM_Data_Processing())
         # self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
         # self.tab3_layout.addWidget(QLabel("Content of Tab 3"))
 

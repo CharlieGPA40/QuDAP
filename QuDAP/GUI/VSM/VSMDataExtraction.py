@@ -1,120 +1,30 @@
-import mimetypes
-
 from PyQt6.QtWidgets import (
-    QTreeWidgetItem, QMessageBox, QTableWidgetItem, QWidget, QHeaderView, QGroupBox, QFileDialog, QVBoxLayout, QLabel,
-QHBoxLayout,QSizePolicy, QTableWidget
-, QDialog, QPushButton, QMenu, QScrollArea, QTreeWidget, QWidgetAction, QMainWindow)
+    QTreeWidgetItem, QMessageBox, QTableWidgetItem, QWidget, QHeaderView, QGroupBox, QVBoxLayout, QLabel,
+    QHBoxLayout, QSizePolicy, QTableWidget, QFileDialog,
+    QPushButton, QMenu, QScrollArea, QTreeWidget, QWidgetAction, QMainWindow)
 from PyQt6.QtGui import QFont, QDragEnterEvent, QDropEvent
-from PyQt6.QtCore import QPoint, Qt, QThread, QMimeData
+from PyQt6.QtCore import QPoint, Qt
 import csv
-import pandas as pd
 import matplotlib
 matplotlib.use('QtAgg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import matplotlib.patches as patches
-import numpy as np
 import traceback
 import os
-
+import numpy as np
 import platform
 system = platform.system()
-if system != "Windows":
-    print("Not running on Windows")
-    from VSM.qd import *
-else:
-    version_info = platform.win32_ver()
-    version, build, service_pack, extra = version_info
-    build_number = int(build.split('.')[2])
-    # try:
-    #     if version == "10" and build_number >= 22000:
-    #         from QuDAP.VSM.qd import *
-    #
-    #     elif version == "10":
-    #         from VSM.qd import *
-    #     else:
-    #         print("Unknown Windows version")
-    # except ImportError:
-    try:
-        from QuDAP.VSM.qd import *
-    except ImportError:
-        from VSM.qd import *
+
+try:
+    from QuDAP.GUI.VSM.qd import Loadfile
+    import QuDAP.misc.dragdropwidget as ddw
+except ImportError:
+    from GUI.VSM.qd import *
+    from misc.dragdropwidget import *
 
 try:
     from pptx import Presentation
     from pptx.util import Inches, Pt
 except ImportError as e:
     print(e)
-
-
-class DragDropWidget(QWidget):
-    def __init__(self, main_window):
-        super().__init__()
-        self.main_window = main_window
-        self.initUI()
-
-    def initUI(self):
-        with open("GUI/SHG/QButtonWidget.qss", "r") as file:
-            self.Browse_Button_stylesheet = file.read()
-        self.setAcceptDrops(True)
-        self.previous_folder_path = None
-        self.setStyleSheet("background-color: #F5F6FA; border: none;")
-
-        self.label = QLabel("Drag and drop a dat file or folder here", self)
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet("color: #D4D5D9; font-weight: bold; font-size: 16px;")
-
-        self.button = QPushButton("Browse", self)
-        self.button.setStyleSheet(self.Browse_Button_stylesheet)
-        self.button.clicked.connect(self.open_folder_dialog)
-        main_layout = QVBoxLayout(self)
-        main_layout.addWidget(self.label,5)
-        main_layout.addWidget(self.button,3, alignment=Qt.AlignmentFlag.AlignRight)
-        self.setLayout(main_layout)
-
-        # self.main_widget.setStyleSheet("background-color: #F5F6FA;")
-
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        try:
-            if event.mimeData().hasUrls():
-                event.acceptProposedAction()
-            else:
-                event.ignore()
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-            return
-
-    def dropEvent(self, event: QDropEvent):
-        try:
-            urls = event.mimeData().urls()
-            if urls:
-                paths = [url.toLocalFile() for url in urls]
-
-                # Check if any of the dropped items is a directory
-                directories = [path for path in paths if os.path.isdir(path)]
-                dat_files = [path for path in paths if os.path.isfile(path) and path.lower().endswith('.dat')]
-
-                if directories:
-                    for directory in directories:
-                        self.main_window.display_files(directory + '/')
-
-                if dat_files:
-                    self.main_window.display_multiple_files(dat_files)
-
-                if not directories and not dat_files:
-                    QMessageBox.warning(self, "Invalid File", "Please drop a .dat file or a folder.")
-        except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-            return
-
-    def open_folder_dialog(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            self.main_window.display_files(folder_path + '/')
-
-    def reset(self):
-        self.previous_folder_path = None
 
 class VSM_Data_Extraction(QMainWindow):
 
@@ -129,7 +39,6 @@ class VSM_Data_Extraction(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
-
 
     def init_ui(self):
         try:
@@ -155,7 +64,7 @@ class VSM_Data_Extraction(QMainWindow):
                 # Set the content widget to expand
                 self.VSM_data_extraction_main_layout = QVBoxLayout(self.content_widget)
                 self.VSM_data_extraction_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                self.content_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
                 #  ---------------------------- PART 1 --------------------------------\
                 with open("GUI/QSS/QButtonWidget.qss", "r") as file:
@@ -197,7 +106,7 @@ class VSM_Data_Extraction(QMainWindow):
                                    padding: 5px;
                                """)
                 # self.file_selection_display_label.setWordWrap(True)
-                self.drag_drop_widget = DragDropWidget(self)
+                self.drag_drop_widget = ddw.DragDropWidget(self)
                 self.drag_drop_layout.addWidget(self.drag_drop_widget,4)
                 self.drag_drop_layout.addWidget(self.file_selection_display_label,1, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.file_selection_group_box.setLayout(self.drag_drop_layout)
@@ -372,7 +281,7 @@ class VSM_Data_Extraction(QMainWindow):
     def rstpage(self):
         try:
             try:
-                DragDropWidget(self).reset()
+                ddw.DragDropWidget(self).reset()
                 self.file_tree.clear()
                 self.table_widget.clear()
                 # self.table_widget = QTableWidget(100, 100)

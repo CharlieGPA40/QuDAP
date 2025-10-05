@@ -1,11 +1,9 @@
-import mimetypes
-
 from PyQt6.QtWidgets import (
-    QTreeWidgetItem, QMessageBox, QTableWidgetItem, QWidget, QHeaderView, QGroupBox, QFileDialog, QVBoxLayout, QLabel,
+    QTreeWidgetItem, QMessageBox, QTableWidgetItem, QWidget, QHeaderView, QGroupBox, QVBoxLayout, QLabel,
     QHBoxLayout, QSizePolicy, QTableWidget
-, QLineEdit, QPushButton, QMenu, QScrollArea, QTreeWidget, QWidgetAction, QMainWindow, QRadioButton, QCheckBox)
+, QLineEdit, QPushButton, QMenu, QScrollArea, QTreeWidget, QWidgetAction, QMainWindow, QCheckBox)
 from PyQt6.QtGui import QFont, QDragEnterEvent, QDropEvent
-from PyQt6.QtCore import QPoint, Qt, QThread, QMimeData
+from PyQt6.QtCore import QPoint, Qt
 import csv
 import pandas as pd
 import matplotlib
@@ -13,8 +11,6 @@ matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-import matplotlib.patches as patches
-import numpy as np
 import traceback
 import os
 
@@ -34,7 +30,7 @@ else:
     # else:
     #     print("Unknown Windows version")
     try:
-        from QuDAP.VSM.qd import *
+        from QuDAP.GUI.VSM.qd import *
     except ImportError:
         from VSM.qd import *
 

@@ -4,6 +4,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
+try:
+    from GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
+    from misc.FileExport import FileExport
+except ImportError:
+    from QuDAP.GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
+    from QuDAP.misc.FileExport import FileExport
 
 class FMR(QMainWindow):
 
@@ -20,7 +26,7 @@ class FMR(QMainWindow):
         self.tab4 = QWidget()
 
         # Add tabs to the QTabWidget
-        self.tab_widget.addTab(self.tab1, "FMR Data Sorting (UNO)")
+        self.tab_widget.addTab(self.tab1, "FMR Data Sorting")
         self.tab_widget.addTab(self.tab2, "Data Interpolation")
         self.tab_widget.addTab(self.tab3, "Heatmap Generation")
         self.tab_widget.addTab(self.tab4, "Data Fitting")
@@ -32,10 +38,8 @@ class FMR(QMainWindow):
         self.tab4_layout = QVBoxLayout()
 
         # Add content to each tab
-        # self.uno_widget = sg.General()
-        # self.tab1_layout.addWidget(self.uno_widget)
-        # self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
-        # self.tab3_layout.addWidget(QLabel("Content of Tab 3"))
+        self.tab1_layout.addWidget(FileExport())
+        # self.tab2_layout.addWidget(self.qd_data_proc_widget)
 
         # Set the layout for each tab
         self.tab1.setLayout(self.tab1_layout)

@@ -14,6 +14,8 @@ from matplotlib.figure import Figure
 import random
 import time
 
+class COMMAND:
+    None
 
 class THREAD(QThread):
     update_data = pyqtSignal(float, float, float, float)  # Signal to emit the temperature and field values

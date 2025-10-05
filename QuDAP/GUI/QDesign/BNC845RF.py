@@ -13,7 +13,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import random
 
-class Command:
+class COMMAND:
     def get_id(self, instrument) -> str:
         id = instrument.query('*IDN?')
         return id
