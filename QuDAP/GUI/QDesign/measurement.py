@@ -3477,6 +3477,13 @@ class Measurement(QMainWindow):
                             self.log_box.append(str(model_7265))
                             f.write(f"Instrument: DSP 7265 enabled\n")
                             time.sleep(2)  # Wait for the reset to complete
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
+                                self.DSP7265)
+                            f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
+                            f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq}\n")
+                            f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
+                            f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
+                            f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
                             self.stop_measurement()
