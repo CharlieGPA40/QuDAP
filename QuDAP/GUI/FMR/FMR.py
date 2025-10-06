@@ -38,7 +38,7 @@ class FMR(QMainWindow):
         self.tab4_layout = QVBoxLayout()
 
         # Add content to each tab
-        self.tab1_layout.addWidget(FileExport())
+        self.tab1_layout.addWidget(FileExport('FMR'))
         # self.tab2_layout.addWidget(self.qd_data_proc_widget)
 
         # Set the layout for each tab

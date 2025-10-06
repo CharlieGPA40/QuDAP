@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QMenu, QWidgetAction, QApplication
 )
 from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QFont, QBrush, QColor, QCursor
+from PyQt6.QtGui import QFont, QBrush, QColor
 import os
 import numpy as np
 import traceback
@@ -19,7 +19,8 @@ except ImportError:
     from misc.dragdropwidget import *
 
 
-class FileExport(QMainWindow):
+
+class FMR_DATA_SORTING(QMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -61,7 +62,6 @@ class FileExport(QMainWindow):
                 self.scroll_area = QScrollArea()
                 self.scroll_area.setWidgetResizable(True)
                 self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-                self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
                 self.scroll_area.setStyleSheet(self.scrollbar_stylesheet)
 
                 # Create a widget to hold the main layout
@@ -71,26 +71,26 @@ class FileExport(QMainWindow):
                 # Set the content widget to expand
                 self.main_layout = QVBoxLayout(self.content_widget)
                 self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.main_layout.setContentsMargins(20, 20, 20, 20)
+                self.main_layout.setContentsMargins(0, 0, 0, 0)
                 self.content_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
                 #  ---------------------------- PART 1 --------------------------------
                 try:
                     with open("GUI/QSS/QButtonWidget.qss", "r") as file:
-                        self.Button_stylesheet = file.read()
+                        self.button_stylesheet = file.read()
                 except:
-                    self.Button_stylesheet = ""
+                    self.button_stylesheet = ""
 
-                self.label = QLabel("Data Extraction")
-                self.label.setFont(titlefont)
-                self.label.setStyleSheet("""
+                label = QLabel("Data Extraction")
+                label.setFont(titlefont)
+                label.setStyleSheet("""
                     QLabel{
                         background-color: white;
                     }
                 """)
 
                 #  ---------------------------- PART 2 --------------------------------
-                self.fileUpload_layout = QHBoxLayout()
+                self.file_upload_layout = QHBoxLayout()
                 self.drag_drop_layout = QVBoxLayout()
                 self.file_selection_group_box = QGroupBox("Upload Directory")
                 self.file_view_group_box = QGroupBox("View Files")
@@ -116,18 +116,13 @@ class FileExport(QMainWindow):
                     padding: 5px;
                 """)
 
-                # Create placeholder for drag-drop widget
                 self.drag_drop_widget = ddw.DragDropWidget(self)
-                self.selected_file_type = ddw.DragDropWidget(self).get_selected_file_type()
-                # self.drag_drop_widget = QWidget()  # Placeholder
                 self.drag_drop_layout.addWidget(self.drag_drop_widget, 4)
                 self.drag_drop_layout.addWidget(self.file_selection_display_label, 1,
                                                 alignment=Qt.AlignmentFlag.AlignCenter)
                 self.file_selection_group_box.setLayout(self.drag_drop_layout)
 
-                # Create the file browser area
                 self.file_tree = QTreeWidget()
-                # self.file_tree = CustomTreeWidget(self)
                 self.file_tree_layout = QHBoxLayout()
                 self.file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
                 self.file_tree.customContextMenuRequested.connect(self.open_context_menu)
@@ -142,15 +137,15 @@ class FileExport(QMainWindow):
                     pass
 
                 self.file_view_group_box.setLayout(self.file_tree_layout)
-                self.fileUpload_layout.addWidget(self.file_selection_group_box, 1)
-                self.fileUpload_layout.addWidget(self.file_view_group_box, 1)
+                self.file_upload_layout.addWidget(self.file_selection_group_box, 1)
+                self.file_upload_layout.addWidget(self.file_view_group_box, 1)
                 self.fileupload_container = QWidget(self)
-                self.fileupload_container.setLayout(self.fileUpload_layout)
-                self.fileupload_container.setFixedSize(1150, 260)
+                self.fileupload_container.setLayout(self.file_upload_layout)
+                self.fileupload_container.setFixedSize(1150, 290)
 
                 # ---------------------------- SELECTION INSTRUCTION ---------------------
                 self.instruction_label = QLabel(
-                    "Column Selection: Click = Set as X (blue) | Ctrl+Click = Add as Y (red) | Shift+Click = Remove")
+                    "Column Selection: Click = Set as X (blue) | Ctrl/CMD+Click = Add as Y (red) | Shift+Click = Remove")
                 self.instruction_label.setStyleSheet("""
                     QLabel {
                         color: #666;
@@ -200,19 +195,18 @@ class FileExport(QMainWindow):
                 self.table_widget = QTableWidget(100, 100)
 
                 # Enable multi-column selection
-                # self.table_widget.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
-                self.table_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                self.table_widget.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
                 self.table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectColumns)
 
                 self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+                self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
                 table_header = self.table_widget.horizontalHeader()
                 table_header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
                 # Connect header click signal
                 self.table_widget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
 
-                self.table_widget.setFixedSize(1150, 320)
+                self.table_widget.setFixedSize(1150, 340)
                 self.table_layout.addWidget(self.table_widget)
 
                 # ---------------------------- BUTTONS ---------------------
@@ -227,9 +221,9 @@ class FileExport(QMainWindow):
                 self.export_all_btn.clicked.connect(self.export_selected_column_alldata)
                 self.export_all_btn.setToolTip("Batch exporting files")
 
-                self.rst_btn.setStyleSheet(self.Button_stylesheet)
-                self.export_btn.setStyleSheet(self.Button_stylesheet)
-                self.export_all_btn.setStyleSheet(self.Button_stylesheet)
+                self.rst_btn.setStyleSheet(self.button_stylesheet)
+                self.export_btn.setStyleSheet(self.button_stylesheet)
+                self.export_all_btn.setStyleSheet(self.button_stylesheet)
 
                 self.btn_layout.addStretch(2)
                 self.btn_layout.addWidget(self.rst_btn)
@@ -237,13 +231,13 @@ class FileExport(QMainWindow):
                 self.btn_layout.addWidget(self.export_all_btn)
 
                 # ---------------------------- MAIN LAYOUT ---------------------
-                self.main_layout.addWidget(self.label,
-                                                               alignment=Qt.AlignmentFlag.AlignTop)
+                self.main_layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignTop)
                 self.main_layout.addWidget(self.fileupload_container)
                 self.main_layout.addLayout(selection_info_layout)
                 self.main_layout.addLayout(self.table_layout)
                 self.main_layout.addLayout(self.btn_layout)
                 self.main_layout.addStretch(1)
+                # self.VSM_data_extraction_main_layout.addSpacing(20)
 
                 self.setCentralWidget(self.scroll_area)
                 self.content_widget.adjustSize()
@@ -362,7 +356,7 @@ class FileExport(QMainWindow):
                 if col in self.original_headers:
                     header_item.setText(f"[Y{idx + 1}] {self.original_headers[col]}")
 
-    def display_files(self, folder_path, selected_file_type):
+    def display_files(self, folder_path):
         self.file_tree.clear()
         self.folder = folder_path
         self.file_selection_display_label.setText("Directory Successfully Uploaded")
@@ -376,22 +370,13 @@ class FileExport(QMainWindow):
 
         for root, dirs, files in os.walk(folder_path):
             for file_name in files:
-                if file_name.endswith.lower(selected_file_type):
+                if file_name.endswith('.dat') or file_name.endswith('.DAT'):
                     file_path = os.path.join(root, file_name)
                     self.file_in_list.append(file_path)
                     file_info = os.stat(file_path)
                     file_size_kb = file_info.st_size / 1024
                     file_size_str = f"{file_size_kb:.2f} KB"
-                    if selected_file_type == '.dat':
-                        file_type = 'application/dat'
-                    elif selected_file_type == '.xls' or selected_file_type == '.xlsx':
-                        file_type = 'excel'
-                    elif selected_file_type == '.csv':
-                        file_type = 'csv'
-                    elif selected_file_type == '.txt':
-                        file_type = 'text'
-                    else:
-                        file_type = 'other'
+                    file_type = 'application/dat'
                     item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
                     item.setToolTip(0, file_path)
 
@@ -400,9 +385,10 @@ class FileExport(QMainWindow):
         self.file_tree.resizeColumnToContents(1)
         self.file_tree.resizeColumnToContents(2)
 
-    def display_multiple_files(self, file_paths, selected_file_type):
+    def display_multiple_files(self, file_paths):
         current_files = {self.file_tree.topLevelItem(i).text(0): self.file_tree.topLevelItem(i)
                          for i in range(self.file_tree.topLevelItemCount())}
+
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
             if file_name not in current_files:
@@ -410,16 +396,7 @@ class FileExport(QMainWindow):
                 file_info = os.stat(file_path)
                 file_size_kb = file_info.st_size / 1024
                 file_size_str = f"{file_size_kb:.2f} KB"
-                if selected_file_type == '.dat':
-                    file_type = 'application/dat'
-                elif selected_file_type == '.xls' or selected_file_type == '.xlsx':
-                    file_type = 'excel'
-                elif selected_file_type == '.csv':
-                    file_type = 'csv'
-                elif selected_file_type == '.txt':
-                    file_type = 'text'
-                else:
-                    file_type = 'other'
+                file_type = 'application/dat'
                 item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
                 item.setToolTip(0, file_path)
 
@@ -439,8 +416,6 @@ class FileExport(QMainWindow):
         """)
 
     def on_item_selection_changed(self):
-        self.clear_column_selection()
-        self.table_widget.clear()
         selected_items = self.file_tree.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
@@ -448,9 +423,11 @@ class FileExport(QMainWindow):
             self.open_file_in_table(self.file_path)
 
     def open_file_in_table(self, file_path):
-        # self.clear_column_selection()
-        if file_path.lower().endswith('.dat'):
+        if file_path.endswith('.dat') or file_path.endswith('.DAT'):
             try:
+                # Clear previous selections when loading new file
+                self.clear_column_selection()
+
                 # Comment out for testing without Loadfile
                 loaded_file = Loadfile(file_path)
                 headers = loaded_file.column_headers
@@ -471,7 +448,6 @@ class FileExport(QMainWindow):
                             item = item.item()
                         self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
 
-
                 self.table_widget.resizeColumnsToContents()
                 self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 for col in range(self.table_widget.columnCount()):
@@ -483,12 +459,6 @@ class FileExport(QMainWindow):
             except Exception as e:
                 tb_str = traceback.format_exc()
                 QMessageBox.warning(self, "Error", f"{str(e)}{str(tb_str)}")
-        elif file_path.lower().endswith('.xls') or file_path.lower().endswith('.xlsx'):
-            None
-        elif file_path.lower().endswith('.csv'):
-            None
-        elif file_path.lower().endswith('.txt'):
-            None
 
     def showDialog(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -504,33 +474,21 @@ class FileExport(QMainWindow):
             self.y_columns = []
 
             try:
-                self.drag_drop_widget.reset()
+                ddw.DragDropWidget(self).reset()
                 self.file_tree.clear()
                 self.table_widget.clear()
-                self.table_widget.setRowCount(100)
-                self.table_widget.setColumnCount(100)
-                self.file_selection_display_label.setText('Please Upload Files or Directory')
-                self.file_selection_display_label.setStyleSheet("""
-                                    color: white; 
-                                    font-size: 12px;
-                                    background-color:  #f38d76 ; 
-                                    border-radius: 5px; 
-                                    padding: 5px;
-                                """)
-                # self.scroll_area.deleteLater()
-                # self.scroll_area = QScrollArea()
-                # self.scroll_area.setWidgetResizable(True)
-                #
-                # self.content_widget = QWidget()
-                # self.scroll_area.setWidget(self.content_widget)
-                #
-                # # Set new central widget
-                # self.setCentralWidget(self.scroll_area)
-
                 self.init_ui()
             except Exception as e:
                 return
 
+            self.file_selection_display_label.setText('Please Upload Files or Directory')
+            self.file_selection_display_label.setStyleSheet("""
+                color: white; 
+                font-size: 12px;
+                background-color:  #f38d76 ; 
+                border-radius: 5px; 
+                padding: 5px;
+            """)
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -669,7 +627,6 @@ class FileExport(QMainWindow):
             return
 
     def open_context_menu(self, position: QPoint):
-
         """Open the context menu on right-click."""
         menu = QMenu()
 
@@ -682,13 +639,9 @@ class FileExport(QMainWindow):
 
     def handle_remove_click(self, event):
         """Handle right-click on remove label."""
-        if event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.RightButton:
             print("right")
-            self.file_tree.clearSelection()
-            self.clear_column_selection()
             self.remove_selected_item()
-        # if event.button() == Qt.MouseButton.LeftButton:
-        #     self.on_item_selection_changed()
 
     def remove_selected_item(self):
         """Remove the selected item from the tree."""
@@ -700,12 +653,3 @@ class FileExport(QMainWindow):
             index = self.file_tree.indexOfTopLevelItem(selected_item)
             if index != -1:
                 self.file_tree.takeTopLevelItem(index)
-
-    def clear_layout(self, layout):
-        if layout is not None:
-            while layout.count():
-                child = layout.takeAt(0)
-                if child.widget() is not None:
-                    child.widget().deleteLater()
-                if child.layout() is not None:
-                    self.clear_layout(child.layout())

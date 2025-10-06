@@ -8,11 +8,11 @@ import platform
 
 system = platform.system()
 try:
-    from GUI.VSM.VSMDataExtraction import VSM_Data_Extraction
     from GUI.VSM.VSMDataProcessing import VSM_Data_Processing
+    from misc.FileExport import FileExport
 except ImportError:
-    from QuDAP.GUI.VSM.VSMDataProcessing import VSM_Data_Extraction
     from QuDAP.GUI.VSM.VSMDataProcessing import VSM_Data_Processing
+    from QuDAP.misc.FileExport import FileExport
 
 class VSM(QMainWindow):
 
@@ -43,7 +43,7 @@ class VSM(QMainWindow):
         # Add content to each tab
         # self.qd_data_extract_widget = VSM_Data_Extraction()
         # self.qd_data_proc_widget = VSM_Data_Processing()
-        self.tab1_layout.addWidget(VSM_Data_Extraction())
+        self.tab1_layout.addWidget(FileExport('VSM'))
         self.tab2_layout.addWidget(VSM_Data_Processing())
         # self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
         # self.tab3_layout.addWidget(QLabel("Content of Tab 3"))

@@ -92,9 +92,10 @@ class DragDropWidget(QWidget):
         if folder_path:
             self.main_window.display_files(folder_path + '/', self.selected_type)
 
-
     def reset(self):
         self.previous_folder_path = None
+        self.label.setText("Please select the data file type")
+        self.file_type_selector.setCurrentIndex(0)
 
     def get_selected_file_type(self):
         self.selected_type = self.file_type_selector.currentText().lower()

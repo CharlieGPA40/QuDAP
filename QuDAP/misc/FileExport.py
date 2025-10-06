@@ -2,14 +2,15 @@ from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
     QGroupBox, QTreeWidget, QTreeWidgetItem, QTableWidget, QTableWidgetItem,
     QHeaderView, QFileDialog, QMessageBox, QScrollArea, QSizePolicy,
-    QMenu, QWidgetAction, QApplication
+    QMenu, QWidgetAction, QApplication, QTableView
 )
 from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QFont, QBrush, QColor
+from PyQt6.QtGui import QFont, QBrush, QColor, QStandardItemModel, QStandardItem
 import os
 import numpy as np
 import traceback
 import csv
+import pandas as pd
 
 try:
     from QuDAP.GUI.VSM.qd import Loadfile
@@ -18,10 +19,11 @@ except ImportError:
     from GUI.VSM.qd import *
     from misc.dragdropwidget import *
 
-class FileExport(QMainWindow):
-    def __init__(self):
-        super().__init__()
 
+class FileExport(QMainWindow):
+    def __init__(self, label):
+        super().__init__()
+        self.process_type_label = label
         # Selection tracking variables for ordered selection
         self.x_column = None  # Store X column index
         self.y_columns = []  # Store Y column indices in order
@@ -68,9 +70,9 @@ class FileExport(QMainWindow):
                 self.scroll_area.setWidget(self.content_widget)
 
                 # Set the content widget to expand
-                self.VSM_data_extraction_main_layout = QVBoxLayout(self.content_widget)
-                self.VSM_data_extraction_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.VSM_data_extraction_main_layout.setContentsMargins(20, 20, 20, 20)
+                self.main_layout = QVBoxLayout(self.content_widget)
+                self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.main_layout.setContentsMargins(20, 20, 20, 20)
                 self.content_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
                 #  ---------------------------- PART 1 --------------------------------
@@ -80,9 +82,9 @@ class FileExport(QMainWindow):
                 except:
                     self.Button_stylesheet = ""
 
-                self.VSM_QD_EXTRACT_label = QLabel("Data Extraction")
-                self.VSM_QD_EXTRACT_label.setFont(titlefont)
-                self.VSM_QD_EXTRACT_label.setStyleSheet("""
+                self.label = QLabel(f"{self.process_type_label} Data Extraction")
+                self.label.setFont(titlefont)
+                self.label.setStyleSheet("""
                     QLabel{
                         background-color: white;
                     }
@@ -194,24 +196,45 @@ class FileExport(QMainWindow):
                 selection_info_layout.addStretch()
 
                 # ---------------------------- TABLE WIDGET ---------------------
+                # self.table_layout = QVBoxLayout()
+                # self.table_widget = QTableWidget(100, 100)
+                # # Enable multi-column selection
+                # # self.table_widget.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
+                # self.table_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                # self.table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectColumns)
+                # self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+                # self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+                # table_header = self.table_widget.horizontalHeader()
+                # table_header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+                # self.table_widget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
+                # self.table_widget.setFixedSize(1150, 320)
+                # self.table_layout.addWidget(self.table_widget)
+
                 self.table_layout = QVBoxLayout()
-                self.table_widget = QTableWidget(100, 100)
 
-                # Enable multi-column selection
-                # self.table_widget.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
-                self.table_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-                self.table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectColumns)
+                # Replace QTableWidget with QTableView
+                self.table_view = QTableView()
 
-                self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-                table_header = self.table_widget.horizontalHeader()
-                table_header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+                # Create the model
+                self.table_model = QStandardItemModel()
+                self.table_view.setModel(self.table_model)
+
+                # Enable column selection behavior
+                self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectColumns)
+
+                # Set scrollbar policies
+                self.table_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+                self.table_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+                # Configure header
+                header = self.table_view.horizontalHeader()
+                header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
                 # Connect header click signal
-                self.table_widget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
+                self.table_view.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
 
-                self.table_widget.setFixedSize(1150, 320)
-                self.table_layout.addWidget(self.table_widget)
+                self.table_view.setFixedSize(1150, 320)
+                self.table_layout.addWidget(self.table_view)
 
                 # ---------------------------- BUTTONS ---------------------
                 self.btn_layout = QHBoxLayout()
@@ -235,14 +258,13 @@ class FileExport(QMainWindow):
                 self.btn_layout.addWidget(self.export_all_btn)
 
                 # ---------------------------- MAIN LAYOUT ---------------------
-                self.VSM_data_extraction_main_layout.addWidget(self.VSM_QD_EXTRACT_label,
+                self.main_layout.addWidget(self.label,
                                                                alignment=Qt.AlignmentFlag.AlignTop)
-                self.VSM_data_extraction_main_layout.addWidget(self.fileupload_container)
-                self.VSM_data_extraction_main_layout.addLayout(selection_info_layout)
-                self.VSM_data_extraction_main_layout.addLayout(self.table_layout)
-                self.VSM_data_extraction_main_layout.addLayout(self.btn_layout)
-                self.VSM_data_extraction_main_layout.addStretch(1)
-                # self.VSM_data_extraction_main_layout.addSpacing(20)
+                self.main_layout.addWidget(self.fileupload_container)
+                self.main_layout.addLayout(selection_info_layout)
+                self.main_layout.addLayout(self.table_layout)
+                self.main_layout.addLayout(self.btn_layout)
+                self.main_layout.addStretch(1)
 
                 self.setCentralWidget(self.scroll_area)
                 self.content_widget.adjustSize()
@@ -250,6 +272,55 @@ class FileExport(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
             return
+
+    def display_dataframe(self, df):
+        """Display a pandas DataFrame in the table view"""
+        try:
+            # Clear the model
+            self.table_model.clear()
+
+            # Set headers
+            headers = list(df.columns)
+            self.table_model.setHorizontalHeaderLabels(headers)
+
+            # Store original headers
+            self.original_headers = {}
+            for col, header in enumerate(headers):
+                self.original_headers[col] = str(header)
+
+            # Set row and column count
+            self.table_model.setRowCount(len(df))
+            self.table_model.setColumnCount(len(df.columns))
+
+            # Fill model with data
+            for row in range(len(df)):
+                for col in range(len(df.columns)):
+                    value = df.iloc[row, col]
+
+                    # Handle different data types
+                    if pd.isna(value):
+                        item_text = ""
+                    elif isinstance(value, (int, float)):
+                        if isinstance(value, float):
+                            item_text = f"{value:.6g}"
+                        else:
+                            item_text = str(value)
+                    else:
+                        item_text = str(value)
+
+                    item = QStandardItem(item_text)
+                    self.table_model.setItem(row, col, item)
+
+            # Adjust column widths
+            self.table_view.resizeColumnsToContents()
+
+            # Limit column width for better display
+            for col in range(self.table_model.columnCount()):
+                if self.table_view.columnWidth(col) > 200:
+                    self.table_view.setColumnWidth(col, 200)
+
+        except Exception as e:
+            raise Exception(f"Error displaying data: {str(e)}")
 
     def on_header_clicked(self, logical_index):
         """Handle header clicks with modifiers for column selection"""
@@ -303,63 +374,115 @@ class FileExport(QMainWindow):
 
         self.selection_display.setText(f"{x_text} | {y_text}")
 
+    # def update_column_colors(self):
+    #     """Update table and header colors based on selection"""
+    #     # Store original header texts
+    #     if not hasattr(self, 'original_headers'):
+    #         self.original_headers = {}
+    #         for col in range(self.table_widget.columnCount()):
+    #             header_item = self.table_widget.horizontalHeaderItem(col)
+    #             if header_item:
+    #                 self.original_headers[col] = header_item.text()
+    #
+    #     # Reset all columns to default
+    #     for col in range(self.table_widget.columnCount()):
+    #         # Reset cells
+    #         for row in range(self.table_widget.rowCount()):
+    #             item = self.table_widget.item(row, col)
+    #             if item:
+    #                 item.setBackground(QBrush(Qt.GlobalColor.white))
+    #
+    #         # Reset header
+    #         header_item = self.table_widget.horizontalHeaderItem(col)
+    #         if header_item and col in self.original_headers:
+    #             header_item.setText(self.original_headers[col])
+    #             header_item.setBackground(QBrush())
+    #             header_item.setForeground(QBrush())
+    #
+    #     # Color X column (blue)
+    #     if self.x_column is not None:
+    #         for row in range(self.table_widget.rowCount()):
+    #             item = self.table_widget.item(row, self.x_column)
+    #             if item:
+    #                 item.setBackground(QBrush(QColor(52, 152, 219, 80)))  # Light blue
+    #
+    #         # Color header
+    #         header_item = self.table_widget.horizontalHeaderItem(self.x_column)
+    #         if header_item:
+    #             header_item.setBackground(QBrush(QColor(52, 152, 219)))
+    #             header_item.setForeground(QBrush(Qt.GlobalColor.white))
+    #             if self.x_column in self.original_headers:
+    #                 header_item.setText(f"[X] {self.original_headers[self.x_column]}")
+    #
+    #     # Color Y columns (red with varying intensity)
+    #     for idx, col in enumerate(self.y_columns):
+    #         # Vary the red intensity based on selection order
+    #         alpha = 60 + (idx * 30) if idx < 5 else 200  # Cap at reasonable alpha
+    #
+    #         for row in range(self.table_widget.rowCount()):
+    #             item = self.table_widget.item(row, col)
+    #             if item:
+    #                 item.setBackground(QBrush(QColor(231, 76, 60, alpha)))
+    #
+    #         # Color header
+    #         header_item = self.table_widget.horizontalHeaderItem(col)
+    #         if header_item:
+    #             header_item.setBackground(QBrush(QColor(231, 76, 60)))
+    #             header_item.setForeground(QBrush(Qt.GlobalColor.white))
+    #             if col in self.original_headers:
+    #                 header_item.setText(f"[Y{idx + 1}] {self.original_headers[col]}")
     def update_column_colors(self):
-        """Update table and header colors based on selection"""
-        # Store original header texts
+        """Update table view colors based on selection"""
+        # Store original header texts if not already stored
         if not hasattr(self, 'original_headers'):
             self.original_headers = {}
-            for col in range(self.table_widget.columnCount()):
-                header_item = self.table_widget.horizontalHeaderItem(col)
+            for col in range(self.table_model.columnCount()):
+                header_item = self.table_model.horizontalHeaderItem(col)
                 if header_item:
                     self.original_headers[col] = header_item.text()
 
         # Reset all columns to default
-        for col in range(self.table_widget.columnCount()):
+        for col in range(self.table_model.columnCount()):
             # Reset cells
-            for row in range(self.table_widget.rowCount()):
-                item = self.table_widget.item(row, col)
+            for row in range(self.table_model.rowCount()):
+                item = self.table_model.item(row, col)
                 if item:
                     item.setBackground(QBrush(Qt.GlobalColor.white))
 
             # Reset header
-            header_item = self.table_widget.horizontalHeaderItem(col)
-            if header_item and col in self.original_headers:
-                header_item.setText(self.original_headers[col])
-                header_item.setBackground(QBrush())
-                header_item.setForeground(QBrush())
+            header_text = self.original_headers.get(col, f"Column {col}")
+            self.table_model.setHorizontalHeaderItem(col, QStandardItem(header_text))
 
         # Color X column (blue)
         if self.x_column is not None:
-            for row in range(self.table_widget.rowCount()):
-                item = self.table_widget.item(row, self.x_column)
+            for row in range(self.table_model.rowCount()):
+                item = self.table_model.item(row, self.x_column)
                 if item:
-                    item.setBackground(QBrush(QColor(52, 152, 219, 80)))  # Light blue
+                    item.setBackground(QBrush(QColor(52, 152, 219, 80)))
 
-            # Color header
-            header_item = self.table_widget.horizontalHeaderItem(self.x_column)
-            if header_item:
+            # Update header
+            if self.x_column in self.original_headers:
+                header_item = QStandardItem(f"[X] {self.original_headers[self.x_column]}")
                 header_item.setBackground(QBrush(QColor(52, 152, 219)))
                 header_item.setForeground(QBrush(Qt.GlobalColor.white))
-                if self.x_column in self.original_headers:
-                    header_item.setText(f"[X] {self.original_headers[self.x_column]}")
+                self.table_model.setHorizontalHeaderItem(self.x_column, header_item)
 
         # Color Y columns (red with varying intensity)
         for idx, col in enumerate(self.y_columns):
-            # Vary the red intensity based on selection order
-            alpha = 60 + (idx * 30) if idx < 5 else 200  # Cap at reasonable alpha
+            alpha = 60 + (idx * 30) if idx < 5 else 200
 
-            for row in range(self.table_widget.rowCount()):
-                item = self.table_widget.item(row, col)
+            for row in range(self.table_model.rowCount()):
+                item = self.table_model.item(row, col)
                 if item:
                     item.setBackground(QBrush(QColor(231, 76, 60, alpha)))
 
-            # Color header
-            header_item = self.table_widget.horizontalHeaderItem(col)
-            if header_item:
+            # Update header
+            if col in self.original_headers:
+                header_item = QStandardItem(f"[Y{idx + 1}] {self.original_headers[col]}")
                 header_item.setBackground(QBrush(QColor(231, 76, 60)))
                 header_item.setForeground(QBrush(Qt.GlobalColor.white))
-                if col in self.original_headers:
-                    header_item.setText(f"[Y{idx + 1}] {self.original_headers[col]}")
+                self.table_model.setHorizontalHeaderItem(col, header_item)
+
 
     def display_files(self, folder_path, selected_file_type):
         self.file_tree.clear()
@@ -439,6 +562,7 @@ class FileExport(QMainWindow):
 
     def on_item_selection_changed(self):
         self.clear_column_selection()
+        self.table_widget.clear()
         selected_items = self.file_tree.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
@@ -502,22 +626,33 @@ class FileExport(QMainWindow):
             self.y_columns = []
 
             try:
-                ddw.DragDropWidget(self).reset()
+                self.drag_drop_widget.reset()
                 self.file_tree.clear()
                 self.table_widget.clear()
+                self.table_widget.setRowCount(100)
+                self.table_widget.setColumnCount(100)
+                self.file_selection_display_label.setText('Please Upload Files or Directory')
+                self.file_selection_display_label.setStyleSheet("""
+                                    color: white; 
+                                    font-size: 12px;
+                                    background-color:  #f38d76 ; 
+                                    border-radius: 5px; 
+                                    padding: 5px;
+                                """)
+                # self.scroll_area.deleteLater()
+                # self.scroll_area = QScrollArea()
+                # self.scroll_area.setWidgetResizable(True)
+                #
+                # self.content_widget = QWidget()
+                # self.scroll_area.setWidget(self.content_widget)
+                #
+                # # Set new central widget
+                # self.setCentralWidget(self.scroll_area)
+
                 self.init_ui()
-                self.setCentralWidget(self.scroll_area)
             except Exception as e:
                 return
 
-            self.file_selection_display_label.setText('Please Upload Files or Directory')
-            self.file_selection_display_label.setStyleSheet("""
-                color: white; 
-                font-size: 12px;
-                background-color:  #f38d76 ; 
-                border-radius: 5px; 
-                padding: 5px;
-            """)
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -656,6 +791,7 @@ class FileExport(QMainWindow):
             return
 
     def open_context_menu(self, position: QPoint):
+
         """Open the context menu on right-click."""
         menu = QMenu()
 
@@ -686,3 +822,12 @@ class FileExport(QMainWindow):
             index = self.file_tree.indexOfTopLevelItem(selected_item)
             if index != -1:
                 self.file_tree.takeTopLevelItem(index)
+
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                child = layout.takeAt(0)
+                if child.widget() is not None:
+                    child.widget().deleteLater()
+                if child.layout() is not None:
+                    self.clear_layout(child.layout())

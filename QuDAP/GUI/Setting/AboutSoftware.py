@@ -395,7 +395,8 @@ class AboutQuDAP(QWidget):
 
         layout.addStretch()
 
-        return member_frame
+        return
+
 
     def create_footer_section(self):
         """Create footer section with links and copyright"""
