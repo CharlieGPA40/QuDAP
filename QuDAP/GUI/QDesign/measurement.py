@@ -1045,7 +1045,7 @@ class Measurement(QMainWindow):
                 self.Instruments_Content_Layout.addLayout(self.eto_ppms_layout)
                 self.Instruments_Content_Layout.addLayout(self.fmr_ppms_layout)
 
-                self.Instruments_measurement_setup_layout = QHBoxLayout()
+                self.Instruments_measurement_setup_layout = QVBoxLayout()
                 self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
                 self.main_layout.addLayout(self.Instruments_Content_Layout)
