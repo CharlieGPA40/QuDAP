@@ -4262,6 +4262,7 @@ class Measurement(QMainWindow):
                                 keithley_6221.write('SOUR:WAVE:INIT \n')
                                 update_keithley_6221_update_label(current[j], "ON")
 
+
                         if DSP7265_Connected:
                             cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
                             update_dsp7265_freq_label(cur_freq)
@@ -4352,6 +4353,10 @@ class Measurement(QMainWindow):
                         self.lockin_y = []
                         self.lockin_mag = []
                         self.lockin_pahse = []
+
+                        if DSP7265_Connected:
+                            cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
+                            update_dsp7265_freq_label(cur_freq)
 
                         if field_mode_fixed:
                             while currentField >= botField:
