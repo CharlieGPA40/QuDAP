@@ -1677,6 +1677,7 @@ class Measurement(QMainWindow):
         try:
             if not self.demo_mode:
                 self.keithley_6221.close()
+                self.update_keithley_6221_update_label('N/A', 'OFF')
             self.Ketihley_6221_Connected = False
             self.clear_layout(self.keithley6221_main_layout)
         except Exception as e:
@@ -2879,7 +2880,7 @@ class Measurement(QMainWindow):
         else:
             self.DSP7265.write(f'OF. {freq}')
             cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
-            self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+            self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
 
     def select_keithley6221_phase_maker(self):
         if self.keithley_6221_ac_phase_maker_on_radio_button.isChecked():
@@ -3284,8 +3285,10 @@ class Measurement(QMainWindow):
         self.nv_channel_2_enabled = None
         try:
             self.keithley_6221.write(":OUTP OFF")
+            self.keithley_6221.write("SOUR:WAVE:ABOR \n")
             self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
+            self.update_keithley_6221_update_label('N/A', 'OFF')
 
             # self.keithley_6221.close()
             # self.keithley_2182nv.close()
@@ -3297,6 +3300,7 @@ class Measurement(QMainWindow):
         try:
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+            self.update_keithley_6221_update_label('N/A', 'OFF')
             self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
         except Exception:
@@ -4021,7 +4025,7 @@ class Measurement(QMainWindow):
         return int(avg)
 
     def update_dsp7265_freq_label(self, cur_freq):
-        self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+        self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
 
     def update_keithley_6221_update_label(self, current, state):
         self.keithley_reading_current_reading_label.setText(str(current))
