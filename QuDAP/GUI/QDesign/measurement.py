@@ -2746,6 +2746,9 @@ class Measurement(QMainWindow):
         self.keithley_6221_ac_phase_maker_off_radio_button.setFont(self.font)
         self.keithley_6221_ac_phase_maker_on_radio_button.toggled.connect(self.select_keithley6221_phase_maker)
         self.keithley_6221_ac_phase_maker_off_radio_button.toggled.connect(self.select_keithley6221_phase_maker)
+        self.keithley_6221_ac_phase_maker_button_group = QButtonGroup()
+        self.keithley_6221_ac_phase_maker_button_group.addButton(self.keithley_6221_ac_phase_maker_on_radio_button)
+        self.keithley_6221_ac_phase_maker_button_group.addButton(self.keithley_6221_ac_phase_maker_off_radio_button)
         self.keithley_6221_ac_phase_maker_layout.addWidget(self.keithley_6221_ac_phase_maker_label)
         self.keithley_6221_ac_phase_maker_layout.addWidget(self.keithley_6221_ac_phase_maker_on_radio_button)
         self.keithley_6221_ac_phase_maker_layout.addWidget(self.keithley_6221_ac_phase_maker_off_radio_button)
@@ -2762,8 +2765,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_ac_phase_maker_trigger_combo_box.currentIndexChanged.connect(self.select_keithley6221_phase_maker_trigger)
 
         self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_trigger_label)
-        self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_on_radio_button)
-        self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_off_radio_button)
+        self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_trigger_combo_box)
         self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_phase_maker_trigger_layout)
 
         self.Keithey_curSour_layout.addLayout(self.keithley_6221_ac_range_single_layout)
