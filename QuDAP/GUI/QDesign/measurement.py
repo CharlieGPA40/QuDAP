@@ -2404,7 +2404,7 @@ class Measurement(QMainWindow):
                           "100pA", "200pA", "500pA", "1nA", "2nA", "5nA", "10nA",
                           "20nA", "50nA", "100nA", "200nA", "500nA", "1\u00B5A"]
         else:  # Voltage mode
-            sen_values = ["2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV",
+            sen_values = ["Unknown", "2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV",
              "1 \u00B5V", "2 \u00B5V", "5 \u00B5V", "10 \u00B5V", "20 \u00B5V", "50 \u00B5V", "100 \u00B5V",
              "200 \u00B5V", "500 \u00B5V", "1 mV", "2 mV", "5 mV", "10 mV", "20 mV", "50 mV", "100 mV", "200 mV",
              "500 mV",
