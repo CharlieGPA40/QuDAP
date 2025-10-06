@@ -5,10 +5,10 @@ from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
 try:
-    from GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
+    # from GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
     from misc.FileExport import FileExport
 except ImportError:
-    from QuDAP.GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
+    # from QuDAP.GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
     from QuDAP.misc.FileExport import FileExport
 
 class FMR(QMainWindow):
