@@ -11,13 +11,20 @@ import numpy as np
 import traceback
 import csv
 import pandas as pd
+from pathlib import Path
 
 try:
-    from QuDAP.GUI.VSM.qd import Loadfile
-    import QuDAP.misc.dragdropwidget as ddw
+    from GUI.VSM.qd import Loadfile
+    import misc.dragdropwidget as ddw
 except ImportError:
-    from GUI.VSM.qd import *
-    from misc.dragdropwidget import *
+    try:
+        from QuDAP.GUI.VSM.qd import Loadfile
+        import QuDAP.misc.dragdropwidget as ddw
+    except ImportError:
+        # Create a dummy Loadfile class if not available
+        class Loadfile:
+            def __init__(self, filepath):
+                raise NotImplementedError("Loadfile class not available")
 
 
 class FileExport(QMainWindow):
@@ -41,6 +48,7 @@ class FileExport(QMainWindow):
             if self.isInit == False:
                 self.isInit = True
                 self.rstpage()
+
                 # Load stylesheets (adjust paths as needed)
                 try:
                     with open("GUI/VSM/QButtonWidget.qss", "r") as file:
@@ -75,22 +83,29 @@ class FileExport(QMainWindow):
                 self.main_layout.setContentsMargins(20, 20, 20, 20)
                 self.content_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
-                #  ---------------------------- PART 1 --------------------------------
+                # Button stylesheet
                 try:
                     with open("GUI/QSS/QButtonWidget.qss", "r") as file:
                         self.Button_stylesheet = file.read()
                 except:
-                    self.Button_stylesheet = ""
+                    self.Button_stylesheet = """
+                        QPushButton {
+                            background-color: #1e88e5;
+                            color: white;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
+                            background-color: #1976d2;
+                        }
+                    """
 
                 self.label = QLabel(f"{self.process_type_label} Data Extraction")
                 self.label.setFont(titlefont)
-                self.label.setStyleSheet("""
-                    QLabel{
-                        background-color: white;
-                    }
-                """)
+                self.label.setStyleSheet("QLabel{background-color: white;}")
 
-                #  ---------------------------- PART 2 --------------------------------
+                # File Upload Section
                 self.fileUpload_layout = QHBoxLayout()
                 self.drag_drop_layout = QVBoxLayout()
                 self.file_selection_group_box = QGroupBox("Upload Directory")
@@ -112,15 +127,23 @@ class FileExport(QMainWindow):
                 self.file_selection_display_label.setStyleSheet("""
                     color: white; 
                     font-size: 12px;
-                    background-color:  #f38d76 ; 
+                    background-color: #f38d76; 
                     border-radius: 5px; 
                     padding: 5px;
                 """)
 
-                # Create placeholder for drag-drop widget
-                self.drag_drop_widget = ddw.DragDropWidget(self)
-                self.selected_file_type = ddw.DragDropWidget(self).get_selected_file_type()
-                # self.drag_drop_widget = QWidget()  # Placeholder
+                # Create drag-drop widget
+                try:
+                    self.drag_drop_widget = ddw.DragDropWidget(self)
+                    self.selected_file_type = self.drag_drop_widget.get_selected_file_type()
+                except:
+                    # Fallback if drag-drop widget not available
+                    self.drag_drop_widget = QWidget()
+                    browse_btn = QPushButton("Browse Files")
+                    browse_btn.clicked.connect(self.browse_files_fallback)
+                    fallback_layout = QVBoxLayout(self.drag_drop_widget)
+                    fallback_layout.addWidget(browse_btn)
+
                 self.drag_drop_layout.addWidget(self.drag_drop_widget, 4)
                 self.drag_drop_layout.addWidget(self.file_selection_display_label, 1,
                                                 alignment=Qt.AlignmentFlag.AlignCenter)
@@ -148,7 +171,7 @@ class FileExport(QMainWindow):
                 self.fileupload_container.setLayout(self.fileUpload_layout)
                 self.fileupload_container.setFixedSize(1150, 260)
 
-                # ---------------------------- SELECTION INSTRUCTION ---------------------
+                # Selection Instruction
                 self.instruction_label = QLabel(
                     "Column Selection: Click = Set as X (blue) | Ctrl+Click = Add as Y (red) | Shift+Click = Remove")
                 self.instruction_label.setStyleSheet("""
@@ -195,50 +218,23 @@ class FileExport(QMainWindow):
                 selection_info_layout.addWidget(self.clear_selection_btn)
                 selection_info_layout.addStretch()
 
-                # ---------------------------- TABLE WIDGET ---------------------
-                # self.table_layout = QVBoxLayout()
-                # self.table_widget = QTableWidget(100, 100)
-                # # Enable multi-column selection
-                # # self.table_widget.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
-                # self.table_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-                # self.table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectColumns)
-                # self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                # self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-                # table_header = self.table_widget.horizontalHeader()
-                # table_header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-                # self.table_widget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
-                # self.table_widget.setFixedSize(1150, 320)
-                # self.table_layout.addWidget(self.table_widget)
-
+                # Table Widget with QTableView
                 self.table_layout = QVBoxLayout()
-
-                # Replace QTableWidget with QTableView
                 self.table_view = QTableView()
-
-                # Create the model
                 self.table_model = QStandardItemModel()
                 self.table_view.setModel(self.table_model)
-
-                # Enable column selection behavior
                 self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectColumns)
-
-                # Set scrollbar policies
                 self.table_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
                 self.table_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-                # Configure header
                 header = self.table_view.horizontalHeader()
                 header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-
-                # Connect header click signal
                 self.table_view.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
-
                 self.table_view.setFixedSize(1150, 320)
                 self.table_layout.addWidget(self.table_view)
 
-                # ---------------------------- BUTTONS ---------------------
+                # Buttons
                 self.btn_layout = QHBoxLayout()
-
                 self.rst_btn = QPushButton("Reset")
                 self.rst_btn.clicked.connect(self.rstpage)
                 self.export_btn = QPushButton("Export")
@@ -257,9 +253,8 @@ class FileExport(QMainWindow):
                 self.btn_layout.addWidget(self.export_btn)
                 self.btn_layout.addWidget(self.export_all_btn)
 
-                # ---------------------------- MAIN LAYOUT ---------------------
-                self.main_layout.addWidget(self.label,
-                                                               alignment=Qt.AlignmentFlag.AlignTop)
+                # Main Layout Assembly
+                self.main_layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignTop)
                 self.main_layout.addWidget(self.fileupload_container)
                 self.main_layout.addLayout(selection_info_layout)
                 self.main_layout.addLayout(self.table_layout)
@@ -270,18 +265,29 @@ class FileExport(QMainWindow):
                 self.content_widget.adjustSize()
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, "Error", f"Initialization error: {str(e)}")
             return
+
+    def browse_files_fallback(self):
+        """Fallback file browser if drag-drop widget not available"""
+        files, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select Data Files",
+            "",
+            "Data Files (*.csv *.txt *.dat *.xlsx *.xls);;All Files (*.*)"
+        )
+        if files:
+            self.display_multiple_files(files)
 
     def display_dataframe(self, df):
         """Display a pandas DataFrame in the table view"""
         try:
-            # Clear the model
             self.table_model.clear()
 
             # Set headers
             headers = list(df.columns)
             self.table_model.setHorizontalHeaderLabels(headers)
+
 
             # Store original headers
             self.original_headers = {}
@@ -356,84 +362,8 @@ class FileExport(QMainWindow):
         self.update_column_colors()
         self.update_selection_display()
 
-    def update_selection_display(self):
-        """Update the selection display label"""
-        x_text = "X: None"
-        if self.x_column is not None and self.table_widget.horizontalHeaderItem(self.x_column):
-            x_text = f"X: {self.table_widget.horizontalHeaderItem(self.x_column).text()}"
-
-        y_text = "Y: None"
-        if self.y_columns:
-            y_headers = []
-            for col in self.y_columns:
-                header_item = self.table_widget.horizontalHeaderItem(col)
-                if header_item:
-                    y_headers.append(header_item.text())
-            if y_headers:
-                y_text = f"Y: {', '.join(y_headers)}"
-
-        self.selection_display.setText(f"{x_text} | {y_text}")
-
-    # def update_column_colors(self):
-    #     """Update table and header colors based on selection"""
-    #     # Store original header texts
-    #     if not hasattr(self, 'original_headers'):
-    #         self.original_headers = {}
-    #         for col in range(self.table_widget.columnCount()):
-    #             header_item = self.table_widget.horizontalHeaderItem(col)
-    #             if header_item:
-    #                 self.original_headers[col] = header_item.text()
-    #
-    #     # Reset all columns to default
-    #     for col in range(self.table_widget.columnCount()):
-    #         # Reset cells
-    #         for row in range(self.table_widget.rowCount()):
-    #             item = self.table_widget.item(row, col)
-    #             if item:
-    #                 item.setBackground(QBrush(Qt.GlobalColor.white))
-    #
-    #         # Reset header
-    #         header_item = self.table_widget.horizontalHeaderItem(col)
-    #         if header_item and col in self.original_headers:
-    #             header_item.setText(self.original_headers[col])
-    #             header_item.setBackground(QBrush())
-    #             header_item.setForeground(QBrush())
-    #
-    #     # Color X column (blue)
-    #     if self.x_column is not None:
-    #         for row in range(self.table_widget.rowCount()):
-    #             item = self.table_widget.item(row, self.x_column)
-    #             if item:
-    #                 item.setBackground(QBrush(QColor(52, 152, 219, 80)))  # Light blue
-    #
-    #         # Color header
-    #         header_item = self.table_widget.horizontalHeaderItem(self.x_column)
-    #         if header_item:
-    #             header_item.setBackground(QBrush(QColor(52, 152, 219)))
-    #             header_item.setForeground(QBrush(Qt.GlobalColor.white))
-    #             if self.x_column in self.original_headers:
-    #                 header_item.setText(f"[X] {self.original_headers[self.x_column]}")
-    #
-    #     # Color Y columns (red with varying intensity)
-    #     for idx, col in enumerate(self.y_columns):
-    #         # Vary the red intensity based on selection order
-    #         alpha = 60 + (idx * 30) if idx < 5 else 200  # Cap at reasonable alpha
-    #
-    #         for row in range(self.table_widget.rowCount()):
-    #             item = self.table_widget.item(row, col)
-    #             if item:
-    #                 item.setBackground(QBrush(QColor(231, 76, 60, alpha)))
-    #
-    #         # Color header
-    #         header_item = self.table_widget.horizontalHeaderItem(col)
-    #         if header_item:
-    #             header_item.setBackground(QBrush(QColor(231, 76, 60)))
-    #             header_item.setForeground(QBrush(Qt.GlobalColor.white))
-    #             if col in self.original_headers:
-    #                 header_item.setText(f"[Y{idx + 1}] {self.original_headers[col]}")
     def update_column_colors(self):
         """Update table view colors based on selection"""
-        # Store original header texts if not already stored
         if not hasattr(self, 'original_headers'):
             self.original_headers = {}
             for col in range(self.table_model.columnCount()):
@@ -483,8 +413,25 @@ class FileExport(QMainWindow):
                 header_item.setForeground(QBrush(Qt.GlobalColor.white))
                 self.table_model.setHorizontalHeaderItem(col, header_item)
 
+    def update_selection_display(self):
+        """Update the selection display label"""
+        x_text = "X: None"
+        if self.x_column is not None and self.x_column in self.original_headers:
+            x_text = f"X: {self.original_headers[self.x_column]}"
 
-    def display_files(self, folder_path, selected_file_type):
+        y_text = "Y: None"
+        if self.y_columns:
+            y_headers = []
+            for col in self.y_columns:
+                if col in self.original_headers:
+                    y_headers.append(self.original_headers[col])
+            if y_headers:
+                y_text = f"Y: {', '.join(y_headers)}"
+
+        self.selection_display.setText(f"{x_text} | {y_text}")
+
+    def display_files(self, folder_path, selected_file_type=None):
+        """Display files from a folder"""
         self.file_tree.clear()
         self.folder = folder_path
         self.file_selection_display_label.setText("Directory Successfully Uploaded")
@@ -496,24 +443,34 @@ class FileExport(QMainWindow):
             padding: 5px;
         """)
 
+        supported_extensions = ['.dat', '.csv', '.xlsx', '.xls', '.txt']
+
         for root, dirs, files in os.walk(folder_path):
             for file_name in files:
-                if file_name.endswith.lower(selected_file_type):
+                file_ext = os.path.splitext(file_name)[1].lower()
+                if file_ext in supported_extensions:
                     file_path = os.path.join(root, file_name)
                     self.file_in_list.append(file_path)
                     file_info = os.stat(file_path)
                     file_size_kb = file_info.st_size / 1024
-                    file_size_str = f"{file_size_kb:.2f} KB"
-                    if selected_file_type == '.dat':
-                        file_type = 'application/dat'
-                    elif selected_file_type == '.xls' or selected_file_type == '.xlsx':
-                        file_type = 'excel'
-                    elif selected_file_type == '.csv':
-                        file_type = 'csv'
-                    elif selected_file_type == '.txt':
-                        file_type = 'text'
+                    if file_size_kb < 1024:
+                        file_size_str = f"{file_size_kb:.2f} KB"
+                    elif file_size_kb < 1024 ** 2:
+                        file_size_mb = file_size_kb / 1024
+                        file_size_str = f"{file_size_mb:.2f} MB"
                     else:
-                        file_type = 'other'
+                        file_size_gb = file_size_kb / (1024 ** 2)
+                        file_size_str = f"{file_size_gb:.2f} GB"
+
+                    file_type_map = {
+                        '.dat': 'application/dat',
+                        '.csv': 'CSV',
+                        '.xlsx': 'Excel',
+                        '.xls': 'Excel',
+                        '.txt': 'Text'
+                    }
+                    file_type = file_type_map.get(file_ext, 'other')
+
                     item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
                     item.setToolTip(0, file_path)
 
@@ -522,26 +479,42 @@ class FileExport(QMainWindow):
         self.file_tree.resizeColumnToContents(1)
         self.file_tree.resizeColumnToContents(2)
 
-    def display_multiple_files(self, file_paths, selected_file_type):
+    def display_multiple_files(self, file_paths, selected_file_type=None):
+        """Display multiple files"""
         current_files = {self.file_tree.topLevelItem(i).text(0): self.file_tree.topLevelItem(i)
                          for i in range(self.file_tree.topLevelItemCount())}
+
+        supported_extensions = ['.dat', '.csv', '.xlsx', '.xls', '.txt']
+
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
+            file_ext = os.path.splitext(file_name)[1].lower()
+
+            if file_ext not in supported_extensions:
+                continue
+
             if file_name not in current_files:
                 self.file_in_list.append(file_path)
                 file_info = os.stat(file_path)
                 file_size_kb = file_info.st_size / 1024
-                file_size_str = f"{file_size_kb:.2f} KB"
-                if selected_file_type == '.dat':
-                    file_type = 'application/dat'
-                elif selected_file_type == '.xls' or selected_file_type == '.xlsx':
-                    file_type = 'excel'
-                elif selected_file_type == '.csv':
-                    file_type = 'csv'
-                elif selected_file_type == '.txt':
-                    file_type = 'text'
+                if file_size_kb < 1024:
+                    file_size_str = f"{file_size_kb:.2f} KB"
+                elif file_size_kb < 1024 ** 2:
+                    file_size_mb = file_size_kb / 1024
+                    file_size_str = f"{file_size_mb:.2f} MB"
                 else:
-                    file_type = 'other'
+                    file_size_gb = file_size_kb / (1024 ** 2)
+                    file_size_str = f"{file_size_gb:.2f} GB"
+
+                file_type_map = {
+                    '.dat': 'application/dat',
+                    '.csv': 'CSV',
+                    '.xlsx': 'Excel',
+                    '.xls': 'Excel',
+                    '.txt': 'Text'
+                }
+                file_type = file_type_map.get(file_ext, 'other')
+
                 item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
                 item.setToolTip(0, file_path)
 
@@ -561,102 +534,130 @@ class FileExport(QMainWindow):
         """)
 
     def on_item_selection_changed(self):
+        """Handle file selection in tree"""
         self.clear_column_selection()
-        self.table_widget.clear()
         selected_items = self.file_tree.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
             self.file_path = selected_item.toolTip(0)
             self.open_file_in_table(self.file_path)
 
-    def open_file_in_table(self, file_path):
-        # self.clear_column_selection()
-        if file_path.lower().endswith('.dat'):
-            try:
-                # Comment out for testing without Loadfile
-                loaded_file = Loadfile(file_path)
-                headers = loaded_file.column_headers
-                data = loaded_file.data
-
-                self.table_widget.setColumnCount(len(headers))
-                self.table_widget.setHorizontalHeaderLabels(headers)
-                self.table_widget.setRowCount(len(data))
-
-                # Store original headers
-                self.original_headers = {}
-                for col in range(len(headers)):
-                    self.original_headers[col] = headers[col]
-
-                for row_idx, row_data in enumerate(data):
-                    for col_idx, item in enumerate(row_data):
-                        if isinstance(item, np.generic):
-                            item = item.item()
-                        self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
-
-
-                self.table_widget.resizeColumnsToContents()
-                self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-                for col in range(self.table_widget.columnCount()):
-                    self.table_widget.resizeColumnToContents(col)
-                table_header = self.table_widget.horizontalHeader()
-                table_header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-                table_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-
-            except Exception as e:
-                tb_str = traceback.format_exc()
-                QMessageBox.warning(self, "Error", f"{str(e)}{str(tb_str)}")
-        elif file_path.lower().endswith('.xls') or file_path.lower().endswith('.xlsx'):
-            None
-        elif file_path.lower().endswith('.csv'):
-            None
-        elif file_path.lower().endswith('.txt'):
-            None
-
-    def showDialog(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder:
-            folder = folder + "/"
-            self.folder = folder
-            self.file_selection_display_label.setText("Current Folder: {}".format(self.folder))
-
-    def rstpage(self):
+    def detect_headers(self, df, file_path):
+        """
+        Detect if DataFrame has headers or if first row is data
+        Returns: (has_headers: bool, df: DataFrame)
+        """
         try:
-            # Clear selections
-            self.x_column = None
-            self.y_columns = []
+            # Check if first row looks like numeric data
+            first_row = df.iloc[0]
+            numeric_count = sum(pd.to_numeric(first_row, errors='coerce').notna())
 
-            try:
-                self.drag_drop_widget.reset()
-                self.file_tree.clear()
-                self.table_widget.clear()
-                self.table_widget.setRowCount(100)
-                self.table_widget.setColumnCount(100)
-                self.file_selection_display_label.setText('Please Upload Files or Directory')
-                self.file_selection_display_label.setStyleSheet("""
-                                    color: white; 
-                                    font-size: 12px;
-                                    background-color:  #f38d76 ; 
-                                    border-radius: 5px; 
-                                    padding: 5px;
-                                """)
-                # self.scroll_area.deleteLater()
-                # self.scroll_area = QScrollArea()
-                # self.scroll_area.setWidgetResizable(True)
-                #
-                # self.content_widget = QWidget()
-                # self.scroll_area.setWidget(self.content_widget)
-                #
-                # # Set new central widget
-                # self.setCentralWidget(self.scroll_area)
+            # If most of first row is numeric and column names are also numeric-like,
+            # likely no headers
+            col_numeric = sum(pd.to_numeric(df.columns, errors='coerce').notna())
 
-                self.init_ui()
-            except Exception as e:
-                return
+            if numeric_count > len(first_row) * 0.7 and col_numeric > len(df.columns) * 0.5:
+                # Likely no headers - first row is data
+                return False, df
 
+            return True, df
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-            return
+            # Default to assuming headers exist
+            return True, df
+
+    def open_file_in_table(self, file_path):
+        """Load and display file data in table view"""
+        try:
+            df = None
+            has_headers = True
+            file_ext = Path(file_path).suffix.lower()
+
+            # Load file based on extension
+            if file_ext == '.dat':
+                try:
+                    loaded_file = Loadfile(file_path)
+                    headers = loaded_file.column_headers
+                    data = loaded_file.data
+                    df = pd.DataFrame(data, columns=headers)
+                    has_headers = True
+                except Exception as e:
+                    raise Exception(f"Error loading .dat file: {str(e)}")
+
+            elif file_ext == '.csv':
+                # Try with header first
+                df = pd.read_csv(file_path)
+                has_headers, df = self.detect_headers(df, file_path)
+
+                if not has_headers:
+                    # Reload without header
+                    df = pd.read_csv(file_path, header=None)
+                    df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+            elif file_ext == '.xlsx':
+                df = pd.read_excel(file_path, engine='openpyxl')
+                has_headers, df = self.detect_headers(df, file_path)
+
+                if not has_headers:
+                    df = pd.read_excel(file_path, engine='openpyxl', header=None)
+                    df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+            elif file_ext == '.xls':
+                df = pd.read_excel(file_path)
+                has_headers, df = self.detect_headers(df, file_path)
+
+                if not has_headers:
+                    df = pd.read_excel(file_path, header=None)
+                    df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+            elif file_ext == '.txt':
+                # Try different separators
+                df = None
+                for sep in ['\t', ',', None]:
+                    try:
+                        if sep is None:
+                            df = pd.read_csv(file_path, delim_whitespace=True)
+                        else:
+                            df = pd.read_csv(file_path, sep=sep)
+                        break
+                    except:
+                        continue
+
+                if df is None:
+                    raise Exception("Unable to parse .txt file format")
+
+                has_headers, df = self.detect_headers(df, file_path)
+
+                if not has_headers:
+                    # Reload without header
+                    if sep is None:
+                        df = pd.read_csv(file_path, delim_whitespace=True, header=None)
+                    else:
+                        df = pd.read_csv(file_path, sep=sep, header=None)
+                    df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+            else:
+                raise Exception(f"Unsupported file type: {file_ext}")
+
+            # Display the dataframe
+            if df is not None:
+                self.display_dataframe(df)
+
+                # Show info message if no headers detected
+                if not has_headers:
+                    self.file_selection_display_label.setText(
+                        f"File loaded (no headers detected - using Column_1, Column_2, etc.)")
+                    self.file_selection_display_label.setStyleSheet("""
+                        color: #856404; 
+                        font-size: 12px;
+                        background-color: #fff3cd; 
+                        border-radius: 5px; 
+                        padding: 5px;
+                    """)
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error Loading File", f"{str(e)}\n\n{tb_str}")
 
     def export_selected_column_data(self):
         """Export data with X column first, then Y columns in order"""
@@ -674,40 +675,33 @@ class FileExport(QMainWindow):
             column_data = {}
 
             # Add X column
-            x_header = self.original_headers.get(self.x_column,
-                                                 self.table_widget.horizontalHeaderItem(self.x_column).text())
+            x_header = self.original_headers.get(self.x_column, f"Column {self.x_column}")
             x_values = []
-            for row in range(self.table_widget.rowCount()):
-                item = self.table_widget.item(row, self.x_column)
+            for row in range(self.table_model.rowCount()):
+                item = self.table_model.item(row, self.x_column)
                 x_values.append(item.text() if item else "")
             column_data[x_header] = x_values
 
             # Add Y columns in the order they were selected
             for col in self.y_columns:
-                column_header = self.original_headers.get(col,
-                                                          self.table_widget.horizontalHeaderItem(col).text())
+                column_header = self.original_headers.get(col, f"Column {col}")
                 column_values = []
-                for row in range(self.table_widget.rowCount()):
-                    item = self.table_widget.item(row, col)
+                for row in range(self.table_model.rowCount()):
+                    item = self.table_model.item(row, col)
                     column_values.append(item.text() if item else "")
                 column_data[column_header] = column_values
 
             # Get file name
             if hasattr(self, 'file_path'):
-                for i in range(len(self.file_path) - 1, 0, -1):
-                    if self.file_path[i] == ".":
-                        file_name = self.file_path[: i]
-                    if self.file_path[i] == "/" or self.file_path[i] == "\\":
-                        file_name = file_name[i + 1:]
-                        folder_name = self.file_path[:i + 1]
-                        break
+                file_name = Path(self.file_path).stem
+                folder_name = str(Path(self.file_path).parent)
             else:
                 file_name = "exported_data"
+                folder_name = os.getcwd()
 
             dialog = QFileDialog(self)
             dialog.setFileMode(QFileDialog.FileMode.Directory)
-            if hasattr(self, 'file_path'):
-                dialog.setDirectory(os.path.dirname(self.file_path))
+            dialog.setDirectory(folder_name)
 
             if dialog.exec():
                 folder_name = dialog.selectedFiles()[0]
@@ -716,8 +710,7 @@ class FileExport(QMainWindow):
                 QMessageBox.information(self, "Success", f"Data exported to {export_file_name}")
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-            return
+            QMessageBox.warning(self, "Error", f"Export failed: {str(e)}\n\n{traceback.format_exc()}")
 
     def export_selected_column_alldata(self):
         """Export all files with selected columns"""
@@ -737,48 +730,101 @@ class FileExport(QMainWindow):
 
             if dialog.exec():
                 folder_name = dialog.selectedFiles()[0]
+                exported_count = 0
+                failed_files = []
 
-                # Export all files with selected columns
                 for file in self.file_in_list:
-                    column_data = {}
+                    try:
+                        df = None
+                        file_ext = Path(file).suffix.lower()
 
-                    # Comment out for testing
-                    loaded_file = Loadfile(file)
-                    headers = loaded_file.column_headers
-                    data = loaded_file.data
+                        # Load with header detection
+                        if file_ext == '.dat':
+                            try:
+                                loaded_file = Loadfile(file)
+                                headers = loaded_file.column_headers
+                                data = loaded_file.data
+                                df = pd.DataFrame(data, columns=headers)
+                            except Exception as e:
+                                failed_files.append(f"{Path(file).name} (Loadfile error)")
+                                continue
 
-                    # Add X column
-                    if self.x_column < len(headers):
-                        column_header = headers[self.x_column] if isinstance(headers, list) else list(headers)[
-                            self.x_column]
-                        column_values = data[:, self.x_column]
-                        column_data[column_header] = column_values
+                        elif file_ext == '.csv':
+                            df = pd.read_csv(file)
+                            has_headers, df = self.detect_headers(df, file)
+                            if not has_headers:
+                                df = pd.read_csv(file, header=None)
+                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
 
-                    # Add Y columns
-                    for col in self.y_columns:
-                        if col < len(headers):
-                            column_header = headers[col] if isinstance(headers, list) else list(headers)[col]
-                            column_values = data[:, col]
-                            column_data[column_header] = column_values
+                        elif file_ext == '.xlsx':
+                            df = pd.read_excel(file, engine='openpyxl')
+                            has_headers, df = self.detect_headers(df, file)
+                            if not has_headers:
+                                df = pd.read_excel(file, engine='openpyxl', header=None)
+                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
 
-                    # Get file name
-                    file_name = os.path.splitext(os.path.basename(file))[0]
-                    export_file_name = os.path.join(folder_name, f"{file_name}.csv")
+                        elif file_ext == '.xls':
+                            df = pd.read_excel(file)
+                            has_headers, df = self.detect_headers(df, file)
+                            if not has_headers:
+                                df = pd.read_excel(file, header=None)
+                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
 
-                    with open(export_file_name, 'w', newline='') as f:
-                        writer = csv.writer(f)
-                        headers = list(column_data.keys())
-                        writer.writerow(headers)
-                        for row in zip(*column_data.values()):
-                            writer.writerow(row)
+                        elif file_ext == '.txt':
+                            for sep in ['\t', ',', None]:
+                                try:
+                                    df = pd.read_csv(file, sep=sep, delim_whitespace=(sep is None))
+                                    break
+                                except:
+                                    continue
 
-                QMessageBox.information(self, "Success", f"All files exported to {folder_name}")
+                            if df is not None:
+                                has_headers, df = self.detect_headers(df, file)
+                                if not has_headers:
+                                    if sep is None:
+                                        df = pd.read_csv(file, delim_whitespace=True, header=None)
+                                    else:
+                                        df = pd.read_csv(file, sep=sep, header=None)
+                                    df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+                        if df is None:
+                            failed_files.append(f"{Path(file).name} (could not load)")
+                            continue
+
+                        # Create export dataframe
+                        column_data = {}
+
+                        if self.x_column < len(df.columns):
+                            x_header = df.columns[self.x_column]
+                            column_data[x_header] = df.iloc[:, self.x_column]
+
+                        for col in self.y_columns:
+                            if col < len(df.columns):
+                                y_header = df.columns[col]
+                                column_data[y_header] = df.iloc[:, col]
+
+                        export_df = pd.DataFrame(column_data)
+                        file_name = os.path.splitext(os.path.basename(file))[0]
+                        export_file_name = os.path.join(folder_name, f"{file_name}.csv")
+                        export_df.to_csv(export_file_name, index=False)
+                        exported_count += 1
+
+                    except Exception as e:
+                        failed_files.append(f"{Path(file).name} ({str(e)})")
+
+                message = f"Successfully exported {exported_count} files to {folder_name}"
+                if failed_files:
+                    message += f"\n\nFailed: {len(failed_files)} files:\n" + "\n".join(failed_files[:5])
+                    if len(failed_files) > 5:
+                        message += f"\n... and {len(failed_files) - 5} more"
+
+                QMessageBox.information(self, "Export Complete", message)
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-            return
+            QMessageBox.warning(self, "Error", f"Export failed: {str(e)}\n\n{traceback.format_exc()}")
 
     def export_to_csv(self, column_data, file_name):
+        """Export data dictionary to CSV file"""
         try:
             with open(file_name, 'w', newline='') as file:
                 writer = csv.writer(file)
@@ -787,33 +833,38 @@ class FileExport(QMainWindow):
                 for row in zip(*column_data.values()):
                     writer.writerow(row)
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
-            return
+            raise Exception(f"Error writing CSV: {str(e)}")
 
     def open_context_menu(self, position: QPoint):
-
-        """Open the context menu on right-click."""
+        """Open the context menu on right-click"""
         menu = QMenu()
 
         remove_action = QWidgetAction(self)
         remove_label = QLabel("Remove")
+        remove_label.setStyleSheet("""
+                QLabel {
+                    padding: 5px 10px;
+                    color: #c0392b;
+                    font-weight: bold;
+                }
+                QLabel:hover {
+                    background-color: #ecf0f1;
+                }
+            """)
         remove_label.mousePressEvent = lambda event: self.handle_remove_click(event)
         remove_action.setDefaultWidget(remove_label)
         menu.addAction(remove_action)
         menu.exec(self.file_tree.viewport().mapToGlobal(position))
 
     def handle_remove_click(self, event):
-        """Handle right-click on remove label."""
+        """Handle right-click on remove label"""
         if event.button() == Qt.MouseButton.LeftButton:
-            print("right")
             self.file_tree.clearSelection()
             self.clear_column_selection()
             self.remove_selected_item()
-        # if event.button() == Qt.MouseButton.LeftButton:
-        #     self.on_item_selection_changed()
 
     def remove_selected_item(self):
-        """Remove the selected item from the tree."""
+        """Remove the selected item from the tree"""
         selected_item = self.file_tree.currentItem()
         if selected_item:
             file_path = selected_item.toolTip(0)
@@ -823,7 +874,67 @@ class FileExport(QMainWindow):
             if index != -1:
                 self.file_tree.takeTopLevelItem(index)
 
+            # Update display label
+            count = self.file_tree.topLevelItemCount()
+            if count == 0:
+                self.file_selection_display_label.setText('Please Upload Files or Directory')
+                self.file_selection_display_label.setStyleSheet("""
+                        color: white; 
+                        font-size: 12px;
+                        background-color: #f38d76; 
+                        border-radius: 5px; 
+                        padding: 5px;
+                    """)
+            else:
+                self.file_selection_display_label.setText(f"{count} Files Loaded")
+
+    def rstpage(self):
+        """Reset the page to initial state"""
+        try:
+            # Clear selections
+            self.x_column = None
+            self.y_columns = []
+            self.file_in_list = []
+
+            try:
+                if hasattr(self, 'drag_drop_widget'):
+                    try:
+                        self.drag_drop_widget.reset()
+                    except:
+                        pass
+
+                if hasattr(self, 'file_tree'):
+                    self.file_tree.clear()
+
+                if hasattr(self, 'table_model'):
+                    self.table_model.clear()
+                    self.table_model.setRowCount(0)
+                    self.table_model.setColumnCount(0)
+
+                if hasattr(self, 'file_selection_display_label'):
+                    self.file_selection_display_label.setText('Please Upload Files or Directory')
+                    self.file_selection_display_label.setStyleSheet("""
+                            color: white; 
+                            font-size: 12px;
+                            background-color: #f38d76; 
+                            border-radius: 5px; 
+                            padding: 5px;
+                        """)
+
+                if hasattr(self, 'selection_display'):
+                    self.selection_display.setText("X: None | Y: None")
+
+                if hasattr(self, 'original_headers'):
+                    self.original_headers = {}
+
+            except Exception as e:
+                print(f"Reset error: {str(e)}")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Reset failed: {str(e)}")
+
     def clear_layout(self, layout):
+        """Clear all widgets from a layout"""
         if layout is not None:
             while layout.count():
                 child = layout.takeAt(0)
@@ -831,3 +942,18 @@ class FileExport(QMainWindow):
                     child.widget().deleteLater()
                 if child.layout() is not None:
                     self.clear_layout(child.layout())
+
+# Main execution
+if __name__ == "__main__":
+    import sys
+
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    # Create main window
+    window = FileExport("Multi-Format")
+    window.setWindowTitle("QuDAP - Data Extraction Tool")
+    window.setGeometry(100, 100, 1200, 900)
+    window.show()
+
+    sys.exit(app.exec())
