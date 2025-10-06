@@ -287,7 +287,7 @@ class Worker(QThread):
     update_ppms_chamber_reading_label = pyqtSignal(str)
     update_nv_channel_1_label = pyqtSignal(str)
     update_nv_channel_2_label = pyqtSignal(str)
-    update_lockin_label = pyqtSignal(str, str)
+    update_lockin_label = pyqtSignal(str, str, str, str)
     clear_plot = pyqtSignal()
     update_plot = pyqtSignal(list, list, str, bool, bool)
     save_plot = pyqtSignal(list, list, str, bool, bool, bool, str, str)
@@ -295,6 +295,7 @@ class Worker(QThread):
     error_message = pyqtSignal(str, str)
     update_measurement_progress = pyqtSignal(float, float, float, float)
     update_dsp7265_freq_label = pyqtSignal(str)
+    update_keithley_6221_update_label = pyqtSignal(str, str)
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
@@ -369,6 +370,7 @@ class Worker(QThread):
                                               self.error_message.emit,
                                               self.update_measurement_progress.emit,
                                               self.update_dsp7265_freq_label.emit,
+                                              self.update_keithley_6221_update_label.emit,
                                               keithley_6221 =self.keithley_6221,
                                               keithley_2182nv=self.keithley_2182nv,
                                               DSP7265=self.DSP7265,
@@ -1601,7 +1603,7 @@ class Measurement(QMainWindow):
                 time.sleep(2)
                 self.Ketihley_6221_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
-                self.keithley6221_Window()
+                self.keithley6221_window_ui()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
                 self.Ketihley_6221_Connected = False
@@ -1618,19 +1620,21 @@ class Measurement(QMainWindow):
                     time.sleep(2)
                     DSPModel = self.DSP7265.query('ID')
                     QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
-                    self.read_sr7265_settings(self.DSP7265)
+                    self.dsp7265_ref_source, self.dsp7265_ref_freq, self.dsp7265_current_time_constant, self.dsp7265_current_sensitvity, self.dsp7265_measurement_type = self.read_sr7265_settings(self.DSP7265)
 
-                    cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
-                    self.dsp7265_ref_freq = str(cur_freq)
-                    cur_sense = float(self.DSP7265.query('SEN.')) / 1000
-                    self.dsp7265_cur_sense = str(cur_sense)
-                    cur_tc = float(self.DSP7265.query('TC.')) / 1000
-                    self.dsp7265_cur_tc = str(cur_tc)
+                    # cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+                    # self.dsp7265_ref_freq = str(cur_freq)
+                    # cur_sense = float(self.DSP7265.query('SEN.')) / 1000
+                    # self.dsp7265_cur_sense = str(cur_sense)
+                    # cur_tc = float(self.DSP7265.query('TC.')) / 1000
+                    # self.dsp7265_cur_tc = str(cur_tc)
                 else:
                     QMessageBox.information(self, "Connected", F"Connected to Model DSP 7265")
                     self.dsp7265_ref_freq = '1000'
-                    self.dsp7265_cur_sense = '1 V'
-                    self.dsp7265_cur_tc = '20 ms'
+                    self.dsp7265_current_sensitvity = '1 V'
+                    self.dsp7265_current_time_constant = '20 ms'
+                    self.dsp7265_ref_source = 'internal'
+                    self.dsp7265_measurement_type = 'Voltage'
                 self.DSP7265_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
 
@@ -2326,14 +2330,14 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_reading_layout = QHBoxLayout()
         self.dsp7265_freq_reading_label = QLabel('Frequency: ')
         self.dsp7265_freq_reading_value_label = QLabel('N/A')
-        self.dsp7265_freq_reading_unit_label = QLabel('Hz')
+        # self.dsp7265_freq_reading_unit_label = QLabel('Hz')
         self.dsp7265_freq_reading_label.setFont(self.font)
         self.dsp7265_freq_reading_value_label.setFont(self.font)
-        self.dsp7265_freq_reading_unit_label.setFont(self.font)
+        # self.dsp7265_freq_reading_unit_label.setFont(self.font)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_label)
         self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_value_label)
-        self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
-        # self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq)
+        # self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
+        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq + ' Hz')
 
         self.dsp7265_sensitivity_reading_layout = QHBoxLayout()
         self.dsp7265_sensitivity_reading_label = QLabel('Sensitivity: ')
@@ -2342,7 +2346,7 @@ class Measurement(QMainWindow):
         self.dsp7265_sensitivity_reading_value_label.setFont(self.font)
         self.dsp7265_sensitivity_reading_layout.addWidget(self.dsp7265_sensitivity_reading_label)
         self.dsp7265_sensitivity_reading_layout.addWidget(self.dsp7265_sensitivity_reading_value_label)
-        # self.dsp7265_sensitivity_reading_value_label.setText(self.dsp7265_cur_sense)
+        self.dsp7265_sensitivity_reading_value_label.setText(self.dsp7265_current_sensitvity)
 
         self.dsp7265_time_constant_reading_layout = QHBoxLayout()
         self.dsp7265_time_constant_reading_label = QLabel('Time Constant: ')
@@ -2351,7 +2355,7 @@ class Measurement(QMainWindow):
         self.dsp7265_time_constant_reading_value_label.setFont(self.font)
         self.dsp7265_time_constant_reading_layout.addWidget(self.dsp7265_time_constant_reading_label)
         self.dsp7265_time_constant_reading_layout.addWidget(self.dsp7265_time_constant_reading_value_label)
-        # self.dsp7265_time_constant_reading_value_label.setText(self.dsp7265_cur_tc)
+        self.dsp7265_time_constant_reading_value_label.setText(self.dsp7265_current_time_constant)
 
         self.dsp7265_reference_layout = QHBoxLayout()
         self.dsp7265_reference_label = QLabel('Reference: ')
@@ -2360,7 +2364,7 @@ class Measurement(QMainWindow):
         self.dsp7265_reference_value_label.setFont(self.font)
         self.dsp7265_reference_layout.addWidget(self.dsp7265_reference_label)
         self.dsp7265_reference_layout.addWidget(self.dsp7265_reference_value_label)
-        # self.dsp7265_reference_value_label.setText(self.dsp7265_ref_source)
+        self.dsp7265_reference_value_label.setText(self.dsp7265_ref_source)
 
         self.dsp7265_reading_layout.addLayout(self.dsp7265_x_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_y_reading_layout)
@@ -2369,6 +2373,7 @@ class Measurement(QMainWindow):
         self.dsp7265_reading_layout.addLayout(self.dsp7265_freq_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_sensitivity_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_time_constant_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_reference_layout)
         return self.dsp7265_reading_layout
 
     def read_sr7265_settings(self, instrument):
@@ -2485,10 +2490,51 @@ class Measurement(QMainWindow):
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
 
-    def keithley6221_Window(self):
-        self.Keithley_6221_Container = QWidget(self)
-        self.keithley_6221_groupbox = QGroupBox('Keithley 6221')
+    def keithley6221_window_ui(self):
+        self.keithley6221_reading_groupbox = QGroupBox('Keithley 6221 Reading')
+        self.keithley6221_setting_groupbox = QGroupBox('Keithley 6221 Setting')
 
+        self.keithley6221_setting_layout = QVBoxLayout()
+        self.keithley6221_setting_layout.addLayout(self.keithley6221_setting_window_ui())
+
+        # reading
+        self.keithley6221_reading_layout = QVBoxLayout()
+        self.keithley6221_reading_layout.addLayout(self.keithley6221_reading_window_ui())
+
+        self.keithley6221_setting_groupbox.setLayout(self.keithley6221_setting_layout)
+        self.keithley6221_reading_groupbox.setLayout(self.keithley6221_reading_layout)
+
+        self.keithley6221_reading_groupbox.setFixedWidth(520)
+        self.keithley6221_setting_groupbox.setFixedWidth(620)
+
+        self.keithley6221_main_layout = QHBoxLayout()
+        self.keithley6221_main_layout.addWidget(self.keithley6221_reading_groupbox)
+        self.keithley6221_main_layout.addWidget(self.keithley6221_setting_groupbox)
+        self.Instruments_measurement_setup_layout.addLayout(self.keithley6221_main_layout)
+
+    def keithley6221_reading_window_ui(self):
+        keithley_reading_layout = QVBoxLayout()
+
+        keithley_reading_current_layout = QHBoxLayout()
+        keithley_reading_current_label = QLabel('Current:')
+        keithley_reading_current_label.setFont(self.font)
+        self.keithley_reading_current_reading_label = QLabel('N/A')
+        self.keithley_reading_current_reading_label.setFont(self.font)
+        keithley_reading_current_layout.addWidget(keithley_reading_current_label)
+        keithley_reading_current_layout.addWidget(self.keithley_reading_current_reading_label)
+        keithley_reading_layout.addLayout(keithley_reading_current_layout)
+
+        keithley_reading_state_layout = QHBoxLayout()
+        keithley_reading_state_label = QLabel('ON:')
+        keithley_reading_state_label.setFont(self.font)
+        self.keithley_reading_state_reading_label = QLabel('N/A')
+        self.keithley_reading_state_reading_label.setFont(self.font)
+        keithley_reading_state_layout.addWidget(keithley_reading_state_label)
+        keithley_reading_state_layout.addWidget(self.keithley_reading_state_reading_label)
+        keithley_reading_layout.addLayout(keithley_reading_state_layout)
+        return keithley_reading_layout
+
+    def keithley6221_setting_window_ui(self):
         self.Keithey_6221_main_layout = QVBoxLayout()
         self.keithley_6221_DC_radio = QRadioButton("DC")
         self.keithley_6221_DC_radio.setFont(self.font)
@@ -2500,14 +2546,9 @@ class Measurement(QMainWindow):
         self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_DC_radio)
         self.keithley_6221_radio_button_layout.addWidget(self.keithley_6221_ac_radio)
         self.Keithey_6221_main_layout.addLayout(self.keithley_6221_radio_button_layout)
-
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
-        self.keithley_6221_groupbox.setLayout(self.Keithey_6221_main_layout)
-        self.keithley_6221_groupbox.setFixedWidth(620)
-        self.keithley_6221_contain_layout = QHBoxLayout()
-        self.keithley_6221_contain_layout.addWidget(self.keithley_6221_groupbox)
-        self.Instruments_measurement_setup_layout.addLayout(self.keithley_6221_contain_layout)
+        return self.Keithey_6221_main_layout
 
     def keithley_6221_dc(self):
         try:
@@ -2696,6 +2737,35 @@ class Measurement(QMainWindow):
         self.keithley_6221_ac_offset_layout.addWidget(self.keithley_6221_ac_offset_units_combo)
         self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_offset_layout)
 
+        self.keithley_6221_ac_phase_maker_layout = QHBoxLayout()
+        self.keithley_6221_ac_phase_maker_label = QLabel("Phase Maker:")
+        self.keithley_6221_ac_phase_maker_label.setFont(self.font)
+        self.keithley_6221_ac_phase_maker_on_radio_button = QRadioButton("ON")
+        self.keithley_6221_ac_phase_maker_on_radio_button.setFont(self.font)
+        self.keithley_6221_ac_phase_maker_off_radio_button = QRadioButton("OFF")
+        self.keithley_6221_ac_phase_maker_off_radio_button.setFont(self.font)
+        self.keithley_6221_ac_phase_maker_on_radio_button.toggled.connect(self.select_keithley6221_phase_maker)
+        self.keithley_6221_ac_phase_maker_off_radio_button.toggled.connect(self.select_keithley6221_phase_maker)
+        self.keithley_6221_ac_phase_maker_layout.addWidget(self.keithley_6221_ac_phase_maker_label)
+        self.keithley_6221_ac_phase_maker_layout.addWidget(self.keithley_6221_ac_phase_maker_on_radio_button)
+        self.keithley_6221_ac_phase_maker_layout.addWidget(self.keithley_6221_ac_phase_maker_off_radio_button)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_phase_maker_layout)
+
+        self.keithley_6221_ac_phase_maker_trigger_layout = QHBoxLayout()
+        self.keithley_6221_ac_phase_maker_trigger_label = QLabel("Phase Maker Tigger Line:")
+        self.keithley_6221_ac_phase_maker_trigger_label.setFont(self.font)
+        self.keithley_6221_ac_phase_maker_trigger_combo_box = QComboBox()
+        self.keithley_6221_ac_phase_maker_trigger_combo_box.setFont(self.font)
+        self.keithley_6221_ac_phase_maker_trigger_combo_box.setStyleSheet(self.QCombo_stylesheet)
+        self.keithley_6221_ac_phase_maker_trigger_combo_box.addItems(
+            [" ", "1", "2", "3", "4", "5", "6"])
+        self.keithley_6221_ac_phase_maker_trigger_combo_box.currentIndexChanged.connect(self.select_keithley6221_phase_maker_trigger)
+
+        self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_trigger_label)
+        self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_on_radio_button)
+        self.keithley_6221_ac_phase_maker_trigger_layout.addWidget(self.keithley_6221_ac_phase_maker_off_radio_button)
+        self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_phase_maker_trigger_layout)
+
         self.Keithey_curSour_layout.addLayout(self.keithley_6221_ac_range_single_layout)
 
         self.keithley_6221_ac_selection_btn_group = QButtonGroup()
@@ -2758,20 +2828,26 @@ class Measurement(QMainWindow):
 
     def dsp726_sens_selection(self):
         self.dsp_sens_index = self.dsp7265_sens_combo.currentIndex()
+        self.dsp_sens_text = self.dsp7265_sens_combo.currentText()
         if self.dsp_sens_index != 0:
             self.DSP7265.write(f'SEN {str(self.dsp_sens_index)}')
+            self.dsp7265_sensitivity_reading_value_label.setText(self.dsp_sens_text)
         elif self.dsp_sens_index > 27:
             self.DSP7265.write('AS')
 
     def dsp7265_tc_selection(self):
         self.dsp_tc_index = self.dsp7265_TC_combo.currentIndex()
+        self.dsp_tc_text = self.dsp7265_TC_combo.currentText()
         if self.dsp_tc_index != 0:
             self.DSP7265.write(f'TC {str(self.dsp_tc_index-1)}')
+            self.dsp7265_time_constant_reading_value_label.setText(self.dsp_tc_text)
 
     def dsp726_ref_channel_selection(self):
         self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
+        self.dsp_ref_channel_text = self.dsp7265_ref_channel_combo.currentText()
         if self.dsp_ref_channel_index != 0:
             self.DSP7265.write(f'IE {str(self.dsp_ref_channel_index - 1)}')
+            self.dsp7265_reference_value_label.setText(self.dsp_ref_channel_text)
             # cur_freq = float(self.DSP7265.query('FRQ[.]'))/1000
             #
             # self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
@@ -2796,9 +2872,23 @@ class Measurement(QMainWindow):
 
     def dsp7265_freq_setting(self):
         freq = self.dsp7265_freq_entry_box.text()
-        self.DSP7265.write(f'OF. {freq}')
-        cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
-        self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+        if freq is None:
+            QMessageBox.warning(self, 'Warning', 'Frequency not set')
+        else:
+            self.DSP7265.write(f'OF. {freq}')
+            cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+            self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
+
+    def select_keithley6221_phase_maker(self):
+        if self.keithley_6221_ac_phase_maker_on_radio_button.isChecked():
+            self.keithley_6221.write('SOUR:WAVE:PMAR:STAT ON')
+        else:
+            self.keithley_6221.write('SOUR:WAVE:PMAR:STAT OFF')
+
+    def select_keithley6221_phase_maker_trigger(self):
+        self.pm_trigger = self.keithley_6221_ac_phase_maker_trigger_combo_box.currentIndex()
+        if self.pm_trigger != 0:
+            self.keithley_6221.write(f'SOUR:WAVE:PMAR:OLIN {self.pm_trigger}')
 
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
@@ -3762,6 +3852,7 @@ class Measurement(QMainWindow):
                 self.worker.error_message.connect(self.error_popup)
                 self.worker.update_measurement_progress.connect(self.update_measurement_progress)
                 self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
+                self.worker.update_keithley_6221_update_label.connect(self.update_keithley_6221_update_label)
                 self.worker.start()  # Start the worker thread
                 # self.worker.wait()
                 # self.stop_measurement()
@@ -3903,7 +3994,9 @@ class Measurement(QMainWindow):
     def update_ppms_field_reading_label(self,  field, field_unit, status):
         self.ppms_reading_field_label.setText(f'{str(field)} {str(field_unit)} ({status})')
 
-    def update_lockin_label(self, mag, phase):
+    def update_lockin_label(self, x, y, mag, phase):
+        self.dsp7265_x_reading_value_label.setText(f'{str(x)}')
+        self.dsp7265_y_reading_value_label.setText(f'{str(y)}')
         self.dsp7265_mag_reading_value_label.setText(f'{str(mag)} volts')
         self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
@@ -3921,10 +4014,15 @@ class Measurement(QMainWindow):
     def update_dsp7265_freq_label(self, cur_freq):
         self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
+    def update_keithley_6221_update_label(self, current, state):
+        self.keithley_reading_current_reading_label.setText(str(current))
+        self.keithley_reading_state_reading_label.setText(str(state))
+
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
                 update_ppms_field_reading_label, update_ppms_chamber_reading_label,
                 update_nv_channel_1_label, update_nv_channel_2_label, update_lockin_label, clear_plot, update_plot,
                 save_plot, measurement_finished, error_message, update_measurement_progress, update_dsp7265_freq_label,
+                update_keithley_6221_update_label,
                 keithley_6221, keithley_2182nv, DSP7265, current, TempList,
                 topField, botField, folder_path, client, tempRate, current_mag, current_unit,
                 file_name, run, number_of_field, field_mode_fixed, nv_channel_1_enabled,
@@ -4150,6 +4248,7 @@ class Measurement(QMainWindow):
                                 keithley_6221.write(f'CURR {current[j]} \n')
                                 keithley_6221.write(":OUTP ON")  # Turn on the output
                                 append_text(f'DC current is set to: {str(current_mag[j])} {str(current_unit)}', 'blue')
+                                update_keithley_6221_update_label(current[j], "ON")
 
                             if keithley_6221_ac_config:
                                 keithley_6221.write("SOUR:WAVE:ABOR \n")
@@ -4161,10 +4260,12 @@ class Measurement(QMainWindow):
                                 keithley_6221.write('SOUR:WAVE:RANG BEST \n')
                                 keithley_6221.write('SOUR:WAVE:ARM \n')
                                 keithley_6221.write('SOUR:WAVE:INIT \n')
+                                update_keithley_6221_update_label(current[j], "ON")
 
                         if DSP7265_Connected:
                             cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
                             update_dsp7265_freq_label(cur_freq)
+                            DSP7265.write('AQN')
 
                         if record_zero_field:
                             while k < eto_number_of_avg:
@@ -4210,7 +4311,7 @@ class Measurement(QMainWindow):
                                         Y = float(DSP7265.query("Y."))  # Read the measurement result
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(Mag), str(Phase))
+                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
 
                                     except Exception as e:
                                         QMessageBox.warning(self, "Reading Error", f'{e}')
@@ -4382,7 +4483,7 @@ class Measurement(QMainWindow):
                                         Y = float(DSP7265.query("Y."))  # Read the measurement result
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(Mag), str(Phase))
+                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                         self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
@@ -4444,7 +4545,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -4591,7 +4692,7 @@ class Measurement(QMainWindow):
                                         Y = float(DSP7265.query("Y."))  # Read the measurement result
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(Mag), str(Phase))
+                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                         self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
@@ -4647,7 +4748,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -4741,7 +4842,7 @@ class Measurement(QMainWindow):
                                         Y = float(DSP7265.query("Y."))  # Read the measurement result
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(Mag), str(Phase))
+                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                         self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
@@ -4801,7 +4902,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -4893,7 +4994,7 @@ class Measurement(QMainWindow):
                                         Y = float(DSP7265.query("Y."))  # Read the measurement result
                                         Mag = float(DSP7265.query("MAG."))  # Read the measurement result
                                         Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(Mag), str(Phase))
+                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
                                         self.lockin_x.append(X)
                                         # self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
@@ -4951,7 +5052,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -4994,11 +5095,13 @@ class Measurement(QMainWindow):
                     if keithley_6221_dc_config:
                         keithley_6221.write(":SOR:CURR:LEV 0")  # Set current level to zero
                         keithley_6221.write(":OUTP OFF")  # Turn off the output
+                        update_keithley_6221_update_label('N/A', "OFF")
                     if keithley_6221_ac_config:
                         keithley_6221.write("SOUR:WAVE:ABOR \n")
                         keithley_6221.write(f'SOUR:WAVE:AMPL 0 \n')
                         keithley_6221.write(f'SOUR:WAVE:FREQ 0 \n')
                         keithley_6221.write(f'SOUR:WAVE:OFFset 0 \n')
+                        update_keithley_6221_update_label('N/A', "OFF")
                 append_text("AC and DC current is set to: 0.00 A\n", 'red')
                 # keithley_6221_Curr_Src.close()
 
@@ -5168,7 +5271,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -5270,7 +5373,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -5377,7 +5480,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -5481,7 +5584,7 @@ class Measurement(QMainWindow):
                                         total_time_in_days), 'purple')
                                 total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1 - total_time_in_hours / total_estimated_experiment_time_in_hours
+                                current_progress = total_estimated_experiment_time_in_hours - total_time_in_hours / total_estimated_experiment_time_in_hours
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
