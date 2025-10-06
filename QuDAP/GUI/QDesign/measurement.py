@@ -1678,7 +1678,7 @@ class Measurement(QMainWindow):
             if not self.demo_mode:
                 self.keithley_6221.close()
             self.Ketihley_6221_Connected = False
-            self.clear_layout(self.keithley_6221_contain_layout)
+            self.clear_layout(self.keithley6221_main_layout)
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
