@@ -38,7 +38,10 @@ matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from QuDAP.GUI.QDesign.BNC845RF import COMMAND
+try:
+    from GUI.QDesign.BNC845RF import COMMAND
+except ImportError:
+    from QuDAP.GUI.QDesign.BNC845RF import COMMAND
 
 class NotificationManager:
     def __init__(self):
@@ -291,7 +294,7 @@ class Worker(QThread):
     measurement_finished = pyqtSignal()
     error_message = pyqtSignal(str, str)
     update_measurement_progress = pyqtSignal(float, float, float, float)
-    update_dsp7265_freq_label = pyqtSignal()
+    update_dsp7265_freq_label = pyqtSignal(str)
 
     def __init__(self, measurement_instance, keithley_6221, keithley_2182nv, DSP_7265, current, TempList, topField, botField,
                  folder_path, client, tempRate, current_mag, current_unit, file_name, run, number_of_field,
@@ -3915,8 +3918,7 @@ class Measurement(QMainWindow):
         self.eto_measurement_status_average_reading_label.setText(f'{str(avg)}')
         return int(avg)
 
-    def update_dsp7265_freq_label(self):
-        cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+    def update_dsp7265_freq_label(self, cur_freq):
         self.dsp7265_freq_reading_value_label.setText(str(cur_freq))
 
     def run_ETO(self, append_text, progress_update, stop_measurement, update_ppms_temp_reading_label,
@@ -4161,7 +4163,8 @@ class Measurement(QMainWindow):
                                 keithley_6221.write('SOUR:WAVE:INIT \n')
 
                         if DSP7265_Connected:
-                            update_dsp7265_freq_label()
+                            cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
+                            update_dsp7265_freq_label(cur_freq)
 
                         if record_zero_field:
                             while k < eto_number_of_avg:
