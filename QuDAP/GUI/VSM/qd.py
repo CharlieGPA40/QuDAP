@@ -48,6 +48,7 @@ class Loadfile():
                 if line == "[Header]" or line.startswith(";") or line == "":
                     continue
                 if "[Data]" in line:
+                    print('Data found')
                     break
                 if "," not in line:
                     print("No data in file!\n")
@@ -86,8 +87,10 @@ class Loadfile():
             data = np.genfromtxt([str2bytes(l) for l in f], dtype="float", delimiter=",", invalid_raise=False)
             if data.shape[0] == 0:
                 print("No data in file!")
+                data = np.empty((0, len(self.column_headers)))
+
             if data.shape[1] < len(self.column_headers):
-                data = np.append(data, np.ones((data.shape[0], len(self.column_headers) - data.shape[1])) * np.NaN, axis=1)
+                data = np.append(data, np.ones((data.shape[0], len(self.column_headers) - data.shape[1])) * np.nan, axis=1)
             elif data.shape[1] > len(self.column_headers):
                 data = data[:, : len(self.column_headers) - data.shape[1]]
             self.data = data
