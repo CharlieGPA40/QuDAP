@@ -3402,7 +3402,7 @@ class Measurement(QMainWindow):
                         try:
                             model_6221 = self.keithley_6221.query('*IDN?')
                             self.append_text(str(model_6221), 'green')
-                            f.write(f"Instrument: Keithley 6221 enabled\n")
+
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
                             self.stop_measurement()
@@ -3630,6 +3630,7 @@ class Measurement(QMainWindow):
 
                 self.append_text('Start initializing Current...!\n', 'blue')
                 # =============================== Set the current ==================================== #
+                f.write(f"Instrument: Keithley 6221 enabled\n")
                 if self.keithley_6221_DC_radio.isChecked():
                     f.write(f"\tKeithley 6221 DC current: enabled\n")
                     self.keithley_6221_dc_config = True
@@ -3661,6 +3662,7 @@ class Measurement(QMainWindow):
                         current_mag = [f"{i}" for i in
                                        float_range(init_current, final_current + step_current, step_current)]
                     elif self.keithley_6221_DC_single_checkbox.isChecked():
+
                         self.single_DC_current = self.keithley_6221_DC_single_entry.text()
                         self.single_DC_current = self.single_DC_current.replace(" ", "")
                         self.single_DC_current = [float(item) for item in self.single_DC_current.split(',')]
