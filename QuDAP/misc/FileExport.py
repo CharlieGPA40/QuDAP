@@ -1,10 +1,11 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
-    QGroupBox, QTreeWidget, QTreeWidgetItem, QTableWidget, QTableWidgetItem,
+    QGroupBox, QTreeView, QDialog, QDialogButtonBox,
     QHeaderView, QFileDialog, QMessageBox, QScrollArea, QSizePolicy,
-    QMenu, QWidgetAction, QApplication, QTableView
+    QMenu, QApplication, QTableView, QRadioButton, QButtonGroup,
+    QLineEdit, QFormLayout
 )
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QBrush, QColor, QStandardItemModel, QStandardItem
 import os
 import numpy as np
@@ -17,14 +18,240 @@ try:
     from GUI.VSM.qd import Loadfile
     import misc.dragdropwidget as ddw
 except ImportError:
-    try:
-        from QuDAP.GUI.VSM.qd import Loadfile
-        import QuDAP.misc.dragdropwidget as ddw
-    except ImportError:
-        # Create a dummy Loadfile class if not available
-        class Loadfile:
-            def __init__(self, filepath):
-                raise NotImplementedError("Loadfile class not available")
+    from QuDAP.GUI.VSM.qd import Loadfile
+    import QuDAP.misc.dragdropwidget as ddw
+
+
+class ExportOptionsDialog(QDialog):
+    """Dialog for selecting export format"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Export Options")
+        self.setModal(True)
+        self.selected_format = None
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        # Title
+        title = QLabel("Select Export Format")
+        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title.setStyleSheet("color: #2c3e50; padding: 10px;")
+        layout.addWidget(title)
+
+        # Format selection group
+        format_group = QGroupBox("Export Format")
+        format_layout = QVBoxLayout()
+
+        self.format_button_group = QButtonGroup()
+
+        self.csv_radio = QRadioButton("CSV (.csv)")
+        self.csv_radio.setChecked(True)
+        self.format_button_group.addButton(self.csv_radio, 0)
+
+        self.xlsx_radio = QRadioButton("Excel (.xlsx)")
+        self.format_button_group.addButton(self.xlsx_radio, 1)
+
+        format_layout.addWidget(self.csv_radio)
+        format_layout.addWidget(self.xlsx_radio)
+        format_group.setLayout(format_layout)
+        layout.addWidget(format_group)
+
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            QRadioButton {
+                padding: 5px;
+                font-size: 12px;
+            }
+        """)
+
+    def get_selected_format(self):
+        """Return selected format"""
+        if self.csv_radio.isChecked():
+            return 'csv'
+        elif self.xlsx_radio.isChecked():
+            return 'xlsx'
+        return 'csv'
+
+
+class BatchExportOptionsDialog(QDialog):
+    """Dialog for batch export options"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Batch Export Options")
+        self.setModal(True)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        # Title
+        title = QLabel("Batch Export Configuration")
+        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title.setStyleSheet("color: #2c3e50; padding: 10px;")
+        layout.addWidget(title)
+
+        # Export mode selection
+        mode_group = QGroupBox("Export Mode")
+        mode_layout = QVBoxLayout()
+
+        self.mode_button_group = QButtonGroup()
+
+        self.separate_radio = QRadioButton("Separate Files (one file per input)")
+        self.separate_radio.setChecked(True)
+        self.mode_button_group.addButton(self.separate_radio, 0)
+
+        self.combined_radio = QRadioButton("Single Combined File")
+        self.mode_button_group.addButton(self.combined_radio, 1)
+
+        mode_layout.addWidget(self.separate_radio)
+        mode_layout.addWidget(self.combined_radio)
+        mode_group.setLayout(mode_layout)
+        layout.addWidget(mode_group)
+
+        # Format selection
+        format_group = QGroupBox("Export Format")
+        format_layout = QVBoxLayout()
+
+        self.format_button_group = QButtonGroup()
+
+        self.csv_radio = QRadioButton("CSV (.csv)")
+        self.csv_radio.setChecked(True)
+        self.format_button_group.addButton(self.csv_radio, 0)
+
+        self.xlsx_radio = QRadioButton("Excel (.xlsx)")
+        self.format_button_group.addButton(self.xlsx_radio, 1)
+
+        format_layout.addWidget(self.csv_radio)
+        format_layout.addWidget(self.xlsx_radio)
+        format_group.setLayout(format_layout)
+        layout.addWidget(format_group)
+
+        # File name input (only for combined mode)
+        self.filename_group = QGroupBox("Combined File Name")
+        filename_layout = QFormLayout()
+
+        self.filename_input = QLineEdit()
+        self.filename_input.setPlaceholderText("combined_data")
+        self.filename_input.setText("combined_data")
+        filename_layout.addRow("File Name:", self.filename_input)
+
+        self.filename_group.setLayout(filename_layout)
+        self.filename_group.setEnabled(False)
+        layout.addWidget(self.filename_group)
+
+        # Connect signals
+        self.combined_radio.toggled.connect(self.on_mode_changed)
+
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            QRadioButton {
+                padding: 5px;
+                font-size: 12px;
+            }
+            QLineEdit {
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+            }
+        """)
+
+    def on_mode_changed(self, checked):
+        """Enable/disable filename input based on mode"""
+        self.filename_group.setEnabled(checked)
+
+    def get_export_mode(self):
+        """Return 'separate' or 'combined'"""
+        return 'combined' if self.combined_radio.isChecked() else 'separate'
+
+    def get_export_format(self):
+        """Return 'csv' or 'xlsx'"""
+        return 'xlsx' if self.xlsx_radio.isChecked() else 'csv'
+
+    def get_filename(self):
+        """Return the custom filename"""
+        return self.filename_input.text().strip() or "combined_data"
+
+
+
+
+class CustomTreeView(QTreeView):
+    """Custom tree view that distinguishes left and right clicks"""
+    left_clicked = pyqtSignal(QStandardItem)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._right_click_in_progress = False
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self._right_click_in_progress = True
+        elif event.button() == Qt.MouseButton.LeftButton:
+            self._right_click_in_progress = False
+            index = self.indexAt(event.pos())
+            if index.isValid():
+                item = self.model().itemFromIndex(index)
+                if item and item.column() == 0:  # Only trigger for first column
+                    self.left_clicked.emit(item)
+
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self._right_click_in_progress = False
+        super().mouseReleaseEvent(event)
+
+    def is_right_click_in_progress(self):
+        return self._right_click_in_progress
 
 
 class FileExport(QMainWindow):
@@ -34,6 +261,7 @@ class FileExport(QMainWindow):
         # Selection tracking variables for ordered selection
         self.x_column = None  # Store X column index
         self.y_columns = []  # Store Y column indices in order
+        self._in_context_menu = False  # Add flag here
 
         try:
             self.isInit = False
@@ -149,12 +377,30 @@ class FileExport(QMainWindow):
                                                 alignment=Qt.AlignmentFlag.AlignCenter)
                 self.file_selection_group_box.setLayout(self.drag_drop_layout)
 
-                # Create the file browser area
-                self.file_tree = QTreeWidget()
-                self.file_tree_layout = QHBoxLayout()
+                # Create the file browser area with QTreeView
+                self.file_tree = CustomTreeView()
+                self.file_tree_model = QStandardItemModel()
+                self.file_tree_model.setHorizontalHeaderLabels(["Name", "Type", "Size"])
+                self.file_tree.setModel(self.file_tree_model)
+
+                # Configure tree view
                 self.file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
                 self.file_tree.customContextMenuRequested.connect(self.open_context_menu)
-                self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
+                self.file_tree.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
+                self.file_tree.setSelectionBehavior(QTreeView.SelectionBehavior.SelectRows)
+                self.file_tree.setRootIsDecorated(False)  # No expand/collapse arrows
+                self.file_tree.setAlternatingRowColors(True)
+
+                # Connect left click signal
+                self.file_tree.left_clicked.connect(self.on_left_click)
+
+                # Set column widths
+                header = self.file_tree.header()
+                header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+                header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+                header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+
+                self.file_tree_layout = QHBoxLayout()
                 self.file_tree_layout.addWidget(self.file_tree)
 
                 try:
@@ -287,7 +533,6 @@ class FileExport(QMainWindow):
             # Set headers
             headers = list(df.columns)
             self.table_model.setHorizontalHeaderLabels(headers)
-
 
             # Store original headers
             self.original_headers = {}
@@ -430,20 +675,20 @@ class FileExport(QMainWindow):
 
         self.selection_display.setText(f"{x_text} | {y_text}")
 
-    def display_files(self, folder_path, selected_file_type=None):
-        """Display files from a folder"""
-        self.file_tree.clear()
+    def display_files(self, folder_path, selected_file_type):
+        """Display files from a folder using QTreeView"""
+        self.file_tree_model.removeRows(0, self.file_tree_model.rowCount())
         self.folder = folder_path
         self.file_selection_display_label.setText("Directory Successfully Uploaded")
         self.file_selection_display_label.setStyleSheet("""
-            color: #4b6172; 
-            font-size: 12px;
-            background-color: #DfE7Ef; 
-            border-radius: 5px; 
-            padding: 5px;
-        """)
+               color: #4b6172; 
+               font-size: 12px;
+               background-color: #DfE7Ef; 
+               border-radius: 5px; 
+               padding: 5px;
+           """)
 
-        supported_extensions = ['.dat', '.csv', '.xlsx', '.xls', '.txt']
+        supported_extensions = [selected_file_type]
 
         for root, dirs, files in os.walk(folder_path):
             for file_name in files:
@@ -451,6 +696,7 @@ class FileExport(QMainWindow):
                 if file_ext in supported_extensions:
                     file_path = os.path.join(root, file_name)
                     self.file_in_list.append(file_path)
+
                     file_info = os.stat(file_path)
                     file_size_kb = file_info.st_size / 1024
                     if file_size_kb < 1024:
@@ -471,20 +717,31 @@ class FileExport(QMainWindow):
                     }
                     file_type = file_type_map.get(file_ext, 'other')
 
-                    item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
-                    item.setToolTip(0, file_path)
+                    # Create row items
+                    name_item = QStandardItem(file_name)
+                    name_item.setData(file_path, Qt.ItemDataRole.UserRole)  # Store full path
+                    name_item.setEditable(False)
+                    name_item.setToolTip(f"{file_name}")
 
-        self.file_tree.itemSelectionChanged.connect(self.on_item_selection_changed)
-        self.file_tree.resizeColumnToContents(0)
-        self.file_tree.resizeColumnToContents(1)
-        self.file_tree.resizeColumnToContents(2)
+                    type_item = QStandardItem(file_type)
+                    type_item.setEditable(False)
 
-    def display_multiple_files(self, file_paths, selected_file_type=None):
-        """Display multiple files"""
-        current_files = {self.file_tree.topLevelItem(i).text(0): self.file_tree.topLevelItem(i)
-                         for i in range(self.file_tree.topLevelItemCount())}
+                    size_item = QStandardItem(file_size_str)
+                    size_item.setEditable(False)
 
-        supported_extensions = ['.dat', '.csv', '.xlsx', '.xls', '.txt']
+
+                    self.file_tree_model.appendRow([name_item, type_item, size_item])
+
+    def display_multiple_files(self, file_paths, selected_file_type):
+        """Display multiple files using QTreeView"""
+        # Get existing files
+        existing_files = set()
+        for row in range(self.file_tree_model.rowCount()):
+            name_item = self.file_tree_model.item(row, 0)
+            if name_item:
+                existing_files.add(name_item.text())
+
+        supported_extensions = [selected_file_type]
 
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
@@ -493,8 +750,9 @@ class FileExport(QMainWindow):
             if file_ext not in supported_extensions:
                 continue
 
-            if file_name not in current_files:
+            if file_name not in existing_files:
                 self.file_in_list.append(file_path)
+
                 file_info = os.stat(file_path)
                 file_size_kb = file_info.st_size / 1024
                 if file_size_kb < 1024:
@@ -515,16 +773,22 @@ class FileExport(QMainWindow):
                 }
                 file_type = file_type_map.get(file_ext, 'other')
 
-                item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
-                item.setToolTip(0, file_path)
+                # Create row items
+                name_item = QStandardItem(file_name)
+                name_item.setData(file_path, Qt.ItemDataRole.UserRole)
+                name_item.setEditable(False)
+                name_item.setToolTip(f"{file_name}")
 
-        self.file_tree.itemSelectionChanged.connect(self.on_item_selection_changed)
-        self.file_tree.resizeColumnToContents(0)
-        self.file_tree.resizeColumnToContents(1)
-        self.file_tree.resizeColumnToContents(2)
+                type_item = QStandardItem(file_type)
+                type_item.setEditable(False)
+
+                size_item = QStandardItem(file_size_str)
+                size_item.setEditable(False)
+
+                self.file_tree_model.appendRow([name_item, type_item, size_item])
 
         self.file_selection_display_label.setText(
-            f"{self.file_tree.topLevelItemCount()} Files Successfully Uploaded")
+            f"{self.file_tree_model.rowCount()} Files Successfully Uploaded")
         self.file_selection_display_label.setStyleSheet("""
             color: #4b6172; 
             font-size: 12px;
@@ -533,14 +797,39 @@ class FileExport(QMainWindow):
             padding: 5px;
         """)
 
-    def on_item_selection_changed(self):
-        """Handle file selection in tree"""
-        self.clear_column_selection()
-        selected_items = self.file_tree.selectedItems()
-        if selected_items:
-            selected_item = selected_items[0]
-            self.file_path = selected_item.toolTip(0)
-            self.open_file_in_table(self.file_path)
+    # def on_item_selection_changed(self):
+    #     """Handle file selection in tree"""
+    #     self.clear_column_selection()
+    #     selected_items = self.file_tree.selectedItems()
+    #     if selected_items:
+    #         selected_item = selected_items[0]
+    #         self.file_path = selected_item.toolTip(0)
+    #         self.open_file_in_table(self.file_path)
+    def on_left_click(self, item):
+        """Handle left click on tree item"""
+        # Check if this is a single selection (not Ctrl+Click or Shift+Click)
+        modifiers = QApplication.keyboardModifiers()
+
+        # If no modifiers, load the file
+        if modifiers == Qt.KeyboardModifier.NoModifier:
+            self.clear_column_selection()
+            file_path = item.data(Qt.ItemDataRole.UserRole)
+            if file_path:
+                self.file_path = file_path
+                self.open_file_in_table(self.file_path)
+        else:
+            # Multi-select mode - clear table
+            selected_indexes = self.file_tree.selectedIndexes()
+            # Count unique rows (each row has 3 columns)
+            selected_rows = set(index.row() for index in selected_indexes)
+
+            if len(selected_rows) != 1:
+                if hasattr(self, 'file_path'):
+                    delattr(self, 'file_path')
+                self.table_model.clear()
+                self.table_model.setRowCount(0)
+                self.table_model.setColumnCount(0)
+                self.clear_column_selection()
 
     def detect_headers(self, df, file_path):
         """
@@ -671,6 +960,13 @@ class FileExport(QMainWindow):
                                     "Please select at least one Y column (Ctrl+Click on headers)")
                 return
 
+            # Show export options dialog
+            options_dialog = ExportOptionsDialog(self)
+            if options_dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+
+            export_format = options_dialog.get_selected_format()
+
             # Prepare data with X first, then Y columns in order
             column_data = {}
 
@@ -699,15 +995,33 @@ class FileExport(QMainWindow):
                 file_name = "exported_data"
                 folder_name = os.getcwd()
 
-            dialog = QFileDialog(self)
-            dialog.setFileMode(QFileDialog.FileMode.Directory)
-            dialog.setDirectory(folder_name)
+            # File dialog with appropriate filter
+            if export_format == 'csv':
+                file_filter = "CSV Files (*.csv)"
+                default_ext = ".csv"
+            else:
+                file_filter = "Excel Files (*.xlsx)"
+                default_ext = ".xlsx"
 
-            if dialog.exec():
-                folder_name = dialog.selectedFiles()[0]
-                export_file_name = os.path.join(folder_name, f"{file_name}.csv")
-                self.export_to_csv(column_data, export_file_name)
-                QMessageBox.information(self, "Success", f"Data exported to {export_file_name}")
+            save_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Export File",
+                os.path.join(folder_name, f"{file_name}{default_ext}"),
+                file_filter
+            )
+
+            if save_path:
+                # Ensure correct extension
+                if not save_path.endswith(default_ext):
+                    save_path += default_ext
+
+                # Export based on format
+                if export_format == 'csv':
+                    self.export_to_csv(column_data, save_path)
+                else:
+                    self.export_to_xlsx(column_data, save_path)
+
+                QMessageBox.information(self, "Success", f"Data exported to {save_path}")
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Export failed: {str(e)}\n\n{traceback.format_exc()}")
@@ -723,102 +1037,227 @@ class FileExport(QMainWindow):
                 QMessageBox.warning(self, "No Y Columns", "Please select at least one Y column")
                 return
 
-            dialog = QFileDialog(self)
-            dialog.setFileMode(QFileDialog.FileMode.Directory)
-            if hasattr(self, 'file_path'):
-                dialog.setDirectory(os.path.dirname(self.file_path))
+            # Show batch export options dialog
+            options_dialog = BatchExportOptionsDialog(self)
+            if options_dialog.exec() != QDialog.DialogCode.Accepted:
+                return
 
-            if dialog.exec():
+            export_mode = options_dialog.get_export_mode()
+            export_format = options_dialog.get_export_format()
+            combined_filename = options_dialog.get_filename()
+
+            # Select folder or file based on mode
+            if export_mode == 'separate':
+                dialog = QFileDialog(self)
+                dialog.setFileMode(QFileDialog.FileMode.Directory)
+                if hasattr(self, 'file_path'):
+                    dialog.setDirectory(os.path.dirname(self.file_path))
+
+                if not dialog.exec():
+                    return
+
                 folder_name = dialog.selectedFiles()[0]
-                exported_count = 0
-                failed_files = []
+            else:
+                # Combined mode - select file location
+                if export_format == 'csv':
+                    file_filter = "CSV Files (*.csv)"
+                    default_ext = ".csv"
+                else:
+                    file_filter = "Excel Files (*.xlsx)"
+                    default_ext = ".xlsx"
 
-                for file in self.file_in_list:
-                    try:
-                        df = None
-                        file_ext = Path(file).suffix.lower()
+                default_path = os.path.join(
+                    os.path.dirname(self.file_path) if hasattr(self, 'file_path') else os.getcwd(),
+                    f"{combined_filename}{default_ext}"
+                )
 
-                        # Load with header detection
-                        if file_ext == '.dat':
-                            try:
-                                loaded_file = Loadfile(file)
-                                headers = loaded_file.column_headers
-                                data = loaded_file.data
-                                df = pd.DataFrame(data, columns=headers)
-                            except Exception as e:
-                                failed_files.append(f"{Path(file).name} (Loadfile error)")
-                                continue
+                save_path, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "Save Combined Export File",
+                    default_path,
+                    file_filter
+                )
 
-                        elif file_ext == '.csv':
-                            df = pd.read_csv(file)
-                            has_headers, df = self.detect_headers(df, file)
-                            if not has_headers:
-                                df = pd.read_csv(file, header=None)
-                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+                if not save_path:
+                    return
 
-                        elif file_ext == '.xlsx':
-                            df = pd.read_excel(file, engine='openpyxl')
-                            has_headers, df = self.detect_headers(df, file)
-                            if not has_headers:
-                                df = pd.read_excel(file, engine='openpyxl', header=None)
-                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+                # Ensure correct extension
+                if not save_path.endswith(default_ext):
+                    save_path += default_ext
 
-                        elif file_ext == '.xls':
-                            df = pd.read_excel(file)
-                            has_headers, df = self.detect_headers(df, file)
-                            if not has_headers:
-                                df = pd.read_excel(file, header=None)
-                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+            exported_count = 0
+            failed_files = []
 
-                        elif file_ext == '.txt':
-                            for sep in ['\t', ',', None]:
-                                try:
-                                    df = pd.read_csv(file, sep=sep, delim_whitespace=(sep is None))
-                                    break
-                                except:
-                                    continue
+            # For combined mode - collect all dataframes with file identifiers
+            combined_data = {}  # Will store {column_name: data_list}
+            file_names = []  # Track file names for column naming
 
-                            if df is not None:
-                                has_headers, df = self.detect_headers(df, file)
-                                if not has_headers:
-                                    if sep is None:
-                                        df = pd.read_csv(file, delim_whitespace=True, header=None)
-                                    else:
-                                        df = pd.read_csv(file, sep=sep, header=None)
-                                    df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+            for file in self.file_in_list:
+                try:
+                    df = None
+                    file_ext = Path(file).suffix.lower()
 
-                        if df is None:
-                            failed_files.append(f"{Path(file).name} (could not load)")
+                    # Load with header detection
+                    if file_ext == '.dat':
+                        try:
+                            loaded_file = Loadfile(file)
+                            headers = loaded_file.column_headers
+                            data = loaded_file.data
+                            df = pd.DataFrame(data, columns=headers)
+                        except Exception as e:
+                            failed_files.append(f"{Path(file).name} (Loadfile error)")
                             continue
 
-                        # Create export dataframe
+                    elif file_ext == '.csv':
+                        df = pd.read_csv(file)
+                        has_headers, df = self.detect_headers(df, file)
+                        if not has_headers:
+                            df = pd.read_csv(file, header=None)
+                            df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+                    elif file_ext == '.xlsx':
+                        df = pd.read_excel(file, engine='openpyxl')
+                        has_headers, df = self.detect_headers(df, file)
+                        if not has_headers:
+                            df = pd.read_excel(file, engine='openpyxl', header=None)
+                            df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+                    elif file_ext == '.xls':
+                        df = pd.read_excel(file)
+                        has_headers, df = self.detect_headers(df, file)
+                        if not has_headers:
+                            df = pd.read_excel(file, header=None)
+                            df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+                    elif file_ext == '.txt':
+                        for sep in ['\t', ',', None]:
+                            try:
+                                df = pd.read_csv(file, sep=sep, delim_whitespace=(sep is None))
+                                break
+                            except:
+                                continue
+
+                        if df is not None:
+                            has_headers, df = self.detect_headers(df, file)
+                            if not has_headers:
+                                if sep is None:
+                                    df = pd.read_csv(file, delim_whitespace=True, header=None)
+                                else:
+                                    df = pd.read_csv(file, sep=sep, header=None)
+                                df.columns = [f"Column_{i + 1}" for i in range(len(df.columns))]
+
+                    if df is None:
+                        failed_files.append(f"{Path(file).name} (could not load)")
+                        continue
+
+                    # Get file name without extension
+                    file_basename = Path(file).stem
+
+                    # Validate column indices
+                    if self.x_column >= len(df.columns):
+                        failed_files.append(f"{Path(file).name} (X column index out of range)")
+                        continue
+
+                    # Check if any Y column is out of range
+                    valid_y_columns = [col for col in self.y_columns if col < len(df.columns)]
+                    if not valid_y_columns:
+                        failed_files.append(f"{Path(file).name} (No valid Y columns)")
+                        continue
+
+                    if export_mode == 'separate':
+                        # Create export dataframe with selected columns
                         column_data = {}
 
-                        if self.x_column < len(df.columns):
-                            x_header = df.columns[self.x_column]
-                            column_data[x_header] = df.iloc[:, self.x_column]
+                        # Add X column
+                        x_header = df.columns[self.x_column]
+                        column_data[x_header] = df.iloc[:, self.x_column]
 
-                        for col in self.y_columns:
-                            if col < len(df.columns):
-                                y_header = df.columns[col]
-                                column_data[y_header] = df.iloc[:, col]
+                        # Add Y columns
+                        for col in valid_y_columns:
+                            y_header = df.columns[col]
+                            column_data[y_header] = df.iloc[:, col]
 
                         export_df = pd.DataFrame(column_data)
-                        file_name = os.path.splitext(os.path.basename(file))[0]
-                        export_file_name = os.path.join(folder_name, f"{file_name}.csv")
-                        export_df.to_csv(export_file_name, index=False)
+
+                        # Export each file separately
+                        export_file_name = os.path.join(folder_name, f"{file_basename}.{export_format}")
+
+                        if export_format == 'csv':
+                            export_df.to_csv(export_file_name, index=False)
+                        else:
+                            export_df.to_excel(export_file_name, index=False, engine='openpyxl')
+
                         exported_count += 1
 
-                    except Exception as e:
-                        failed_files.append(f"{Path(file).name} ({str(e)})")
+                    else:
+                        # Combined mode - store data in columns with file name prefix
+                        file_names.append(file_basename)
 
-                message = f"Successfully exported {exported_count} files to {folder_name}"
-                if failed_files:
-                    message += f"\n\nFailed: {len(failed_files)} files:\n" + "\n".join(failed_files[:5])
-                    if len(failed_files) > 5:
-                        message += f"\n... and {len(failed_files) - 5} more"
+                        # Get X column header name
+                        x_header = df.columns[self.x_column]
 
-                QMessageBox.information(self, "Export Complete", message)
+                        # Add X column with file name prefix
+                        x_column_name = f"{file_basename}_{x_header}"
+                        combined_data[x_column_name] = df.iloc[:, self.x_column].tolist()
+
+                        # Add Y columns with file name prefix
+                        for col in valid_y_columns:
+                            y_header = df.columns[col]
+                            # Create unique column name: FileName_ColumnName
+                            combined_column_name = f"{file_basename}_{y_header}"
+                            combined_data[combined_column_name] = df.iloc[:, col].tolist()
+
+                        exported_count += 1
+
+                except Exception as e:
+                    failed_files.append(f"{Path(file).name} ({str(e)})")
+
+            # Handle combined export
+            if export_mode == 'combined' and combined_data:
+                try:
+                    # Find the maximum length among all columns
+                    max_length = max(len(v) for v in combined_data.values())
+
+                    # Pad shorter columns with empty strings or NaN
+                    for key in combined_data:
+                        current_length = len(combined_data[key])
+                        if current_length < max_length:
+                            combined_data[key].extend([np.nan] * (max_length - current_length))
+
+                    # Create DataFrame with proper column ordering
+                    combined_df = pd.DataFrame()
+
+                    # Add columns in order: File1_X, File1_Y1, File1_Y2, File2_X, File2_Y1, File2_Y2, etc.
+                    for file_name in file_names:
+                        for col_name in combined_data.keys():
+                            if col_name.startswith(f"{file_name}_"):
+                                combined_df[col_name] = combined_data[col_name]
+
+                    # Export combined file
+                    if export_format == 'csv':
+                        combined_df.to_csv(save_path, index=False)
+                    else:
+                        combined_df.to_excel(save_path, index=False, engine='openpyxl')
+
+                    message = f"Successfully combined {exported_count} files into {save_path}\n"
+                    message += f"Total columns: {len(combined_df.columns)} "
+                    message += f"({exported_count} X columns + {len(combined_df.columns) - exported_count} Y columns)"
+
+                except Exception as e:
+                    message = f"Error creating combined file: {str(e)}"
+                    QMessageBox.critical(self, "Export Error", message)
+                    return
+            else:
+                message = f"Successfully exported {exported_count} files"
+                if export_mode == 'separate':
+                    message += f" to {folder_name}"
+
+            if failed_files:
+                message += f"\n\nFailed: {len(failed_files)} files:\n" + "\n".join(failed_files[:5])
+                if len(failed_files) > 5:
+                    message += f"\n... and {len(failed_files) - 5} more"
+
+            QMessageBox.information(self, "Export Complete", message)
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Export failed: {str(e)}\n\n{traceback.format_exc()}")
@@ -835,58 +1274,171 @@ class FileExport(QMainWindow):
         except Exception as e:
             raise Exception(f"Error writing CSV: {str(e)}")
 
+    def export_to_xlsx(self, column_data, file_name):
+        """Export data dictionary to Excel file"""
+        try:
+            df = pd.DataFrame(column_data)
+            df.to_excel(file_name, index=False, engine='openpyxl')
+        except Exception as e:
+            raise Exception(f"Error writing Excel: {str(e)}")
+
+    def on_item_selection_changed(self):
+        """Handle file selection in tree - only for left click"""
+        # Don't load table if we're in right-click context menu mode
+        if self._in_context_menu:
+            return
+
+        self.clear_column_selection()
+        selected_items = self.file_tree.selectedItems()
+        if selected_items:
+            selected_item = selected_items[0]
+            self.file_path = selected_item.toolTip(0)
+            self.open_file_in_table(self.file_path)
+
     def open_context_menu(self, position: QPoint):
         """Open the context menu on right-click"""
-        menu = QMenu()
+        index = self.file_tree.indexAt(position)
+        if not index.isValid():
+            return
 
-        remove_action = QWidgetAction(self)
-        remove_label = QLabel("Remove")
-        remove_label.setStyleSheet("""
-                QLabel {
-                    padding: 5px 10px;
-                    color: #c0392b;
-                    font-weight: bold;
-                }
-                QLabel:hover {
-                    background-color: #ecf0f1;
-                }
-            """)
-        remove_label.mousePressEvent = lambda event: self.handle_remove_click(event)
-        remove_action.setDefaultWidget(remove_label)
-        menu.addAction(remove_action)
+        # Get the item from the first column
+        item = self.file_tree_model.item(index.row(), 0)
+        if not item:
+            return
+
+        # If clicked item is not in selection, select only it
+        selected_indexes = self.file_tree.selectedIndexes()
+        selected_rows = set(idx.row() for idx in selected_indexes)
+
+        if index.row() not in selected_rows:
+            self.file_tree.clearSelection()
+            self.file_tree.selectRow(index.row())
+
+        # Get all selected items for removal
+        selected_indexes = self.file_tree.selectedIndexes()
+        selected_rows = set(idx.row() for idx in selected_indexes)
+        self._context_menu_items = [
+            self.file_tree_model.item(row, 0) for row in sorted(selected_rows)
+        ]
+
+        menu = QMenu(self)
+
+        # Create remove action with count
+        count = len(self._context_menu_items)
+        if count == 1:
+            remove_text = "🗑️ Remove"
+        else:
+            remove_text = f"🗑️ Remove ({count} files)"
+
+        remove_action = menu.addAction(remove_text)
+        remove_action.triggered.connect(lambda: self.remove_context_items())
+
+        # Execute menu
         menu.exec(self.file_tree.viewport().mapToGlobal(position))
 
-    def handle_remove_click(self, event):
-        """Handle right-click on remove label"""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.file_tree.clearSelection()
+        if hasattr(self, '_context_menu_items'):
+            delattr(self, '_context_menu_items')
+
+    def remove_context_items(self):
+        """Remove the selected items from context menu"""
+        if not hasattr(self, '_context_menu_items'):
+            return
+
+        items_to_remove = self._context_menu_items
+
+        if not items_to_remove:
+            return
+
+        # Ask for confirmation if removing multiple files
+        if len(items_to_remove) > 1:
+            reply = QMessageBox.question(
+                self,
+                "Confirm Deletion",
+                f"Are you sure you want to remove {len(items_to_remove)} files?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.No:
+                return
+
+        removed_paths = []
+        current_displayed_file = getattr(self, 'file_path', None)
+        should_clear_table = False
+
+        # Remove items in reverse order to maintain correct indices
+        rows_to_remove = sorted([self.file_tree_model.indexFromItem(item).row()
+                                 for item in items_to_remove], reverse=True)
+
+        for row in rows_to_remove:
+            item = self.file_tree_model.item(row, 0)
+            if item:
+                file_path = item.data(Qt.ItemDataRole.UserRole)
+
+                # Remove from file list
+                if file_path in self.file_in_list:
+                    self.file_in_list.remove(file_path)
+                    removed_paths.append(file_path)
+
+                # Check if we need to clear the table
+                if current_displayed_file == file_path:
+                    should_clear_table = True
+
+                # Remove from model
+                self.file_tree_model.removeRow(row)
+
+        # Clear table if any removed file was being displayed
+        if should_clear_table:
+            self.table_model.clear()
+            self.table_model.setRowCount(0)
+            self.table_model.setColumnCount(0)
             self.clear_column_selection()
-            self.remove_selected_item()
+            if hasattr(self, 'file_path'):
+                delattr(self, 'file_path')
 
-    def remove_selected_item(self):
-        """Remove the selected item from the tree"""
-        selected_item = self.file_tree.currentItem()
-        if selected_item:
-            file_path = selected_item.toolTip(0)
-            if file_path in self.file_in_list:
-                self.file_in_list.remove(file_path)
-            index = self.file_tree.indexOfTopLevelItem(selected_item)
-            if index != -1:
-                self.file_tree.takeTopLevelItem(index)
+        # Update display label
+        self.update_file_count_label()
 
-            # Update display label
-            count = self.file_tree.topLevelItemCount()
-            if count == 0:
-                self.file_selection_display_label.setText('Please Upload Files or Directory')
-                self.file_selection_display_label.setStyleSheet("""
-                        color: white; 
-                        font-size: 12px;
-                        background-color: #f38d76; 
-                        border-radius: 5px; 
-                        padding: 5px;
-                    """)
+        # Show success message
+        if len(removed_paths) > 0:
+            if len(removed_paths) == 1:
+                message = f"Removed 1 file"
             else:
-                self.file_selection_display_label.setText(f"{count} Files Loaded")
+                message = f"Removed {len(removed_paths)} files"
+
+            self.file_selection_display_label.setText(message)
+            self.file_selection_display_label.setStyleSheet("""
+                color: #155724; 
+                font-size: 12px;
+                background-color: #d4edda; 
+                border-radius: 5px; 
+                padding: 5px;
+            """)
+
+            # Reset label after 3 seconds
+            QTimer.singleShot(3000, lambda: self.update_file_count_label())
+
+    def update_file_count_label(self):
+        """Update the file count label"""
+        count = self.file_tree_model.rowCount()
+        if count == 0:
+            self.file_selection_display_label.setText('Please Upload Files or Directory')
+            self.file_selection_display_label.setStyleSheet("""
+                color: white; 
+                font-size: 12px;
+                background-color: #f38d76; 
+                border-radius: 5px; 
+                padding: 5px;
+            """)
+        else:
+            self.file_selection_display_label.setText(f"{count} Files Loaded")
+            self.file_selection_display_label.setStyleSheet("""
+                color: #4b6172; 
+                font-size: 12px;
+                background-color: #DfE7Ef; 
+                border-radius: 5px; 
+                padding: 5px;
+            """)
 
     def rstpage(self):
         """Reset the page to initial state"""
@@ -903,8 +1455,8 @@ class FileExport(QMainWindow):
                     except:
                         pass
 
-                if hasattr(self, 'file_tree'):
-                    self.file_tree.clear()
+                if hasattr(self, 'file_tree_model'):
+                    self.file_tree_model.removeRows(0, self.file_tree_model.rowCount())
 
                 if hasattr(self, 'table_model'):
                     self.table_model.clear()
@@ -914,12 +1466,12 @@ class FileExport(QMainWindow):
                 if hasattr(self, 'file_selection_display_label'):
                     self.file_selection_display_label.setText('Please Upload Files or Directory')
                     self.file_selection_display_label.setStyleSheet("""
-                            color: white; 
-                            font-size: 12px;
-                            background-color: #f38d76; 
-                            border-radius: 5px; 
-                            padding: 5px;
-                        """)
+                        color: white; 
+                        font-size: 12px;
+                        background-color: #f38d76; 
+                        border-radius: 5px; 
+                        padding: 5px;
+                    """)
 
                 if hasattr(self, 'selection_display'):
                     self.selection_display.setText("X: None | Y: None")
@@ -942,18 +1494,3 @@ class FileExport(QMainWindow):
                     child.widget().deleteLater()
                 if child.layout() is not None:
                     self.clear_layout(child.layout())
-
-# Main execution
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-
-    # Create main window
-    window = FileExport("Multi-Format")
-    window.setWindowTitle("QuDAP - Data Extraction Tool")
-    window.setGeometry(100, 100, 1200, 900)
-    window.show()
-
-    sys.exit(app.exec())

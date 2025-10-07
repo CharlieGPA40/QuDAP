@@ -5,10 +5,10 @@ from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
 import sys
 try:
-    # from GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
+    from GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
     from misc.FileExport import FileExport
 except ImportError:
-    # from QuDAP.GUI.FMR.FMRDataSorting import FMR_DATA_SORTING
+    from QuDAP.GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
     from QuDAP.misc.FileExport import FileExport
 
 class FMR(QMainWindow):
@@ -39,7 +39,7 @@ class FMR(QMainWindow):
 
         # Add content to each tab
         self.tab1_layout.addWidget(FileExport('FMR'))
-        # self.tab2_layout.addWidget(self.qd_data_proc_widget)
+        self.tab2_layout.addWidget(FMR_DATA_INTERPOLATION())
 
         # Set the layout for each tab
         self.tab1.setLayout(self.tab1_layout)

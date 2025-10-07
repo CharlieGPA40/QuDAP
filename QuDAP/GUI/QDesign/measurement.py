@@ -2526,7 +2526,7 @@ class Measurement(QMainWindow):
         keithley_reading_layout.addLayout(keithley_reading_current_layout)
 
         keithley_reading_state_layout = QHBoxLayout()
-        keithley_reading_state_label = QLabel('ON:')
+        keithley_reading_state_label = QLabel('State:')
         keithley_reading_state_label.setFont(self.font)
         self.keithley_reading_state_reading_label = QLabel('N/A')
         self.keithley_reading_state_reading_label.setFont(self.font)
@@ -3484,7 +3484,7 @@ class Measurement(QMainWindow):
                             dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
                                 self.DSP7265)
                             f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
-                            f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq}\n")
+                            f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
                             f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
                             f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
                             f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
@@ -3906,29 +3906,6 @@ class Measurement(QMainWindow):
             self.canvas.figure.savefig(self.folder_path +"{}_{}_run{}_{}K_{}A.png".format(self.sample_id, self.measurement, self.run, temp, current))
             time.sleep(5)
 
-
-            def send_image(bot_token, chat_id, image_path, caption=None):
-                url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
-                data = {"chat_id": chat_id}
-                if caption:
-                    data["caption"] = caption
-
-                try:
-                    with open(image_path, "rb") as image_file:
-                        files = {"photo": image_file}
-                        response = requests.post(url, data=data, files=files)
-
-                    if response.status_code != 200:
-                        raise Exception(f"Error: {response.status_code}, {response.text}")
-
-                    return response.json()
-
-                except FileNotFoundError:
-                    return {"ok": False, "error": "File not found. Check the file path."}
-                except Exception as e:
-                    return {"ok": False, "error": str(e)}
-
-
             image_path = r"{}{}_{}_run{}_{}K_{}A.png".format(self.folder_path, self.sample_id, self.measurement, self.run, temp, current)
             if not os.path.exists(image_path):
                 print("No Such File.")
@@ -3973,6 +3950,8 @@ class Measurement(QMainWindow):
         try:
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+            self.keithley_6221.write("*RST")
+            self.keithley_6221.write("*CLS")
             self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
         except Exception:

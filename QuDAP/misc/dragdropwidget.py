@@ -75,8 +75,13 @@ class DragDropWidget(QWidget):
                 data_files = [path for path in paths if os.path.isfile(path) and path.lower().endswith(self.selected_type)]
 
                 if directories:
-                    for directory in directories:
-                        self.main_window.display_files(directory + '/', self.selected_type)
+                    print(self.selected_type)
+                    if self.selected_type.lower() == 'select type':
+                        QMessageBox.warning(self, "Invalid File",
+                                            f"Please select file type.")
+                    else:
+                        for directory in directories:
+                            self.main_window.display_files(directory + '/', self.selected_type)
 
                 if data_files:
                     self.main_window.display_multiple_files(data_files, self.selected_type)

@@ -58,7 +58,8 @@ class PPMS(QWidget):
         try:
             self.init_ui()
             self.isConnect = False
-
+            self.server = None
+            self.client = None
             self.server_thread = None
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
@@ -437,6 +438,7 @@ class PPMS(QWidget):
                 self.client_keep_going = False
                 self.connect_btn.setText('Start Client')
                 self.client.close_client()
+                self.client = None
                 # if self.PPMS_client_Thread is not None:
                 #     self.PPMS_client_Thread.stop_client()
                 #     self.PPMS_client_Thread.wait()
@@ -477,118 +479,127 @@ class PPMS(QWidget):
         # self.cur_chamb_status_reading_Label.setText(f'{C}')
 
     def setTemp(self):
-        self.thread.stop()
-        self.set_temp = self.cur_temp_entry_box.displayText()
-        self.set_temp_rate = self.temp_rate_entry_box.displayText()
-        self.temp_rate_method = self.temp_rate_combo.currentIndex()
-        temperatureValidtor =self.check_validator(self.temp_validator, self.cur_temp_entry_box)
-        temperatureRateValidtor = self.check_validator(self.temp_rate_validator, self.temp_rate_entry_box)
-        if not temperatureValidtor or not temperatureRateValidtor:
-            return
-        if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0:
+        if self.client:
+            self.thread.stop()
+            self.set_temp = self.cur_temp_entry_box.displayText()
+            self.set_temp_rate = self.temp_rate_entry_box.displayText()
+            self.temp_rate_method = self.temp_rate_combo.currentIndex()
+            temperatureValidtor =self.check_validator(self.temp_validator, self.cur_temp_entry_box)
+            temperatureRateValidtor = self.check_validator(self.temp_rate_validator, self.temp_rate_entry_box)
+            if not temperatureValidtor or not temperatureRateValidtor:
+                return
+            if self.set_temp != '' and self.set_temp_rate != '' and self.temp_rate_method != 0:
 
-            self.set_temp_rate = float(self.set_temp_rate)
-            self.set_temp = float(self.set_temp)
-            self.check_validator(self.temp_validator, self.cur_temp_entry_box)
-            try:
-                if self.temp_rate_method == 1:
-                    self.client.set_temperature(self.set_temp,
-                                           self.set_temp_rate,
-                                           self.client.temperature.approach_mode.fast_settle)
-                elif self.temp_rate_method == 2:
-                    self.client.set_temperature(self.set_temp,
-                                                self.set_temp_rate,
-                                                self.client.temperature.approach_mode.no_overshoot)
-                self.thread = THREAD(self.client)
-                self.thread.update_data.connect(self.ppms_reading)
-                self.thread.start()
-            except MultiPyVuError:
-                QMessageBox.warning(self, "Setup Fail", "Please try again!")
+                self.set_temp_rate = float(self.set_temp_rate)
+                self.set_temp = float(self.set_temp)
+                self.check_validator(self.temp_validator, self.cur_temp_entry_box)
+                try:
+                    if self.temp_rate_method == 1:
+                        self.client.set_temperature(self.set_temp,
+                                               self.set_temp_rate,
+                                               self.client.temperature.approach_mode.fast_settle)
+                    elif self.temp_rate_method == 2:
+                        self.client.set_temperature(self.set_temp,
+                                                    self.set_temp_rate,
+                                                    self.client.temperature.approach_mode.no_overshoot)
+                    self.thread = THREAD(self.client)
+                    self.thread.update_data.connect(self.ppms_reading)
+                    self.thread.start()
+                except MultiPyVuError:
+                    QMessageBox.warning(self, "Setup Fail", "Please try again!")
+            else:
+                QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+            self.thread.start()
         else:
-            QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
-        self.thread.start()
+            QMessageBox.warning(self, "Error", "Please connect to PPMS client")
 
     def setField(self):
-        self.thread.stop()
-        self.set_Field = self.cur_field_entry_box.displayText()
-        self.set_field_rate = self.field_rate_entry_box.displayText()
-        self.field_rate_method = self.field_rate_combo.currentIndex()
-        fieldValidtor = self.check_validator(self.field_validator, self.cur_field_entry_box)
-        fieldRateValidtor = self.check_validator(self.field_rate_validator, self.field_rate_entry_box)
-        if not fieldValidtor or not fieldRateValidtor:
-            return
-        if self.set_Field != '' and self.set_field_rate != '' and self.field_rate_method != 0:
+        if self.client:
+            self.thread.stop()
+            self.set_Field = self.cur_field_entry_box.displayText()
+            self.set_field_rate = self.field_rate_entry_box.displayText()
+            self.field_rate_method = self.field_rate_combo.currentIndex()
+            fieldValidtor = self.check_validator(self.field_validator, self.cur_field_entry_box)
+            fieldRateValidtor = self.check_validator(self.field_rate_validator, self.field_rate_entry_box)
+            if not fieldValidtor or not fieldRateValidtor:
+                return
 
-            self.set_Field = float(self.set_Field)
-            self.set_field_rate = float(self.set_field_rate)
-            try:
-                if self.field_rate_method == 1:
-                    self.client.set_field(self.set_Field,
-                                                self.set_field_rate,
-                                                self.client.field.approach_mode.linear)
+            if self.set_Field != '' and self.set_field_rate != '' and self.field_rate_method != 0:
 
-                if self.field_rate_method == 2:
-                    self.client.set_field(self.set_Field,
-                                           self.set_field_rate,
-                                           self.client.field.approach_mode.no_overshoot)
-                elif self.field_rate_method == 3:
-                    self.client.set_field(self.set_Field,
-                                                self.set_field_rate,
-                                                self.client.field.approach_mode.oscillate)
+                self.set_Field = float(self.set_Field)
+                self.set_field_rate = float(self.set_field_rate)
+                try:
+                    if self.field_rate_method == 1:
+                        self.client.set_field(self.set_Field,
+                                                    self.set_field_rate,
+                                                    self.client.field.approach_mode.linear)
 
-                self.thread = THREAD(self.client)
-                self.thread.update_data.connect(self.ppms_reading)
-                self.thread.start()
-            except MultiPyVuError as e:
-                QMessageBox.warning(self, "Setup Fail", "Please try again!")
+                    if self.field_rate_method == 2:
+                        self.client.set_field(self.set_Field,
+                                               self.set_field_rate,
+                                               self.client.field.approach_mode.no_overshoot)
+                    elif self.field_rate_method == 3:
+                        self.client.set_field(self.set_Field,
+                                                    self.set_field_rate,
+                                                    self.client.field.approach_mode.oscillate)
+
+                    self.thread = THREAD(self.client)
+                    self.thread.update_data.connect(self.ppms_reading)
+                    self.thread.start()
+                except MultiPyVuError as e:
+                    QMessageBox.warning(self, "Setup Fail", "Please try again!")
+            else:
+                QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
+            self.thread.start()
         else:
-            QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
-        self.thread.start()
+            QMessageBox.warning(self, "Error", "Please connect to PPMS client")
 
     def setChamber(self):
-        self.thread.stop()
-        time.sleep(1)
-        self.set_Chamber = self.chamber_set_combo.currentIndex()
-        self.chamber_set_combo.setEnabled(True)
-        # if self.C == 'Sealed':
-        #     self.chamber_set_combo.setCurrentIndex(1)
-        # elif self.C == 'Purged and Sealed':
-        #     self.chamber_set_combo.setCurrentIndex(2)
-        # elif self.C == 'Purged and Sealed':
-        #     self.chamber_set_combo.setCurrentIndex(3)
-        # elif self.C == 'Purged and Sealed':
-        #     self.chamber_set_combo.setCurrentIndex(4)
-        # elif self.C == 'Purged and Sealed':
-        #     self.chamber_set_combo.setCurrentIndex(5)
-        # elif self.C == 'Purged and Sealed':
-        #     self.chamber_set_combo.setCurrentIndex(6)
+        if self.client:
+            self.thread.stop()
+            time.sleep(1)
+            self.set_Chamber = self.chamber_set_combo.currentIndex()
+            self.chamber_set_combo.setEnabled(True)
+            # if self.C == 'Sealed':
+            #     self.chamber_set_combo.setCurrentIndex(1)
+            # elif self.C == 'Purged and Sealed':
+            #     self.chamber_set_combo.setCurrentIndex(2)
+            # elif self.C == 'Purged and Sealed':
+            #     self.chamber_set_combo.setCurrentIndex(3)
+            # elif self.C == 'Purged and Sealed':
+            #     self.chamber_set_combo.setCurrentIndex(4)
+            # elif self.C == 'Purged and Sealed':
+            #     self.chamber_set_combo.setCurrentIndex(5)
+            # elif self.C == 'Purged and Sealed':
+            #     self.chamber_set_combo.setCurrentIndex(6)
 
-        if self.set_Chamber != 0:
-            try:
-                if self.set_Chamber == 1:
-                    self.client.set_chamber(self.client.chamber.Mode.seal)
-                elif self.set_Chamber == 2:
-                    self.client.set_chamber(self.client.chamber.mode.purge_seal)
-                elif self.set_Chamber == 3:
-                    self.client.set_chamber(self.client.chamber.mode.vent_seal)
-                elif self.set_Chamber == 4:
-                    self.client.set_chamber(self.client.chamber.mode.pump_continuous)
-                elif self.set_Chamber == 5:
-                    self.client.set_chamber(self.client.chamber.mode.vent_continuous)
-                elif self.set_Chamber == 6:
-                    self.client.set_chamber(self.client.chamber.mode.high_vacuum)
-                self.thread = THREAD(self.client)
-                self.thread.update_data.connect(self.ppms_reading)
-                self.thread.start()
+            if self.set_Chamber != 0:
+                try:
+                    if self.set_Chamber == 1:
+                        self.client.set_chamber(self.client.chamber.Mode.seal)
+                    elif self.set_Chamber == 2:
+                        self.client.set_chamber(self.client.chamber.mode.purge_seal)
+                    elif self.set_Chamber == 3:
+                        self.client.set_chamber(self.client.chamber.mode.vent_seal)
+                    elif self.set_Chamber == 4:
+                        self.client.set_chamber(self.client.chamber.mode.pump_continuous)
+                    elif self.set_Chamber == 5:
+                        self.client.set_chamber(self.client.chamber.mode.vent_continuous)
+                    elif self.set_Chamber == 6:
+                        self.client.set_chamber(self.client.chamber.mode.high_vacuum)
+                    self.thread = THREAD(self.client)
+                    self.thread.update_data.connect(self.ppms_reading)
+                    self.thread.start()
 
-            # except mpv.exceptions.MultiPyVuError:
-            except Exception:
-                pass
-                # QMessageBox.warning(self, "Setup Fail", "Please try again!")
+                # except mpv.exceptions.MultiPyVuError:
+                except Exception:
+                    pass
+                    # QMessageBox.warning(self, "Setup Fail", "Please try again!")
 
+            else:
+                QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
         else:
-            QMessageBox.warning(self, "Input Missing", "Please enter all the required information")
-
+            QMessageBox.warning(self, "Error", "Please connect to PPMS client")
 
     def check_validator(self, validator_model, entry):
         try:
