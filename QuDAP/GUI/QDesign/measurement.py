@@ -2283,7 +2283,7 @@ class Measurement(QMainWindow):
         self.dsp7265_float_channel_combo.setFont(self.font)
         self.dsp7265_float_channel_combo.setStyleSheet(self.QCombo_stylesheet)
         self.dsp7265_float_channel_combo.addItems(
-            ["Selection", "Ground", "Float (connect to ground via 1 kohm resistor)"])
+            ["Selection", "Ground", "Float (connect to ground via 1 k\u03A9 resistor)"])
         self.dsp7265_float_channel_combo.currentIndexChanged.connect(self.dsp7265_float_control)
 
         self.dsp7265_float_layout.addWidget(self.dsp7265_float_text)
