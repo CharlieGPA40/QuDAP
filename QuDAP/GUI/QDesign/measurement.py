@@ -4014,6 +4014,7 @@ class Measurement(QMainWindow):
                 self.worker = None
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
+        self.stop_measurement()
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):

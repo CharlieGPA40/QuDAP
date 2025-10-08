@@ -16,10 +16,10 @@ import os
 
 import platform
 system = platform.system()
-if system != "Windows":
-    print("Not running on Windows")
-    from VSM.qd import *
-else:
+# if system != "Windows":
+#     print("Not running on Windows")
+#     from VSM.qd import *
+# else:
     # version_info = platform.win32_ver()
     # version, build, service_pack, extra = version_info
     # build_number = int(build.split('.')[2])
@@ -29,10 +29,10 @@ else:
     #     from VSM.qd import *
     # else:
     #     print("Unknown Windows version")
-    try:
-        from QuDAP.GUI.VSM.qd import *
-    except ImportError:
-        from GUI.VSM.qd import *
+try:
+    from QuDAP.GUI.VSM.qd import *
+except ImportError:
+    from GUI.VSM.qd import *
 
 try:
     from pptx import Presentation
