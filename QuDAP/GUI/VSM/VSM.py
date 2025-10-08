@@ -8,11 +8,11 @@ import platform
 
 system = platform.system()
 try:
-    from GUI.VSM.VSMDataProcessing import VSM_Data_Processing
-    from misc.FileExport import FileExport
-except ImportError:
     from QuDAP.GUI.VSM.VSMDataProcessing import VSM_Data_Processing
     from QuDAP.misc.FileExport import FileExport
+except ImportError:
+    from GUI.VSM.VSMDataProcessing import VSM_Data_Processing
+    from misc.FileExport import FileExport
 
 class VSM(QMainWindow):
 
