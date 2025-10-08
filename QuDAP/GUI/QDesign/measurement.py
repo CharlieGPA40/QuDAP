@@ -4590,9 +4590,9 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
-                                    number_of_current) * (number_of_temp) / 3600
-                                current_progress = 1- (total_estimated_experiment_time_in_hours - total_time_in_hours) / total_estimated_experiment_time_in_hours
+                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp)
+                                current_progress = total_time_in_seconds / total_estimated_experiment_time_in_seconds
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -4793,9 +4793,9 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
-                                    number_of_current) * (number_of_temp) / 3600
-                                current_progress =  total_time_in_hours / total_estimated_experiment_time_in_hours
+                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp)
+                                current_progress = total_time_in_seconds / total_estimated_experiment_time_in_seconds
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -4947,9 +4947,9 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
-                                    number_of_current) * (number_of_temp) / 3600
-                                current_progress =  total_time_in_hours / total_estimated_experiment_time_in_hours
+                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp)
+                                current_progress = total_time_in_seconds / total_estimated_experiment_time_in_seconds
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
@@ -5097,9 +5097,9 @@ class Measurement(QMainWindow):
                                 append_text(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_hours = Single_loop * (number_of_field_update) * (
-                                    number_of_current) * (number_of_temp) / 3600
-                                current_progress = total_time_in_hours / total_estimated_experiment_time_in_hours
+                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field_update) * (
+                                    number_of_current) * (number_of_temp)
+                                current_progress = total_time_in_seconds / total_estimated_experiment_time_in_seconds
                                 progress_update(int(current_progress * 100))
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
