@@ -3671,7 +3671,10 @@ class Measurement(QMainWindow):
                         number_of_field_zone3)
 
                 topField = self.zone1_top_field
-                botField = self.zone1_bot_field
+                if self.ppms_field_One_zone_radio.isChecked():
+                    botField = self.zone1_bot_field
+                else:
+                    botField = -1 m* self.zone1_top_field
 
                 self.append_text('Start initializing Current...!\n', 'blue')
                 # =============================== Set the current ==================================== #
@@ -4166,7 +4169,6 @@ class Measurement(QMainWindow):
                 append_text(f'Field = 0 Oe\n', 'purple')
                 update_ppms_field_reading_label('0', 'Oe', 'stable')
             else:
-
                 # -------------Temp Status---------------------
                 temperature, status, temp_unit = read_temperature()
                 append_text(f'Current temperature is {temperature} {temp_unit}\n', 'purple')
@@ -4410,7 +4412,7 @@ class Measurement(QMainWindow):
                                 append_text(f'Loop is at {currentField} Oe Field Up \n', 'blue')
                                 field_set_point = currentField
                                 append_text(f'Set the field to {field_set_point} Oe and then collect data \n', 'blue')
-                                set_field(field_set_point, fast_field_rate)
+                                set_field(field_set_point, user_field_rate)
 
                                 time.sleep(4)
                                 while True:
