@@ -4797,7 +4797,10 @@ class Measurement(QMainWindow):
                                 total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field_update) * (
                                     number_of_current) * (number_of_temp)
                                 current_progress = total_estimated_experiment_time_in_seconds - total_time_in_seconds / total_estimated_experiment_time_in_seconds
-                                progress_update(int(current_progress * 100))
+                                try:
+                                    progress_update(int(current_progress * 100))
+                                except Exception:
+                                    None
                                 update_measurement_progress(total_time_in_days, total_time_in_hours,
                                                             totoal_time_in_minutes, current_progress * 100)
                         else:
