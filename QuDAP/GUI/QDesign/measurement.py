@@ -3674,7 +3674,7 @@ class Measurement(QMainWindow):
                 if self.ppms_field_One_zone_radio.isChecked():
                     botField = self.zone1_bot_field
                 else:
-                    botField = -1 m* self.zone1_top_field
+                    botField = -1 * self.zone1_top_field
 
                 self.append_text('Start initializing Current...!\n', 'blue')
                 # =============================== Set the current ==================================== #
