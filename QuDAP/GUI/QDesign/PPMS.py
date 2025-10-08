@@ -576,7 +576,7 @@ class PPMS(QWidget):
             if self.set_Chamber != 0:
                 try:
                     if self.set_Chamber == 1:
-                        self.client.set_chamber(self.client.chamber.Mode.seal)
+                        self.client.set_chamber(self.client.chamber.mode.seal)
                     elif self.set_Chamber == 2:
                         self.client.set_chamber(self.client.chamber.mode.purge_seal)
                     elif self.set_Chamber == 3:
@@ -587,9 +587,9 @@ class PPMS(QWidget):
                         self.client.set_chamber(self.client.chamber.mode.vent_continuous)
                     elif self.set_Chamber == 6:
                         self.client.set_chamber(self.client.chamber.mode.high_vacuum)
-                    self.thread = THREAD(self.client)
-                    self.thread.update_data.connect(self.ppms_reading)
-                    self.thread.start()
+                    # self.thread = THREAD(self.client)
+                    # self.thread.update_data.connect(self.ppms_reading)
+                    # self.thread.start()
 
                 # except mpv.exceptions.MultiPyVuError:
                 except Exception:

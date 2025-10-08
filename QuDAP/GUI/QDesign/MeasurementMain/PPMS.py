@@ -19,12 +19,12 @@ import MultiPyVu as mpv
 # ---------Open Dynacool MuliVu (Don't run as Admin)-------- #
 # ========================================================= #
 start_time = time.time()
-rm = visa.ResourceManager()  # Open a VISA resource manager pointing to the installation folder for the Keysight Visa libraries.
-# Nanovoltmeter
-keithley_2182A_NV = rm.open_resource("GPIB1::7::INSTR", timeout=10000)
-time.sleep(2)
-# Current Source
-keithley_6221_Curr_Src = rm.open_resource('GPIB1::13::INSTR')
+# rm = visa.ResourceManager()  # Open a VISA resource manager pointing to the installation folder for the Keysight Visa libraries.
+# # Nanovoltmeter
+# keithley_2182A_NV = rm.open_resource("GPIB1::7::INSTR", timeout=10000)
+# time.sleep(2)
+# # Current Source
+# keithley_6221_Curr_Src = rm.open_resource('GPIB1::13::INSTR')
 time.sleep(2)
 # PPMS
 host = "127.0.0.1"
