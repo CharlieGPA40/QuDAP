@@ -2271,8 +2271,9 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_text)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_entry_box)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_freq_unit_text)
-        self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
+        self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
+
         return self.dsp7265_freq_layout
 
     def dsp7265_float_control_ui(self):
