@@ -2895,9 +2895,9 @@ class Measurement(QMainWindow):
         self.dsp7265_lf_n2_index = self.dsp7265_lf_n2_combo.currentIndex()
         if self.dsp7265_lf_n1_index != 0:
             if self.dsp7265_lf_n2_index == 0:
-                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)} 0]')
+                self.DSP7265.write(f'LF {str(self.dsp7265_lf_n1_index - 1)} 0')
             else:
-                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)} {str(self.dsp7265_lf_n2_index - 1)}]')
+                self.DSP7265.write(f'LF {str(self.dsp7265_lf_n1_index - 1)} {str(self.dsp7265_lf_n2_index - 1)}')
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
