@@ -32,7 +32,7 @@ else:
     try:
         from QuDAP.GUI.VSM.qd import *
     except ImportError:
-        from VSM.qd import *
+        from GUI.VSM.qd import *
 
 try:
     from pptx import Presentation
