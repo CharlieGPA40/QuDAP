@@ -2149,6 +2149,10 @@ class Measurement(QMainWindow):
         self.dsp7265_setting_layout.addLayout(self.dsp7265_time_constant_ui())
         # frequency
         self.dsp7265_setting_layout.addLayout(self.dsp7265_frequency_ui())
+        # Float
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_float_control_ui())
+        # device
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_device_control_ui())
         # auto sensitivity
         self.dsp7265_setting_layout.addWidget(self.dsp7265_auto_sensitivity_ui())
 
@@ -2270,6 +2274,37 @@ class Measurement(QMainWindow):
         self.dsp7265_freq_layout.addWidget(self.dsp7265_ref_channel_combo)
         self.dsp7265_freq_layout.addWidget(self.dsp7265_submit_button)
         return self.dsp7265_freq_layout
+
+    def dsp7265_float_control_ui(self):
+        self.dsp7265_float_layout = QHBoxLayout()
+        self.dsp7265_float_text = QLabel('Float/Ground Control:')
+        self.dsp7265_float_text.setFont(self.font)
+        self.dsp7265_float_channel_combo = WideComboBox()
+        self.dsp7265_float_channel_combo.setFont(self.font)
+        self.dsp7265_float_channel_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_float_channel_combo.addItems(
+            ["Selection", "Ground", "Float (connect to ground via 1 kohm resistor)"])
+        self.dsp7265_float_channel_combo.currentIndexChanged.connect(self.dsp7265_float_control)
+
+        self.dsp7265_float_layout.addWidget(self.dsp7265_float_text)
+        self.dsp7265_float_layout.addWidget(self.dsp7265_float_channel_combo)
+        return self.dsp7265_float_layout
+
+    def dsp7265_device_control_ui(self):
+        self.dsp7265_device_layout = QHBoxLayout()
+        self.dsp7265_device_text = QLabel('Input Device Control:')
+        self.dsp7265_device_text.setFont(self.font)
+        self.dsp7265_device_channel_combo = WideComboBox()
+        self.dsp7265_device_channel_combo.setFont(self.font)
+        self.dsp7265_device_channel_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_device_channel_combo.addItems(
+            ["Selection", "Bipolar Device, 10 k\u03A9 input impedance",
+             "FET, 10 M\u03A9 input impedance"])
+        self.dsp7265_device_channel_combo.currentIndexChanged.connect(self.dsp7265_device_control)
+
+        self.dsp7265_device_layout.addWidget(self.dsp7265_device_text)
+        self.dsp7265_device_layout.addWidget(self.dsp7265_device_channel_combo)
+        return self.dsp7265_device_layout
 
     def dsp7265_auto_sensitivity_ui(self):
         self.dsp7265_auto_button_layout = QHBoxLayout()
@@ -2860,12 +2895,22 @@ class Measurement(QMainWindow):
         self.dsp7265_lf_n2_index = self.dsp7265_lf_n2_combo.currentIndex()
         if self.dsp7265_lf_n1_index != 0:
             if self.dsp7265_lf_n2_index == 0:
-                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, 0]')
+                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)} 0]')
             else:
-                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)}, {str(self.dsp7265_lf_n2_index - 1)}]')
+                self.DSP7265.write(f'LF [{str(self.dsp7265_lf_n1_index - 1)} {str(self.dsp7265_lf_n2_index - 1)}]')
 
     def dsp725_auto_sens(self):
         self.DSP7265.write('AS')
+
+    def dsp7265_device_control(self):
+        self.dsp7265_device_index = self.dsp7265_device_channel_combo.currentIndex()
+        if self.dsp7265_device_index != 0:
+            self.DSP7265.write(f'FET {str(self.dsp7265_device_index - 1)}')
+
+    def dsp7265_float_control(self):
+        self.dsp7265_float_index = self.dsp7265_float_channel_combo.currentIndex()
+        if self.dsp7265_float_index != 0:
+            self.DSP7265.write(f'FLOAT {str(self.dsp7265_float_index - 1)}')
 
     def dsp725_auto_phase(self):
         self.DSP7265.write('AQN')
@@ -4261,6 +4306,7 @@ class Measurement(QMainWindow):
                             cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
                             update_dsp7265_freq_label(cur_freq)
                             DSP7265.write('AQN')
+                            time.sleep(5)
 
                         if record_zero_field:
                             while k < eto_number_of_avg:
@@ -4351,6 +4397,8 @@ class Measurement(QMainWindow):
                         if DSP7265_Connected:
                             cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
                             update_dsp7265_freq_label(cur_freq)
+                            DSP7265.write('AQN')
+                            time.sleep(5)
 
                         if field_mode_fixed:
                             while currentField >= botField:
