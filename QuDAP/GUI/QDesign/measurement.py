@@ -5165,7 +5165,7 @@ class Measurement(QMainWindow):
                 self.log_box.append(f"Total runtime: {total_runtime} hours\n")
                 self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
                 NotificationManager().send_message("The measurement has been completed successfully.")
-                progress_update(int=100)
+                progress_update(int(100))
                 append_text("You measurement is finished!", 'green')
                 # stop_measurement()
                 measurement_finished()
