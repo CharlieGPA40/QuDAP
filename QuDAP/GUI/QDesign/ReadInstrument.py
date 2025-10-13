@@ -156,18 +156,23 @@ class InstrumentDetector(QWidget):
                                                         """)
         title_layout.addWidget(self.current_intrument_label)
         main_layout.addLayout(title_layout)
+        with open("GUI/QSS/QButtonWidget.qss", "r") as file:
+            self.Button_stylesheet = file.read()
         # Top controls
         controls_layout = QHBoxLayout()
-        self.scan_button = QPushButton("🔍 Scan Instruments")
-        self.scan_button.setFixedHeight(40)
+        self.scan_button = QPushButton("🔍 Scan")
+        # self.scan_button.setFixedHeight(40)
+        self.scan_button.setStyleSheet(self.Button_stylesheet)
         self.scan_button.clicked.connect(self.scan_instruments)
 
         self.refresh_button = QPushButton("🔄 Refresh")
-        self.refresh_button.setFixedHeight(40)
+        # self.refresh_button.setFixedHeight(40)
+        self.refresh_button.setStyleSheet(self.Button_stylesheet)
         self.refresh_button.clicked.connect(self.scan_instruments)
 
-        self.test_button = QPushButton("🔧 Test Selected")
-        self.test_button.setFixedHeight(40)
+        self.test_button = QPushButton("🔧 Test")
+        # self.test_button.setFixedHeight(40)
+        self.test_button.setStyleSheet(self.Button_stylesheet)
         self.test_button.clicked.connect(self.test_selected_instrument)
         self.test_button.setEnabled(False)
 
@@ -366,7 +371,7 @@ class InstrumentDetector(QWidget):
             test_results = "<h3>Test Results</h3>"
             test_results += f"<b>Testing:</b> {resource}<br><br>"
 
-            commands = ["*IDN?", "ID?", "*RST", "*TST?"]
+            commands = ["*IDN?", "ID", "ID?", "*RST", "*TST?"]
 
             for cmd in commands:
                 try:
@@ -393,12 +398,12 @@ class InstrumentDetector(QWidget):
         event.accept()
 
 
-def main():
-    app = QApplication(sys.argv)
-    window = InstrumentDetector()
-    window.show()
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     app = QApplication(sys.argv)
+#     window = InstrumentDetector()
+#     window.show()
+#     sys.exit(app.exec())
+#
+#
+# if __name__ == "__main__":
+#     main()
