@@ -371,7 +371,7 @@ class InstrumentDetector(QWidget):
             test_results = "<h3>Test Results</h3>"
             test_results += f"<b>Testing:</b> {resource}<br><br>"
 
-            commands = ["*IDN?", "ID", "ID?", "*RST", "*TST?"]
+            commands = ["ID", "*IDN?", "ID?", "*RST", "*TST?"]
 
             for cmd in commands:
                 try:
