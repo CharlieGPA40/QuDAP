@@ -2,7 +2,7 @@
             border: none;
             border-radius: 5px;
             margin: 5px;
-            font-size: 35px;
+            font-size: 30px;
             color:   #ffffff  ;
             font-weight: bold;
             font-style: italic;
