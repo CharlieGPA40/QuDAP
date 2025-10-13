@@ -26,7 +26,7 @@ try:
     import QuDAP.GUI.QDesign.measurement as m
     import QuDAP.GUI.Dashboard.Dashboard as Dashboard
     import QuDAP.GUI.Plot.plotting as pt
-    import QuDAP.GUI.QDesign.xps as xps
+    import QuDAP.GUI.QDesign.ReadInstrument as reading_instrument
     
 except ImportError as e:
     import GUI.FMR.FMR as fmr
@@ -47,7 +47,7 @@ except ImportError as e:
     import GUI.QDesign.measurement as m
     import GUI.Dashboard.Dashboard as Dashboard
     import GUI.Plot.plotting as pt
-    import GUI.QDesign.xps as xps
+    import GUI.QDesign.ReadInstrument as reading_instrument
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)
@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(pt.plotting())  # 13
         self.pages.addWidget(dsp.Lockin())  # 14
         self.pages.addWidget(sr.sr830Lockin())  # 15
-        self.pages.addWidget(xps.XPS())  # 16
+        self.pages.addWidget(reading_instrument.InstrumentDetector())  # 16
         self.pages.addWidget(AboutSoftware.AboutQuDAP())  # 17
         self.pages.addWidget(Contact.ContactQuDAP()) # 18
 
@@ -298,7 +298,7 @@ class MainWindow(QMainWindow):
             self.child_sidebar.addItem(QListWidgetItem("BNC 845 RF"))
             self.child_sidebar.addItem(QListWidgetItem("DSP Lock-in 7265"))
             self.child_sidebar.addItem(QListWidgetItem("sr830 Lock-in"))
-            self.child_sidebar.addItem(QListWidgetItem("XPS"))
+            self.child_sidebar.addItem(QListWidgetItem("Connection"))
             self.child_sidebar.addItem(QListWidgetItem("Measure"))
             self.child_sidebar.addItem(QListWidgetItem("Quick Test"))
             self.child_sidebar.currentRowChanged.connect(self.update_exp_processing)
@@ -379,7 +379,7 @@ class MainWindow(QMainWindow):
             self.pages.setCurrentIndex(15)
             self.CURRENT_INDEX_CHILD = 5
 
-        elif current_row == 6:  # XPS
+        elif current_row == 6:  # InstrumentDetector
             self.child_sidebar.setCurrentRow(6)
             self.pages.setCurrentIndex(16)
             self.CURRENT_INDEX_CHILD = 6

@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 , QApplication, QMessageBox)
 from PyQt6.QtGui import QPen, QColor, QIcon, QPixmap
 from PyQt6.QtCore import QDate, Qt, QTimer, QDateTime, QTime, QEvent
+from PyQt6.QtSvgWidgets import QSvgWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import pyvisa
 from matplotlib.figure import Figure
@@ -141,65 +142,61 @@ class Dash(QMainWindow):
 
         self.wrap_layout = QHBoxLayout()
         # ///////////////////
-        measure_layout = QHBoxLayout()
-        # IO
-        measure_icon_label = QLabel()
-        measure_pixmap = QPixmap('GUI/Icon/PPMS.svg')
-        measure_pixmap = measure_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                       Qt.TransformationMode.SmoothTransformation)
-        measure_icon_label.setPixmap(measure_pixmap)
-        measure_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        # Value
-        measure_icon_connection_layout = QVBoxLayout()
-        measure_icon_connection_layout.addWidget(measure_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        measure_layout.addLayout(measure_icon_connection_layout)
-
-        measure_connection_layout = QVBoxLayout()
-        self.Quick_accesmeasure_label = QLabel('Quick Access:')
-        self.measure_Label = QLabel('Measure')
-        self.measure_Label.setStyleSheet(self.IOLabel_stylesheet)
-        measure_connection_layout.addWidget(self.Quick_accesmeasure_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        measure_connection_layout.addWidget(self.measure_Label, alignment=Qt.AlignmentFlag.AlignLeft)
-        measure_layout.addLayout(measure_connection_layout)
-        self.measure_ccntainer = QWidget()
-        self.measure_ccntainer.setFixedSize(widget_size, 150)
-        self.measure_ccntainer.setStyleSheet(
-            """
-             QWidget{background-color: #717d7e; border-radius: 20px;}
-             QWidget:hover {
-                background-color: #5dade2;
-                border: 2px solid #ff5733;
-                }
-            """)
-        self.measure_ccntainer.setLayout(measure_layout)
-        self.measure_ccntainer.setObjectName('measure')
-        self.initShadowEffect(self.measure_ccntainer)
+        # measure_layout = QHBoxLayout()
+        # # IO
+        # measure_icon_label = QLabel()
+        # measure_pixmap = QPixmap('GUI/Icon/PPMS.svg')
+        # measure_pixmap = measure_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
+        #                                Qt.TransformationMode.SmoothTransformation)
+        # measure_icon_label.setPixmap(measure_pixmap)
+        # measure_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # # Value
+        # measure_icon_connection_layout = QVBoxLayout()
+        # measure_icon_connection_layout.addWidget(measure_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        # measure_layout.addLayout(measure_icon_connection_layout)
+        #
+        # measure_connection_layout = QVBoxLayout()
+        # self.Quick_accesmeasure_label = QLabel('Quick Access:')
+        # self.measure_Label = QLabel('Measure')
+        # self.measure_Label.setStyleSheet(self.IOLabel_stylesheet)
+        # measure_connection_layout.addWidget(self.Quick_accesmeasure_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        # measure_connection_layout.addWidget(self.measure_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        # measure_layout.addLayout(measure_connection_layout)
+        # self.measure_ccntainer = QWidget()
+        # self.measure_ccntainer.setFixedSize(widget_size, 150)
+        # self.measure_ccntainer.setStyleSheet(
+        #     """
+        #      QWidget{background-color: #717d7e; border-radius: 20px;}
+        #      QWidget:hover {
+        #         background-color: #5dade2;
+        #         border: 2px solid #ff5733;
+        #         }
+        #     """)
+        # self.measure_ccntainer.setLayout(measure_layout)
+        # self.measure_ccntainer.setObjectName('measure')
+        # self.initShadowEffect(self.measure_ccntainer)
 
         # ////////////////
         # ///////////////////
-        shg_layout = QHBoxLayout()
+        measurement_layout = QHBoxLayout()
         # IO
-        shg_icon_label = QLabel()
-        shg_pixmap = QPixmap('GUI/Icon/SHG.svg')
-        shg_pixmap = shg_pixmap.scaled(50, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                         Qt.TransformationMode.SmoothTransformation)
-        shg_icon_label.setPixmap(shg_pixmap)
-        shg_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        measurement_icon_label = QSvgWidget('GUI/Icon/PPMS.svg')
+        measurement_icon_label.setFixedSize(80, 80)
         # Value
-        shg_icon_connection_layout = QVBoxLayout()
-        shg_icon_connection_layout.addWidget(shg_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        shg_layout.addLayout(shg_icon_connection_layout)
+        measurement_icon_connection_layout = QVBoxLayout()
+        measurement_icon_connection_layout.addWidget(measurement_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        measurement_layout.addLayout(measurement_icon_connection_layout)
 
-        shg_connection_layout = QVBoxLayout()
-        self.Quick_accesSHG_label = QLabel('Quick Access:')
-        self.shg_Label = QLabel('SHG')
-        self.shg_Label.setStyleSheet(self.IOLabel_stylesheet)
-        shg_connection_layout.addWidget(self.Quick_accesSHG_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        shg_connection_layout.addWidget(self.shg_Label, alignment=Qt.AlignmentFlag.AlignLeft)
-        shg_layout.addLayout(shg_connection_layout)
-        self.shg_ccntainer = QWidget()
-        self.shg_ccntainer.setFixedSize(widget_size, 150)
-        self.shg_ccntainer.setStyleSheet(
+        measurement_connection_layout = QVBoxLayout()
+        self.quick_acces_measurement_label = QLabel('Quick Access:')
+        self.measurement_Label = QLabel('Measure')
+        self.measurement_Label.setStyleSheet(self.IOLabel_stylesheet)
+        measurement_connection_layout.addWidget(self.quick_acces_measurement_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        measurement_connection_layout.addWidget(self.measurement_Label, alignment=Qt.AlignmentFlag.AlignLeft)
+        measurement_layout.addLayout(measurement_connection_layout)
+        self.measurement_ccntainer = QWidget()
+        self.measurement_ccntainer.setFixedSize(widget_size, 150)
+        self.measurement_ccntainer.setStyleSheet(
             """
              QWidget{background-color: #e5e8e8; border-radius: 20px;}
              QWidget:hover {
@@ -207,20 +204,16 @@ class Dash(QMainWindow):
                 border: 2px solid #ff5733;
                 }
             """)
-        self.shg_ccntainer.setLayout(shg_layout)
-        self.shg_ccntainer.setObjectName('shg')
-        self.initShadowEffect(self.shg_ccntainer)
+        self.measurement_ccntainer.setLayout(measurement_layout)
+        self.measurement_ccntainer.setObjectName('Measurement')
+        self.initShadowEffect(self.measurement_ccntainer)
 
         # ////////////////
         # ///////////////////
         fmr_layout = QHBoxLayout()
         # IO
-        fmr_icon_label = QLabel()
-        fmr_pixmap = QPixmap('GUI/Icon/FMR.svg')
-        fmr_pixmap = fmr_pixmap.scaled(75, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                       Qt.TransformationMode.SmoothTransformation)
-        fmr_icon_label.setPixmap(fmr_pixmap)
-        fmr_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        fmr_icon_label = QSvgWidget('GUI/Icon/FMR.svg')
+        fmr_icon_label.setFixedSize(78, 62)
         # Value
         fmr_icon_connection_layout = QVBoxLayout()
         fmr_icon_connection_layout.addWidget(fmr_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -251,12 +244,8 @@ class Dash(QMainWindow):
         # ///////////////////
         vsm_layout = QHBoxLayout()
         # IO
-        vsm_icon_label = QLabel()
-        vsm_pixmap = QPixmap('GUI/Icon/VSM.svg')
-        vsm_pixmap = vsm_pixmap.scaled(80, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                       Qt.TransformationMode.SmoothTransformation)
-        vsm_icon_label.setPixmap(vsm_pixmap)
-        vsm_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        vsm_icon_label = QSvgWidget('GUI/Icon/VSM.svg')
+        vsm_icon_label.setFixedSize(88, 80)
         # Value
         vsm_icon_connection_layout = QVBoxLayout()
         vsm_icon_connection_layout.addWidget(vsm_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -285,7 +274,7 @@ class Dash(QMainWindow):
         # self.widget_layout.addSpacing(35)
         # self.widget_layout.addWidget(self.measure_ccntainer, 1)
         # self.widget_layout.addSpacing(80)
-        self.widget_layout.addWidget(self.shg_ccntainer, 1)
+        self.widget_layout.addWidget(self.measurement_ccntainer, 1)
         # self.widget_layout.addSpacing(80)
         self.widget_layout.addWidget(self.fmr_ccntainer, 1)
         # self.widget_layout.addSpacing(80)
@@ -295,12 +284,8 @@ class Dash(QMainWindow):
         # ///////////////////
         eto_layout = QHBoxLayout()
         # IO
-        eto_icon_label = QLabel()
-        eto_pixmap = QPixmap('GUI/Icon/ETO.svg')
-        eto_pixmap = eto_pixmap.scaled(50, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                       Qt.TransformationMode.SmoothTransformation)
-        eto_icon_label.setPixmap(eto_pixmap)
-        eto_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        eto_icon_label = QSvgWidget('GUI/Icon/ETO.svg')
+        eto_icon_label.setFixedSize(55, 75)
         # Value
         eto_icon_connection_layout = QVBoxLayout()
         eto_icon_connection_layout.addWidget(eto_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -330,12 +315,8 @@ class Dash(QMainWindow):
         # ///////////////////
         GPIB_layout = QHBoxLayout()
         # IO
-        GPIB_icon_label = QLabel()
-        GPIB_pixmap = QPixmap('GUI/Icon/GPIB.svg')
-        GPIB_pixmap = GPIB_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                         Qt.TransformationMode.SmoothTransformation)
-        GPIB_icon_label.setPixmap(GPIB_pixmap)
-        GPIB_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        GPIB_icon_label = QSvgWidget('GUI/Icon/GPIB.svg')
+        GPIB_icon_label.setFixedSize(75, 60)
         # Value
         GPIB_icon_connection_layout = QVBoxLayout()
         GPIB_icon_connection_layout.addWidget(GPIB_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -368,12 +349,8 @@ class Dash(QMainWindow):
         # ///////////////////
         ASLR_layout = QHBoxLayout()
         # IO
-        ASLR_icon_label = QLabel()
-        ASLR_pixmap = QPixmap('GUI/Icon/ASLR.svg')
-        ASLR_pixmap = ASLR_pixmap.scaled(60, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                       Qt.TransformationMode.SmoothTransformation)
-        ASLR_icon_label.setPixmap(ASLR_pixmap)
-        ASLR_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        ASLR_icon_label = QSvgWidget('GUI/Icon/ASLR.svg')
+        ASLR_icon_label.setFixedSize(60, 65)
         # Value
         ASLR_icon_connection_layout = QVBoxLayout()
         ASLR_icon_connection_layout.addWidget(ASLR_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -405,11 +382,8 @@ class Dash(QMainWindow):
         # ///////////////////
         USB_layout = QHBoxLayout()
         # IO
-        USB_icon_label = QLabel()
-        USB_pixmap = QPixmap('GUI/Icon/USB.svg')
-        USB_pixmap = USB_pixmap.scaled(45,88, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        USB_icon_label.setPixmap(USB_pixmap)
-        USB_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        USB_icon_label = QSvgWidget('GUI/Icon/USB.svg')
+        USB_icon_label.setFixedSize(55, 65)
         # Value
 
         USB_icon_connection_layout = QVBoxLayout()
@@ -440,12 +414,8 @@ class Dash(QMainWindow):
         # ///////////////////
         TCPIP_layout = QHBoxLayout()
         # IO
-        TCPIP_icon_label = QLabel()
-        TCPIP_pixmap = QPixmap('GUI/Icon/TCPIP.svg')
-        TCPIP_pixmap = TCPIP_pixmap.scaled(70, 88, Qt.AspectRatioMode.KeepAspectRatio,
-                                       Qt.TransformationMode.SmoothTransformation)
-        TCPIP_icon_label.setPixmap(TCPIP_pixmap)
-        TCPIP_icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        TCPIP_icon_label = QSvgWidget('GUI/Icon/TCPIP.svg')
+        TCPIP_icon_label.setFixedSize(65, 55)
         # Value
         TCPIP_icon_connection_layout = QVBoxLayout()
         TCPIP_icon_connection_layout.addWidget(TCPIP_icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -475,7 +445,7 @@ class Dash(QMainWindow):
         self.IO_widget_layout.addWidget(self.TCPIP_container,1)
         self.update_gpib_status()
         # ////////////////
-        self.Quick_accesSHG_label.setStyleSheet(self.IOLabel_1_stylesheet)
+        self.quick_acces_measurement_label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.Quick_accesVSM_label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.Quick_accesFMR_label.setStyleSheet(self.IOLabel_1_stylesheet)
         self.Quick_accesETO_label.setStyleSheet(self.IOLabel_1_stylesheet)
@@ -576,10 +546,14 @@ class Dash(QMainWindow):
         # return super().eventFilter(obj, event)
 
     def applyShadowEffect(self, widget):
-        if widget.objectName() == 'shg':
-            self.page_index = 12
-            self.left_index = 1
-            self.right_index = 3
+        # if widget.objectName() == 'shg':
+        #     self.page_index = 12
+        #     self.left_index = 1
+        #     self.right_index = 3
+        if widget.objectName() == 'Measurement':
+            self.page_index = 11
+            self.left_index = 2
+            self.right_index = 7
         elif widget.objectName() == 'fmr':
             self.page_index = 0
             self.left_index = 1
@@ -593,9 +567,9 @@ class Dash(QMainWindow):
             self.left_index = 1
             self.right_index = 2
         elif widget.objectName() == 'GPIB' or widget.objectName() == 'ASLR' or widget.objectName() == 'USB' or widget.objectName() == 'TCPIP':
-            self.page_index = 11
+            self.page_index = 16
             self.left_index = 2
-            self.right_index = 7
+            self.right_index = 6
         else:
             self.page_index = 0
             self.left_index = 0
