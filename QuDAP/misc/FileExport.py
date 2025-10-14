@@ -490,6 +490,7 @@ class FileExport(QMainWindow):
                 self.export_all_btn.clicked.connect(self.export_selected_column_alldata)
                 self.export_all_btn.setToolTip("Batch exporting files")
 
+
                 self.rst_btn.setStyleSheet(self.Button_stylesheet)
                 self.export_btn.setStyleSheet(self.Button_stylesheet)
                 self.export_all_btn.setStyleSheet(self.Button_stylesheet)
@@ -498,6 +499,13 @@ class FileExport(QMainWindow):
                 self.btn_layout.addWidget(self.rst_btn)
                 self.btn_layout.addWidget(self.export_btn)
                 self.btn_layout.addWidget(self.export_all_btn)
+                if self.process_type_label == 'VSM':
+                    self.export_qudap_btn = QPushButton("Export QuDAP")
+                    self.export_qudap_btn.clicked.connect(self.export_selected_column_alldata_qudap_format)
+                    self.export_qudap_btn.setToolTip("Exporting the file format for vsm data processing. (currently only support for .dat file)")
+                    self.export_qudap_btn.setStyleSheet(self.Button_stylesheet)
+                    self.export_qudap_btn.setFixedWidth(100)
+                    self.btn_layout.addWidget(self.export_qudap_btn)
 
                 # Main Layout Assembly
                 self.main_layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignTop)
@@ -797,14 +805,6 @@ class FileExport(QMainWindow):
             padding: 5px;
         """)
 
-    # def on_item_selection_changed(self):
-    #     """Handle file selection in tree"""
-    #     self.clear_column_selection()
-    #     selected_items = self.file_tree.selectedItems()
-    #     if selected_items:
-    #         selected_item = selected_items[0]
-    #         self.file_path = selected_item.toolTip(0)
-    #         self.open_file_in_table(self.file_path)
     def on_left_click(self, item):
         """Handle left click on tree item"""
         # Check if this is a single selection (not Ctrl+Click or Shift+Click)
@@ -1251,6 +1251,90 @@ class FileExport(QMainWindow):
                 message = f"Successfully exported {exported_count} files"
                 if export_mode == 'separate':
                     message += f" to {folder_name}"
+
+            if failed_files:
+                message += f"\n\nFailed: {len(failed_files)} files:\n" + "\n".join(failed_files[:5])
+                if len(failed_files) > 5:
+                    message += f"\n... and {len(failed_files) - 5} more"
+
+            QMessageBox.information(self, "Export Complete", message)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Export failed: {str(e)}\n\n{traceback.format_exc()}")
+
+    def export_selected_column_alldata_qudap_format(self):
+        """Export all files with selected columns"""
+
+        try:
+            export_mode = 'separate'
+            export_format = 'csv'
+
+            dialog = QFileDialog(self)
+            dialog.setFileMode(QFileDialog.FileMode.Directory)
+            if hasattr(self, 'file_path'):
+                dialog.setDirectory(os.path.dirname(self.file_path))
+
+            if not dialog.exec():
+                return
+
+            folder_name = dialog.selectedFiles()[0]
+
+            exported_count = 0
+            failed_files = []
+
+            for file in self.file_in_list:
+                try:
+                    df = None
+                    self.x_column = 'Temperature (K)'
+                    self.y_column = ['Magnetic Field (Oe)', 'Moment (emu)']
+                    file_ext = Path(file).suffix.lower()
+
+                    # Load with header detection
+                    if file_ext == '.dat':
+                        try:
+                            loaded_file = Loadfile(file)
+                            headers = loaded_file.column_headers
+                            data = loaded_file.data
+                            df = pd.DataFrame(data, columns=headers)
+                        except Exception as e:
+                            failed_files.append(f"{Path(file).name} (Loadfile error)")
+                            continue
+                    else:
+                        QMessageBox.warning(self, 'Wrong file Type','File extension must be .dat')
+                        break
+
+                    if df is None:
+                        failed_files.append(f"{Path(file).name} (could not load)")
+                        continue
+
+                    # Get file name without extension
+                    file_basename = Path(file).stem
+
+                    column_data = {}
+
+                    # Add X column
+                    x_index = df.columns.get_loc(self.x_column)
+                    x_header = df.columns[x_index]
+                    column_data[x_header] = df.iloc[:, x_index]
+
+                    # Add Y columns
+                    for col in self.y_column:
+                        y_index = df.columns.get_loc(col)
+                        y_header = df.columns[y_index]
+                        column_data[y_header] = df.iloc[:, y_index]
+
+                    export_df = pd.DataFrame(column_data)
+
+                    # Export each file separately
+                    export_file_name = os.path.join(folder_name, f"{file_basename}.{export_format}")
+                    export_df.to_csv(export_file_name, index=False)
+                    exported_count += 1
+                except Exception as e:
+                    failed_files.append(f"{Path(file).name} ({str(e)})")
+
+            message = f"Successfully exported {exported_count} files"
+            if export_mode == 'separate':
+                message += f" to {folder_name}"
 
             if failed_files:
                 message += f"\n\nFailed: {len(failed_files)} files:\n" + "\n".join(failed_files[:5])

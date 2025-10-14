@@ -1,38 +1,35 @@
 from PyQt6.QtWidgets import (
-    QTreeWidgetItem, QMessageBox, QTableWidgetItem, QWidget, QHeaderView, QGroupBox, QVBoxLayout, QLabel,
-    QHBoxLayout, QSizePolicy, QTableWidget
-, QLineEdit, QPushButton, QMenu, QScrollArea, QTreeWidget, QWidgetAction, QMainWindow, QCheckBox)
+    QTreeWidgetItem, QMessageBox, QProgressBar, QWidget, QHeaderView, QGroupBox, QVBoxLayout, QLabel,
+    QHBoxLayout, QSizePolicy, QTableWidget, QLineEdit, QPushButton, QMenu, QScrollArea, QTreeWidget,
+    QWidgetAction, QMainWindow, QCheckBox, QFileDialog)
 from PyQt6.QtGui import QFont, QDragEnterEvent, QDropEvent
 from PyQt6.QtCore import QPoint, Qt
 import csv
 import pandas as pd
+import numpy as np
 import matplotlib
+
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 import traceback
 import os
+import glob
+import lmfit
 
 import platform
+
 system = platform.system()
-# if system != "Windows":
-#     print("Not running on Windows")
-#     from VSM.qd import *
-# else:
-    # version_info = platform.win32_ver()
-    # version, build, service_pack, extra = version_info
-    # build_number = int(build.split('.')[2])
-    # if version == "10" and build_number >= 22000:
-    #     from QuDAP.VSM.qd import *
-    # elif version == "10":
-    #     from VSM.qd import *
-    # else:
-    #     print("Unknown Windows version")
+
 try:
     from QuDAP.GUI.VSM.qd import *
 except ImportError:
-    from GUI.VSM.qd import *
+    try:
+        from GUI.VSM.qd import *
+    except ImportError:
+        print("Warning: qd module not found")
 
 try:
     from pptx import Presentation
@@ -40,14 +37,14 @@ try:
 except ImportError as e:
     print(e)
 
+
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=8, height=10, dpi=1000):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
-        # if polar:
         self.fig.clear()
         self.ax = self.fig.add_subplot(111, projection='rectilinear')
-
         super(MplCanvas, self).__init__(self.fig)
+
 
 class DragDropWidget(QWidget):
     def __init__(self, main_window):
@@ -56,8 +53,12 @@ class DragDropWidget(QWidget):
         self.initUI()
 
     def initUI(self):
-        with open("GUI/SHG/QButtonWidget.qss", "r") as file:
-            self.Browse_Button_stylesheet = file.read()
+        try:
+            with open("GUI/SHG/QButtonWidget.qss", "r") as file:
+                self.Browse_Button_stylesheet = file.read()
+        except:
+            self.Browse_Button_stylesheet = ""
+
         self.setAcceptDrops(True)
         self.previous_folder_path = None
         self.setStyleSheet("background-color: #F5F6FA; border: none;")
@@ -70,11 +71,9 @@ class DragDropWidget(QWidget):
         self.button.setStyleSheet(self.Browse_Button_stylesheet)
         self.button.clicked.connect(self.open_folder_dialog)
         main_layout = QVBoxLayout(self)
-        main_layout.addWidget(self.label,5)
-        main_layout.addWidget(self.button,3, alignment=Qt.AlignmentFlag.AlignRight)
+        main_layout.addWidget(self.label, 5)
+        main_layout.addWidget(self.button, 3, alignment=Qt.AlignmentFlag.AlignRight)
         self.setLayout(main_layout)
-
-        # self.main_widget.setStyleSheet("background-color: #F5F6FA;")
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         try:
@@ -91,8 +90,6 @@ class DragDropWidget(QWidget):
             urls = event.mimeData().urls()
             if urls:
                 paths = [url.toLocalFile() for url in urls]
-
-                # Check if any of the dropped items is a directory
                 directories = [path for path in paths if os.path.isdir(path)]
                 dat_files = [path for path in paths if os.path.isfile(path) and path.lower().endswith('.csv')]
 
@@ -118,143 +115,157 @@ class DragDropWidget(QWidget):
         self.previous_folder_path = None
 
 class VSM_Data_Processing(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
+    def __init__(self, parent=None):
+        super().__init__(parent)
         try:
             self.isInit = False
             self.file_in_list = []
+            self.current_file_data = None
+            self.area_df = None
+            self.Ms_df = None
+            self.Coercivity_df = None
+            self.eb_df = None
+            self.folder_selected = None
+            self.ProcCal = None
+            self.ProcessedRAW = None
             self.init_ui()
-
         except Exception as e:
+            print(f"Initialization error: {e}")
             QMessageBox.warning(self, "Error", str(e))
             return
-
 
     def init_ui(self):
         try:
             if self.isInit == False:
+                print("Starting UI initialization...")
                 self.isInit = True
-                self.rstpage()
-                with open("GUI/VSM/QButtonWidget.qss", "r") as file:
-                    self.Browse_Button_stylesheet = file.read()
+
+                # Load stylesheets with fallback
+                try:
+                    with open("GUI/VSM/QButtonWidget.qss", "r") as file:
+                        self.Browse_Button_stylesheet = file.read()
+                except:
+                    self.Browse_Button_stylesheet = """
+                        QPushButton {
+                            background-color: #4CAF50;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            font-size: 14px;
+                        }
+                        QPushButton:hover {
+                            background-color: #45a049;
+                        }
+                    """
+
+                try:
+                    with open("GUI/QSS/QScrollbar.qss", "r") as file:
+                        self.scrollbar_stylesheet = file.read()
+                except:
+                    self.scrollbar_stylesheet = ""
+
+                try:
+                    with open("GUI/QSS/QButtonWidget.qss", "r") as file:
+                        self.Button_stylesheet = file.read()
+                except:
+                    self.Button_stylesheet = self.Browse_Button_stylesheet
+
+                try:
+                    with open("GUI/SHG/QTreeWidget.qss", "r") as file:
+                        self.QTree_stylesheet = file.read()
+                except:
+                    self.QTree_stylesheet = ""
+
                 titlefont = QFont("Arial", 20)
                 self.font = QFont("Arial", 12)
                 self.setStyleSheet("background-color: white;")
-                with open("GUI/QSS/QScrollbar.qss", "r") as file:
-                    self.scrollbar_stylesheet = file.read()
-                    # Create a QScrollArea
+
+                # Create scroll area
                 self.scroll_area = QScrollArea()
                 self.scroll_area.setWidgetResizable(True)
                 self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 self.scroll_area.setStyleSheet(self.scrollbar_stylesheet)
-                # Create a widget to hold the main layout
+
                 self.content_widget = QWidget()
                 self.scroll_area.setWidget(self.content_widget)
 
-                # Set the content widget to expand
                 self.VSM_data_extraction_main_layout = QVBoxLayout(self.content_widget)
                 self.VSM_data_extraction_main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-                #  ---------------------------- PART 1 --------------------------------\
-                with open("GUI/QSS/QButtonWidget.qss", "r") as file:
-                    self.Button_stylesheet = file.read()
+                # Title
                 self.VSM_QD_EXTRACT_label = QLabel("VSM Data Processing")
                 self.VSM_QD_EXTRACT_label.setFont(titlefont)
-                self.VSM_QD_EXTRACT_label.setStyleSheet("""
-                                                    QLabel{
-                                                        background-color: white;
-                                                        }
-                                                        """)
-                #  ---------------------------- PART 2 --------------------------------
+                self.VSM_QD_EXTRACT_label.setStyleSheet("QLabel{ background-color: white; }")
+
+                # File Upload Section
                 self.fileUpload_layout = QHBoxLayout()
                 self.drag_drop_layout = QVBoxLayout()
                 self.file_selection_group_box = QGroupBox("Upload Directory")
                 self.file_view_group_box = QGroupBox("View Files")
+
                 self.file_selection_group_box.setStyleSheet("""
-                            QGroupBox {
-
-                                max-width: 600px;
-                                max-height: 230px;
-                            }
-
-                        """)
+                    QGroupBox { max-width: 600px; max-height: 230px; }
+                """)
                 self.file_view_group_box.setStyleSheet("""
-                                            QGroupBox {
+                    QGroupBox { max-width: 650px; max-height: 230px; }
+                """)
 
-                                                max-width: 650px;
-                                                max-height: 230px;
-                                            }
-
-                                        """)
                 self.file_selection_display_label = QLabel('Please Upload Files or Directory')
                 self.file_selection_display_label.setStyleSheet("""
-                                   color: white; 
-                                   font-size: 12px;
-                                   background-color:  #f38d76 ; 
-                                    border-radius: 5px; 
-                                   padding: 5px;
-                               """)
-                # self.file_selection_display_label.setWordWrap(True)
+                    color: white; font-size: 12px; background-color: #f38d76; 
+                    border-radius: 5px; padding: 5px;
+                """)
+
                 self.drag_drop_widget = DragDropWidget(self)
-                self.drag_drop_layout.addWidget(self.drag_drop_widget,4)
-                self.drag_drop_layout.addWidget(self.file_selection_display_label, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.drag_drop_layout.addWidget(self.drag_drop_widget, 4)
+                self.drag_drop_layout.addWidget(self.file_selection_display_label, 1,
+                                                alignment=Qt.AlignmentFlag.AlignCenter)
                 self.file_selection_group_box.setLayout(self.drag_drop_layout)
 
-
-                # # Create the file browser area
+                # File Tree
                 self.file_tree = QTreeWidget()
-                # self.file_tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 self.file_tree_layout = QHBoxLayout()
                 self.file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
                 self.file_tree.customContextMenuRequested.connect(self.open_context_menu)
-
                 self.file_tree.setHeaderLabels(["Name", "Type", "Size"])
                 self.file_tree_layout.addWidget(self.file_tree)
-                with open("GUI/SHG/QTreeWidget.qss", "r") as file:
-                    self.QTree_stylesheet = file.read()
-                self.file_tree.setStyleSheet( self.QTree_stylesheet)
+                self.file_tree.setStyleSheet(self.QTree_stylesheet)
                 self.file_view_group_box.setLayout(self.file_tree_layout)
-                self.fileUpload_layout.addWidget(self.file_selection_group_box,1)
-                self.fileUpload_layout.addWidget(self.file_view_group_box,1)
+
+                self.fileUpload_layout.addWidget(self.file_selection_group_box, 1)
+                self.fileUpload_layout.addWidget(self.file_view_group_box, 1)
                 self.fileupload_container = QWidget(self)
                 self.fileupload_container.setLayout(self.fileUpload_layout)
                 self.fileupload_container.setFixedSize(1150, 300)
 
+                # Figure Layout
                 self.figure_layout = QHBoxLayout()
+
+                # Raw Canvas
                 self.raw_canvas_layout = QVBoxLayout()
-                self.raw_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+                self.raw_canvas = MplCanvas(self, width=6, height=5, dpi=100)
                 self.raw_toolbar = NavigationToolbar(self.raw_canvas, self)
-                self.raw_toolbar.setStyleSheet("""
-                                                                              QWidget {
-                                                                                  border: None;
-                                                                              }
-                                                                          """)
+                self.raw_toolbar.setStyleSheet("QWidget { border: None; }")
                 self.raw_canvas.ax.set_title("Hysteresis Loop")
                 self.raw_canvas_layout.addWidget(self.raw_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.raw_canvas_layout.addWidget(self.raw_canvas)
 
+                # Fit Canvas
                 self.fit_canvas_layout = QVBoxLayout()
-                self.fit_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+                self.fit_canvas = MplCanvas(self, width=6, height=5, dpi=100)
                 self.fit_toolbar = NavigationToolbar(self.fit_canvas, self)
-                self.fit_toolbar.setStyleSheet("""
-                                                                                              QWidget {
-                                                                                                  border: None;
-                                                                                              }
-                                                                                          """)
+                self.fit_toolbar.setStyleSheet("QWidget { border: None; }")
                 self.fit_canvas.ax.set_title("Fitting")
                 self.fit_canvas_layout.addWidget(self.fit_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.fit_canvas_layout.addWidget(self.fit_canvas)
 
+                # Summary Canvas
                 self.summary_canvas_layout = QVBoxLayout()
-                self.summary_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+                self.summary_canvas = MplCanvas(self, width=6, height=5, dpi=100)
                 self.summary_toolbar = NavigationToolbar(self.summary_canvas, self)
-                self.summary_toolbar.setStyleSheet("""
-                                                                                                              QWidget {
-                                                                                                                  border: None;
-                                                                                                              }
-                                                                                                          """)
+                self.summary_toolbar.setStyleSheet("QWidget { border: None; }")
                 self.summary_canvas.ax.set_title("Fitting Summary")
                 self.summary_canvas_layout.addWidget(self.summary_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
                 self.summary_canvas_layout.addWidget(self.summary_canvas)
@@ -264,20 +275,19 @@ class VSM_Data_Processing(QMainWindow):
                 self.figure_layout.addLayout(self.summary_canvas_layout)
                 self.figure_container = QWidget(self)
                 self.figure_container.setLayout(self.figure_layout)
-                self.figure_container.setFixedSize(1150, 380)
+                self.figure_container.setFixedSize(1150, 400)
 
+                # Fitting Parameters
                 self.fitting_parameter_layout = QHBoxLayout()
                 self.plot_control_group_box = QGroupBox("Plot Control")
                 self.fit_control_group_box = QGroupBox("Fit Control")
                 self.fit_summary_group_box = QGroupBox("Fit Summary")
-                self.fitting_parameter_layout.addWidget(self.plot_control_group_box)
-                self.fitting_parameter_layout.addWidget(self.fit_control_group_box)
-                self.fitting_parameter_layout.addWidget(self.fit_summary_group_box)
 
                 self.plot_control_layout = QVBoxLayout()
                 self.fit_control_layout = QVBoxLayout()
                 self.fit_summary_layout = QVBoxLayout()
 
+                # Plot Control Checkboxes
                 self.raw_plot_check_box = QCheckBox("Show Raw Data")
                 self.processed_plot_check_box = QCheckBox("Show Processed Data")
                 self.area_plot_check_box = QCheckBox("Show Area")
@@ -291,27 +301,34 @@ class VSM_Data_Processing(QMainWindow):
                 self.plot_control_layout.addWidget(self.x_correction_check_box)
                 self.plot_control_layout.addWidget(self.y_correction_check_box)
                 self.plot_control_layout.addWidget(self.xy_correction_check_box)
-
                 self.plot_control_group_box.setLayout(self.plot_control_layout)
 
+                # Fit Control Entries
                 self.area_fit_results_layout = QHBoxLayout()
                 self.area_text_label = QLabel('Area: ')
                 self.area_entry = QLineEdit()
+                self.area_entry.setReadOnly(True)
                 self.area_fit_results_layout.addWidget(self.area_text_label)
                 self.area_fit_results_layout.addWidget(self.area_entry)
+
                 self.Hc_fit_results_layout = QHBoxLayout()
                 self.hc_text_label = QLabel('Coercivity: ')
                 self.hc_entry = QLineEdit()
+                self.hc_entry.setReadOnly(True)
                 self.Hc_fit_results_layout.addWidget(self.hc_text_label)
                 self.Hc_fit_results_layout.addWidget(self.hc_entry)
+
                 self.ms_fit_results_layout = QHBoxLayout()
                 self.ms_text_label = QLabel('Saturation Magnetization: ')
                 self.ms_entry = QLineEdit()
+                self.ms_entry.setReadOnly(True)
                 self.ms_fit_results_layout.addWidget(self.ms_text_label)
                 self.ms_fit_results_layout.addWidget(self.ms_entry)
+
                 self.eb_fit_results_layout = QHBoxLayout()
                 self.eb_text_label = QLabel('Exchange Bias: ')
                 self.eb_entry = QLineEdit()
+                self.eb_entry.setReadOnly(True)
                 self.eb_fit_results_layout.addWidget(self.eb_text_label)
                 self.eb_fit_results_layout.addWidget(self.eb_entry)
 
@@ -319,10 +336,9 @@ class VSM_Data_Processing(QMainWindow):
                 self.fit_control_layout.addLayout(self.Hc_fit_results_layout)
                 self.fit_control_layout.addLayout(self.ms_fit_results_layout)
                 self.fit_control_layout.addLayout(self.eb_fit_results_layout)
-
                 self.fit_control_group_box.setLayout(self.fit_control_layout)
 
-
+                # Summary Checkboxes
                 self.area_check_box = QCheckBox("Area")
                 self.coercivity_check_box = QCheckBox("Coercivity")
                 self.ms_check_box = QCheckBox("Saturation Magnetization")
@@ -332,233 +348,646 @@ class VSM_Data_Processing(QMainWindow):
                 self.fit_summary_layout.addWidget(self.coercivity_check_box)
                 self.fit_summary_layout.addWidget(self.ms_check_box)
                 self.fit_summary_layout.addWidget(self.eb_check_box)
-
                 self.fit_summary_group_box.setLayout(self.fit_summary_layout)
 
-                self.plot_control_group_box.setFixedSize(380,200)
-                self.fit_control_group_box.setFixedSize(380,200)
-                self.fit_summary_group_box.setFixedSize(380,200)
+                self.fitting_parameter_layout.addWidget(self.plot_control_group_box)
+                self.fitting_parameter_layout.addWidget(self.fit_control_group_box)
+                self.fitting_parameter_layout.addWidget(self.fit_summary_group_box)
 
-                self.VSM_data_extraction_main_layout.addWidget(self.VSM_QD_EXTRACT_label, alignment=Qt.AlignmentFlag.AlignTop)
+                self.plot_control_group_box.setFixedSize(380, 200)
+                self.fit_control_group_box.setFixedSize(380, 200)
+                self.fit_summary_group_box.setFixedSize(380, 200)
+
+                # Add Process and Reset Buttons
+                self.button_layout = QHBoxLayout()
+                self.process_button = QPushButton("Process Data")
+                self.process_button.setStyleSheet(self.Button_stylesheet)
+                self.process_button.clicked.connect(self.start_processing)
+                self.process_button.setFixedSize(200, 40)
+
+                self.reset_button = QPushButton("Reset")
+                self.reset_button.setStyleSheet(self.Button_stylesheet)
+                self.reset_button.clicked.connect(self.reset_all)
+                self.reset_button.setFixedSize(200, 40)
+
+                self.button_layout.addStretch()
+                self.button_layout.addWidget(self.process_button)
+                self.button_layout.addWidget(self.reset_button)
+
+                self.button_container = QWidget(self)
+                self.button_container.setLayout(self.button_layout)
+                self.button_container.setFixedSize(1150, 50)
+
+                # Add Progress Bar (initially hidden)
+                self.progress_layout = QHBoxLayout()
+                self.progress_label = QLabel("Processing data...")
+                self.progress_label.setStyleSheet("font-size: 12px; color: #4b6172;")
+                self.progress_bar = QProgressBar()
+                self.progress_bar.setStyleSheet("""
+                    QProgressBar {
+                        border: 2px solid grey;
+                        border-radius: 5px;
+                        text-align: center;
+                        height: 25px;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #4CAF50;
+                        width: 10px;
+                    }
+                """)
+                self.progress_bar.setFixedWidth(500)
+                self.progress_layout.addWidget(self.progress_label)
+                self.progress_layout.addWidget(self.progress_bar)
+                self.progress_layout.addStretch()
+
+                # Hide progress bar initially
+                self.progress_label.hide()
+                self.progress_bar.hide()
+
+                # Connect signals
+                self.raw_plot_check_box.stateChanged.connect(self.update_plots)
+                self.processed_plot_check_box.stateChanged.connect(self.update_plots)
+                self.area_plot_check_box.stateChanged.connect(self.update_plots)
+                self.x_correction_check_box.stateChanged.connect(self.update_plots)
+                self.y_correction_check_box.stateChanged.connect(self.update_plots)
+                self.xy_correction_check_box.stateChanged.connect(self.update_plots)
+
+                self.area_check_box.stateChanged.connect(self.update_summary_plot)
+                self.coercivity_check_box.stateChanged.connect(self.update_summary_plot)
+                self.ms_check_box.stateChanged.connect(self.update_summary_plot)
+                self.eb_check_box.stateChanged.connect(self.update_summary_plot)
+
+                self.file_tree.itemSelectionChanged.connect(self.on_item_selection_changed)
+
+                # Add to main layout
+                self.VSM_data_extraction_main_layout.addWidget(self.VSM_QD_EXTRACT_label,
+                                                               alignment=Qt.AlignmentFlag.AlignTop)
                 self.VSM_data_extraction_main_layout.addWidget(self.fileupload_container)
+                self.VSM_data_extraction_main_layout.addWidget(self.button_container)
+                self.VSM_data_extraction_main_layout.addLayout(self.progress_layout)
                 self.VSM_data_extraction_main_layout.addWidget(self.figure_container)
                 self.VSM_data_extraction_main_layout.addLayout(self.fitting_parameter_layout)
+
                 self.VSM_data_extraction_main_layout.addStretch(1)
 
                 self.setCentralWidget(self.scroll_area)
-                # self.scrollArea.setWidget(self.scrollContent)
 
-                # Add the scroll area to the main layout
-                # self.master_layout.addWidget(self.scrollArea)
+                print("UI initialization complete!")
+
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            print(f"Error in init_ui: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.warning(self, "Error", f"Failed to initialize UI: {str(e)}")
             return
 
     def display_files(self, folder_path):
+        # Check if UI is initialized
+        if not hasattr(self, 'file_tree') or not hasattr(self, 'file_selection_display_label'):
+            QMessageBox.warning(self, "Error", "UI not properly initialized. Please restart the application.")
+            return
+
         self.file_tree.clear()
+        self.file_in_list.clear()
         self.folder = folder_path
+        self.folder_selected = folder_path
+
+        # Initialize folder structure
+        self.ProcessedRAW = self.folder_selected + 'Processed_Graph'
+        self.ProcCal = self.folder_selected + 'Proc_Cal'
+
         self.file_selection_display_label.setText("Directory Successfully Uploaded")
         self.file_selection_display_label.setStyleSheet("""
-                   color: #4b6172; 
-                   font-size: 12px;
-                   background-color: #DfE7Ef; 
-                   border-radius: 5px; 
-                   padding: 5px;
-               """)
-        for root, dirs, files in os.walk(folder_path):
+            color: #4b6172; font-size: 12px; background-color: #DfE7Ef; 
+            border-radius: 5px; padding: 5px;
+        """)
+
+        # Check if Processed_Data subfolder exists, if not, look in root
+        processed_data_path = os.path.join(folder_path, 'Processed_Data')
+        if os.path.exists(processed_data_path):
+            search_path = processed_data_path
+        else:
+            # Look for CSV files directly in the uploaded folder
+            search_path = folder_path
+
+        for root, dirs, files in os.walk(search_path):
             for file_name in files:
                 if file_name.endswith('.csv'):
-
                     file_path = os.path.join(root, file_name)
                     self.file_in_list.append(file_path)
                     file_info = os.stat(file_path)
-                    file_size_kb = file_info.st_size / 1024  # Convert size to KB
-                    file_size_str = f"{file_size_kb:.2f} KB"  # Format size as a string with 2 decimal places
-                    # file_type, _ = mimetypes.guess_type(file_path)
-                    # file_type = file_type if file_type else "Unknown"
+                    file_size_kb = file_info.st_size / 1024
+                    file_size_str = f"{file_size_kb:.2f} KB"
                     file_type = 'csv'
                     item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
                     item.setToolTip(0, file_path)
-        self.process_data()
-        self.file_tree.itemSelectionChanged.connect(self.on_item_selection_changed)
+
+        if len(self.file_in_list) == 0:
+            QMessageBox.warning(self, "No CSV Files",
+                                "No CSV files found. Please upload a folder containing CSV files with VSM data.\n\n" +
+                                "Expected format:\n" +
+                                "- Files named like: 10K.csv, 50K.csv, 300K.csv\n" +
+                                "- Each CSV should have columns: Temperature (K), Magnetic Field (Oe), Moment (emu)")
+            return
+
+        # Don't auto-process, let user click the button
         self.file_tree.resizeColumnToContents(0)
         self.file_tree.resizeColumnToContents(1)
         self.file_tree.resizeColumnToContents(2)
 
     def display_multiple_files(self, file_paths):
-        current_files = {self.file_tree.topLevelItem(i).text(0): self.file_tree.topLevelItem(i) for i in range(self.file_tree.topLevelItemCount())}
+        # Initialize folder from first file if not set
+        if not self.folder_selected and file_paths:
+            first_file_dir = os.path.dirname(file_paths[0])
+            self.folder_selected = first_file_dir + '/'
+            self.ProcessedRAW = self.folder_selected + 'Processed_Graph'
+            self.ProcCal = self.folder_selected + 'Proc_Cal'
+
+        current_files = {self.file_tree.topLevelItem(i).text(0): self.file_tree.topLevelItem(i)
+                         for i in range(self.file_tree.topLevelItemCount())}
+
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
             if file_name not in current_files:
                 self.file_in_list.append(file_path)
                 file_info = os.stat(file_path)
-                file_size_kb = file_info.st_size / 1024  # Convert size to KB
-                file_size_str = f"{file_size_kb:.2f} KB"  # Format size as a string with 2 decimal places
-                # file_type, _ = mimetypes.guess_type(file_path)
-                # file_type = file_type if file_type else "Unknown"
+                file_size_kb = file_info.st_size / 1024
+                file_size_str = f"{file_size_kb:.2f} KB"
                 file_type = 'csv'
                 item = QTreeWidgetItem(self.file_tree, [file_name, file_type, file_size_str, ""])
                 item.setToolTip(0, file_path)
-        self.process_data()
-        self.file_tree.itemSelectionChanged.connect(self.on_item_selection_changed)
+
+        # Don't auto-process
         self.file_tree.resizeColumnToContents(0)
         self.file_tree.resizeColumnToContents(1)
         self.file_tree.resizeColumnToContents(2)
 
         self.file_selection_display_label.setText(f"{self.file_tree.topLevelItemCount()} Files Successfully Uploaded")
         self.file_selection_display_label.setStyleSheet("""
-                   color: #4b6172; 
-                   font-size: 12px;
-                   background-color: #DfE7Ef; 
-                   border-radius: 5px; 
-                   padding: 5px;
-               """)
-
+            color: #4b6172; font-size: 12px; background-color: #DfE7Ef; 
+            border-radius: 5px; padding: 5px;
+        """)
 
     def on_item_selection_changed(self):
+        """Handle file selection and update all plots"""
         selected_items = self.file_tree.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
-            self.file_path = selected_item.toolTip(0)
-            self.open_file_in_table(self.file_path)
+            file_name = selected_item.text(0)  # Get filename from tree
+            file_path = selected_item.toolTip(0)  # Get full path from tooltip
 
-    def open_file_in_table(self, file_path):
-        if file_path.endswith('.dat') or file_path.endswith('.DAT'):
-            try:
-                loaded_file = Loadfile(file_path)
+            # Load and display the selected file
+            self.load_and_display_file_from_tree(file_name, file_path)
 
-                # Access the attributes
-                headers = loaded_file.column_headers
-                data = loaded_file.data
-                self.table_widget.setColumnCount(len(headers))
-                self.table_widget.setHorizontalHeaderLabels(headers)
-                self.table_widget.setRowCount(len(data))
-
-                for row_idx, row_data in enumerate(data):
-                    for col_idx, item in enumerate(row_data):
-                        if isinstance(item, np.generic):
-                            item = item.item()
-                        self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
-
-                self.table_widget.resizeColumnsToContents()
-                self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-                for col in range(self.table_widget.columnCount()):
-                    self.table_widget.resizeColumnToContents(col)
-                table_header = self.table_widget.horizontalHeader()
-                table_header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-                table_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-                # self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                # self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-            except Exception as e:
-                tb_str = traceback.format_exc()
-                QMessageBox.warning(self, "Error", f"{str(e)}{str(tb_str)}")
-
-    def showDialog(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder:
-            folder = folder + "/"
-            self.folder = folder
-            self.file_selection_display_label.setText("Current Folder: {}".format(self.folder))
-
-    def rstpage(self):
+    def load_and_display_file_from_tree(self, file_name, file_path):
+        """Load file data from tree selection and display in plots"""
         try:
-            try:
-                DragDropWidget(self).reset()
-                self.file_tree.clear()
-                self.table_widget.clear()
-                self.table_widget = QTableWidget(100, 100)
-            except Exception as e:
+            # Extract temperature from filename
+            cur_temp = None
+            for i in range(len(file_name) - 1, 0, -1):
+                if file_name[i] == 'K':
+                    cur_temp = file_name[:i]
+                    break
+
+            if cur_temp is None:
+                QMessageBox.warning(self, "Error",
+                                    f"Cannot extract temperature from filename: {file_name}\nFiles must be named like: 10K.csv, 300K.csv")
                 return
-            self.file_selection_display_label.setText('Please Upload Files or Directory')
-            self.file_selection_display_label.setStyleSheet("""
-                                              color: white; 
-                                              font-size: 12px;
-                                              background-color:  #f38d76 ; 
-                                               border-radius: 5px; 
-                                              padding: 5px;
-                                          """)
+
+            # Initialize data storage
+            self.current_file_data = {
+                'temperature': cur_temp,
+                'file_name': file_name,
+                'raw_data': None,
+                'processed_data': None,
+                'processed_raw_data': None,
+                'split_data': None
+            }
+
+            # Load data directly from the file in tree view
+            if os.path.exists(file_path):
+                try:
+                    raw_df = pd.read_csv(file_path, header=0)
+                    if len(raw_df.columns) >= 3:
+                        self.current_file_data['raw_data'] = {
+                            'x': raw_df.iloc[:, 1].values,
+                            'y': raw_df.iloc[:, 2].values
+                        }
+                    else:
+                        QMessageBox.warning(self, "Error",
+                                            f"File must have at least 3 columns.\nFound: {len(raw_df.columns)} columns")
+                        return
+                except Exception as e:
+                    QMessageBox.warning(self, "Error Loading File", f"Cannot read file: {file_name}\n\nError: {str(e)}")
+                    return
+            else:
+                QMessageBox.warning(self, "File Not Found", f"File not found: {file_path}")
+                return
+
+            # Check for processed data only if ProcCal exists
+            if self.ProcCal and os.path.exists(self.ProcCal):
+                processed_data_path = os.path.join(self.ProcCal, 'Final_Processed_Data', f'{cur_temp}K_Final.csv')
+                processed_raw_path = os.path.join(self.ProcCal, 'Final_Processed_RAW_Data',
+                                                  f'{cur_temp}K_Final_RAW.csv')
+                split_data_path = os.path.join(self.ProcCal, f'{cur_temp}K_Final_spliting.csv')
+
+                # Load processed data if available
+                if os.path.exists(processed_data_path):
+                    try:
+                        proc_df = pd.read_csv(processed_data_path, header=None)
+                        self.current_file_data['processed_data'] = {
+                            'x': proc_df.iloc[:, 0].values,
+                            'y': proc_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
+
+                # Load processed raw data if available
+                if os.path.exists(processed_raw_path):
+                    try:
+                        proc_raw_df = pd.read_csv(processed_raw_path, header=None)
+                        self.current_file_data['processed_raw_data'] = {
+                            'x': proc_raw_df.iloc[:, 0].values,
+                            'y': proc_raw_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
+
+                # Load split data if available
+                if os.path.exists(split_data_path):
+                    try:
+                        split_df = pd.read_csv(split_data_path, header=None)
+                        self.current_file_data['split_data'] = {
+                            'x_lower': split_df.iloc[:, 0].dropna().values,
+                            'y_lower': split_df.iloc[:, 1].dropna().values,
+                            'x_upper': split_df.iloc[:, 2].dropna().values,
+                            'y_upper': split_df.iloc[:, 3].dropna().values
+                        }
+                    except:
+                        pass
+
+            # Update displays with whatever data is available
+            self.update_plots()
+            self.update_fitting_display()
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, "Error", f"Unexpected error: {str(e)}")
+
+    def load_all_files_from_tree(self):
+        """Load all files from tree view for batch processing"""
+        all_files = []
+        root = self.file_tree.invisibleRootItem()
+        child_count = root.childCount()
+
+        for i in range(child_count):
+            item = root.child(i)
+            file_name = item.text(0)
+            file_path = item.toolTip(0)
+            all_files.append({
+                'name': file_name,
+                'path': file_path,
+                'type': item.text(1),
+                'size': item.text(2)
+            })
+
+        return all_files
+
+    def update_plots(self):
+        """Update the hysteresis and fitting plots based on checkbox states"""
+        if self.current_file_data is None:
             return
 
-    def export_selected_column_data(self):
-        selected_columns = set(item.column() for item in self.table_widget.selectedItems())
-        selected_columns = sorted(selected_columns)
-        column_data = {}
-        for col in selected_columns:
-            column_header = self.table_widget.horizontalHeaderItem(col).text()
-            column_values = []
-            for row in range(self.table_widget.rowCount()):
-                item = self.table_widget.item(row, col)
-                column_values.append(item.text() if item else "")
-            column_data[column_header] = column_values
-        for i in range(len(self.file_path)-1, 0, -1):
-            if self.file_path[i] == ".":
-                file_name = self.file_path[: i]
-            if self.file_path[i] == "/":
-                file_name = file_name[i+1:]
-                folder_name = self.file_path[:i+1]
-                break
+        # Clear canvases
+        self.raw_canvas.ax.clear()
+        self.fit_canvas.ax.clear()
 
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.FileMode.Directory)
-        dialog.setDirectory(self.file_path)  # Set the default directory
-        if dialog.exec():
-            folder_name = dialog.selectedFiles()[0]
+        # Get checkbox states
+        show_raw = self.raw_plot_check_box.isChecked()
+        show_processed = self.processed_plot_check_box.isChecked()
+        show_area = self.area_plot_check_box.isChecked()
+        show_x_corr = self.x_correction_check_box.isChecked()
+        show_y_corr = self.y_correction_check_box.isChecked()
+        show_xy_corr = self.xy_correction_check_box.isChecked()
 
-        export_file_name = '{}/{}.csv'.format(folder_name, file_name)
-        self.export_to_csv(column_data, export_file_name)
+        # Plot on raw canvas
+        if show_raw and self.current_file_data['raw_data'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['raw_data']['x'],
+                self.current_file_data['raw_data']['y'],
+                s=1, alpha=0.6, color='black', label='Raw Data'
+            )
 
-    def export_selected_column_alldata(self):
-        selected_columns = set(item.column() for item in self.table_widget.selectedItems())
-        selected_columns = sorted(selected_columns)
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.FileMode.Directory)
-        dialog.setDirectory(self.file_path)  # Set the default directory
-        if dialog.exec():
-            folder_name = dialog.selectedFiles()[0]
+        if show_processed and self.current_file_data['processed_data'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['processed_data']['x'],
+                self.current_file_data['processed_data']['y'],
+                s=1, alpha=0.6, color='blue', label='Processed Data'
+            )
 
-        for file in self.file_in_list:
-            # Extracting the data from selected columns
-            column_data = {}
-            loaded_file = Loadfile(file)
-            headers = loaded_file.column_headers
-            data = loaded_file.data
-            for col in selected_columns:
-                column_header = headers[col]
-                column_values = data[:, col]
-                column_data[column_header] = column_values
-            for i in range(len(file) - 1, 0, -1):
-                if file[i] == ".":
-                    file_name = file[: i]
-                if file[i] == "/":
-                    file_name = file_name[i + 1:]
-                    # folder_name = file[:i + 1]
-                    break
-            export_file_name = '{}/{}.csv'.format(folder_name, file_name)
-            with open(export_file_name, 'w', newline='') as file:
-                writer = csv.writer(file)
-                headers = list(column_data.keys())
-                writer.writerow(headers)
-                for row in zip(*column_data.values()):
-                    writer.writerow(row)
+        if show_x_corr and self.current_file_data['processed_raw_data'] is not None and self.current_file_data[
+            'raw_data'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['processed_raw_data']['x'],
+                self.current_file_data['raw_data']['y'],
+                s=1, alpha=0.6, color='green', label='Hc Corrected'
+            )
 
-    def export_to_csv(self, column_data, file_name):
-        """Export selected column data to a CSV file."""
-        with open(file_name, 'w', newline='') as file:
-            writer = csv.writer(file)
-            headers = list(column_data.keys())
-            writer.writerow(headers)
-            # Write the rows
-            for row in zip(*column_data.values()):
-                writer.writerow(row)
+        if show_y_corr and self.current_file_data['processed_raw_data'] is not None and self.current_file_data[
+            'raw_data'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['raw_data']['x'],
+                self.current_file_data['processed_raw_data']['y'],
+                s=1, alpha=0.6, color='orange', label='Ms Corrected'
+            )
+
+        if show_xy_corr and self.current_file_data['processed_raw_data'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['processed_raw_data']['x'],
+                self.current_file_data['processed_raw_data']['y'],
+                s=1, alpha=0.6, color='red', label='Both Corrected'
+            )
+
+        if show_area and self.current_file_data['processed_data'] is not None:
+            x = self.current_file_data['processed_data']['x']
+            y = self.current_file_data['processed_data']['y']
+            self.raw_canvas.ax.fill_between(x, y, alpha=0.3, label='Area')
+
+        self.raw_canvas.ax.set_xlabel('Magnetic Field (Oe)', fontsize=11)
+        self.raw_canvas.ax.set_ylabel('Moment (emu)', fontsize=11)
+        self.raw_canvas.ax.set_title(f"{self.current_file_data['temperature']}K Hysteresis Loop", fontsize=12)
+        if show_raw or show_processed or show_area or show_x_corr or show_y_corr or show_xy_corr:
+            self.raw_canvas.ax.legend(fontsize=8, loc='best')
+        self.raw_canvas.ax.grid(True, alpha=0.3)
+        self.raw_canvas.ax.tick_params(labelsize=9)
+        self.raw_canvas.fig.tight_layout()
+        self.raw_canvas.draw()
+
+        # Plot on fit canvas
+        if self.current_file_data['split_data'] is not None:
+            split = self.current_file_data['split_data']
+
+            self.fit_canvas.ax.scatter(split['x_lower'], split['y_lower'],
+                                       s=2, alpha=0.5, color='blue', label='Lower Branch')
+            self.fit_canvas.ax.scatter(split['x_upper'], split['y_upper'],
+                                       s=2, alpha=0.5, color='red', label='Upper Branch')
+
+            # Add fitted curves
+            try:
+                def L_d(params, x, data=None):
+                    m = params['m']
+                    s = params['s']
+                    c = params['c']
+                    a = params['a']
+                    b = params['b']
+                    model = m * np.tanh(s * (x - c)) + a * x + b
+                    if data is None:
+                        return model
+                    return model - data
+
+                params = lmfit.Parameters()
+                params.add('m', value=0.00001)
+                params.add('s', value=0.001)
+                params.add('c', value=0)
+                params.add('a', value=0)
+                params.add('b', value=0)
+
+                result_lower = lmfit.minimize(L_d, params, args=(split['x_lower'],),
+                                              kws={'data': split['y_lower']})
+                result_upper = lmfit.minimize(L_d, params, args=(split['x_upper'],),
+                                              kws={'data': split['y_upper']})
+
+                fit_lower = L_d(result_lower.params, split['x_lower'])
+                fit_upper = L_d(result_upper.params, split['x_upper'])
+
+                self.fit_canvas.ax.plot(split['x_lower'], fit_lower,
+                                        'b-', linewidth=2, label='Lower Fit')
+                self.fit_canvas.ax.plot(split['x_upper'], fit_upper,
+                                        'r-', linewidth=2, label='Upper Fit')
+
+            except Exception as e:
+                print(f"Fitting error: {e}")
+
+        self.fit_canvas.ax.set_xlabel('Magnetic Field (Oe)', fontsize=11)
+        self.fit_canvas.ax.set_ylabel('Moment (emu)', fontsize=11)
+        self.fit_canvas.ax.set_title('Hysteresis Fitting', fontsize=12)
+        self.fit_canvas.ax.legend(fontsize=8, loc='best')
+        self.fit_canvas.ax.grid(True, alpha=0.3)
+        self.fit_canvas.ax.tick_params(labelsize=9)
+        self.fit_canvas.fig.tight_layout()
+        self.fit_canvas.draw()
+
+    def update_fitting_display(self):
+        """Update the fitting parameter displays"""
+        if self.current_file_data is None:
+            return
+
+        temp = self.current_file_data['temperature']
+
+        # Load and display area
+        if self.area_df is not None:
+            temp_match = self.area_df[self.area_df['Temperature'].astype(str) == temp]
+            if not temp_match.empty:
+                area_val = temp_match['Area'].values[0]
+                self.area_entry.setText(f"{area_val:.6e}")
+            else:
+                self.area_entry.setText("N/A")
+
+        # Load and display coercivity
+        if self.Coercivity_df is not None:
+            temp_match = self.Coercivity_df[self.Coercivity_df['Temperature'].astype(str) == temp]
+            if not temp_match.empty:
+                hc_val = temp_match['Coercivity'].values[0]
+                self.hc_entry.setText(f"{hc_val:.4f}")
+            else:
+                self.hc_entry.setText("N/A")
+
+        # Load and display Ms
+        if self.Ms_df is not None:
+            temp_match = self.Ms_df[self.Ms_df['Temperature'].astype(str) == temp]
+            if not temp_match.empty:
+                ms_val = temp_match['Saturation Field'].values[0]
+                self.ms_entry.setText(f"{ms_val:.6e}")
+            else:
+                self.ms_entry.setText("N/A")
+
+        # Exchange bias
+        if self.eb_df is not None:
+            temp_match = self.eb_df[self.eb_df['Temperature'].astype(str) == temp]
+            if not temp_match.empty:
+                eb_val = temp_match['Exchange Bias'].values[0]
+                self.eb_entry.setText(f"{eb_val:.4f}")
+            else:
+                self.eb_entry.setText("N/A")
+        else:
+            self.eb_entry.setText("N/A")
+
+    def update_summary_plot(self):
+        """Update the summary plot based on selected parameters"""
+        self.summary_canvas.fig.clear()
+
+        # Check which parameters to plot
+        plot_area = self.area_check_box.isChecked()
+        plot_coercivity = self.coercivity_check_box.isChecked()
+        plot_ms = self.ms_check_box.isChecked()
+        plot_eb = self.eb_check_box.isChecked()
+
+        num_plots = sum([plot_area, plot_coercivity, plot_ms, plot_eb])
+
+        if num_plots == 0:
+            ax = self.summary_canvas.fig.add_subplot(111)
+            ax.text(0.5, 0.5, 'Select parameters to plot',
+                    ha='center', va='center', fontsize=14)
+            ax.set_title("Fitting Summary", fontsize=12)
+
+            self.summary_canvas.draw()
+            return
+
+        # Plot selected parameters
+        plot_index = 1
+
+        if plot_area and self.area_df is not None:
+            if num_plots > 1:
+                ax = self.summary_canvas.fig.add_subplot(2, 2, plot_index)
+            else:
+                ax = self.summary_canvas.fig.add_subplot(111)
+
+            ax.plot(self.area_df['Temperature'], self.area_df['Area'],
+                    'o-', color='blue', markersize=5, linewidth=2)
+            ax.set_xlabel('Temperature (K)', fontsize=11)
+            ax.set_ylabel('Area', fontsize=11)
+            ax.set_title("Area", fontsize=12)
+            ax.grid(True, alpha=0.3)
+            plot_index += 1
+
+        if plot_coercivity and self.Coercivity_df is not None:
+            if num_plots > 1:
+                ax = self.summary_canvas.fig.add_subplot(2, 2, plot_index)
+            else:
+                ax = self.summary_canvas.fig.add_subplot(111)
+
+            ax.plot(self.Coercivity_df['Temperature'], self.Coercivity_df['Coercivity'],
+                    'o-', color='red', markersize=5, linewidth=2)
+            ax.set_xlabel('Temperature (K)', fontsize=11)
+            ax.set_ylabel('Coercivity (Oe)', fontsize=11)
+            ax.set_title("Coercivity", fontsize=12)
+            ax.grid(True, alpha=0.3)
+            plot_index += 1
+
+        if plot_ms and self.Ms_df is not None:
+            if num_plots > 1:
+                ax = self.summary_canvas.fig.add_subplot(2, 2, plot_index)
+            else:
+                ax = self.summary_canvas.fig.add_subplot(111)
+
+            ax.plot(self.Ms_df['Temperature'], self.Ms_df['Saturation Field'],
+                    'o-', color='green', markersize=5, linewidth=2)
+            ax.set_xlabel('Temperature (K)', fontsize=11)
+            ax.set_ylabel('Ms (emu)', fontsize=11)
+            ax.set_title("Ms", fontsize=12)
+            ax.grid(True, alpha=0.3)
+            plot_index += 1
+
+        if plot_eb and self.eb_df is not None:
+            if num_plots > 1:
+                ax = self.summary_canvas.fig.add_subplot(2, 2, plot_index)
+            else:
+                ax = self.summary_canvas.fig.add_subplot(111)
+
+            ax.plot(self.eb_df['Temperature'], self.eb_df['Exchange Bias'],
+                    'o-', color='purple', markersize=5, linewidth=2)
+            ax.set_xlabel('Temperature (K)', fontsize=10)
+            ax.set_ylabel('Exchange Bias (Oe)', fontsize=10)
+            ax.grid(True, alpha=0.3)
+
+        self.summary_canvas.fig.tight_layout()
+        self.summary_canvas.draw()
+
+    def start_processing(self):
+        """Start the data processing with progress bar"""
+        if self.file_tree.topLevelItemCount() == 0:
+            QMessageBox.warning(self, "No Files", "Please upload CSV files first.")
+            return
+
+        # Show progress bar
+        self.progress_label.show()
+        self.progress_bar.show()
+        self.progress_bar.setValue(0)
+        self.process_button.setEnabled(False)
+
+        # Process data
+        try:
+            self.process_data()
+        except Exception as e:
+            QMessageBox.warning(self, "Processing Error", f"Error during processing:\n{str(e)}")
+        finally:
+            # Hide progress bar
+            self.progress_label.hide()
+            self.progress_bar.hide()
+            self.process_button.setEnabled(True)
+
+    def reset_all(self):
+        """Reset all data and clear the interface"""
+        reply = QMessageBox.question(self, 'Reset Confirmation',
+                                     'Are you sure you want to reset? This will clear all uploaded files and processed data.',
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Clear tree
+            self.file_tree.clear()
+            self.file_in_list.clear()
+
+            # Clear plots
+            self.raw_canvas.ax.clear()
+            self.raw_canvas.ax.set_title("Hysteresis Loop")
+            self.raw_canvas.draw()
+
+            self.fit_canvas.ax.clear()
+            self.fit_canvas.ax.set_title("Fitting")
+            self.fit_canvas.draw()
+
+            self.summary_canvas.ax.clear()
+            self.summary_canvas.ax.set_title("Fitting Summary")
+            self.summary_canvas.draw()
+
+            # Clear parameter fields
+            self.area_entry.clear()
+            self.hc_entry.clear()
+            self.ms_entry.clear()
+            self.eb_entry.clear()
+
+            # Clear checkboxes
+            self.raw_plot_check_box.setChecked(False)
+            self.processed_plot_check_box.setChecked(False)
+            self.area_plot_check_box.setChecked(False)
+            self.x_correction_check_box.setChecked(False)
+            self.y_correction_check_box.setChecked(False)
+            self.xy_correction_check_box.setChecked(False)
+            self.area_check_box.setChecked(False)
+            self.coercivity_check_box.setChecked(False)
+            self.ms_check_box.setChecked(False)
+            self.eb_check_box.setChecked(False)
+
+            # Reset data
+            self.current_file_data = None
+            self.area_df = None
+            self.Ms_df = None
+            self.Coercivity_df = None
+            self.eb_df = None
+            self.folder_selected = None
+            self.ProcCal = None
+            self.ProcessedRAW = None
+
+            # Reset label
+            self.file_selection_display_label.setText('Please Upload Files or Directory')
+            self.file_selection_display_label.setStyleSheet("""
+                color: white; font-size: 12px; background-color: #f38d76; 
+                border-radius: 5px; padding: 5px;
+            """)
 
     def open_context_menu(self, position: QPoint):
-        """Open the context menu on right-click."""
+        """Open the context menu on right-click"""
         menu = QMenu()
-
-        # Using QWidgetAction instead of QAction
         remove_action = QWidgetAction(self)
         remove_label = QLabel("Remove")
         remove_label.mousePressEvent = lambda event: self.handle_remove_click(event)
@@ -567,69 +996,20 @@ class VSM_Data_Processing(QMainWindow):
         menu.exec(self.file_tree.viewport().mapToGlobal(position))
 
     def handle_remove_click(self, event):
-        """Handle right-click on remove label."""
-        if event.button() == Qt.MouseButton.RightButton:
-            print("right")
+        """Handle right-click on remove label"""
+        if event.button() == Qt.MouseButton.LeftButton:
             self.remove_selected_item()
 
     def remove_selected_item(self):
-        """Remove the selected item from the tree."""
+        """Remove the selected item from the tree"""
         selected_item = self.file_tree.currentItem()
-        self.file_in_list.remove(selected_item)
         if selected_item:
+            file_path = selected_item.toolTip(0)
+            if file_path in self.file_in_list:
+                self.file_in_list.remove(file_path)
             index = self.file_tree.indexOfTopLevelItem(selected_item)
             if index != -1:
                 self.file_tree.takeTopLevelItem(index)
-
-    def run(self):
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.FileMode.Directory)
-        dialog.setDirectory(self.file_path)  # Set the default directory
-        if dialog.exec():
-            self.folder_selected = dialog.selectedFiles()[0]
-        self.folder_selected = self.folder_selected + "/"
-        self.ProcessedDatapath = self.folder_selected + 'Processed_Data'  # Processed data directory
-        isExist = os.path.exists(self.ProcessedDatapath)
-        if not isExist:  # Create a new directory because it does not exist
-            os.makedirs(self.ProcessedDatapath)
-            self.process_raw()
-            self.process_data()
-        else:
-            self.process_data()
-
-    def process_raw(self):
-        dat_list_path = self.folder_selected + '*.DAT'
-        dat_list = glob.glob(dat_list_path)
-        number_DAT = len(dat_list)
-
-        for j in range(0, number_DAT, 1):
-            for i in range(len(dat_list[j]) - 1, 0, -1):
-                if dat_list[j][i] == '/':
-                    dat_list[j] = dat_list[j][i + 1:]
-                    break
-
-        for j in range(0, number_DAT, 1):
-            if dat_list[j] == 'zfc.DAT' or dat_list[j] == 'fc.DAT' or dat_list[j] == 'ZFC.DAT' or dat_list[j] == 'FC.DAT':
-                vsm_data = Stoner.Data.load(self.folder_selected + dat_list[j],
-                                            filetype=Stoner.formats.instruments.QDFile)
-                vsm_data.setas(x="Temperature (K)", y="Moment (emu)", z="Temperature (K)")
-                vsm_data = vsm_data.del_column(vsm_data.setas.not_set)
-                vsm_data = Stoner.formats.generic.CSVFile(vsm_data)
-                if dat_list[j] == 'ZFC.DAT' or dat_list[j] == 'zfc.DAT':
-                    file_name = 'zfc'
-                elif dat_list[j] == 'FC.DAT' or dat_list[j] == 'fc.DAT':
-                    file_name = 'fc'
-                vsm_data.save(self.ProcessedDatapath + '/{}.csv'.format(file_name))
-            else:
-                vsm_data = Stoner.Data.load(self.folder_selected + dat_list[j],
-                                            filetype=Stoner.formats.instruments.QDFile)
-                temp = vsm_data.column(['Temperature (K)', 0])
-                temp = round(temp[0][0])
-                vsm_data.setas(x="Magnetic Field (Oe)", y="Moment (emu)", z="Temperature (K)")
-                vsm_data = vsm_data.del_column(vsm_data.setas.not_set)
-                # temp = int(np.ceil(temp[0][0]))
-                vsm_data = Stoner.formats.generic.CSVFile(vsm_data)
-                vsm_data.save(self.ProcessedDatapath + '/{}K.csv'.format(temp))
 
     def y_range(self, number_CSV, csv_list_path, csv_list, plot_y_range_positive, plot_y_range_negative):
         for j in range(0, number_CSV, 1):
@@ -650,15 +1030,15 @@ class VSM_Data_Processing(QMainWindow):
 
     def Process_individual_Hys(self, number_CSV, csv_list, csv_list_path, hyst_lim, folder):
         for j in range(0, number_CSV, 1):
-
-
             for i in range(len(csv_list[j]) - 1, 0, -1):
                 if csv_list[j][i] == 'K':
                     Cur_Temp = csv_list[j][:i]
                     break
+
             Temp_Hyst = pd.read_csv(csv_list_path + csv_list[j], header=0, engine='c')
             x = Temp_Hyst.iloc[:, 0]
             y = Temp_Hyst.iloc[:, 1]
+
             fig, ax_hys = plt.subplots()
             ax_hys.scatter(x, y, color='black', s=0.5)
             ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
@@ -669,36 +1049,66 @@ class VSM_Data_Processing(QMainWindow):
             plt.savefig(folder + "/{}K_Hysteresis.png".format(Cur_Temp))
             plt.close()
 
-
     def process_data(self):
+        if not hasattr(self, 'folder_selected') or self.folder_selected is None:
+            return
+
+        # Update progress
+        self.progress_bar.setValue(5)
+        QApplication.processEvents()
+
         self.ProcessedRAW = self.folder_selected + 'Processed_Graph'
         isExist = os.path.exists(self.ProcessedRAW)
-        if not isExist:  # Create a new directory because it does not exist
+        if not isExist:
             os.makedirs(self.ProcessedRAW)
 
         self.ProcCal = self.folder_selected + 'Proc_Cal'
         isExist = os.path.exists(self.ProcCal)
-        if not isExist:  # Create a new directory because it does not exist
+        if not isExist:
             os.makedirs(self.ProcCal)
 
-        csv_list_path = self.folder_selected + 'Processed_Data/'
-        csv_list = os.listdir(csv_list_path)
+        # Get files from tree view instead of scanning directory
+        csv_list = []
+        root = self.file_tree.invisibleRootItem()
+        child_count = root.childCount()
+
+        for i in range(child_count):
+            item = root.child(i)
+            file_path = item.toolTip(0)
+            csv_list.append((os.path.basename(file_path), file_path))
+
         number_CSV = len(csv_list)
+
+        if number_CSV == 0:
+            QMessageBox.warning(self, "Error",
+                                "No CSV files found in tree view.\n\n" +
+                                "Please ensure your CSV files:\n" +
+                                "1. Are named like: 10K.csv, 50K.csv, 300K.csv\n" +
+                                "2. Have columns: Temperature (K), Magnetic Field (Oe), Moment (emu)\n" +
+                                "3. Have headers in the first row")
+            return
+
+        self.progress_bar.setValue(10)
+        QApplication.processEvents()
+
         plot_y_range_positive = 0
         plot_y_range_negative = 0
 
         for j in range(0, number_CSV, 1):
-            if csv_list[j] != 'zfc.csv' or csv_list[j] != 'fc.csv':
-                Temp_Hyst = pd.read_csv(csv_list_path + csv_list[j], header=0, engine='c')
-                YMax = Temp_Hyst['Moment (emu)'].max(axis=0)
-                YMin = Temp_Hyst['Moment (emu)'].min(axis=0)
-                # YMax = Temp_Hyst.iloc[:, 2].max(axis=0)
-                # YMin = Temp_Hyst.iloc[:, 2].min(axis=0)
-                # Loop to find the peak and valley
-                if YMax > plot_y_range_positive:
-                    plot_y_range_positive = YMax
-                if YMin < plot_y_range_negative:
-                    plot_y_range_negative = YMin
+            file_name, file_path = csv_list[j]
+            if file_name != 'zfc.csv' and file_name != 'fc.csv':
+                try:
+                    Temp_Hyst = pd.read_csv(file_path, header=0, engine='c')
+                    YMax = Temp_Hyst['Moment (emu)'].max(axis=0)
+                    YMin = Temp_Hyst['Moment (emu)'].min(axis=0)
+
+                    if YMax > plot_y_range_positive:
+                        plot_y_range_positive = YMax
+                    if YMin < plot_y_range_negative:
+                        plot_y_range_negative = YMin
+                except Exception as e:
+                    print(f"Error processing {file_name}: {e}")
+                    continue
 
         if abs(plot_y_range_positive) > abs(plot_y_range_negative):
             hyst_lim = abs(plot_y_range_positive)
@@ -706,411 +1116,426 @@ class VSM_Data_Processing(QMainWindow):
             hyst_lim = abs(plot_y_range_negative)
 
         area_df = pd.DataFrame(columns=['Temperature', 'Area'])
-        Ms_df = pd.DataFrame(columns=['Temperature', 'Saturation Field','Upper','Lower'])
+        Ms_df = pd.DataFrame(columns=['Temperature', 'Saturation Field', 'Upper', 'Lower'])
         Coercivity_df = pd.DataFrame(columns=['Temperature', 'Coercivity'])
+
+        self.progress_bar.setValue(15)
+        QApplication.processEvents()
+
         for j in range(0, number_CSV, 1):
+            # Update progress bar for each file
+            progress = 15 + int((j / number_CSV) * 60)  # 15% to 75%
+            self.progress_bar.setValue(progress)
+            self.progress_label.setText(f"Processing file {j + 1}/{number_CSV}...")
+            QApplication.processEvents()
+
+            file_name, file_path = csv_list[j]
             self.hys_folder = self.ProcessedRAW + '/Hysteresis'
             isExist = os.path.exists(self.hys_folder)
-            if not isExist:  # Create a new directory because it does not exist
+            if not isExist:
                 os.makedirs(self.hys_folder)
-            if csv_list[j] == 'zfc.csv' or csv_list[j] == 'fc.csv':
-                ZFC_FC = pd.read_csv(csv_list_path + csv_list[j], header=0, engine='c')
+
+            if file_name == 'zfc.csv' or file_name == 'fc.csv':
+                ZFC_FC = pd.read_csv(file_path, header=0, engine='c')
                 x = ZFC_FC.iloc[:, 0]
                 y = ZFC_FC.iloc[:, 1]
-                plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
-                plt.rc('ytick', labelsize=13)  # fontsize of the tick labels
+                plt.rc('xtick', labelsize=13)
+                plt.rc('ytick', labelsize=13)
                 fig, ax = plt.subplots()
                 ax.scatter(x, y, color='black', s=0.5)
                 ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
                 ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
                 ax.set_ylim(bottom=hyst_lim * -1.05, top=hyst_lim * 1.05)
-                if csv_list[j] == 'zfc.csv':
-                    plt.title('Zero Field Cooled'.format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                if file_name == 'zfc.csv':
+                    plt.title('Zero Field Cooled', pad=10, wrap=True, fontsize=14)
                     plt.tight_layout()
                     plt.savefig(self.hys_folder + "/zfc.png")
                 else:
-                    plt.title('Field Cooled'.format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.title('Field Cooled', pad=10, wrap=True, fontsize=14)
                     plt.tight_layout()
                     plt.savefig(self.hys_folder + "/fc.png")
                 plt.close()
             else:
-                for i in range(len(csv_list[j]) - 1, 0, -1):
-                    if csv_list[j][i] == 'K':
-                        Cur_Temp = csv_list[j][:i]
-                        break
+                try:
+                    for i in range(len(file_name) - 1, 0, -1):
+                        if file_name[i] == 'K':
+                            Cur_Temp = file_name[:i]
+                            break
 
-                Temp_Hyst = pd.read_csv(csv_list_path + csv_list[j], header=0, engine='c')
-                thermal = Temp_Hyst.iloc[:, 0]
-                x = Temp_Hyst.iloc[:, 1]
-                y = Temp_Hyst.iloc[:, 2]
+                    Temp_Hyst = pd.read_csv(file_path, header=0, engine='c')
+                    thermal = Temp_Hyst.iloc[:, 0]
+                    x = Temp_Hyst.iloc[:, 1]
+                    y = Temp_Hyst.iloc[:, 2]
 
-                Temp_Hyst_area = Temp_Hyst.dropna()
-                x_drop = Temp_Hyst_area.iloc[:, 1]
-                y_drop = Temp_Hyst_area.iloc[:, 2]
-                area = np.trapz(y_drop, x_drop)
-                area_temp = pd.DataFrame({'Temperature': [int(Cur_Temp)], 'Area': [abs(area)]})
-                area_df = pd.concat([area_df, area_temp], ignore_index=True)
+                    Temp_Hyst_area = Temp_Hyst.dropna()
+                    x_drop = Temp_Hyst_area.iloc[:, 1]
+                    y_drop = Temp_Hyst_area.iloc[:, 2]
+                    area = np.trapz(y_drop, x_drop)
+                    area_temp = pd.DataFrame({'Temperature': [int(Cur_Temp)], 'Area': [abs(area)]})
+                    area_df = pd.concat([area_df, area_temp], ignore_index=True)
 
-                plt.plot(x_drop, y_drop)
-                # Fill the area under the curve with color
-                plt.fill_between(x_drop, y_drop, alpha=0.3)
-                # Add a legend with the calculated area
-                plt.legend()
-                plt.title("Trapezoidal Area")
-                plt.xlabel('Temperature (K)')
-                plt.ylabel('Magnetic Moment (emu)')
-                # plt.grid(True)
-                plt.tight_layout()
-                self.Area_folder = self.ProcessedRAW + '/Area'
-                isExist = os.path.exists(self.Area_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.Area_folder)
-                plt.savefig(self.Area_folder + "/{}K_Area.png".format(Cur_Temp))
-                plt.close()
+                    plt.plot(x_drop, y_drop)
+                    plt.fill_between(x_drop, y_drop, alpha=0.3)
+                    plt.legend()
+                    plt.title("Trapezoidal Area")
+                    plt.xlabel('Temperature (K)')
+                    plt.ylabel('Magnetic Moment (emu)')
+                    plt.tight_layout()
+                    self.Area_folder = self.ProcessedRAW + '/Area'
+                    isExist = os.path.exists(self.Area_folder)
+                    if not isExist:
+                        os.makedirs(self.Area_folder)
+                    plt.savefig(self.Area_folder + "/{}K_Area.png".format(Cur_Temp))
+                    plt.close()
 
-                thermal = 100 * (thermal - int(Cur_Temp)) / int(Cur_Temp)
+                    thermal = 100 * (thermal - int(Cur_Temp)) / int(Cur_Temp)
 
-                plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
-                plt.rc('ytick', labelsize=13)  # fontsize of the tick labels
-                fig, ax_thermal = plt.subplots()
-                ax_thermal.scatter(x, thermal, color='black', s=0.5)
-                ax_thermal.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                ax_thermal.set_ylabel('Temperature Fluctuation (%)', fontsize=14)
-                plt.title('{} K Hysteresis Loop Temperature'.format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.tight_layout()
-                self.ther_folder = self.ProcessedRAW + '/Thermal_difference'
-                isExist = os.path.exists(self.ther_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.ther_folder)
-                plt.savefig(self.ther_folder + "/{}K_Thermal.png".format(Cur_Temp))
-                plt.close()
+                    plt.rc('xtick', labelsize=13)
+                    plt.rc('ytick', labelsize=13)
+                    fig, ax_thermal = plt.subplots()
+                    ax_thermal.scatter(x, thermal, color='black', s=0.5)
+                    ax_thermal.set_xlabel('Magnetic Field (Oe)', fontsize=14)
+                    ax_thermal.set_ylabel('Temperature Fluctuation (%)', fontsize=14)
+                    plt.title('{} K Hysteresis Loop Temperature'.format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.tight_layout()
+                    self.ther_folder = self.ProcessedRAW + '/Thermal_difference'
+                    isExist = os.path.exists(self.ther_folder)
+                    if not isExist:
+                        os.makedirs(self.ther_folder)
+                    plt.savefig(self.ther_folder + "/{}K_Thermal.png".format(Cur_Temp))
+                    plt.close()
 
-                fig, ax_hys = plt.subplots()
-                ax_hys.scatter(x, y, color='black', s=0.5)
-                ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                ax_hys.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                ax_hys.set_ylim(bottom=hyst_lim * -1.05, top=hyst_lim * 1.05)
-                plt.title('{} K Hysteresis Loop'.format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.tight_layout()
-                plt.savefig(self.hys_folder + "/{}K_Hysteresis.png".format(Cur_Temp))
-                plt.close()
+                    fig, ax_hys = plt.subplots()
+                    ax_hys.scatter(x, y, color='black', s=0.5)
+                    ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
+                    ax_hys.set_ylabel('Magnetic Moment (emu)', fontsize=14)
+                    ax_hys.set_ylim(bottom=hyst_lim * -1.05, top=hyst_lim * 1.05)
+                    plt.title('{} K Hysteresis Loop'.format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.tight_layout()
+                    plt.savefig(self.hys_folder + "/{}K_Hysteresis.png".format(Cur_Temp))
+                    plt.close()
 
-                index = Temp_Hyst.iloc[:, 1].idxmin(axis=0)
-                list1 = Temp_Hyst.iloc[:index].dropna()
-                list2 = Temp_Hyst.iloc[index:].dropna()
+                    index = Temp_Hyst.iloc[:, 1].idxmin(axis=0)
+                    list1 = Temp_Hyst.iloc[:index].dropna()
+                    list2 = Temp_Hyst.iloc[index:].dropna()
 
-                list1_x = list1["Magnetic Field (Oe)"].values
-                list1_y = list1["Moment (emu)"].values
-                list2_x = list2["Magnetic Field (Oe)"].values
-                list2_y = list2["Moment (emu)"].values
+                    list1_x = list1["Magnetic Field (Oe)"].values
+                    list1_y = list1["Moment (emu)"].values
+                    list2_x = list2["Magnetic Field (Oe)"].values
+                    list2_y = list2["Moment (emu)"].values
 
-                self.split_folder = self.ProcessedRAW + '/Split_folder'
-                isExist = os.path.exists(self.split_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.split_folder)
-                fig, axs = plt.subplots()
-                plt.title("{}K Split Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                axs.scatter(list1_x, list1_y, s=10)
-                axs.scatter(list2_x, list2_y, s=10, alpha=0.1)
-                ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                ax_hys.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                # axs.fill_between(x, list1_y, list2_y)
-                plt.tight_layout()
-                plt.savefig(self.split_folder + "/{}K_spliting.png".format(Cur_Temp))
-                plt.close()
-                list1_x_concat = pd.Series(list1_x)
-                list1_y_concat = pd.Series(list1_y)
-                list2_x_concat = pd.Series(list2_x)
-                list2_y_concat = pd.Series(list2_y)
-                spilt_df = pd.concat([list1_x_concat, list1_y_concat,list2_x_concat,list2_y_concat], ignore_index=True, axis=1)
-                spilt_df.to_csv(self.ProcCal + '/{}K_spliting_org.csv'.format(Cur_Temp), index=False,
-                                header=False)
-                self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
-                isExist = os.path.exists(self.fit_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.fit_folder)
+                    self.split_folder = self.ProcessedRAW + '/Split_folder'
+                    isExist = os.path.exists(self.split_folder)
+                    if not isExist:
+                        os.makedirs(self.split_folder)
 
-                def L_d(params, x, data=None):
-                    m = params['m']
-                    s = params['s']
-                    c = params['c']
-                    a = params['a']
-                    b = params['b']
-                    model = m * np.tanh(s * (x - c)) + a * x + b
-                    if data is None:
-                        return model
-                    return model - data
+                    fig, axs = plt.subplots()
+                    plt.title("{}K Split Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    axs.scatter(list1_x, list1_y, s=10)
+                    axs.scatter(list2_x, list2_y, s=10, alpha=0.1)
+                    ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
+                    ax_hys.set_ylabel('Magnetic Moment (emu)', fontsize=14)
+                    plt.tight_layout()
+                    plt.savefig(self.split_folder + "/{}K_spliting.png".format(Cur_Temp))
+                    plt.close()
 
-                # Create a Parameters object
-                params = lmfit.Parameters()
-                params.add('m', value=0.00001)
-                params.add('s', value=0.001)
-                params.add('c', value=190)
-                params.add('a', value=1)
-                params.add('b', value=1)
-                result_lower = lmfit.minimize(L_d, params, args=(list1_x,), kws={'data': list1_y})
-                result_upper = lmfit.minimize(L_d, params, args=(list2_x,), kws={'data': list2_y})
-                lower_slope = result_lower.params['a'].value
-                upper_slope = result_upper.params['a'].value
-                lower_offset = result_lower.params['b'].value
-                upper_offset = result_upper.params['b'].value
-                final_slope = np.mean([lower_slope, upper_slope])
-                final_offset = np.mean([lower_offset, upper_offset])
-                slope_final = final_slope * list1_x + final_offset
+                    list1_x_concat = pd.Series(list1_x)
+                    list1_y_concat = pd.Series(list1_y)
+                    list2_x_concat = pd.Series(list2_x)
+                    list2_y_concat = pd.Series(list2_y)
+                    spilt_df = pd.concat([list1_x_concat, list1_y_concat, list2_x_concat, list2_y_concat],
+                                         ignore_index=True, axis=1)
+                    spilt_df.to_csv(self.ProcCal + '/{}K_spliting_org.csv'.format(Cur_Temp),
+                                    index=False, header=False)
 
-                # Plot the fitted Graph with slope
-                fig, ax = plt.subplots()
-                ax.scatter(list1_x, list1_y, label='Data', s=0.5, alpha=0.5, color='green')
-                ax.scatter(list2_x, list2_y, s=0.5, alpha=0.5, color='green')
-                ax.plot(list1_x, result_lower.residual + list1_y, label='Fitted tanh', color='coral', linewidth=3)
-                ax.plot(list2_x, result_upper.residual + list2_y, color='coral', linewidth=3)
-                ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1, )
-                plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                plt.ylabel('Moment (emu)', fontsize=14)
-                plt.title("{} Time {}K Fitted Hysteresis".format('First', Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.legend()
-                plt.tight_layout()
-                plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('First', Cur_Temp))
-                plt.close()
+                    self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
+                    isExist = os.path.exists(self.fit_folder)
+                    if not isExist:
+                        os.makedirs(self.fit_folder)
 
-                # First iteration of linear background removal full trace
-                y_slope_removal = y - final_slope * x - final_offset
+                    def L_d(params, x, data=None):
+                        m = params['m']
+                        s = params['s']
+                        c = params['c']
+                        a = params['a']
+                        b = params['b']
+                        model = m * np.tanh(s * (x - c)) + a * x + b
+                        if data is None:
+                            return model
+                        return model - data
 
-                self.slope_removal_folder = self.ProcessedRAW + '/Slope_Removal'
-                isExist = os.path.exists(self.slope_removal_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.slope_removal_folder)
+                    params = lmfit.Parameters()
+                    params.add('m', value=0.00001)
+                    params.add('s', value=0.001)
+                    params.add('c', value=190)
+                    params.add('a', value=1)
+                    params.add('b', value=1)
 
-                # Plot the fitted Graph with slope (Entire)
-                plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
-                plt.rc('ytick', labelsize=13)  # fontsize of the tick labels
-                fig, ax = plt.subplots()
-                ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
-                ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                plt.title('{} Time {} K Hysteresis Loop Slope Removal Full Trace'.format('First', Cur_Temp), pad=15, wrap=True,
-                          fontsize=14)
-                plt.tight_layout()
-                plt.savefig(
-                    self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('First', Cur_Temp))
-                plt.close()
+                    result_lower = lmfit.minimize(L_d, params, args=(list1_x,), kws={'data': list1_y})
+                    result_upper = lmfit.minimize(L_d, params, args=(list2_x,), kws={'data': list2_y})
 
-                # First iteration of linear background removal half trace
-                y_slope_removal_lower = list1_y - final_slope * list1_x - final_offset
-                y_slope_removal_upper = list2_y - final_slope * list2_x - final_offset
+                    lower_slope = result_lower.params['a'].value
+                    upper_slope = result_upper.params['a'].value
+                    lower_offset = result_lower.params['b'].value
+                    upper_offset = result_upper.params['b'].value
+                    final_slope = np.mean([lower_slope, upper_slope])
+                    final_offset = np.mean([lower_offset, upper_offset])
+                    slope_final = final_slope * list1_x + final_offset
 
-                # Second iteration of linear background removal fitting
-                result_lower_second = lmfit.minimize(L_d, params, args=(list1_x,), kws={'data': y_slope_removal_lower})
-                result_upper_second = lmfit.minimize(L_d, params, args=(list2_x,), kws={'data': y_slope_removal_upper})
-                lower_slope = result_lower_second.params['a'].value
-                upper_slope = result_upper_second.params['a'].value
-                lower_offset = result_lower_second.params['b'].value
-                upper_offset = result_upper_second.params['b'].value
-                final_slope = (lower_slope + upper_slope) / 2
-                final_offset = (lower_offset + upper_offset) / 2
-                slope_final = final_slope * list1_x + final_offset
-                # Plot the original data and the fitted curve
-                fig, ax = plt.subplots()
-                ax.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
-                ax.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
-                ax.plot(list1_x, result_lower.residual + y_slope_removal_lower, label='Fitted tanh', color='coral', linewidth=3)
-                ax.plot(list2_x, result_upper.residual + y_slope_removal_upper, color='coral', linewidth=3)
-                ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1, )
-                plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                plt.ylabel('Moment (emu)', fontsize=14)
-                plt.title("{} Time {}K Fitted Hysteresis".format('Second', Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.legend()
-                plt.tight_layout()
-                self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
-                isExist = os.path.exists(self.fit_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.fit_folder)
-                plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('Second', Cur_Temp))
-                plt.close()
+                    fig, ax = plt.subplots()
+                    ax.scatter(list1_x, list1_y, label='Data', s=0.5, alpha=0.5, color='green')
+                    ax.scatter(list2_x, list2_y, s=0.5, alpha=0.5, color='green')
+                    ax.plot(list1_x, result_lower.residual + list1_y, label='Fitted tanh',
+                            color='coral', linewidth=3)
+                    ax.plot(list2_x, result_upper.residual + list2_y, color='coral', linewidth=3)
+                    ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1)
+                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                    plt.ylabel('Moment (emu)', fontsize=14)
+                    plt.title("{} Time {}K Fitted Hysteresis".format('First', Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.legend()
+                    plt.tight_layout()
+                    plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('First', Cur_Temp))
+                    plt.close()
 
-                # Second iteration of linear background removal entire trace
-                y_slope_removal = y_slope_removal - final_slope * x - final_offset
-                plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
-                plt.rc('ytick', labelsize=13)  # fontsize of the tick labels
-                fig, ax = plt.subplots()
-                ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
-                ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                plt.title('{} Time {} K Hysteresis Loop Slope Removal'.format('Second', Cur_Temp), pad=10, wrap=True,
-                          fontsize=14)
-                plt.tight_layout()
-                self.slope_removal_folder = self.ProcessedRAW + '/Slope_Removal'
-                isExist = os.path.exists(self.slope_removal_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.slope_removal_folder)
-                plt.savefig(
-                    self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('Second', Cur_Temp))
-                plt.close()
+                    y_slope_removal = y - final_slope * x - final_offset
 
-                # Second iteration of linear background removal half trace
-                y_slope_removal_lower = y_slope_removal_lower - final_slope * list1_x - final_offset
-                y_slope_removal_upper = y_slope_removal_upper - final_slope * list2_x - final_offset
+                    self.slope_removal_folder = self.ProcessedRAW + '/Slope_Removal'
+                    isExist = os.path.exists(self.slope_removal_folder)
+                    if not isExist:
+                        os.makedirs(self.slope_removal_folder)
 
-                y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
-                y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
-                spilt_df = pd.concat([list1_x_concat,y_slope_removal_lower_concat, list2_x_concat,y_slope_removal_upper_concat], ignore_index=True, axis=1)
-                spilt_df.to_csv(self.ProcCal + '/{}K_spliting_second_slope_removal.csv'.format(Cur_Temp), index=False,
-                                header=False)
+                    plt.rc('xtick', labelsize=13)
+                    plt.rc('ytick', labelsize=13)
+                    fig, ax = plt.subplots()
+                    ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
+                    ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
+                    ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
+                    plt.title('{} Time {} K Hysteresis Loop Slope Removal Full Trace'.format('First', Cur_Temp),
+                              pad=15, wrap=True, fontsize=14)
+                    plt.tight_layout()
+                    plt.savefig(
+                        self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('First', Cur_Temp))
+                    plt.close()
 
+                    y_slope_removal_lower = list1_y - final_slope * list1_x - final_offset
+                    y_slope_removal_upper = list2_y - final_slope * list2_x - final_offset
 
-                # -------------------------------------------------------------
-                #  Fit the slope removal data and find the Ms and x0
-                # -------------------------------------------------------------
-                result_lower_slope_removal = lmfit.minimize(L_d, params, args=(list1_x,),
-                                                            kws={'data': y_slope_removal_lower})
-                result_upper_slope_removal = lmfit.minimize(L_d, params, args=(list2_x,),
-                                                            kws={'data': y_slope_removal_upper})
+                    result_lower_second = lmfit.minimize(L_d, params, args=(list1_x,),
+                                                         kws={'data': y_slope_removal_lower})
+                    result_upper_second = lmfit.minimize(L_d, params, args=(list2_x,),
+                                                         kws={'data': y_slope_removal_upper})
 
-                # Plot the original data and the fitted curve
-                plt.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
-                plt.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
-                plt.plot(list1_x, result_lower_slope_removal.residual + y_slope_removal_lower,
-                         label='Fitted tanh', color='coral', linewidth=3)
-                plt.plot(list2_x, result_upper_slope_removal.residual + y_slope_removal_upper,
-                         color='coral', linewidth=3)
-                plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                plt.ylabel('Moment (emu)', fontsize=14)
-                plt.title("{}K Fitted Slope Removal Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.legend()
-                plt.tight_layout()
-                self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
-                isExist = os.path.exists(self.fit_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.fit_folder)
-                plt.savefig(self.fit_folder + "/{}K_Slope_Removal_fitted_data.png".format(Cur_Temp))
-                plt.close()
+                    lower_slope = result_lower_second.params['a'].value
+                    upper_slope = result_upper_second.params['a'].value
+                    lower_offset = result_lower_second.params['b'].value
+                    upper_offset = result_upper_second.params['b'].value
+                    final_slope = (lower_slope + upper_slope) / 2
+                    final_offset = (lower_offset + upper_offset) / 2
+                    slope_final = final_slope * list1_x + final_offset
 
-                y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
-                y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
-                slope_removal_df = pd.concat(
-                    [list1_x_concat, y_slope_removal_lower_concat, list2_x_concat, y_slope_removal_upper_concat],
-                    ignore_index=True, axis=1)
-                slope_removal_df.to_csv(self.ProcCal + '/{}K_Slope_Removal_spliting.csv'.format(Cur_Temp), index=False,
-                                        header=False)
+                    fig, ax = plt.subplots()
+                    ax.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
+                    ax.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
+                    ax.plot(list1_x, result_lower.residual + y_slope_removal_lower, label='Fitted tanh',
+                            color='coral', linewidth=3)
+                    ax.plot(list2_x, result_upper.residual + y_slope_removal_upper, color='coral', linewidth=3)
+                    ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1)
+                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                    plt.ylabel('Moment (emu)', fontsize=14)
+                    plt.title("{} Time {}K Fitted Hysteresis".format('Second', Cur_Temp), pad=10, wrap=True,
+                              fontsize=14)
+                    plt.legend()
+                    plt.tight_layout()
+                    plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('Second', Cur_Temp))
+                    plt.close()
 
-                lower_x_shift = result_lower_slope_removal.params['c'].value
-                upper_x_shift = result_upper_slope_removal.params['c'].value
-                lower_y_shift = result_lower_slope_removal.params['m'].value
-                upper_y_shift = result_upper_slope_removal.params['m'].value
-                x_offset = lower_x_shift + (abs(lower_x_shift) + abs(upper_x_shift)) / 2
-                y_offset = upper_y_shift - (abs(lower_y_shift) + abs(upper_y_shift)) / 2
+                    y_slope_removal = y_slope_removal - final_slope * x - final_offset
 
-                Temp_Hyst_Raw = pd.read_csv(csv_list_path + csv_list[j], header=0, engine='c')
-                x_raw = Temp_Hyst_Raw.iloc[:, 1]
-                y_raw = Temp_Hyst_Raw.iloc[:, 2]
+                    plt.rc('xtick', labelsize=13)
+                    plt.rc('ytick', labelsize=13)
+                    fig, ax = plt.subplots()
+                    ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
+                    ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
+                    ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
+                    plt.title('{} Time {} K Hysteresis Loop Slope Removal'.format('Second', Cur_Temp),
+                              pad=10, wrap=True, fontsize=14)
+                    plt.tight_layout()
+                    plt.savefig(
+                        self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('Second', Cur_Temp))
+                    plt.close()
 
-                x_raw = x_raw - x_offset
-                y_raw = y_raw - y_offset
+                    y_slope_removal_lower = y_slope_removal_lower - final_slope * list1_x - final_offset
+                    y_slope_removal_upper = y_slope_removal_upper - final_slope * list2_x - final_offset
 
-                self.processed_final_raw_folder = self.ProcessedRAW + '/RAW_Offset_Removal'
-                isExist = os.path.exists(self.processed_final_raw_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.processed_final_raw_folder)
+                    y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
+                    y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
+                    spilt_df = pd.concat([list1_x_concat, y_slope_removal_lower_concat,
+                                          list2_x_concat, y_slope_removal_upper_concat],
+                                         ignore_index=True, axis=1)
+                    spilt_df.to_csv(self.ProcCal + '/{}K_spliting_second_slope_removal.csv'.format(Cur_Temp),
+                                    index=False, header=False)
 
-                plt.scatter(x_raw, y_raw, label='Processed', s=0.7, alpha=0.8)
-                plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                plt.ylabel('Moment (emu)', fontsize=14)
-                plt.title("{}K Fitted Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.legend()
-                plt.tight_layout()
-                plt.savefig(self.processed_final_raw_folder + "/{}K_RAW_WO_Offset.png".format(Cur_Temp))
-                plt.close()
+                    result_lower_slope_removal = lmfit.minimize(L_d, params, args=(list1_x,),
+                                                                kws={'data': y_slope_removal_lower})
+                    result_upper_slope_removal = lmfit.minimize(L_d, params, args=(list2_x,),
+                                                                kws={'data': y_slope_removal_upper})
 
-                self.ProcCalFinalRAW = self.ProcCal + '/Final_Processed_RAW_Data'
-                isExist = os.path.exists(self.ProcCalFinalRAW)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.ProcCalFinalRAW)
-                final_RAW_df = pd.DataFrame()
-                final_RAW_df_comb = pd.DataFrame(
-                    list(zip(x_raw, y_raw)))
-                final_df = pd.concat([final_RAW_df, final_RAW_df_comb], ignore_index=True, axis=1)
-                final_df.to_csv(self.ProcCalFinalRAW + '/{}K_Final_RAW.csv'.format(Cur_Temp), index=False,
-                                header=False)
+                    plt.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
+                    plt.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
+                    plt.plot(list1_x, result_lower_slope_removal.residual + y_slope_removal_lower,
+                             label='Fitted tanh', color='coral', linewidth=3)
+                    plt.plot(list2_x, result_upper_slope_removal.residual + y_slope_removal_upper,
+                             color='coral', linewidth=3)
+                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                    plt.ylabel('Moment (emu)', fontsize=14)
+                    plt.title("{}K Fitted Slope Removal Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.legend()
+                    plt.tight_layout()
+                    plt.savefig(self.fit_folder + "/{}K_Slope_Removal_fitted_data.png".format(Cur_Temp))
+                    plt.close()
 
-                x_processed = x - x_offset
-                y_processed = y_slope_removal - y_offset
+                    y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
+                    y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
+                    slope_removal_df = pd.concat(
+                        [list1_x_concat, y_slope_removal_lower_concat, list2_x_concat, y_slope_removal_upper_concat],
+                        ignore_index=True, axis=1)
+                    slope_removal_df.to_csv(self.ProcCal + '/{}K_Slope_Removal_spliting.csv'.format(Cur_Temp),
+                                            index=False, header=False)
 
-                x_processed_lower = list1_x - x_offset
-                x_processed_upper = list2_x - x_offset
-                y_processed_lower = y_slope_removal_lower - y_offset
-                y_processed_upper = y_slope_removal_upper - y_offset
+                    lower_x_shift = result_lower_slope_removal.params['c'].value
+                    upper_x_shift = result_upper_slope_removal.params['c'].value
+                    lower_y_shift = result_lower_slope_removal.params['m'].value
+                    upper_y_shift = result_upper_slope_removal.params['m'].value
+                    x_offset = lower_x_shift + (abs(lower_x_shift) + abs(upper_x_shift)) / 2
+                    y_offset = upper_y_shift - (abs(lower_y_shift) + abs(upper_y_shift)) / 2
 
-                plt.scatter(x, y_slope_removal, label='Data', s=0.5, color='coral')
-                plt.scatter(x_processed, y_processed, label='Offset', s=0.5, alpha=0.5, color='blue')
-                plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                plt.ylabel('Moment (emu)', fontsize=14)
-                plt.title("{}K Fitted Final Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.legend()
-                plt.tight_layout()
-                self.final_folder = self.ProcessedRAW + '/Final_Processed_Comparison'
-                isExist = os.path.exists(self.final_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.final_folder)
-                plt.savefig(self.final_folder + "/{}K_Proceesed_data_Comparison.png".format(Cur_Temp))
-                plt.close()
+                    # Load raw data again from file_path
+                    Temp_Hyst_Raw = pd.read_csv(file_path, header=0, engine='c')
+                    x_raw = Temp_Hyst_Raw.iloc[:, 1]
+                    y_raw = Temp_Hyst_Raw.iloc[:, 2]
 
-                plt.scatter(x_processed, y_processed, label='Processed', s=0.7, alpha=0.8)
-                plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                plt.ylabel('Moment (emu)', fontsize=14)
-                plt.title("{}K Fitted Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
-                plt.legend()
-                plt.tight_layout()
-                self.final_folder = self.ProcessedRAW + '/Final_Processed'
-                isExist = os.path.exists(self.final_folder)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.final_folder)
-                plt.savefig(self.final_folder + "/{}K_Proceesed_data.png".format(Cur_Temp))
-                plt.close()
+                    x_raw = x_raw - x_offset
+                    y_raw = y_raw - y_offset
 
-                final_spilt_df = pd.DataFrame()
-                x_processed_lower_concat = pd.Series(x_processed_lower)
-                y_processed_lower_concat = pd.Series(y_processed_lower)
-                x_processed_upper_concat = pd.Series(x_processed_upper)
-                y_processed_upper_concat = pd.Series(y_processed_lower)
-                final_spilt_df = pd.concat([x_processed_lower_concat, y_processed_lower_concat,
-                                            x_processed_upper_concat, y_processed_upper_concat], ignore_index=True,
-                                           axis=1)
-                final_spilt_df.to_csv(self.ProcCal + '/{}K_Final_spliting.csv'.format(Cur_Temp),
-                                      index=False, header=False)
+                    self.processed_final_raw_folder = self.ProcessedRAW + '/RAW_Offset_Removal'
+                    isExist = os.path.exists(self.processed_final_raw_folder)
+                    if not isExist:
+                        os.makedirs(self.processed_final_raw_folder)
 
-                self.ProcCalFinal = self.ProcCal + '/Final_Processed_Data'
-                isExist = os.path.exists(self.ProcCalFinal)
-                if not isExist:  # Create a new directory because it does not exist
-                    os.makedirs(self.ProcCalFinal)
-                final_df = pd.DataFrame()
-                final_df_comb = pd.DataFrame(
-                    list(zip(x_processed, y_processed)))
-                final_df = pd.concat([final_df, final_df_comb], ignore_index=True, axis=1)
-                final_df.to_csv(self.ProcCalFinal + '/{}K_Final.csv'.format(Cur_Temp), index=False,
-                                header=False)
+                    plt.scatter(x_raw, y_raw, label='Processed', s=0.7, alpha=0.8)
+                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                    plt.ylabel('Moment (emu)', fontsize=14)
+                    plt.title("{}K Fitted Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.legend()
+                    plt.tight_layout()
+                    plt.savefig(self.processed_final_raw_folder + "/{}K_RAW_WO_Offset.png".format(Cur_Temp))
+                    plt.close()
 
-                lower_final = lmfit.minimize(L_d, params, args=(x_processed_lower,),
-                                                            kws={'data': y_processed_lower})
-                upper_final = lmfit.minimize(L_d, params, args=(x_processed_upper,),
-                                                            kws={'data': y_processed_upper})
-                lower_coercivity = lower_final.params['c'].value
-                upper_coercivity = upper_final.params['c'].value
-                lower_Ms = lower_final.params['m'].value
-                upper_Ms = upper_final.params['m'].value
+                    self.ProcCalFinalRAW = self.ProcCal + '/Final_Processed_RAW_Data'
+                    isExist = os.path.exists(self.ProcCalFinalRAW)
+                    if not isExist:
+                        os.makedirs(self.ProcCalFinalRAW)
 
-                coercivity = abs(lower_coercivity - upper_coercivity)
-                Ms = abs(abs(upper_Ms) + abs(lower_Ms))/2
+                    final_RAW_df = pd.DataFrame()
+                    final_RAW_df_comb = pd.DataFrame(list(zip(x_raw, y_raw)))
+                    final_df = pd.concat([final_RAW_df, final_RAW_df_comb], ignore_index=True, axis=1)
+                    final_df.to_csv(self.ProcCalFinalRAW + '/{}K_Final_RAW.csv'.format(Cur_Temp),
+                                    index=False, header=False)
 
-                Ms_temp = pd.DataFrame({'Temperature': [int(Cur_Temp)], 'Saturation Field': [Ms], 'Upper': [upper_Ms], 'Lower': [lower_Ms]})
-                Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
-                Coercivity_temp = pd.DataFrame({'Temperature': [int(Cur_Temp)], 'Coercivity': [coercivity]})
-                Coercivity_df = pd.concat([Coercivity_df, Coercivity_temp], ignore_index=True)
+                    x_processed = x - x_offset
+                    y_processed = y_slope_removal - y_offset
 
+                    x_processed_lower = list1_x - x_offset
+                    x_processed_upper = list2_x - x_offset
+                    y_processed_lower = y_slope_removal_lower - y_offset
+                    y_processed_upper = y_slope_removal_upper - y_offset
+
+                    plt.scatter(x, y_slope_removal, label='Data', s=0.5, color='coral')
+                    plt.scatter(x_processed, y_processed, label='Offset', s=0.5, alpha=0.5, color='blue')
+                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                    plt.ylabel('Moment (emu)', fontsize=14)
+                    plt.title("{}K Fitted Final Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.legend()
+                    plt.tight_layout()
+                    self.final_folder = self.ProcessedRAW + '/Final_Processed_Comparison'
+                    isExist = os.path.exists(self.final_folder)
+                    if not isExist:
+                        os.makedirs(self.final_folder)
+                    plt.savefig(self.final_folder + "/{}K_Proceesed_data_Comparison.png".format(Cur_Temp))
+                    plt.close()
+
+                    plt.scatter(x_processed, y_processed, label='Processed', s=0.7, alpha=0.8)
+                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                    plt.ylabel('Moment (emu)', fontsize=14)
+                    plt.title("{}K Fitted Hysteresis".format(Cur_Temp), pad=10, wrap=True, fontsize=14)
+                    plt.legend()
+                    plt.tight_layout()
+                    self.final_folder = self.ProcessedRAW + '/Final_Processed'
+                    isExist = os.path.exists(self.final_folder)
+                    if not isExist:
+                        os.makedirs(self.final_folder)
+                    plt.savefig(self.final_folder + "/{}K_Proceesed_data.png".format(Cur_Temp))
+                    plt.close()
+
+                    final_spilt_df = pd.DataFrame()
+                    x_processed_lower_concat = pd.Series(x_processed_lower)
+                    y_processed_lower_concat = pd.Series(y_processed_lower)
+                    x_processed_upper_concat = pd.Series(x_processed_upper)
+                    y_processed_upper_concat = pd.Series(y_processed_upper)
+                    final_spilt_df = pd.concat([x_processed_lower_concat, y_processed_lower_concat,
+                                                x_processed_upper_concat, y_processed_upper_concat],
+                                               ignore_index=True, axis=1)
+                    final_spilt_df.to_csv(self.ProcCal + '/{}K_Final_spliting.csv'.format(Cur_Temp),
+                                          index=False, header=False)
+
+                    self.ProcCalFinal = self.ProcCal + '/Final_Processed_Data'
+                    isExist = os.path.exists(self.ProcCalFinal)
+                    if not isExist:
+                        os.makedirs(self.ProcCalFinal)
+
+                    final_df = pd.DataFrame()
+                    final_df_comb = pd.DataFrame(list(zip(x_processed, y_processed)))
+                    final_df = pd.concat([final_df, final_df_comb], ignore_index=True, axis=1)
+                    final_df.to_csv(self.ProcCalFinal + '/{}K_Final.csv'.format(Cur_Temp),
+                                    index=False, header=False)
+
+                    lower_final = lmfit.minimize(L_d, params, args=(x_processed_lower,),
+                                                 kws={'data': y_processed_lower})
+                    upper_final = lmfit.minimize(L_d, params, args=(x_processed_upper,),
+                                                 kws={'data': y_processed_upper})
+
+                    lower_coercivity = lower_final.params['c'].value
+                    upper_coercivity = upper_final.params['c'].value
+                    lower_Ms = lower_final.params['m'].value
+                    upper_Ms = upper_final.params['m'].value
+
+                    coercivity = abs(lower_coercivity - upper_coercivity)
+                    Ms = abs(abs(upper_Ms) + abs(lower_Ms)) / 2
+
+                    Ms_temp = pd.DataFrame({'Temperature': [int(Cur_Temp)],
+                                            'Saturation Field': [Ms],
+                                            'Upper': [upper_Ms],
+                                            'Lower': [lower_Ms]})
+                    Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
+
+                    Coercivity_temp = pd.DataFrame({'Temperature': [int(Cur_Temp)],
+                                                    'Coercivity': [coercivity]})
+                    Coercivity_df = pd.concat([Coercivity_df, Coercivity_temp], ignore_index=True)
+
+                except Exception as e:
+                    print(f"Error processing temperature {file_name}: {e}")
+                    continue
+
+        # Sort and save summary data
+        self.progress_bar.setValue(80)
+        self.progress_label.setText("Generating summary plots...")
+        QApplication.processEvents()
 
         area_df = area_df.sort_values('Temperature')
         x_temp = area_df.iloc[:, 0]
         y_area = area_df.iloc[:, 1]
-        plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
+
+        plt.rc('xtick', labelsize=13)
         plt.rc('ytick', labelsize=13)
         fig, ax = plt.subplots()
         ax.plot(x_temp, y_area, color='black', marker='s', linewidth=2, markersize=5)
@@ -1127,7 +1552,7 @@ class VSM_Data_Processing(QMainWindow):
         y_ms_upper = Ms_df.iloc[:, 2]
         y_ms_lower = Ms_df.iloc[:, 3]
 
-        plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
+        plt.rc('xtick', labelsize=13)
         plt.rc('ytick', labelsize=13)
         fig, ax = plt.subplots()
         ax.plot(x_temp, y_ms, color='black', marker='s', linewidth=2, markersize=5)
@@ -1138,23 +1563,23 @@ class VSM_Data_Processing(QMainWindow):
         Ms_df.to_csv(self.ProcCal + '/Saturation_Field.csv', index=False)
         plt.close()
 
-        plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
+        plt.rc('xtick', labelsize=13)
         plt.rc('ytick', labelsize=13)
         fig, ax = plt.subplots()
-        ax.plot(x_temp, y_ms_upper, color='#922B21', marker='s', linewidth=2, markersize=5,label="upper")
+        ax.plot(x_temp, y_ms_upper, color='#922B21', marker='s', linewidth=2, markersize=5, label="upper")
         ax.plot(x_temp, y_ms_lower, color='#212F3D', marker='s', linewidth=2, markersize=5, label="lower")
         ax.set_xlabel('Temperature (K)', fontsize=14)
         ax.set_ylabel('Saturation Field Ms', fontsize=14)
         plt.tight_layout()
         plt.legend()
         plt.savefig(self.ProcessedRAW + "/Saturation_Field_Split.png")
-        Ms_df.to_csv(self.ProcCal + '/Saturation_Field_Split.csv', index=False)
         plt.close()
 
         Coercivity_df = Coercivity_df.sort_values('Temperature')
         x_temp = Coercivity_df.iloc[:, 0]
         y_coerc = Coercivity_df.iloc[:, 1]
-        plt.rc('xtick', labelsize=13)  # fontsize of the tick labels
+
+        plt.rc('xtick', labelsize=13)
         plt.rc('ytick', labelsize=13)
         fig, ax = plt.subplots()
         ax.plot(x_temp, y_coerc, color='black', marker='s', linewidth=2, markersize=5)
@@ -1165,165 +1590,240 @@ class VSM_Data_Processing(QMainWindow):
         Coercivity_df.to_csv(self.ProcCal + '/Coercivity.csv', index=False)
         plt.close()
 
+        # Process individual hysteresis plots
+        self.progress_bar.setValue(85)
+        self.progress_label.setText("Processing individual hysteresis plots...")
+        QApplication.processEvents()
+
         y_range_positive = 0
         y_range_negative = 0
         data_csv_list_path = self.ProcCal + '/Final_Processed_Data/'
-        data_csv_list = os.listdir(data_csv_list_path)
-        data_number_CSV = len(data_csv_list)
-        self.Final_Hysteresis = self.ProcessedRAW + '/Final_Hysteresis'
-        isExist = os.path.exists(self.Final_Hysteresis)
-        if not isExist:  # Create a new directory because it does not exist
-            os.makedirs(self.Final_Hysteresis)
 
-        data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list, y_range_positive,
-                                     y_range_negative)
-        self.Process_individual_Hys(data_number_CSV, data_csv_list, data_csv_list_path,
-                                    data_hyst_lim, self.Final_Hysteresis)
+        if os.path.exists(data_csv_list_path):
+            data_csv_list = os.listdir(data_csv_list_path)
+            data_number_CSV = len(data_csv_list)
+            self.Final_Hysteresis = self.ProcessedRAW + '/Final_Hysteresis'
+            isExist = os.path.exists(self.Final_Hysteresis)
+            if not isExist:
+                os.makedirs(self.Final_Hysteresis)
+
+            data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list,
+                                         y_range_positive, y_range_negative)
+            self.Process_individual_Hys(data_number_CSV, data_csv_list, data_csv_list_path,
+                                        data_hyst_lim, self.Final_Hysteresis)
 
         y_range_positive = 0
         y_range_negative = 0
         data_csv_list_path = self.ProcCal + '/Final_Processed_RAW_Data/'
-        data_csv_list = os.listdir(data_csv_list_path)
-        data_number_CSV = len(data_csv_list)
-        self.Final_Hysteresis_RAW = self.ProcessedRAW + '/Final_Hysteresis_RAW'
-        isExist = os.path.exists(self.Final_Hysteresis_RAW)
-        if not isExist:  # Create a new directory because it does not exist
-            os.makedirs(self.Final_Hysteresis_RAW)
 
+        if os.path.exists(data_csv_list_path):
+            data_csv_list = os.listdir(data_csv_list_path)
+            data_number_CSV = len(data_csv_list)
+            self.Final_Hysteresis_RAW = self.ProcessedRAW + '/Final_Hysteresis_RAW'
+            isExist = os.path.exists(self.Final_Hysteresis_RAW)
+            if not isExist:
+                os.makedirs(self.Final_Hysteresis_RAW)
 
-        data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list, y_range_positive,
-                                     y_range_negative)
-        self.Process_individual_Hys(data_number_CSV, data_csv_list, data_csv_list_path,
-                                    data_hyst_lim, self.Final_Hysteresis_RAW)
+            data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list,
+                                         y_range_positive, y_range_negative)
+            self.Process_individual_Hys(data_number_CSV, data_csv_list, data_csv_list_path,
+                                        data_hyst_lim, self.Final_Hysteresis_RAW)
+
+        # Generate PowerPoint
+        self.progress_bar.setValue(95)
+        self.progress_label.setText("Generating PowerPoint presentations...")
+        QApplication.processEvents()
 
         self.to_ppt()
 
+        # Load summary data for interactive display
+        self.progress_bar.setValue(98)
+        self.progress_label.setText("Loading summary data...")
+        QApplication.processEvents()
+
+        try:
+            area_path = os.path.join(self.ProcCal, 'Area_Relation.csv')
+            if os.path.exists(area_path):
+                self.area_df = pd.read_csv(area_path)
+
+            ms_path = os.path.join(self.ProcCal, 'Saturation_Field.csv')
+            if os.path.exists(ms_path):
+                self.Ms_df = pd.read_csv(ms_path)
+
+            coercivity_path = os.path.join(self.ProcCal, 'Coercivity.csv')
+            if os.path.exists(coercivity_path):
+                self.Coercivity_df = pd.read_csv(coercivity_path)
+
+            # Update summary plot if any checkboxes are checked
+            self.update_summary_plot()
+
+        except Exception as e:
+            print(f"Error loading summary data: {e}")
+
+        # Complete
+        self.progress_bar.setValue(100)
+        self.progress_label.setText("Processing complete!")
+        QApplication.processEvents()
+
+        # Show completion message
+        QMessageBox.information(self, "Processing Complete",
+                                f"Successfully processed {number_CSV} files.\n\n" +
+                                "Results saved to:\n" +
+                                f"- {self.ProcessedRAW}\n" +
+                                f"- {self.ProcCal}")
+
+    def rstpage(self):
+        try:
+            # Don't try to reset if widgets don't exist yet
+            if hasattr(self, 'file_tree'):
+                self.file_tree.clear()
+        except Exception as e:
+            print(f"Reset page warning: {e}")
+            pass
+
     def to_ppt(self):
+        """Generate PowerPoint presentations with hysteresis plots"""
+        try:
+            if os.path.exists(self.ProcCal + '/Processed_Hyst.pptx'):
+                prs = Presentation(self.ProcCal + '/Processed_Hyst.pptx')
+                prs.slide_width = Inches(13.33)
+                prs.slide_height = Inches(7.5)
+            else:
+                prs = Presentation()
+                prs.slide_width = Inches(13.33)
+                prs.slide_height = Inches(7.5)
+                prs.save(self.ProcCal + '/Processed_Hyst.pptx')
+                prs = Presentation(self.ProcCal + '/Processed_Hyst.pptx')
+                prs.slide_width = Inches(13.33)
+                prs.slide_height = Inches(7.5)
 
-        if os.path.exists(self.ProcCal + '/Processed_Hyst.pptx'):
-            prs = Presentation(self.ProcCal + '/Processed_Hyst.pptx')
-            prs.slide_width = Inches(13.33)
-            prs.slide_height = Inches(7.5)
-        else:
-            prs = Presentation()
-            prs.slide_width = Inches(13.33)
-            prs.slide_height = Inches(7.5)
+            if os.path.exists(self.ProcCal + '/Processed_Hyst_RAW.pptx'):
+                prs_RAW = Presentation(self.ProcCal + '/Processed_Hyst_RAW.pptx')
+                prs_RAW.slide_width = Inches(13.33)
+                prs_RAW.slide_height = Inches(7.5)
+            else:
+                prs_RAW = Presentation()
+                prs_RAW.slide_width = Inches(13.33)
+                prs_RAW.slide_height = Inches(7.5)
+                prs_RAW.save(self.ProcCal + '/Processed_Hyst_RAW.pptx')
+                prs_RAW = Presentation(self.ProcCal + '/Processed_Hyst_RAW.pptx')
+                prs_RAW.slide_width = Inches(13.33)
+                prs_RAW.slide_height = Inches(7.5)
+
+            dat_list_path = self.folder_selected + '*.DAT'
+            dat_list = glob.glob(dat_list_path)
+
+            if len(dat_list) > 0:
+                file_name = dat_list[0]
+                for i in range(len(file_name) - 1, 0, -1):
+                    if file_name[i] == ' ':
+                        file_name = file_name[:i]
+                        break
+
+                for i in range(len(file_name) - 1, 0, -1):
+                    if file_name[i] == '/':
+                        file_name = file_name[i + 1:]
+                        break
+            else:
+                file_name = "VSM Data"
+
+            Final_png_path = self.Final_Hysteresis + '/' + '*.png'
+            Final_png_list = glob.glob(Final_png_path)
+            data_number_Final_png_list = len(Final_png_list)
+
+            for i in range(0, data_number_Final_png_list, 1):
+                for j in range(len(Final_png_list[i]) - 1, 0, -1):
+                    if Final_png_list[i][j] == '/':
+                        Final_png_list[i] = Final_png_list[i][j + 1:]
+                        break
+
+            def extract_number(f):
+                try:
+                    return int(f.split('K')[0])
+                except:
+                    return 0
+
+            Final_png_list = sorted(Final_png_list, key=extract_number)
+
+            Final_png_RAW_path = self.Final_Hysteresis_RAW + '/' + '*.png'
+            Final_png_RAW_list = glob.glob(Final_png_RAW_path)
+            data_number_Final_png_RAW_list = len(Final_png_RAW_list)
+
+            for i in range(0, data_number_Final_png_RAW_list, 1):
+                for j in range(len(Final_png_RAW_list[i]) - 1, 0, -1):
+                    if Final_png_RAW_list[i][j] == '/':
+                        Final_png_RAW_list[i] = Final_png_RAW_list[i][j + 1:]
+                        break
+
+            Final_png_RAW_list = sorted(Final_png_RAW_list, key=extract_number)
+
+            inital_x = 0
+            initial_y = 0.89
+            image_width = 2.15
+            x_offset = 2.24
+            y_offset = 1.67
+            iteration = 0
+
+            blank_slide_layout = prs.slide_layouts[6]
+            slide = prs.slides.add_slide(blank_slide_layout)
+            text_frame = slide.shapes.add_textbox(Inches(5.67), Inches(0.06), Inches(2.03), Inches(0.57))
+            text_frame = text_frame.text_frame
+            p = text_frame.paragraphs[0]
+            run = p.add_run()
+            run.text = str(file_name)
+            font = run.font
+            font.name = 'Calibri'
+            font.size = Pt(28)
+
+            for k in range(0, data_number_Final_png_list, 1):
+                VSM = self.Final_Hysteresis + '/' + Final_png_list[k]
+                if iteration == 6:
+                    inital_x = 0
+                    initial_y = initial_y + y_offset
+                    iteration = 0
+                VSM_image = slide.shapes.add_picture(VSM, Inches(inital_x), Inches(initial_y), Inches(image_width))
+                inital_x += x_offset
+                iteration += 1
+
             prs.save(self.ProcCal + '/Processed_Hyst.pptx')
-            prs = Presentation(self.ProcCal + '/Processed_Hyst.pptx')
-            prs.slide_width = Inches(13.33)
-            prs.slide_height = Inches(7.5)
 
-        if os.path.exists(self.ProcCal + '/Processed_Hyst_RAW.pptx'):
-            prs_RAW = Presentation(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-            prs_RAW.slide_width = Inches(13.33)
-            prs_RAW.slide_height = Inches(7.5)
-        else:
-            prs_RAW = Presentation()
-            prs_RAW.slide_width = Inches(13.33)
-            prs_RAW.slide_height = Inches(7.5)
+            blank_slide_layout = prs_RAW.slide_layouts[6]
+            slide = prs_RAW.slides.add_slide(blank_slide_layout)
+            text_frame = slide.shapes.add_textbox(Inches(5.67), Inches(0.06), Inches(2.03), Inches(0.57))
+            text_frame = text_frame.text_frame
+            p = text_frame.paragraphs[0]
+            run = p.add_run()
+            run.text = str(file_name)
+            font = run.font
+            font.name = 'Calibri'
+            font.size = Pt(28)
+
+            inital_x = 0
+            initial_y = 0.89
+            iteration = 0
+
+            for k in range(0, data_number_Final_png_RAW_list, 1):
+                VSM = self.Final_Hysteresis_RAW + '/' + Final_png_RAW_list[k]
+                if iteration == 6:
+                    inital_x = 0
+                    initial_y = initial_y + y_offset
+                    iteration = 0
+                VSM_image = slide.shapes.add_picture(VSM, Inches(inital_x), Inches(initial_y), Inches(image_width))
+                inital_x += x_offset
+                iteration += 1
+
             prs_RAW.save(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-            prs_RAW = Presentation(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-            prs_RAW.slide_width = Inches(13.33)
-            prs_RAW.slide_height = Inches(7.5)
 
-        # self.Final_Hysteresis
-        dat_list_path = self.folder_selected + '*.DAT'
-        dat_list = glob.glob(dat_list_path)
-        file_name = dat_list[0]
-        for i in range(len(file_name) - 1, 0, -1):
-            if file_name[i] == ' ':
-                file_name = file_name[:i]
-                break
-
-        for i in range(len(file_name) - 1, 0, -1):
-            if file_name[i] == '/':
-                file_name = file_name[i+1:]
-                break
+        except Exception as e:
+            print(f"Error generating PowerPoint: {e}")
 
 
+# Main execution
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
 
-        Final_png_path = self.Final_Hysteresis + '/' + '*.png'
-        Final_png_list = glob.glob(Final_png_path)
-        data_number_Final_png_list = len(Final_png_list)
-        for i in range(0, data_number_Final_png_list, 1):
-            for j in range(len(Final_png_list[i]) - 1, 0, -1):
-                if Final_png_list[i][j] == '/':
-                    Final_png_list[i] = Final_png_list[i][j+1:]
-                    break
-        def extract_number(f):
-            return int(f.split('K')[0])
-
-        # Sort the file names using the custom sorting function
-        Final_png_list = sorted(Final_png_list, key=extract_number)
-
-        Final_png_RAW_path = self.Final_Hysteresis_RAW + '/' + '*.png'
-        Final_png_RAW_list = glob.glob(Final_png_RAW_path)
-        data_number_Final_png_RAW_list = len(Final_png_RAW_list)
-        for i in range(0, data_number_Final_png_RAW_list, 1):
-            for j in range(len(Final_png_RAW_list[i]) - 1, 0, -1):
-                if Final_png_RAW_list[i][j] == '/':
-                    Final_png_RAW_list[i] = Final_png_RAW_list[i][j + 1:]
-                    break
-
-        Final_png_RAW_list = sorted(Final_png_RAW_list, key=extract_number)
-
-        inital_x = 0
-        initial_y = 0.89
-        image_width = 2.15
-        x_offset = 2.24
-        y_offset = 1.67
-        iteration = 0
-
-        blank_slide_layout = prs.slide_layouts[6]
-        slide = prs.slides.add_slide(blank_slide_layout)
-        text_frame = slide.shapes.add_textbox(Inches(5.67), Inches(0.06), Inches(2.03), Inches(0.57))
-        text_frame = text_frame.text_frame
-        p = text_frame.paragraphs[0]
-        run = p.add_run()
-        run.text = str(file_name)
-        font = run.font
-        font.name = 'Calibri'
-        font.size = Pt(28)
-        for k in range(0, data_number_Final_png_list, 1):
-            VSM =  self.Final_Hysteresis + '/' + Final_png_list[k]
-            if iteration == 6:
-                inital_x = 0
-                initial_y = initial_y + y_offset
-                iteration = 0
-            VSM_image = slide.shapes.add_picture(VSM, Inches(inital_x), Inches(initial_y), Inches(image_width)) #x,y & width
-            inital_x += x_offset
-            iteration += 1
-
-        prs.save(self.ProcCal + '/Processed_Hyst.pptx')
-
-        blank_slide_layout = prs_RAW.slide_layouts[6]
-        slide = prs_RAW.slides.add_slide(blank_slide_layout)
-        text_frame = slide.shapes.add_textbox(Inches(5.67), Inches(0.06), Inches(2.03), Inches(0.57))
-        text_frame = text_frame.text_frame
-        p = text_frame.paragraphs[0]
-        run = p.add_run()
-        run.text = str(file_name)
-        font = run.font
-        font.name = 'Calibri'
-        font.size = Pt(28)
-
-        inital_x = 0
-        initial_y = 0.89
-        image_width = 2.15
-        x_offset = 2.24
-        y_offset = 1.67
-        iteration = 0
-        for k in range(0, data_number_Final_png_RAW_list, 1):
-            VSM =  self.Final_Hysteresis_RAW + '/' + Final_png_RAW_list[k]
-            if iteration == 6:
-                inital_x = 0
-                initial_y = initial_y + y_offset
-                iteration = 0
-            VSM_image = slide.shapes.add_picture(VSM, Inches(inital_x), Inches(initial_y), Inches(image_width)) #x,y & width
-            inital_x += x_offset
-            iteration += 1
-
-        prs_RAW.save(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-
-
-
+    app = QApplication(sys.argv)
+    window = VSM_Data_Processing()
+    window.show()
+    sys.exit(app.exec())

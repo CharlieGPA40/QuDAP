@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QApplication, QTabWidget, QWidget, QMainWindow, QListWidgetItem, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+    QApplication, QTabWidget, QWidget, QMainWindow, QMessageBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QAbstractItemView)
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import QSize, Qt
@@ -44,7 +44,10 @@ class VSM(QMainWindow):
         # self.qd_data_extract_widget = VSM_Data_Extraction()
         # self.qd_data_proc_widget = VSM_Data_Processing()
         self.tab1_layout.addWidget(FileExport('VSM'))
-        self.tab2_layout.addWidget(VSM_Data_Processing())
+        try:
+            self.tab2_layout.addWidget(VSM_Data_Processing())
+        except Exception as e:
+            QMessageBox.warning(self, 'Error', f'{e}')
         # self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
         # self.tab3_layout.addWidget(QLabel("Content of Tab 3"))
 

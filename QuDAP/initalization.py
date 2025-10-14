@@ -86,7 +86,10 @@ class MainWindow(QMainWindow):
         self.PARENT_SIDE_BAR_SELECTION = 0  # Index for which side bar on the left side has been selected; 1 means menu sidebar; 2 means tool menu bar
         self.CURRENT_INDEX_CHILD = 0
         self.communicator = communicator
-        self.initUI()
+        try:
+            self.initUI()
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f"{e}")
 
     def initUI(self):
         self.parent_side_bar = QListWidget()
