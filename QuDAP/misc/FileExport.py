@@ -221,9 +221,6 @@ class BatchExportOptionsDialog(QDialog):
         """Return the custom filename"""
         return self.filename_input.text().strip() or "combined_data"
 
-
-
-
 class CustomTreeView(QTreeView):
     """Custom tree view that distinguishes left and right clicks"""
     left_clicked = pyqtSignal(QStandardItem)

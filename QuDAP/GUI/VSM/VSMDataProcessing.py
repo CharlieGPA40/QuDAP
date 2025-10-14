@@ -246,6 +246,8 @@ class VSM_Data_Processing(QMainWindow):
                 # Raw Canvas
                 self.raw_canvas_layout = QVBoxLayout()
                 self.raw_canvas = MplCanvas(self, width=6, height=5, dpi=100)
+                self.raw_canvas.ax2 = self.raw_canvas.ax.twinx()
+                self.raw_canvas.ax2.tick_params(right=False, labelright=False)
                 self.raw_toolbar = NavigationToolbar(self.raw_canvas, self)
                 self.raw_toolbar.setStyleSheet("QWidget { border: None; }")
                 self.raw_canvas.ax.set_title("Hysteresis Loop")
@@ -294,13 +296,17 @@ class VSM_Data_Processing(QMainWindow):
                 self.x_correction_check_box = QCheckBox("Show Hc corrected plot")
                 self.y_correction_check_box = QCheckBox("Show Ms corrected plot")
                 self.xy_correction_check_box = QCheckBox("Show both corrected plot")
+                self.thermal_drift_check_box = QCheckBox("Show Thermal Drift plot")
+                self.slope_check_box = QCheckBox("Show slope")
 
                 self.plot_control_layout.addWidget(self.raw_plot_check_box)
+                self.plot_control_layout.addWidget(self.slope_check_box)
                 self.plot_control_layout.addWidget(self.processed_plot_check_box)
                 self.plot_control_layout.addWidget(self.area_plot_check_box)
                 self.plot_control_layout.addWidget(self.x_correction_check_box)
                 self.plot_control_layout.addWidget(self.y_correction_check_box)
                 self.plot_control_layout.addWidget(self.xy_correction_check_box)
+                self.plot_control_layout.addWidget(self.thermal_drift_check_box)
                 self.plot_control_group_box.setLayout(self.plot_control_layout)
 
                 # Fit Control Entries
@@ -395,7 +401,7 @@ class VSM_Data_Processing(QMainWindow):
                         width: 10px;
                     }
                 """)
-                self.progress_bar.setFixedWidth(500)
+                self.progress_bar.setFixedWidth(1000)
                 self.progress_layout.addWidget(self.progress_label)
                 self.progress_layout.addWidget(self.progress_bar)
                 self.progress_layout.addStretch()
@@ -406,11 +412,13 @@ class VSM_Data_Processing(QMainWindow):
 
                 # Connect signals
                 self.raw_plot_check_box.stateChanged.connect(self.update_plots)
+                self.slope_check_box.stateChanged.connect(self.update_plots)
                 self.processed_plot_check_box.stateChanged.connect(self.update_plots)
                 self.area_plot_check_box.stateChanged.connect(self.update_plots)
                 self.x_correction_check_box.stateChanged.connect(self.update_plots)
                 self.y_correction_check_box.stateChanged.connect(self.update_plots)
                 self.xy_correction_check_box.stateChanged.connect(self.update_plots)
+                self.thermal_drift_check_box.stateChanged.connect(self.update_plots)
 
                 self.area_check_box.stateChanged.connect(self.update_summary_plot)
                 self.coercivity_check_box.stateChanged.connect(self.update_summary_plot)
@@ -561,7 +569,9 @@ class VSM_Data_Processing(QMainWindow):
                 'raw_data': None,
                 'processed_data': None,
                 'processed_raw_data': None,
-                'split_data': None
+                'split_data': None,
+                'thermal_drift': None,
+                'slope': None,
             }
 
             # Load data directly from the file in tree view
@@ -572,6 +582,10 @@ class VSM_Data_Processing(QMainWindow):
                         self.current_file_data['raw_data'] = {
                             'x': raw_df.iloc[:, 1].values,
                             'y': raw_df.iloc[:, 2].values
+                        }
+                        self.current_file_data['thermal_drift'] = {
+                            'x': raw_df.iloc[:, 1].values,
+                            'y': raw_df.iloc[:, 0].values
                         }
                     else:
                         QMessageBox.warning(self, "Error",
@@ -590,6 +604,7 @@ class VSM_Data_Processing(QMainWindow):
                 processed_raw_path = os.path.join(self.ProcCal, 'Final_Processed_RAW_Data',
                                                   f'{cur_temp}K_Final_RAW.csv')
                 split_data_path = os.path.join(self.ProcCal, f'{cur_temp}K_Final_spliting.csv')
+                slope_data_path = os.path.join(self.ProcCal, f'{cur_temp}K_slope.csv')
 
                 # Load processed data if available
                 if os.path.exists(processed_data_path):
@@ -626,6 +641,16 @@ class VSM_Data_Processing(QMainWindow):
                     except:
                         pass
 
+                # Load slope data if available
+                if os.path.exists(slope_data_path):
+                    try:
+                        slope_df = pd.read_csv(slope_data_path, header=None)
+                        self.current_file_data['slope'] = {
+                            'x': slope_df.iloc[:, 0].values,
+                            'y': slope_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
             # Update displays with whatever data is available
             self.update_plots()
             self.update_fitting_display()
@@ -659,29 +684,40 @@ class VSM_Data_Processing(QMainWindow):
 
         # Clear canvases
         self.raw_canvas.ax.clear()
+        self.raw_canvas.ax2.clear()
+        self.raw_canvas.ax2.tick_params(right=False, labelright=False)
         self.fit_canvas.ax.clear()
 
         # Get checkbox states
         show_raw = self.raw_plot_check_box.isChecked()
+        show_slope = self.slope_check_box.isChecked()
         show_processed = self.processed_plot_check_box.isChecked()
         show_area = self.area_plot_check_box.isChecked()
         show_x_corr = self.x_correction_check_box.isChecked()
         show_y_corr = self.y_correction_check_box.isChecked()
         show_xy_corr = self.xy_correction_check_box.isChecked()
+        show_thermal_drift = self.thermal_drift_check_box.isChecked()
 
         # Plot on raw canvas
         if show_raw and self.current_file_data['raw_data'] is not None:
             self.raw_canvas.ax.scatter(
                 self.current_file_data['raw_data']['x'],
                 self.current_file_data['raw_data']['y'],
-                s=1, alpha=0.6, color='black', label='Raw Data'
+                s=1, alpha=0.6, color='tomato', label='Raw Data'
+            )
+
+        if show_slope and self.current_file_data['slope'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['slope']['x'],
+                self.current_file_data['slope']['y'],
+                s=1, alpha=0.6, color='sienna', label='Slope Data'
             )
 
         if show_processed and self.current_file_data['processed_data'] is not None:
             self.raw_canvas.ax.scatter(
                 self.current_file_data['processed_data']['x'],
                 self.current_file_data['processed_data']['y'],
-                s=1, alpha=0.6, color='blue', label='Processed Data'
+                s=1, alpha=0.6, color='black', label='Processed Data'
             )
 
         if show_x_corr and self.current_file_data['processed_raw_data'] is not None and self.current_file_data[
@@ -708,9 +744,25 @@ class VSM_Data_Processing(QMainWindow):
             )
 
         if show_area and self.current_file_data['processed_data'] is not None:
-            x = self.current_file_data['processed_data']['x']
-            y = self.current_file_data['processed_data']['y']
-            self.raw_canvas.ax.fill_between(x, y, alpha=0.3, label='Area')
+            x = self.current_file_data['raw_data']['x']
+            y = self.current_file_data['raw_data']['y']
+            df_area = pd.concat([pd.Series(x, name='Field'), pd.Series(y, name='Moment')], axis=1)
+            df_area_drop_nan = df_area.dropna()
+            x_drop = df_area_drop_nan.iloc[:, 0]
+            y_drop = df_area_drop_nan.iloc[:, 1]
+            self.raw_canvas.ax.fill_between(x_drop, y_drop, alpha=0.3, label='Area')
+
+        if show_thermal_drift and self.current_file_data['thermal_drift'] is not None:
+            self.raw_canvas.ax2.scatter(
+                self.current_file_data['thermal_drift']['x'],
+                self.current_file_data['thermal_drift']['y'],
+                s=1, alpha=0.4, color='grey', label='Raw Data'
+            )
+            self.raw_canvas.ax2.set_ylabel('T (K)', fontsize=11)
+            self.raw_canvas.ax2.yaxis.set_label_position("right")
+            self.raw_canvas.ax2.tick_params(right=True, labelright=True,labelsize=9)
+            self.raw_canvas.ax2.ticklabel_format(style='plain', axis='y')
+            self.raw_canvas.ax2.yaxis.get_offset_text().set_x(1.05)
 
         self.raw_canvas.ax.set_xlabel('Magnetic Field (Oe)', fontsize=11)
         self.raw_canvas.ax.set_ylabel('Moment (emu)', fontsize=11)
@@ -727,9 +779,9 @@ class VSM_Data_Processing(QMainWindow):
             split = self.current_file_data['split_data']
 
             self.fit_canvas.ax.scatter(split['x_lower'], split['y_lower'],
-                                       s=2, alpha=0.5, color='blue', label='Lower Branch')
+                                       s=10, alpha=0.2, color='cornflowerblue', label='Lower Branch')
             self.fit_canvas.ax.scatter(split['x_upper'], split['y_upper'],
-                                       s=2, alpha=0.5, color='red', label='Upper Branch')
+                                       s=10, alpha=0.2, color='bisque', label='Upper Branch')
 
             # Add fitted curves
             try:
@@ -759,10 +811,10 @@ class VSM_Data_Processing(QMainWindow):
                 fit_lower = L_d(result_lower.params, split['x_lower'])
                 fit_upper = L_d(result_upper.params, split['x_upper'])
 
-                self.fit_canvas.ax.plot(split['x_lower'], fit_lower,
-                                        'b-', linewidth=2, label='Lower Fit')
-                self.fit_canvas.ax.plot(split['x_upper'], fit_upper,
-                                        'r-', linewidth=2, label='Upper Fit')
+                self.fit_canvas.ax.plot(split['x_lower'], fit_lower, color='mediumblue', linestyle='-',
+                                        linewidth=2, label='Lower Fit')
+                self.fit_canvas.ax.plot(split['x_upper'], fit_upper, color='darkorange', linestyle='-',
+                                        linewidth=2, label='Upper Fit')
 
             except Exception as e:
                 print(f"Fitting error: {e}")
@@ -916,6 +968,8 @@ class VSM_Data_Processing(QMainWindow):
 
         # Process data
         try:
+            self.save_folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+            print(self.save_folder_path)
             self.process_data()
         except Exception as e:
             QMessageBox.warning(self, "Processing Error", f"Error during processing:\n{str(e)}")
@@ -939,6 +993,8 @@ class VSM_Data_Processing(QMainWindow):
 
             # Clear plots
             self.raw_canvas.ax.clear()
+            self.raw_canvas.ax2.clear()
+            self.raw_canvas.ax2.tick_params(right=False, labelright=False)
             self.raw_canvas.ax.set_title("Hysteresis Loop")
             self.raw_canvas.draw()
 
@@ -963,6 +1019,7 @@ class VSM_Data_Processing(QMainWindow):
             self.x_correction_check_box.setChecked(False)
             self.y_correction_check_box.setChecked(False)
             self.xy_correction_check_box.setChecked(False)
+            self.thermal_drift_check_box.setChecked(False)
             self.area_check_box.setChecked(False)
             self.coercivity_check_box.setChecked(False)
             self.ms_check_box.setChecked(False)
@@ -975,6 +1032,7 @@ class VSM_Data_Processing(QMainWindow):
             self.Coercivity_df = None
             self.eb_df = None
             self.folder_selected = None
+            self.save_folder_path = None
             self.ProcCal = None
             self.ProcessedRAW = None
 
@@ -1050,19 +1108,19 @@ class VSM_Data_Processing(QMainWindow):
             plt.close()
 
     def process_data(self):
-        if not hasattr(self, 'folder_selected') or self.folder_selected is None:
+        if not hasattr(self, 'folder_selected') or self.save_folder_path is None:
             return
 
         # Update progress
         self.progress_bar.setValue(5)
         QApplication.processEvents()
 
-        self.ProcessedRAW = self.folder_selected + 'Processed_Graph'
+        self.ProcessedRAW = self.save_folder_path + '/Processed_Graph'
         isExist = os.path.exists(self.ProcessedRAW)
         if not isExist:
             os.makedirs(self.ProcessedRAW)
 
-        self.ProcCal = self.folder_selected + 'Proc_Cal'
+        self.ProcCal = self.save_folder_path + '/Proc_Cal'
         isExist = os.path.exists(self.ProcCal)
         if not isExist:
             os.makedirs(self.ProcCal)
@@ -1096,7 +1154,7 @@ class VSM_Data_Processing(QMainWindow):
 
         for j in range(0, number_CSV, 1):
             file_name, file_path = csv_list[j]
-            if file_name != 'zfc.csv' and file_name != 'fc.csv':
+            if file_name.lower() != 'zfc.csv' and file_name.lower() != 'fc.csv':
                 try:
                     Temp_Hyst = pd.read_csv(file_path, header=0, engine='c')
                     YMax = Temp_Hyst['Moment (emu)'].max(axis=0)
@@ -1280,7 +1338,15 @@ class VSM_Data_Processing(QMainWindow):
                     upper_offset = result_upper.params['b'].value
                     final_slope = np.mean([lower_slope, upper_slope])
                     final_offset = np.mean([lower_offset, upper_offset])
-                    slope_final = final_slope * list1_x + final_offset
+                    # slope_final = final_slope * list1_x + final_offset
+                    slope_final = final_slope * list1_x
+
+                    slope_x_concat = pd.Series(list1_x)
+                    slope_y_concat = pd.Series(slope_final)
+                    slope_df = pd.concat([slope_x_concat, slope_y_concat],
+                                         ignore_index=True, axis=1)
+                    slope_df.to_csv(self.ProcCal + '/{}K_slope.csv'.format(Cur_Temp),
+                                    index=False, header=False)
 
                     fig, ax = plt.subplots()
                     ax.scatter(list1_x, list1_y, label='Data', s=0.5, alpha=0.5, color='green')
