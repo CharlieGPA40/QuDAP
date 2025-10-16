@@ -487,7 +487,6 @@ class FileExport(QMainWindow):
                 self.export_all_btn.clicked.connect(self.export_selected_column_alldata)
                 self.export_all_btn.setToolTip("Batch exporting files")
 
-
                 self.rst_btn.setStyleSheet(self.Button_stylesheet)
                 self.export_btn.setStyleSheet(self.Button_stylesheet)
                 self.export_all_btn.setStyleSheet(self.Button_stylesheet)
@@ -496,6 +495,7 @@ class FileExport(QMainWindow):
                 self.btn_layout.addWidget(self.rst_btn)
                 self.btn_layout.addWidget(self.export_btn)
                 self.btn_layout.addWidget(self.export_all_btn)
+
                 if self.process_type_label == 'VSM':
                     self.export_qudap_btn = QPushButton("Export QuDAP")
                     self.export_qudap_btn.clicked.connect(self.export_selected_column_alldata_qudap_format)
@@ -505,11 +505,14 @@ class FileExport(QMainWindow):
                     self.btn_layout.addWidget(self.export_qudap_btn)
 
                 # Main Layout Assembly
+                self.button_container = QWidget(self)
+                self.button_container.setLayout(self.btn_layout)
+                self.button_container.setFixedSize(1150, 50)
                 self.main_layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignTop)
                 self.main_layout.addWidget(self.fileupload_container)
                 self.main_layout.addLayout(selection_info_layout)
                 self.main_layout.addLayout(self.table_layout)
-                self.main_layout.addLayout(self.btn_layout)
+                self.main_layout.addWidget(self.button_container)
                 self.main_layout.addStretch(1)
 
                 self.setCentralWidget(self.scroll_area)

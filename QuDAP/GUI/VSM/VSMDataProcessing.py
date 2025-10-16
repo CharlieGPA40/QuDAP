@@ -25,9 +25,19 @@ system = platform.system()
 
 try:
     from QuDAP.GUI.VSM.qd import *
+    from QuDAP.misc.vsm_magnetic_contribution import (
+        extract_pm_dm_slope,
+        remove_pm_dm_contribution,
+        visualize_pm_dm_extraction
+    )
 except ImportError:
     try:
         from GUI.VSM.qd import *
+        from misc.vsm_fitting_method import (
+        extract_pm_dm_slope,
+        remove_pm_dm_contribution,
+        visualize_pm_dm_extraction
+    )
     except ImportError:
         print("Warning: qd module not found")
 
@@ -291,6 +301,7 @@ class VSM_Data_Processing(QMainWindow):
 
                 # Plot Control Checkboxes
                 self.raw_plot_check_box = QCheckBox("Show Raw Data")
+                self.raw_fit_plot_check_box = QCheckBox("Show Raw Fit")
                 self.processed_plot_check_box = QCheckBox("Show Processed Data")
                 self.area_plot_check_box = QCheckBox("Show Area")
                 self.x_correction_check_box = QCheckBox("Show Hc corrected plot")
@@ -301,6 +312,7 @@ class VSM_Data_Processing(QMainWindow):
 
                 self.plot_control_layout.addWidget(self.raw_plot_check_box)
                 self.plot_control_layout.addWidget(self.slope_check_box)
+                self.plot_control_layout.addWidget(self.raw_fit_plot_check_box)
                 self.plot_control_layout.addWidget(self.processed_plot_check_box)
                 self.plot_control_layout.addWidget(self.area_plot_check_box)
                 self.plot_control_layout.addWidget(self.x_correction_check_box)
@@ -401,7 +413,7 @@ class VSM_Data_Processing(QMainWindow):
                         width: 10px;
                     }
                 """)
-                self.progress_bar.setFixedWidth(1000)
+                self.progress_bar.setFixedWidth(750)
                 self.progress_layout.addWidget(self.progress_label)
                 self.progress_layout.addWidget(self.progress_bar)
                 self.progress_layout.addStretch()
@@ -412,6 +424,7 @@ class VSM_Data_Processing(QMainWindow):
 
                 # Connect signals
                 self.raw_plot_check_box.stateChanged.connect(self.update_plots)
+                self.raw_fit_plot_check_box.stateChanged.connect(self.update_plots)
                 self.slope_check_box.stateChanged.connect(self.update_plots)
                 self.processed_plot_check_box.stateChanged.connect(self.update_plots)
                 self.area_plot_check_box.stateChanged.connect(self.update_plots)
@@ -560,6 +573,8 @@ class VSM_Data_Processing(QMainWindow):
             hysteresis_temp_df = pd.read_csv(file_path, header=0, engine='c')
             thermal = hysteresis_temp_df.iloc[:, 0]
             cur_temp = round(thermal.mean(), 1)
+            cur_temp_file = str(cur_temp).replace(".", "_")
+            cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[-2:] == '_0' else cur_temp_file
 
             if cur_temp is None:
                 QMessageBox.warning(self, "Error",
@@ -576,6 +591,7 @@ class VSM_Data_Processing(QMainWindow):
                 'split_data': None,
                 'thermal_drift': None,
                 'slope': None,
+                'raw_data_fit': None
             }
 
             # Load data directly from the file in tree view
@@ -601,12 +617,13 @@ class VSM_Data_Processing(QMainWindow):
 
             # Check for processed data only if ProcCal exists
             if self.ProcCal and os.path.exists(self.ProcCal):
-                processed_data_path = os.path.join(self.ProcCal, 'Final_Processed_Data', f'{cur_temp}K_Final.csv')
+                processed_data_path = os.path.join(self.ProcCal, 'Final_Processed_Data', f'{cur_temp_file}K_Final.csv')
                 processed_raw_path = os.path.join(self.ProcCal, 'Final_Processed_RAW_Data',
-                                                  f'{cur_temp}K_Final_RAW.csv')
-                split_data_path = os.path.join(self.ProcCal, f'{cur_temp}K_Final_spliting.csv')
-                slope_data_path = os.path.join(self.ProcCal, f'{cur_temp}K_slope.csv')
-                thermal_data_path = os.path.join(self.ProcCal, f'{cur_temp}K_thermal_difference.csv')
+                                                  f'{cur_temp_file}K_Final_RAW.csv')
+                split_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_Final_spliting.csv')
+                slope_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_slope.csv')
+                thermal_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_thermal_difference.csv')
+                raw_data_fit_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_raw_fit.csv')
 
                 # Load processed thermal drift data if available
                 if os.path.exists(thermal_data_path):
@@ -615,6 +632,18 @@ class VSM_Data_Processing(QMainWindow):
                         self.current_file_data['thermal_drift'] = {
                             'x': thermal_drift_df.iloc[:, 0].values,
                             'y': thermal_drift_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
+
+                if os.path.exists(raw_data_fit_path):
+                    try:
+                        raw_fit_df = pd.read_csv(raw_data_fit_path, header=None)
+                        self.current_file_data['raw_data_fit'] = {
+                            'x1': raw_fit_df.iloc[:, 0].values,
+                            'y1': raw_fit_df.iloc[:, 1].values,
+                            'x2': raw_fit_df.iloc[:, 2].values,
+                            'y2': raw_fit_df.iloc[:, 3].values
                         }
                     except:
                         pass
@@ -703,6 +732,7 @@ class VSM_Data_Processing(QMainWindow):
 
         # Get checkbox states
         show_raw = self.raw_plot_check_box.isChecked()
+        show_raw_fit = self.raw_fit_plot_check_box.isChecked()
         show_slope = self.slope_check_box.isChecked()
         show_processed = self.processed_plot_check_box.isChecked()
         show_area = self.area_plot_check_box.isChecked()
@@ -717,6 +747,18 @@ class VSM_Data_Processing(QMainWindow):
                 self.current_file_data['raw_data']['x'],
                 self.current_file_data['raw_data']['y'],
                 s=1, alpha=0.6, color='tomato', label='Raw Data'
+            )
+
+        if show_raw_fit and self.current_file_data['raw_data_fit'] is not None:
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['raw_data_fit']['x1'],
+                self.current_file_data['raw_data_fit']['y1'],
+                s=1, alpha=0.6, color='blue', label='Raw Fit Data'
+            )
+            self.raw_canvas.ax.scatter(
+                self.current_file_data['raw_data_fit']['x2'],
+                self.current_file_data['raw_data_fit']['y2'],
+                s=1, alpha=0.6, color='blue', label='Raw Fit Data'
             )
 
         if show_slope and self.current_file_data['slope'] is not None:
@@ -798,7 +840,7 @@ class VSM_Data_Processing(QMainWindow):
 
             # Add fitted curves
             try:
-                def L_d(params, x, data=None):
+                def tanh_model_with_slope(params, x, data=None):
                     m = params['m']
                     s = params['s']
                     c = params['c']
@@ -816,13 +858,13 @@ class VSM_Data_Processing(QMainWindow):
                 params.add('a', value=0)
                 params.add('b', value=0)
 
-                result_lower = lmfit.minimize(L_d, params, args=(split['x_lower'],),
+                result_lower = lmfit.minimize(tanh_model_with_slope, params, args=(split['x_lower'],),
                                               kws={'data': split['y_lower']})
-                result_upper = lmfit.minimize(L_d, params, args=(split['x_upper'],),
+                result_upper = lmfit.minimize(tanh_model_with_slope, params, args=(split['x_upper'],),
                                               kws={'data': split['y_upper']})
 
-                fit_lower = L_d(result_lower.params, split['x_lower'])
-                fit_upper = L_d(result_upper.params, split['x_upper'])
+                fit_lower = tanh_model_with_slope(result_lower.params, split['x_lower'])
+                fit_upper = tanh_model_with_slope(result_upper.params, split['x_upper'])
 
                 self.fit_canvas.ax.plot(split['x_lower'], fit_lower, color='mediumblue', linestyle='-',
                                         linewidth=2, label='Lower Fit')
@@ -1028,6 +1070,7 @@ class VSM_Data_Processing(QMainWindow):
 
             # Clear checkboxes
             self.raw_plot_check_box.setChecked(False)
+            self.raw_fit_plot_check_box.setChecked(False)
             self.processed_plot_check_box.setChecked(False)
             self.area_plot_check_box.setChecked(False)
             self.x_correction_check_box.setChecked(False)
@@ -1100,16 +1143,13 @@ class VSM_Data_Processing(QMainWindow):
             hyst_lim = abs(plot_y_range_negative)
         return hyst_lim
 
-    def Process_individual_Hys(self, number_CSV, csv_list, csv_list_path, hyst_lim, folder):
+    def process_individual_hysteresis(self, number_CSV, csv_list, csv_list_path, hyst_lim, folder):
         for j in range(0, number_CSV, 1):
-            # for i in range(len(csv_list[j]) - 1, 0, -1):
-            #     if csv_list[j][i] == 'K':
-            #         Cur_Temp = csv_list[j][:i]
-            #         break
-
             hysteresis_temp_df = pd.read_csv(csv_list_path + csv_list[j], header=0, engine='c')
             thermal = hysteresis_temp_df.iloc[:, 0]
             cur_temp = round(thermal.mean(), 1)
+            cur_temp_file = str(cur_temp).replace(".", "_")
+            cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[-2:] == '_0' else cur_temp_file
             x = hysteresis_temp_df.iloc[:, 0]
             y = hysteresis_temp_df.iloc[:, 1]
 
@@ -1120,7 +1160,7 @@ class VSM_Data_Processing(QMainWindow):
             ax_hys.set_ylim(bottom=hyst_lim * -1.05, top=hyst_lim * 1.05)
             plt.title('RAW {} K Hysteresis Loop'.format(cur_temp), pad=10, wrap=True, fontsize=14)
             plt.tight_layout()
-            plt.savefig(folder + "/Raw_{}K_Hysteresis.png".format(cur_temp))
+            plt.savefig(folder + "/Raw_{}K_Hysteresis.png".format(cur_temp_file))
             plt.close()
 
     def process_data(self):
@@ -1250,12 +1290,10 @@ class VSM_Data_Processing(QMainWindow):
                 plt.close()
             else:
                 try:
-                    # for i in range(len(file_name) - 1, 0, -1):
-                    #     if file_name[i] == 'K':
-                    #         Cur_Temp = file_name[:i]
-                    #         break
-
                     cur_temp = round(temperature_column.mean(), 1)
+                    cur_temp_file = str(cur_temp).replace(".", "_")
+                    cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[
+                                                                                -2:] == '_0' else cur_temp_file
                     x = hysteresis_temp_df.iloc[:, 1]
                     y = hysteresis_temp_df.iloc[:, 2]
 
@@ -1266,7 +1304,6 @@ class VSM_Data_Processing(QMainWindow):
                     area = np.trapz(y_drop, x_drop)
                     area_temp = pd.DataFrame({'Temperature': [int(cur_temp)], 'Area': [abs(area)]})
                     area_df = pd.concat([area_df, area_temp], ignore_index=True)
-
                     plt.plot(x_drop, y_drop)
                     plt.fill_between(x_drop, y_drop, alpha=0.3)
                     plt.legend()
@@ -1278,7 +1315,7 @@ class VSM_Data_Processing(QMainWindow):
                     isExist = os.path.exists(self.Area_folder)
                     if not isExist:
                         os.makedirs(self.Area_folder)
-                    plt.savefig(self.Area_folder + "/{}K_Area.png".format(cur_temp))
+                    plt.savefig(self.Area_folder + "/{}K_Area.png".format(cur_temp_file))
                     plt.close()
 
                     # This section is for thermal difference plot
@@ -1295,17 +1332,16 @@ class VSM_Data_Processing(QMainWindow):
                     isExist = os.path.exists(self.thermal_difference_folder)
                     if not isExist:
                         os.makedirs(self.thermal_difference_folder)
-                    plt.savefig(self.thermal_difference_folder + "/{}K_Thermal_Difference.png".format(cur_temp))
+                    plt.savefig(self.thermal_difference_folder + "/{}K_Thermal_Difference.png".format(cur_temp_file))
                     plt.close()
-
                     thermal_difference_x = pd.Series(x)
                     thermal_difference_y = pd.Series(thermal_difference)
                     thermal_difference_df = pd.concat([thermal_difference_x, thermal_difference_y],
                                          ignore_index=True, axis=1)
-                    thermal_difference_df.to_csv(self.ProcCal + '/{}K_thermal_difference.csv'.format(cur_temp),
+                    thermal_difference_df.to_csv(self.ProcCal + '/{}K_thermal_difference.csv'.format(cur_temp_file),
                                     index=False, header=False)
 
-
+                    # This section is plotting the RAW hysteresis data
                     fig, ax_hys = plt.subplots()
                     ax_hys.scatter(x, y, color='black', s=0.5)
                     ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
@@ -1313,26 +1349,22 @@ class VSM_Data_Processing(QMainWindow):
                     ax_hys.set_ylim(bottom=hyst_lim * -1.05, top=hyst_lim * 1.05)
                     plt.title('{} K Hysteresis Loop'.format(cur_temp), pad=10, wrap=True, fontsize=14)
                     plt.tight_layout()
-                    plt.savefig(self.hysteresis_folder + "/{}K_Hysteresis.png".format(cur_temp))
+                    plt.savefig(self.hysteresis_folder + "/{}K_RAW_Hysteresis.png".format(cur_temp_file))
                     plt.close()
 
-
-
-
-                    index = hysteresis_temp_df.iloc[:, 1].idxmin(axis=0)
-                    list1 = hysteresis_temp_df.iloc[:index].dropna()
-                    list2 = hysteresis_temp_df.iloc[index:].dropna()
-
-                    list1_x = list1["Magnetic Field (Oe)"].values
-                    list1_y = list1["Moment (emu)"].values
-                    list2_x = list2["Magnetic Field (Oe)"].values
-                    list2_y = list2["Moment (emu)"].values
-
+                    # This section split the raw data into upper half and lower half data
                     self.split_folder = self.ProcessedRAW + '/Split_folder'
                     isExist = os.path.exists(self.split_folder)
                     if not isExist:
                         os.makedirs(self.split_folder)
 
+                    index = hysteresis_temp_df.iloc[:, 1].idxmin(axis=0)
+                    list1 = hysteresis_temp_df.iloc[:index].dropna()
+                    list2 = hysteresis_temp_df.iloc[index:].dropna()
+                    list1_x = list1["Magnetic Field (Oe)"].values
+                    list1_y = list1["Moment (emu)"].values
+                    list2_x = list2["Magnetic Field (Oe)"].values
+                    list2_y = list2["Moment (emu)"].values
                     fig, axs = plt.subplots()
                     plt.title("{}K Split Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
                     axs.scatter(list1_x, list1_y, s=10)
@@ -1340,7 +1372,7 @@ class VSM_Data_Processing(QMainWindow):
                     ax_hys.set_xlabel('Magnetic Field (Oe)', fontsize=14)
                     ax_hys.set_ylabel('Magnetic Moment (emu)', fontsize=14)
                     plt.tight_layout()
-                    plt.savefig(self.split_folder + "/{}K_spliting.png".format(cur_temp))
+                    plt.savefig(self.split_folder + "/{}K_spliting.png".format(cur_temp_file))
                     plt.close()
 
                     list1_x_concat = pd.Series(list1_x)
@@ -1349,295 +1381,314 @@ class VSM_Data_Processing(QMainWindow):
                     list2_y_concat = pd.Series(list2_y)
                     spilt_df = pd.concat([list1_x_concat, list1_y_concat, list2_x_concat, list2_y_concat],
                                          ignore_index=True, axis=1)
-                    spilt_df.to_csv(self.ProcCal + '/{}K_spliting_org.csv'.format(cur_temp),
+                    spilt_df.to_csv(self.ProcCal + '/{}K_spliting_raw_data.csv'.format(cur_temp_file),
                                     index=False, header=False)
 
+                    # This section is to remove the linear background
                     self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
                     isExist = os.path.exists(self.fit_folder)
                     if not isExist:
                         os.makedirs(self.fit_folder)
+                    try:
+                        # Try linear saturation method first (best)
+                        pm_dm_result = extract_pm_dm_slope(
+                            list1_x, list1_y,
+                            method='linear_saturation',
+                            saturation_threshold=0.80
+                        )
 
-                    def L_d(params, x, data=None):
-                        m = params['m']
-                        s = params['s']
-                        c = params['c']
-                        a = params['a']
-                        b = params['b']
-                        model = m * np.tanh(s * (x - c)) + a * x + b
-                        if data is None:
-                            return model
-                        return model - data
+                        # Check quality
+                        if pm_dm_result['r_squared'] < 0.90:
+                            print(f"    Warning: Low R² = {pm_dm_result['r_squared']:.4f}")
+                            # Try symmetric method as backup
+                            pm_dm_result_sym = extract_pm_dm_slope(
+                                list1_x, list1_y,
+                                method='symmetric',
+                                saturation_threshold=0.80
+                            )
+                            if pm_dm_result_sym['r_squared_pos'] > pm_dm_result['r_squared']:
+                                pm_dm_result = pm_dm_result_sym
+                                print(f"    Using symmetric method instead")
 
-                    params = lmfit.Parameters()
-                    params.add('m', value=0.00001)
-                    params.add('s', value=0.001)
-                    params.add('c', value=190)
-                    params.add('a', value=1)
-                    params.add('b', value=1)
+                        chi_total = pm_dm_result['chi_total']
+                        pm_dm_method = pm_dm_result['method']
 
-                    result_lower = lmfit.minimize(L_d, params, args=(list1_x,), kws={'data': list1_y})
-                    result_upper = lmfit.minimize(L_d, params, args=(list2_x,), kws={'data': list2_y})
+                        print(f"    χ_total (PM+DM) = {chi_total:.6e} emu/Oe")
+                        print(f"    R² = {pm_dm_result.get('r_squared', 0):.4f}")
 
-                    lower_slope = result_lower.params['a'].value
-                    upper_slope = result_upper.params['a'].value
-                    lower_offset = result_lower.params['b'].value
-                    upper_offset = result_upper.params['b'].value
-                    final_slope = np.mean([lower_slope, upper_slope])
-                    final_offset = np.mean([lower_offset, upper_offset])
-                    # slope_final = final_slope * list1_x + final_offset
-                    slope_final = final_slope * list1_x
 
-                    slope_x_concat = pd.Series(list1_x)
-                    slope_y_concat = pd.Series(slope_final)
-                    slope_df = pd.concat([slope_x_concat, slope_y_concat],
-                                         ignore_index=True, axis=1)
-                    slope_df.to_csv(self.ProcCal + '/{}K_slope.csv'.format(cur_temp),
-                                    index=False, header=False)
+                        # Determine type
+                        if chi_total > 1e-10:
+                            chi_type = 'Paramagnetic'
+                            print(f"    → Paramagnetic contribution (positive slope)")
+                        elif chi_total < -1e-10:
+                            chi_type = 'Diamagnetic'
+                            print(f"    → Diamagnetic contribution (negative slope)")
+                        else:
+                            chi_type = 'Negligible'
+                            print(f"    → Negligible PM/DM contribution")
 
-                    fig, ax = plt.subplots()
-                    ax.scatter(list1_x, list1_y, label='Data', s=0.5, alpha=0.5, color='green')
-                    ax.scatter(list2_x, list2_y, s=0.5, alpha=0.5, color='green')
-                    ax.plot(list1_x, result_lower.residual + list1_y, label='Fitted tanh',
-                            color='coral', linewidth=3)
-                    ax.plot(list2_x, result_upper.residual + list2_y, color='coral', linewidth=3)
-                    ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1)
-                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                    plt.ylabel('Moment (emu)', fontsize=14)
-                    plt.title("{} Time {}K Fitted Hysteresis".format('First', cur_temp), pad=10, wrap=True, fontsize=14)
-                    plt.legend()
-                    plt.tight_layout()
-                    plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('First', cur_temp))
-                    plt.close()
+                        # Save PM/DM diagnostics
+                        ### NEW ### Create PM/DM folder
+                        self.pm_dm_folder = self.fit_folder + '/PM_DM_Analysis'
+                        os.makedirs(self.pm_dm_folder, exist_ok=True)
 
-                    # y_slope_removal = y - final_slope * x - final_offset
-                    y_slope_removal = y - final_slope * x
+                        fig_pm_dm = visualize_pm_dm_extraction(x, y, pm_dm_result)
+                        fig_pm_dm.savefig(f"{self.pm_dm_folder}/{cur_temp_file}K_PM_DM_extraction.png", dpi=150)
+                        plt.close(fig_pm_dm)
 
-                    self.slope_removal_folder = self.ProcessedRAW + '/Slope_Removal'
-                    isExist = os.path.exists(self.slope_removal_folder)
-                    if not isExist:
-                        os.makedirs(self.slope_removal_folder)
+                    except Exception as e:
+                        print(f"    Error extracting PM/DM: {e}")
+                        chi_total = 0
+                        chi_type = 'Failed'
+                        pm_dm_method = 'None'
+                        pm_dm_result = {'chi_total': 0, 'r_squared': 0, 'n_points': 0}
 
-                    plt.rc('xtick', labelsize=13)
-                    plt.rc('ytick', labelsize=13)
-                    fig, ax = plt.subplots()
-                    ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
-                    ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                    ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                    plt.title('{} Time {} K Hysteresis Loop Slope Removal Full Trace'.format('First', cur_temp),
-                              pad=15, wrap=True, fontsize=14)
-                    plt.tight_layout()
-                    plt.savefig(
-                        self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('First', cur_temp))
-                    plt.close()
-
-                    # y_slope_removal_lower = list1_y - final_slope * list1_x - final_offset
-                    # y_slope_removal_upper = list2_y - final_slope * list2_x - final_offset
-
-                    y_slope_removal_lower = list1_y - final_slope * list1_x
-                    y_slope_removal_upper = list2_y - final_slope * list2_x
-                        
-                    # result_lower_second = lmfit.minimize(L_d, params, args=(list1_x,),
-                    #                                      kws={'data': y_slope_removal_lower})
-                    # result_upper_second = lmfit.minimize(L_d, params, args=(list2_x,),
-                    #                                      kws={'data': y_slope_removal_upper})
-                    # 
-                    # lower_slope = result_lower_second.params['a'].value
-                    # upper_slope = result_upper_second.params['a'].value
-                    # lower_offset = result_lower_second.params['b'].value
-                    # upper_offset = result_upper_second.params['b'].value
-                    # final_slope = (lower_slope + upper_slope) / 2
-                    # final_offset = (lower_offset + upper_offset) / 2
-                    # slope_final = final_slope * list1_x + final_offset
-                    # 
-                    # fig, ax = plt.subplots()
-                    # ax.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
-                    # ax.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
-                    # ax.plot(list1_x, result_lower.residual + y_slope_removal_lower, label='Fitted tanh',
-                    #         color='coral', linewidth=3)
-                    # ax.plot(list2_x, result_upper.residual + y_slope_removal_upper, color='coral', linewidth=3)
-                    # ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1)
-                    # plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                    # plt.ylabel('Moment (emu)', fontsize=14)
-                    # plt.title("{} Time {}K Fitted Hysteresis".format('Second', Cur_Temp), pad=10, wrap=True,
-                    #           fontsize=14)
-                    # plt.legend()
-                    # plt.tight_layout()
-                    # plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('Second', Cur_Temp))
-                    # plt.close()
-                    # 
-                    # y_slope_removal = y_slope_removal - final_slope * x - final_offset
-                    # 
-                    # plt.rc('xtick', labelsize=13)
-                    # plt.rc('ytick', labelsize=13)
-                    # fig, ax = plt.subplots()
-                    # ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
-                    # ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                    # ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                    # plt.title('{} Time {} K Hysteresis Loop Slope Removal'.format('Second', Cur_Temp),
-                    #           pad=10, wrap=True, fontsize=14)
-                    # plt.tight_layout()
-                    # plt.savefig(
-                    #     self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('Second', Cur_Temp))
-                    # plt.close()
-                    # 
-                    # y_slope_removal_lower = y_slope_removal_lower - final_slope * list1_x - final_offset
-                    # y_slope_removal_upper = y_slope_removal_upper - final_slope * list2_x - final_offset
-
-                    y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
-                    y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
-                    spilt_df = pd.concat([list1_x_concat, y_slope_removal_lower_concat,
-                                          list2_x_concat, y_slope_removal_upper_concat],
-                                         ignore_index=True, axis=1)
-                    spilt_df.to_csv(self.ProcCal + '/{}K_splitting_slope_removal.csv'.format(cur_temp),
-                                    index=False, header=False)
-
-                    result_lower_slope_removal = lmfit.minimize(L_d, params, args=(list1_x,),
-                                                                kws={'data': y_slope_removal_lower})
-                    result_upper_slope_removal = lmfit.minimize(L_d, params, args=(list2_x,),
-                                                                kws={'data': y_slope_removal_upper})
-
-                    plt.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
-                    plt.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
-                    plt.plot(list1_x, result_lower_slope_removal.residual + y_slope_removal_lower,
-                             label='Fitted tanh', color='coral', linewidth=3)
-                    plt.plot(list2_x, result_upper_slope_removal.residual + y_slope_removal_upper,
-                             color='coral', linewidth=3)
-                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                    plt.ylabel('Moment (emu)', fontsize=14)
-                    plt.title("{}K Fitted Slope Removal Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                    plt.legend()
-                    plt.tight_layout()
-                    plt.savefig(self.fit_folder + "/{}K_Slope_Removal_fitted_data.png".format(cur_temp))
-                    plt.close()
-
-                    y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
-                    y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
-                    slope_removal_df = pd.concat(
-                        [list1_x_concat, y_slope_removal_lower_concat, list2_x_concat, y_slope_removal_upper_concat],
-                        ignore_index=True, axis=1)
-                    slope_removal_df.to_csv(self.ProcCal + '/{}K_Slope_Removal_spliting.csv'.format(cur_temp),
-                                            index=False, header=False)
-
-                    lower_x_shift = result_lower_slope_removal.params['c'].value
-                    upper_x_shift = result_upper_slope_removal.params['c'].value
-                    lower_y_shift = result_lower_slope_removal.params['m'].value
-                    upper_y_shift = result_upper_slope_removal.params['m'].value
-                    x_offset = lower_x_shift + (abs(lower_x_shift) + abs(upper_x_shift)) / 2
-                    y_offset = upper_y_shift - (abs(lower_y_shift) + abs(upper_y_shift)) / 2
-
-                    # Load raw data again from file_path
-                    hysteresis_temp_df_Raw = pd.read_csv(file_path, header=0, engine='c')
-                    x_raw = hysteresis_temp_df_Raw.iloc[:, 1]
-                    y_raw = hysteresis_temp_df_Raw.iloc[:, 2]
-
-                    x_raw = x_raw - x_offset
-                    y_raw = y_raw - y_offset
-
-                    self.processed_final_raw_folder = self.ProcessedRAW + '/RAW_Offset_Removal'
-                    isExist = os.path.exists(self.processed_final_raw_folder)
-                    if not isExist:
-                        os.makedirs(self.processed_final_raw_folder)
-
-                    plt.scatter(x_raw, y_raw, label='Processed', s=0.7, alpha=0.8)
-                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                    plt.ylabel('Moment (emu)', fontsize=14)
-                    plt.title("{}K Fitted Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                    plt.legend()
-                    plt.tight_layout()
-                    plt.savefig(self.processed_final_raw_folder + "/{}K_RAW_WO_Offset.png".format(cur_temp))
-                    plt.close()
-
-                    self.ProcCalFinalRAW = self.ProcCal + '/Final_Processed_RAW_Data'
-                    isExist = os.path.exists(self.ProcCalFinalRAW)
-                    if not isExist:
-                        os.makedirs(self.ProcCalFinalRAW)
-
-                    final_RAW_df = pd.DataFrame()
-                    final_RAW_df_comb = pd.DataFrame(list(zip(x_raw, y_raw)))
-                    final_df = pd.concat([final_RAW_df, final_RAW_df_comb], ignore_index=True, axis=1)
-                    final_df.to_csv(self.ProcCalFinalRAW + '/{}K_Final_RAW.csv'.format(cur_temp),
-                                    index=False, header=False)
-
-                    x_processed = x - x_offset
-                    y_processed = y_slope_removal - y_offset
-
-                    x_processed_lower = list1_x - x_offset
-                    x_processed_upper = list2_x - x_offset
-                    y_processed_lower = y_slope_removal_lower - y_offset
-                    y_processed_upper = y_slope_removal_upper - y_offset
-
-                    plt.scatter(x, y_slope_removal, label='Data', s=0.5, color='coral')
-                    plt.scatter(x_processed, y_processed, label='Offset', s=0.5, alpha=0.5, color='blue')
-                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                    plt.ylabel('Moment (emu)', fontsize=14)
-                    plt.title("{}K Fitted Final Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                    plt.legend()
-                    plt.tight_layout()
-                    self.final_folder = self.ProcessedRAW + '/Final_Processed_Comparison'
-                    isExist = os.path.exists(self.final_folder)
-                    if not isExist:
-                        os.makedirs(self.final_folder)
-                    plt.savefig(self.final_folder + "/{}K_Proceesed_data_Comparison.png".format(cur_temp))
-                    plt.close()
-
-                    plt.scatter(x_processed, y_processed, label='Processed', s=0.7, alpha=0.8)
-                    plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                    plt.ylabel('Moment (emu)', fontsize=14)
-                    plt.title("{}K Fitted Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                    plt.legend()
-                    plt.tight_layout()
-                    self.final_folder = self.ProcessedRAW + '/Final_Processed'
-                    isExist = os.path.exists(self.final_folder)
-                    if not isExist:
-                        os.makedirs(self.final_folder)
-                    plt.savefig(self.final_folder + "/{}K_Proceesed_data.png".format(cur_temp))
-                    plt.close()
-
-                    final_spilt_df = pd.DataFrame()
-                    x_processed_lower_concat = pd.Series(x_processed_lower)
-                    y_processed_lower_concat = pd.Series(y_processed_lower)
-                    x_processed_upper_concat = pd.Series(x_processed_upper)
-                    y_processed_upper_concat = pd.Series(y_processed_upper)
-                    final_spilt_df = pd.concat([x_processed_lower_concat, y_processed_lower_concat,
-                                                x_processed_upper_concat, y_processed_upper_concat],
-                                               ignore_index=True, axis=1)
-                    final_spilt_df.to_csv(self.ProcCal + '/{}K_Final_spliting.csv'.format(cur_temp),
-                                          index=False, header=False)
-
-                    self.ProcCalFinal = self.ProcCal + '/Final_Processed_Data'
-                    isExist = os.path.exists(self.ProcCalFinal)
-                    if not isExist:
-                        os.makedirs(self.ProcCalFinal)
-
-                    final_df = pd.DataFrame()
-                    final_df_comb = pd.DataFrame(list(zip(x_processed, y_processed)))
-                    final_df = pd.concat([final_df, final_df_comb], ignore_index=True, axis=1)
-                    final_df.to_csv(self.ProcCalFinal + '/{}K_Final.csv'.format(cur_temp),
-                                    index=False, header=False)
-
-                    lower_final = lmfit.minimize(L_d, params, args=(x_processed_lower,),
-                                                 kws={'data': y_processed_lower})
-                    upper_final = lmfit.minimize(L_d, params, args=(x_processed_upper,),
-                                                 kws={'data': y_processed_upper})
-
-                    lower_coercivity = lower_final.params['c'].value
-                    upper_coercivity = upper_final.params['c'].value
-                    lower_Ms = lower_final.params['m'].value
-                    upper_Ms = upper_final.params['m'].value
-
-                    coercivity = abs(lower_coercivity - upper_coercivity)
-                    Ms = abs(abs(upper_Ms) + abs(lower_Ms)) / 2
-
-                    Ms_temp = pd.DataFrame({'Temperature': [int(cur_temp)],
-                                            'Saturation Field': [Ms],
-                                            'Upper': [upper_Ms],
-                                            'Lower': [lower_Ms]})
-                    Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
-
-                    Coercivity_temp = pd.DataFrame({'Temperature': [int(cur_temp)],
-                                                    'Coercivity': [coercivity]})
-                    Coercivity_df = pd.concat([Coercivity_df, Coercivity_temp], ignore_index=True)
-
+                #     def tanh_model_with_slope(params, x, data=None):
+                #         m = params['m']
+                #         s = params['s']
+                #         c = params['c']
+                #         a = params['a']
+                #         b = params['b']
+                #         model = m * np.tanh(s * (x - c)) + a * x + b
+                #         if data is None:
+                #             return model
+                #         return model - data
+                #
+                #     params = lmfit.Parameters()
+                #     params.add('m', value=0.00001)
+                #     params.add('s', value=0.001)
+                #     params.add('c', value=-300)
+                #     params.add('a', value=-1e-8)
+                #     params.add('b', value=-1e-7)
+                #
+                #     result_lower = lmfit.minimize(tanh_model_with_slope, params.copy(), args=(list1_x,), kws={'data': list1_y})
+                #     result_upper = lmfit.minimize(tanh_model_with_slope, params.copy(), args=(list2_x,), kws={'data': list2_y})
+                #
+                #     fit_lower = tanh_model_with_slope(result_lower.params, list1_y)
+                #     fit_upper = tanh_model_with_slope(result_upper.params, list2_y)
+                #
+                #     lower_slope = result_lower.params['a'].value
+                #     upper_slope = result_upper.params['a'].value
+                #     final_slope = np.mean([lower_slope, upper_slope])
+                #     slope_final = final_slope * list1_x
+                #
+                #     slope_x_concat = pd.Series(list1_x)
+                #     slope_y_concat = pd.Series(slope_final)
+                #     slope_df = pd.concat([slope_x_concat, slope_y_concat],
+                #                          ignore_index=True, axis=1)
+                #     slope_df.to_csv(self.ProcCal + '/{}K_slope.csv'.format(cur_temp_file),
+                #                     index=False, header=False)
+                #
+                #     fig, ax = plt.subplots()
+                #     ax.scatter(list1_x, list1_y, label='Data', s=0.5, alpha=0.5, color='green')
+                #     ax.scatter(list2_x, list2_y, s=0.5, alpha=0.5, color='green')
+                #     ax.plot(list1_x, result_lower.residual + list1_y, label='Fitted tanh',
+                #             color='coral', linewidth=3)
+                #     ax.plot(list2_x, result_upper.residual + list2_y, color='coral', linewidth=3)
+                #     ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1)
+                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                #     plt.ylabel('Moment (emu)', fontsize=14)
+                #     plt.title("{} Time {}K Fitted Hysteresis".format('First', cur_temp), pad=10, wrap=True, fontsize=14)
+                #     plt.legend()
+                #     plt.tight_layout()
+                #     plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('First', cur_temp_file))
+                #     plt.close()
+                #
+                #     fit_raw_list1_x_concat = pd.Series(list1_x)
+                #     # fit_raw_list1_y_concat = pd.Series(result_lower.residual + list1_y)
+                #     fit_raw_list1_y_concat = pd.Series(fit_lower)
+                #     fit_raw_list2_x_concat = pd.Series(list2_x)
+                #     # fit_raw_list2_y_concat = pd.Series(result_upper.residual + list2_y)
+                #     fit_raw_list2_y_concat = pd.Series(fit_upper)
+                #     fitted_raw_df = pd.concat([fit_raw_list1_x_concat, fit_raw_list1_y_concat, fit_raw_list2_x_concat, fit_raw_list2_y_concat],
+                #                          ignore_index=True, axis=1)
+                #     fitted_raw_df.to_csv(self.ProcCal + '/{}K_raw_fit.csv'.format(cur_temp_file),
+                #                     index=False, header=False)
+                #
+                #
+                #     # y_slope_removal = y - final_slope * x - final_offset
+                #     y_slope_removal = y - final_slope * x
+                #
+                #     self.slope_removal_folder = self.ProcessedRAW + '/Slope_Removal'
+                #     isExist = os.path.exists(self.slope_removal_folder)
+                #     if not isExist:
+                #         os.makedirs(self.slope_removal_folder)
+                #
+                #     plt.rc('xtick', labelsize=13)
+                #     plt.rc('ytick', labelsize=13)
+                #     fig, ax = plt.subplots()
+                #     ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
+                #     ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
+                #     ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
+                #     plt.title('{} Time {} K Hysteresis Loop Slope Removal Full Trace'.format('First', cur_temp),
+                #               pad=15, wrap=True, fontsize=14)
+                #     plt.tight_layout()
+                #     plt.savefig(
+                #         self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('First', cur_temp_file))
+                #     plt.close()
+                #
+                #     # y_slope_removal_lower = list1_y - final_slope * list1_x - final_offset
+                #     # y_slope_removal_upper = list2_y - final_slope * list2_x - final_offset
+                #
+                #     y_slope_removal_lower = list1_y - final_slope * list1_x
+                #     y_slope_removal_upper = list2_y - final_slope * list2_x
+                #
+                #     y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
+                #     y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
+                #     spilt_df = pd.concat([list1_x_concat, y_slope_removal_lower_concat,
+                #                           list2_x_concat, y_slope_removal_upper_concat],
+                #                          ignore_index=True, axis=1)
+                #     spilt_df.to_csv(self.ProcCal + '/{}K_splitting_slope_removal.csv'.format(cur_temp_file),
+                #                     index=False, header=False)
+                #
+                #     result_lower_slope_removal = lmfit.minimize(tanh_model_with_slope, params, args=(list1_x,),
+                #                                                 kws={'data': y_slope_removal_lower})
+                #     result_upper_slope_removal = lmfit.minimize(tanh_model_with_slope, params, args=(list2_x,),
+                #                                                 kws={'data': y_slope_removal_upper})
+                #
+                #     plt.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
+                #     plt.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
+                #     plt.plot(list1_x, result_lower_slope_removal.residual + y_slope_removal_lower,
+                #              label='Fitted tanh', color='coral', linewidth=3)
+                #     plt.plot(list2_x, result_upper_slope_removal.residual + y_slope_removal_upper,
+                #              color='coral', linewidth=3)
+                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                #     plt.ylabel('Moment (emu)', fontsize=14)
+                #     plt.title("{}K Fitted Slope Removal Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
+                #     plt.legend()
+                #     plt.tight_layout()
+                #     plt.savefig(self.fit_folder + "/{}K_Slope_Removal_fitted_data.png".format(cur_temp_file))
+                #     plt.close()
+                #
+                #     y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
+                #     y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
+                #     slope_removatanh_model_with_slopef = pd.concat(
+                #         [list1_x_concat, y_slope_removal_lower_concat, list2_x_concat, y_slope_removal_upper_concat],
+                #         ignore_index=True, axis=1)
+                #     slope_removal_df.to_csv(self.ProcCal + '/{}K_Slope_Removal_spliting.csv'.format(cur_temp_file),
+                #                             index=False, header=False)
+                #
+                #     lower_x_shift = result_lower_slope_removal.params['c'].value
+                #     upper_x_shift = result_upper_slope_removal.params['c'].value
+                #     lower_y_shift = result_lower_slope_removal.params['m'].value
+                #     upper_y_shift = result_upper_slope_removal.params['m'].value
+                #     x_offset = lower_x_shift + (abs(lower_x_shift) + abs(upper_x_shift)) / 2
+                #     y_offset = upper_y_shift - (abs(lower_y_shift) + abs(upper_y_shift)) / 2
+                #
+                #     # Load raw data again from file_path
+                #     hysteresis_temp_df_Raw = pd.read_csv(file_path, header=0, engine='c')
+                #     x_raw = hysteresis_temp_df_Raw.iloc[:, 1]
+                #     y_raw = hysteresis_temp_df_Raw.iloc[:, 2]
+                #
+                #     x_raw = x_raw - x_offset
+                #     y_raw = y_raw - y_offset
+                #
+                #     self.processed_final_raw_folder = self.ProcessedRAW + '/RAW_Offset_Removal'
+                #     isExist = os.path.exists(self.processed_final_raw_folder)
+                #     if not isExist:
+                #         os.makedirs(self.processed_final_raw_folder)
+                #
+                #     plt.scatter(x_raw, y_raw, label='Processed', s=0.7, alpha=0.8)
+                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                #     plt.ylabel('Moment (emu)', fontsize=14)
+                #     plt.title("{}K Fitted Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
+                #     plt.legend()
+                #     plt.tight_layout()
+                #     plt.savefig(self.processed_final_raw_folder + "/{}K_RAW_WO_Offset.png".format(cur_temp_file))
+                #     plt.close()
+                #
+                #     self.ProcCalFinalRAW = self.ProcCal + '/Final_Processed_RAW_Data'
+                #     isExist = os.path.exists(self.ProcCalFinalRAW)
+                #     if not isExist:
+                #         os.makedirs(self.ProcCalFinalRAW)
+                #
+                #     final_RAW_df = pd.DataFrame()
+                #     final_RAW_df_comb = pd.DataFrame(list(zip(x_raw, y_raw)))
+                #     final_df = pd.concat([final_RAW_df, final_RAW_df_comb], ignore_index=True, axis=1)
+                #     final_df.to_csv(self.ProcCalFinalRAW + '/{}K_Final_RAW.csv'.format(cur_temp_file),
+                #                     index=False, header=False)
+                #
+                #     x_processed = x - x_offset
+                #     y_processed = y_slope_removal - y_offset
+                #
+                #     x_processed_lower = list1_x - x_offset
+                #     x_processed_upper = list2_x - x_offset
+                #     y_processed_lower = y_slope_removal_lower - y_offset
+                #     y_processed_upper = y_slope_removal_upper - y_offset
+                #
+                #     plt.scatter(x, y_slope_removal, label='Data', s=0.5, color='coral')
+                #     plt.scatter(x_processed, y_processed, label='Offset', s=0.5, alpha=0.5, color='blue')
+                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                #     plt.ylabel('Moment (emu)', fontsize=14)
+                #     plt.title("{}K Fitted Final Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
+                #     plt.legend()
+                #     plt.tight_layout()
+                #     self.final_folder = self.ProcessedRAW + '/Final_Processed_Comparison'
+                #     isExist = os.path.exists(self.final_folder)
+                #     if not isExist:
+                #         os.makedirs(self.final_folder)
+                #     plt.savefig(self.final_folder + "/{}K_Proceesed_data_Comparison.png".format(cur_temp_file))
+                #     plt.close()
+                #
+                #     plt.scatter(x_processed, y_processed, label='Processed', s=0.7, alpha=0.8)
+                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
+                #     plt.ylabel('Moment (emu)', fontsize=14)
+                #     plt.title("{}K Fitted Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
+                #     plt.legend()
+                #     plt.tight_layout()
+                #     self.final_folder = self.ProcessedRAW + '/Final_Processed'
+                #     isExist = os.path.exists(self.final_folder)
+                #     if not isExist:
+                #         os.makedirs(self.final_folder)
+                #     plt.savefig(self.final_folder + "/{}K_Proceesed_data.png".format(cur_temp_file))
+                #     plt.close()
+                #
+                #     final_spilt_df = pd.DataFrame()
+                #     x_processed_lower_concat = pd.Series(x_processed_lower)
+                #     y_processed_lower_concat = pd.Series(y_processed_lower)
+                #     x_processed_upper_concat = pd.Series(x_processed_upper)
+                #     y_processed_upper_concat = pd.Series(y_processed_upper)
+                #     final_spilt_df = pd.concat([x_processed_lower_concat, y_processed_lower_concat,
+                #                                 x_processed_upper_concat, y_processed_upper_concat],
+                #                                ignore_index=True, axis=1)
+                #     final_spilt_df.to_csv(self.ProcCal + '/{}K_Final_spliting.csv'.format(cur_temp_file),
+                #                           index=False, header=False)
+                #
+                #     self.ProcCalFinal = self.ProcCal + '/Final_Processed_Data'
+                #     isExist = os.path.exists(self.ProcCalFinal)
+                #     if not isExist:
+                #         os.makedirs(self.ProcCalFinal)
+                #
+                #     final_df = pd.DataFrame()
+                #     final_df_comb = pd.DataFrame(list(zip(x_processed, y_processed)))
+                #     final_df = pd.concat([final_df, final_df_comb], ignore_index=True, axis=1)
+                #     final_df.to_csv(self.ProcCalFinal + '/{}K_Final.csv'.format(cur_temp_file),
+                #                     index=False, header=False)
+                #
+                #     lower_final = lmfit.minimize(tanh_model_with_slope, params, args=(x_processed_lower,),
+                #                                  kws={'data': y_processed_lower})
+                #     upper_final = lmfit.minimize(tanh_model_with_slope, params, args=(x_processed_upper,),
+                #                                  kws={'data': y_processed_upper})
+                #
+                #     lower_coercivity = lower_final.params['c'].value
+                #     upper_coercivity = upper_final.params['c'].value
+                #     lower_Ms = lower_final.params['m'].value
+                #     upper_Ms = upper_final.params['m'].value
+                #
+                #     coercivity = abs(lower_coercivity - upper_coercivity)
+                #     Ms = abs(abs(upper_Ms) + abs(lower_Ms)) / 2
+                #
+                #     Ms_temp = pd.DataFrame({'Temperature': [int(cur_temp)],
+                #                             'Saturation Field': [Ms],
+                #                             'Upper': [upper_Ms],
+                #                             'Lower': [lower_Ms]})
+                #     Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
+                #
+                #     Coercivity_temp = pd.DataFrame({'Temperature': [int(cur_temp)],
+                #                                     'Coercivity': [coercivity]})
+                #     Coercivity_df = pd.concat([Coercivity_df, Coercivity_temp], ignore_index=True)
+                #
                 except Exception as e:
                     tb_str = traceback.format_exc()
                     print(f"Error processing temperature {file_name}: {e} {tb_str}")
@@ -1726,7 +1777,7 @@ class VSM_Data_Processing(QMainWindow):
 
             data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list,
                                          y_range_positive, y_range_negative)
-            self.Process_individual_Hys(data_number_CSV, data_csv_list, data_csv_list_path,
+            self.process_individual_hysteresis(data_number_CSV, data_csv_list, data_csv_list_path,
                                         data_hyst_lim, self.Final_Hysteresis)
 
         y_range_positive = 0
@@ -1743,7 +1794,7 @@ class VSM_Data_Processing(QMainWindow):
 
             data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list,
                                          y_range_positive, y_range_negative)
-            self.Process_individual_Hys(data_number_CSV, data_csv_list, data_csv_list_path,
+            self.process_individual_hysteresis(data_number_CSV, data_csv_list, data_csv_list_path,
                                         data_hyst_lim, self.Final_Hysteresis_RAW)
 
         # Generate PowerPoint
