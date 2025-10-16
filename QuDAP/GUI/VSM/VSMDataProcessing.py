@@ -30,6 +30,14 @@ try:
         remove_pm_dm_contribution,
         visualize_pm_dm_extraction
     )
+    from QuDAP.misc.vsm_tanh_fit import (
+        process_vsm_branches,
+        tanh_model,
+        correct_vertical_offset,
+        extract_saturation_magnetization,
+        extract_coercivity_method1_fit,
+        extract_coercivity_method2_data
+    )
 except ImportError:
     try:
         from GUI.VSM.qd import *
@@ -37,7 +45,15 @@ except ImportError:
         extract_pm_dm_slope,
         remove_pm_dm_contribution,
         visualize_pm_dm_extraction
-    )
+        )
+        from misc.vsm_tanh_fit import (
+            process_vsm_branches,
+            tanh_model,
+            correct_vertical_offset,
+            extract_saturation_magnetization,
+            extract_coercivity_method1_fit,
+            extract_coercivity_method2_data
+        )
     except ImportError:
         print("Warning: qd module not found")
 
@@ -620,8 +636,8 @@ class VSM_Data_Processing(QMainWindow):
                 processed_data_path = os.path.join(self.ProcCal, 'Final_Processed_Data', f'{cur_temp_file}K_Final.csv')
                 processed_raw_path = os.path.join(self.ProcCal, 'Final_Processed_RAW_Data',
                                                   f'{cur_temp_file}K_Final_RAW.csv')
-                split_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_Final_spliting.csv')
-                slope_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_slope.csv')
+                split_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_slope_removal_spilt_data.csv')
+                slope_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_slope_data.csv')
                 thermal_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_thermal_difference.csv')
                 raw_data_fit_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_raw_fit.csv')
 
@@ -1384,15 +1400,15 @@ class VSM_Data_Processing(QMainWindow):
                     spilt_df.to_csv(self.ProcCal + '/{}K_spliting_raw_data.csv'.format(cur_temp_file),
                                     index=False, header=False)
 
-                    # This section is to remove the linear background
+                    # This section is to find the linear background
                     self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
                     isExist = os.path.exists(self.fit_folder)
                     if not isExist:
                         os.makedirs(self.fit_folder)
-                    try:
-                        # Try linear saturation method first (best)
+
+                    def find_slope(x: list, y: list, portion:str=None):
                         pm_dm_result = extract_pm_dm_slope(
-                            list1_x, list1_y,
+                            x, y,
                             method='linear_saturation',
                             saturation_threshold=0.80
                         )
@@ -1402,7 +1418,7 @@ class VSM_Data_Processing(QMainWindow):
                             print(f"    Warning: Low R² = {pm_dm_result['r_squared']:.4f}")
                             # Try symmetric method as backup
                             pm_dm_result_sym = extract_pm_dm_slope(
-                                list1_x, list1_y,
+                                x, y,
                                 method='symmetric',
                                 saturation_threshold=0.80
                             )
@@ -1415,7 +1431,6 @@ class VSM_Data_Processing(QMainWindow):
 
                         print(f"    χ_total (PM+DM) = {chi_total:.6e} emu/Oe")
                         print(f"    R² = {pm_dm_result.get('r_squared', 0):.4f}")
-
 
                         # Determine type
                         if chi_total > 1e-10:
@@ -1434,8 +1449,39 @@ class VSM_Data_Processing(QMainWindow):
                         os.makedirs(self.pm_dm_folder, exist_ok=True)
 
                         fig_pm_dm = visualize_pm_dm_extraction(x, y, pm_dm_result)
-                        fig_pm_dm.savefig(f"{self.pm_dm_folder}/{cur_temp_file}K_PM_DM_extraction.png", dpi=150)
+                        fig_pm_dm.savefig(f"{self.pm_dm_folder}/{cur_temp_file}K_PM_DM_extraction_{portion}.png", dpi=150)
                         plt.close(fig_pm_dm)
+                        return pm_dm_result
+
+                    try:
+                        # Try linear saturation method first (best)
+                        pm_dm_result_upper = find_slope(list1_x, list1_y, portion="Upper")
+                        pm_dm_result_lower = find_slope(list2_x, list2_y, portion='Lower')
+                        slope_upper = pm_dm_result_upper['chi_total']
+                        slope_lower = pm_dm_result_lower['chi_total']
+                        slope = (slope_lower + slope_upper) / 2
+
+                        slope_upper_x_concat = pd.Series(list1_x)
+                        slope_y_concat = pd.Series(list1_x * slope_upper_x_concat)
+                        slope_df = pd.concat([slope_upper_x_concat, slope_y_concat],
+                                             ignore_index=True, axis=1)
+                        slope_df.to_csv(self.ProcCal + '/{}K_slope_data.csv'.format(cur_temp_file),
+                                        index=False, header=False)
+
+                        # This section is to remove the linear background
+                        M_corrected_upper = remove_pm_dm_contribution(list1_x, list1_y, pm_dm_result_upper['chi_total'],
+                                                                remove_offset=False)
+                        M_corrected_lower = remove_pm_dm_contribution(list2_x, list2_y, pm_dm_result_upper['chi_total'],
+                                                                remove_offset=False)
+
+                        y_slope_removal_upper_concat = pd.Series(M_corrected_upper)
+                        y_slope_removal_lower_concat = pd.Series(M_corrected_lower)
+                        slope_removal_spilt_data_df = pd.concat([list1_x_concat, y_slope_removal_upper_concat,
+                                              list2_x_concat, y_slope_removal_lower_concat],
+                                             ignore_index=True, axis=1)
+                        slope_removal_spilt_data_df.to_csv(self.ProcCal + '/{}K_slope_removal_spilt_data.csv'.format(cur_temp_file),
+                                        index=False, header=False)
+
 
                     except Exception as e:
                         print(f"    Error extracting PM/DM: {e}")
@@ -1444,16 +1490,73 @@ class VSM_Data_Processing(QMainWindow):
                         pm_dm_method = 'None'
                         pm_dm_result = {'chi_total': 0, 'r_squared': 0, 'n_points': 0}
 
-                #     def tanh_model_with_slope(params, x, data=None):
-                #         m = params['m']
-                #         s = params['s']
-                #         c = params['c']
-                #         a = params['a']
-                #         b = params['b']
-                #         model = m * np.tanh(s * (x - c)) + a * x + b
-                #         if data is None:
-                #             return model
-                #         return model - data
+                    Ms_result_upper = extract_saturation_magnetization(list1_x_concat, y_slope_removal_upper_concat, n_points=5)
+                    Ms_result_lower = extract_saturation_magnetization(list2_x_concat, y_slope_removal_lower_concat,
+                                                                 n_points=5)
+                    ms_upper = (Ms_result_upper['Ms_upper'] + Ms_result_lower['Ms_upper']) / 2
+                    ms_lower = (Ms_result_upper['Ms_lower'] + Ms_result_lower['Ms_lower']) / 2
+                    ms_avg = (Ms_result_upper['Ms_avg'] + Ms_result_lower['Ms_avg']) / 2
+                    ms_vertical_offset = (Ms_result_upper['vertical_offset'] + Ms_result_lower['vertical_offset']) / 2
+
+                    # Step 2: Correct vertical offset if needed
+                    if abs(ms_vertical_offset) > 1e-10:
+                        M_upper_corrected = correct_vertical_offset(y_slope_removal_upper_concat, ms_vertical_offset)
+                        M_lower_corrected = correct_vertical_offset(y_slope_removal_lower_concat, ms_vertical_offset)
+                    else:
+                        M_upper_corrected = y_slope_removal_upper_concat.copy()
+                        M_lower_corrected = y_slope_removal_lower_concat.copy()
+                    # Re-calculate Ms after correction
+
+                    ms_corrected_spilt_data_df = pd.concat([list1_x_concat, M_upper_corrected,
+                                                             list2_x_concat, M_lower_corrected],
+                                                            ignore_index=True, axis=1)
+                    ms_corrected_spilt_data_df.to_csv(
+                        self.ProcCal + '/{}K_ms_corrected_spilt_data.csv'.format(cur_temp_file),
+                        index=False, header=False)
+
+
+                    Ms_temp = pd.DataFrame(
+                        {'Temperature': [int(cur_temp)], 'Saturation Field': [ms_avg], 'Upper': [ms_upper],
+                         'Lower': [ms_lower]})
+                    Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
+
+                    upper_fit = extract_coercivity_method1_fit(list1_x_concat, M_upper_corrected, include_slope=False)
+
+                    if upper_fit['success']:
+                        print(f"  ✓ Upper fit successful!")
+                        print(f"    m (Ms): {upper_fit['m']:.6e} emu")
+                        print(f"    s:      {upper_fit['s']:.6f}")
+                        print(f"    c (Heb):{upper_fit['c']:.2f} Oe")
+                        print(f"    Hc:     {upper_fit['Hc']:.2f} Oe")
+                        print(f"    R²:     {upper_fit['r_squared']:.6f}")
+                    else:
+                        print(f"  ✗ Upper fit failed: {upper_fit.get('error', 'Unknown error')}")
+
+                    # Step 4: Method 1 - Fit lower branch
+                    lower_fit = extract_coercivity_method1_fit(list2_x_concat, M_lower_corrected, include_slope=False)
+
+                    if lower_fit['success']:
+                        print(f"  ✓ Lower fit successful!")
+                        print(f"    m (Ms): {lower_fit['m']:.6e} emu")
+                        print(f"    s:      {lower_fit['s']:.6f}")
+                        print(f"    c (Heb):{lower_fit['c']:.2f} Oe")
+                        print(f"    Hc:     {lower_fit['Hc']:.2f} Oe")
+                        print(f"    R²:     {lower_fit['r_squared']:.6f}")
+                    else:
+                        print(f"  ✗ Lower fit failed: {lower_fit.get('error', 'Unknown error')}")
+
+
+                    method2_result = extract_coercivity_method2_data(H_upper, M_upper_corrected,
+                                                                     H_lower, M_lower_corrected)
+                    if method2_result['success']:
+                        print(f"  ✓ Crossings found!")
+                        print(f"    Hc_left:  {method2_result['Hc_left']:.2f} Oe")
+                        print(f"    Hc_right: {method2_result['Hc_right']:.2f} Oe")
+                        print(f"    Hc (avg): {method2_result['Hc']:.2f} Oe")
+                        print(f"    Heb:      {method2_result['Heb']:.2f} Oe")
+                    else:
+                        print(f"  ✗ Could not find crossings: {method2_result.get('error', 'Unknown')}")
+
                 #
                 #     params = lmfit.Parameters()
                 #     params.add('m', value=0.00001)
@@ -1508,66 +1611,7 @@ class VSM_Data_Processing(QMainWindow):
                 #
                 #
                 #     # y_slope_removal = y - final_slope * x - final_offset
-                #     y_slope_removal = y - final_slope * x
                 #
-                #     self.slope_removal_folder = self.ProcessedRAW + '/Slope_Removal'
-                #     isExist = os.path.exists(self.slope_removal_folder)
-                #     if not isExist:
-                #         os.makedirs(self.slope_removal_folder)
-                #
-                #     plt.rc('xtick', labelsize=13)
-                #     plt.rc('ytick', labelsize=13)
-                #     fig, ax = plt.subplots()
-                #     ax.scatter(x, y_slope_removal, color='black', s=0.5, label='slope removal')
-                #     ax.set_xlabel('Magnetic Field (Oe)', fontsize=14)
-                #     ax.set_ylabel('Magnetic Moment (emu)', fontsize=14)
-                #     plt.title('{} Time {} K Hysteresis Loop Slope Removal Full Trace'.format('First', cur_temp),
-                #               pad=15, wrap=True, fontsize=14)
-                #     plt.tight_layout()
-                #     plt.savefig(
-                #         self.slope_removal_folder + "/{}_{}K_Slope_Removal_Hysteresis.png".format('First', cur_temp_file))
-                #     plt.close()
-                #
-                #     # y_slope_removal_lower = list1_y - final_slope * list1_x - final_offset
-                #     # y_slope_removal_upper = list2_y - final_slope * list2_x - final_offset
-                #
-                #     y_slope_removal_lower = list1_y - final_slope * list1_x
-                #     y_slope_removal_upper = list2_y - final_slope * list2_x
-                #
-                #     y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
-                #     y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
-                #     spilt_df = pd.concat([list1_x_concat, y_slope_removal_lower_concat,
-                #                           list2_x_concat, y_slope_removal_upper_concat],
-                #                          ignore_index=True, axis=1)
-                #     spilt_df.to_csv(self.ProcCal + '/{}K_splitting_slope_removal.csv'.format(cur_temp_file),
-                #                     index=False, header=False)
-                #
-                #     result_lower_slope_removal = lmfit.minimize(tanh_model_with_slope, params, args=(list1_x,),
-                #                                                 kws={'data': y_slope_removal_lower})
-                #     result_upper_slope_removal = lmfit.minimize(tanh_model_with_slope, params, args=(list2_x,),
-                #                                                 kws={'data': y_slope_removal_upper})
-                #
-                #     plt.scatter(list1_x, y_slope_removal_lower, label='Data', s=0.5, alpha=0.5, color='green')
-                #     plt.scatter(list2_x, y_slope_removal_upper, s=0.5, alpha=0.5, color='green')
-                #     plt.plot(list1_x, result_lower_slope_removal.residual + y_slope_removal_lower,
-                #              label='Fitted tanh', color='coral', linewidth=3)
-                #     plt.plot(list2_x, result_upper_slope_removal.residual + y_slope_removal_upper,
-                #              color='coral', linewidth=3)
-                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                #     plt.ylabel('Moment (emu)', fontsize=14)
-                #     plt.title("{}K Fitted Slope Removal Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                #     plt.legend()
-                #     plt.tight_layout()
-                #     plt.savefig(self.fit_folder + "/{}K_Slope_Removal_fitted_data.png".format(cur_temp_file))
-                #     plt.close()
-                #
-                #     y_slope_removal_lower_concat = pd.Series(y_slope_removal_lower)
-                #     y_slope_removal_upper_concat = pd.Series(y_slope_removal_upper)
-                #     slope_removatanh_model_with_slopef = pd.concat(
-                #         [list1_x_concat, y_slope_removal_lower_concat, list2_x_concat, y_slope_removal_upper_concat],
-                #         ignore_index=True, axis=1)
-                #     slope_removal_df.to_csv(self.ProcCal + '/{}K_Slope_Removal_spliting.csv'.format(cur_temp_file),
-                #                             index=False, header=False)
                 #
                 #     lower_x_shift = result_lower_slope_removal.params['c'].value
                 #     upper_x_shift = result_upper_slope_removal.params['c'].value
