@@ -317,7 +317,6 @@ class VSM_Data_Processing(QMainWindow):
 
                 # Plot Control Checkboxes
                 self.raw_plot_check_box = QCheckBox("Show Raw Data")
-                self.raw_fit_plot_check_box = QCheckBox("Show Raw Fit")
                 self.processed_plot_check_box = QCheckBox("Show Processed Data")
                 self.area_plot_check_box = QCheckBox("Show Area")
                 self.x_correction_check_box = QCheckBox("Show Hc corrected plot")
@@ -328,9 +327,8 @@ class VSM_Data_Processing(QMainWindow):
 
                 self.plot_control_layout.addWidget(self.raw_plot_check_box)
                 self.plot_control_layout.addWidget(self.slope_check_box)
-                self.plot_control_layout.addWidget(self.raw_fit_plot_check_box)
-                self.plot_control_layout.addWidget(self.processed_plot_check_box)
                 self.plot_control_layout.addWidget(self.area_plot_check_box)
+                self.plot_control_layout.addWidget(self.processed_plot_check_box)
                 self.plot_control_layout.addWidget(self.x_correction_check_box)
                 self.plot_control_layout.addWidget(self.y_correction_check_box)
                 self.plot_control_layout.addWidget(self.xy_correction_check_box)
@@ -440,7 +438,6 @@ class VSM_Data_Processing(QMainWindow):
 
                 # Connect signals
                 self.raw_plot_check_box.stateChanged.connect(self.update_plots)
-                self.raw_fit_plot_check_box.stateChanged.connect(self.update_plots)
                 self.slope_check_box.stateChanged.connect(self.update_plots)
                 self.processed_plot_check_box.stateChanged.connect(self.update_plots)
                 self.area_plot_check_box.stateChanged.connect(self.update_plots)
@@ -607,7 +604,10 @@ class VSM_Data_Processing(QMainWindow):
                 'split_data': None,
                 'thermal_drift': None,
                 'slope': None,
-                'raw_data_fit': None
+                'raw_data_fit': None,
+                'ms_corrected': None,
+                'eb_corrected': None,
+                'eb_ms_corrected': None
             }
 
             # Load data directly from the file in tree view
@@ -633,13 +633,16 @@ class VSM_Data_Processing(QMainWindow):
 
             # Check for processed data only if ProcCal exists
             if self.ProcCal and os.path.exists(self.ProcCal):
-                processed_data_path = os.path.join(self.ProcCal, 'Final_Processed_Data', f'{cur_temp_file}K_Final.csv')
+                processed_data_path = os.path.join(self.ProcCal, 'Slope_Removal', f'{cur_temp_file}K_slope_removal_data.csv')
                 processed_raw_path = os.path.join(self.ProcCal, 'Final_Processed_RAW_Data',
                                                   f'{cur_temp_file}K_Final_RAW.csv')
-                split_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_slope_removal_spilt_data.csv')
-                slope_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_slope_data.csv')
-                thermal_data_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_thermal_difference.csv')
+                split_data_path = os.path.join(self.ProcCal,'Slope_Removal_Spilt', f'{cur_temp_file}K_slope_removal_spilt_data.csv')
+                slope_data_path = os.path.join(self.ProcCal, 'Slope', f'{cur_temp_file}K_slope_data.csv')
+                thermal_data_path = os.path.join(self.ProcCal, 'Thermal_Difference', f'{cur_temp_file}K_thermal_difference.csv')
                 raw_data_fit_path = os.path.join(self.ProcCal, f'{cur_temp_file}K_raw_fit.csv')
+                ms_corrected_data_path = os.path.join(self.ProcCal, 'Ms_Corrected',f'{cur_temp_file}K_ms_corrected_data.csv')
+                eb_corrected_data_path = os.path.join(self.ProcCal, 'Eb_Corrected', f'{cur_temp_file}K_eb_corrected_data.csv')
+                eb_ms_corrected_data_path = os.path.join(self.ProcCal, 'Ms_Eb_Corrected', f'{cur_temp_file}K_eb_ms_corrected_data.csv')
 
                 # Load processed thermal drift data if available
                 if os.path.exists(thermal_data_path):
@@ -669,6 +672,39 @@ class VSM_Data_Processing(QMainWindow):
                     try:
                         proc_df = pd.read_csv(processed_data_path, header=None)
                         self.current_file_data['processed_data'] = {
+                            'x': proc_df.iloc[:, 0].values,
+                            'y': proc_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
+
+                # Load eb corrected data if available
+                if os.path.exists(eb_corrected_data_path):
+                    try:
+                        proc_df = pd.read_csv(eb_corrected_data_path, header=None)
+                        self.current_file_data['eb_corrected'] = {
+                            'x': proc_df.iloc[:, 0].values,
+                            'y': proc_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
+
+                # Load ms corrected data if available
+                if os.path.exists(ms_corrected_data_path):
+                    try:
+                        proc_df = pd.read_csv(ms_corrected_data_path, header=None)
+                        self.current_file_data['ms_corrected'] = {
+                            'x': proc_df.iloc[:, 0].values,
+                            'y': proc_df.iloc[:, 1].values
+                        }
+                    except:
+                        pass
+
+                # Load ms eb corrected data if available
+                if os.path.exists(eb_ms_corrected_data_path):
+                    try:
+                        proc_df = pd.read_csv(eb_ms_corrected_data_path, header=None)
+                        self.current_file_data['eb_ms_corrected'] = {
                             'x': proc_df.iloc[:, 0].values,
                             'y': proc_df.iloc[:, 1].values
                         }
@@ -748,7 +784,6 @@ class VSM_Data_Processing(QMainWindow):
 
         # Get checkbox states
         show_raw = self.raw_plot_check_box.isChecked()
-        show_raw_fit = self.raw_fit_plot_check_box.isChecked()
         show_slope = self.slope_check_box.isChecked()
         show_processed = self.processed_plot_check_box.isChecked()
         show_area = self.area_plot_check_box.isChecked()
@@ -765,15 +800,10 @@ class VSM_Data_Processing(QMainWindow):
                 s=1, alpha=0.6, color='tomato', label='Raw Data'
             )
 
-        if show_raw_fit and self.current_file_data['raw_data_fit'] is not None:
+        if show_y_corr and self.current_file_data['ms_corrected'] is not None:
             self.raw_canvas.ax.scatter(
-                self.current_file_data['raw_data_fit']['x1'],
-                self.current_file_data['raw_data_fit']['y1'],
-                s=1, alpha=0.6, color='blue', label='Raw Fit Data'
-            )
-            self.raw_canvas.ax.scatter(
-                self.current_file_data['raw_data_fit']['x2'],
-                self.current_file_data['raw_data_fit']['y2'],
+                self.current_file_data['ms_corrected']['x'],
+                self.current_file_data['ms_corrected']['y'],
                 s=1, alpha=0.6, color='blue', label='Raw Fit Data'
             )
 
@@ -791,30 +821,21 @@ class VSM_Data_Processing(QMainWindow):
                 s=1, alpha=0.6, color='black', label='Processed Data'
             )
 
-        if show_x_corr and self.current_file_data['processed_raw_data'] is not None and self.current_file_data[
-            'raw_data'] is not None:
+        if show_x_corr and self.current_file_data['eb_corrected'] is not None:
             self.raw_canvas.ax.scatter(
-                self.current_file_data['processed_raw_data']['x'],
-                self.current_file_data['raw_data']['y'],
+                self.current_file_data['eb_corrected']['x'],
+                self.current_file_data['eb_corrected']['y'],
                 s=1, alpha=0.6, color='green', label='Hc Corrected'
             )
 
-        if show_y_corr and self.current_file_data['processed_raw_data'] is not None and self.current_file_data[
-            'raw_data'] is not None:
+        if show_xy_corr and self.current_file_data['eb_ms_corrected'] is not None:
             self.raw_canvas.ax.scatter(
-                self.current_file_data['raw_data']['x'],
-                self.current_file_data['processed_raw_data']['y'],
-                s=1, alpha=0.6, color='orange', label='Ms Corrected'
-            )
-
-        if show_xy_corr and self.current_file_data['processed_raw_data'] is not None:
-            self.raw_canvas.ax.scatter(
-                self.current_file_data['processed_raw_data']['x'],
-                self.current_file_data['processed_raw_data']['y'],
+                self.current_file_data['eb_ms_corrected']['x'],
+                self.current_file_data['eb_ms_corrected']['y'],
                 s=1, alpha=0.6, color='red', label='Both Corrected'
             )
 
-        if show_area and self.current_file_data['processed_data'] is not None:
+        if show_area and self.current_file_data['raw_data'] is not None:
             x = self.current_file_data['raw_data']['x']
             y = self.current_file_data['raw_data']['y']
             df_area = pd.concat([pd.Series(x, name='Field'), pd.Series(y, name='Moment')], axis=1)
@@ -908,7 +929,8 @@ class VSM_Data_Processing(QMainWindow):
 
         # Load and display area
         if self.area_df is not None:
-            temp_match = self.area_df[self.area_df['Temperature'].astype(str) == temp]
+            # temp_match = self.area_df[self.area_df['Temperature'].astype(str) == temp]
+            temp_match = self.area_df[self.area_df['Temperature'] == temp]
             if not temp_match.empty:
                 area_val = temp_match['Area'].values[0]
                 self.area_entry.setText(f"{area_val:.6e}")
@@ -917,7 +939,8 @@ class VSM_Data_Processing(QMainWindow):
 
         # Load and display coercivity
         if self.Coercivity_df is not None:
-            temp_match = self.Coercivity_df[self.Coercivity_df['Temperature'].astype(str) == temp]
+            # temp_match = self.Coercivity_df[self.Coercivity_df['Temperature'].astype(str) == temp]
+            temp_match = self.Coercivity_df[self.Coercivity_df['Temperature'] == temp]
             if not temp_match.empty:
                 hc_val = temp_match['Coercivity'].values[0]
                 self.hc_entry.setText(f"{hc_val:.4f}")
@@ -926,7 +949,8 @@ class VSM_Data_Processing(QMainWindow):
 
         # Load and display Ms
         if self.Ms_df is not None:
-            temp_match = self.Ms_df[self.Ms_df['Temperature'].astype(str) == temp]
+            # temp_match = self.Ms_df[self.Ms_df['Temperature'].astype(str) == temp]
+            temp_match = self.Ms_df[self.Ms_df['Temperature'] == temp]
             if not temp_match.empty:
                 ms_val = temp_match['Saturation Field'].values[0]
                 self.ms_entry.setText(f"{ms_val:.6e}")
@@ -935,14 +959,14 @@ class VSM_Data_Processing(QMainWindow):
 
         # Exchange bias
         if self.eb_df is not None:
-            temp_match = self.eb_df[self.eb_df['Temperature'].astype(str) == temp]
+            # temp_match = self.eb_df[self.eb_df['Temperature'].astype(str) == temp]
+            temp_match = self.eb_df[self.eb_df['Temperature'] == temp]
             if not temp_match.empty:
                 eb_val = temp_match['Exchange Bias'].values[0]
                 self.eb_entry.setText(f"{eb_val:.4f}")
             else:
                 self.eb_entry.setText("N/A")
-        else:
-            self.eb_entry.setText("N/A")
+
 
     def update_summary_plot(self):
         """Update the summary plot based on selected parameters"""
@@ -1248,6 +1272,7 @@ class VSM_Data_Processing(QMainWindow):
         area_df = pd.DataFrame(columns=['Temperature', 'Area'])
         Ms_df = pd.DataFrame(columns=['Temperature', 'Saturation Field', 'Upper', 'Lower'])
         Coercivity_df = pd.DataFrame(columns=['Temperature', 'Coercivity'])
+        eb_df = pd.DataFrame(columns=['Temperature', 'Exchange Bias'])
 
         self.progress_bar.setValue(15)
         QApplication.processEvents()
@@ -1318,7 +1343,7 @@ class VSM_Data_Processing(QMainWindow):
                     x_drop = hysteresis_temp_df_area.iloc[:, 1]
                     y_drop = hysteresis_temp_df_area.iloc[:, 2]
                     area = np.trapz(y_drop, x_drop)
-                    area_temp = pd.DataFrame({'Temperature': [int(cur_temp)], 'Area': [abs(area)]})
+                    area_temp = pd.DataFrame({'Temperature': [cur_temp], 'Area': [abs(area)]})
                     area_df = pd.concat([area_df, area_temp], ignore_index=True)
                     plt.plot(x_drop, y_drop)
                     plt.fill_between(x_drop, y_drop, alpha=0.3)
@@ -1335,7 +1360,7 @@ class VSM_Data_Processing(QMainWindow):
                     plt.close()
 
                     # This section is for thermal difference plot
-                    thermal_difference = 100 * (temperature_column - int(cur_temp)) / int(cur_temp)
+                    thermal_difference = 100 * (temperature_column - cur_temp) / cur_temp
                     plt.rc('xtick', labelsize=13)
                     plt.rc('ytick', labelsize=13)
                     fig, ax_thermal = plt.subplots()
@@ -1354,7 +1379,11 @@ class VSM_Data_Processing(QMainWindow):
                     thermal_difference_y = pd.Series(thermal_difference)
                     thermal_difference_df = pd.concat([thermal_difference_x, thermal_difference_y],
                                          ignore_index=True, axis=1)
-                    thermal_difference_df.to_csv(self.ProcCal + '/{}K_thermal_difference.csv'.format(cur_temp_file),
+                    self.thermal_difference_folder = self.ProcCal + '/Thermal_Difference'
+                    isExist = os.path.exists(self.thermal_difference_folder)
+                    if not isExist:
+                        os.makedirs(self.thermal_difference_folder)
+                    thermal_difference_df.to_csv(self.thermal_difference_folder + '/{}K_thermal_difference.csv'.format(cur_temp_file),
                                     index=False, header=False)
 
                     # This section is plotting the RAW hysteresis data
@@ -1397,15 +1426,14 @@ class VSM_Data_Processing(QMainWindow):
                     list2_y_concat = pd.Series(list2_y)
                     spilt_df = pd.concat([list1_x_concat, list1_y_concat, list2_x_concat, list2_y_concat],
                                          ignore_index=True, axis=1)
-                    spilt_df.to_csv(self.ProcCal + '/{}K_spliting_raw_data.csv'.format(cur_temp_file),
+                    self.split_raw = self.ProcCal + '/Raw_Data_Spilt'
+                    isExist = os.path.exists(self.split_raw)
+                    if not isExist:
+                        os.makedirs(self.split_raw)
+                    spilt_df.to_csv(self.split_raw + '/{}K_spliting_raw_data.csv'.format(cur_temp_file),
                                     index=False, header=False)
 
                     # This section is to find the linear background
-                    self.fit_folder = self.ProcessedRAW + '/Fitted_Raw'
-                    isExist = os.path.exists(self.fit_folder)
-                    if not isExist:
-                        os.makedirs(self.fit_folder)
-
                     def find_slope(x: list, y: list, portion:str=None):
                         pm_dm_result = extract_pm_dm_slope(
                             x, y,
@@ -1414,7 +1442,7 @@ class VSM_Data_Processing(QMainWindow):
                         )
 
                         # Check quality
-                        if pm_dm_result['r_squared'] < 0.90:
+                        if pm_dm_result['r_squared'] < 0.84:
                             print(f"    Warning: Low R² = {pm_dm_result['r_squared']:.4f}")
                             # Try symmetric method as backup
                             pm_dm_result_sym = extract_pm_dm_slope(
@@ -1429,22 +1457,26 @@ class VSM_Data_Processing(QMainWindow):
                         chi_total = pm_dm_result['chi_total']
                         pm_dm_method = pm_dm_result['method']
 
-                        print(f"    χ_total (PM+DM) = {chi_total:.6e} emu/Oe")
-                        print(f"    R² = {pm_dm_result.get('r_squared', 0):.4f}")
+                        # print(f"    χ_total (PM+DM) = {chi_total:.6e} emu/Oe")
+                        # print(f"    R² = {pm_dm_result.get('r_squared', 0):.4f}")
 
                         # Determine type
                         if chi_total > 1e-10:
                             chi_type = 'Paramagnetic'
-                            print(f"    → Paramagnetic contribution (positive slope)")
+                            # print(f"    → Paramagnetic contribution (positive slope)")
                         elif chi_total < -1e-10:
                             chi_type = 'Diamagnetic'
-                            print(f"    → Diamagnetic contribution (negative slope)")
+                            # print(f"    → Diamagnetic contribution (negative slope)")
                         else:
                             chi_type = 'Negligible'
-                            print(f"    → Negligible PM/DM contribution")
+                            # print(f"    → Negligible PM/DM contribution")
 
                         # Save PM/DM diagnostics
                         ### NEW ### Create PM/DM folder
+                        self.fit_folder = self.ProcessedRAW + '/PM_DM_Analysis'
+                        isExist = os.path.exists(self.fit_folder)
+                        if not isExist:
+                            os.makedirs(self.fit_folder)
                         self.pm_dm_folder = self.fit_folder + '/PM_DM_Analysis'
                         os.makedirs(self.pm_dm_folder, exist_ok=True)
 
@@ -1462,10 +1494,14 @@ class VSM_Data_Processing(QMainWindow):
                         slope = (slope_lower + slope_upper) / 2
 
                         slope_upper_x_concat = pd.Series(list1_x)
-                        slope_y_concat = pd.Series(list1_x * slope_upper_x_concat)
+                        slope_y_concat = pd.Series(list1_x * slope)
                         slope_df = pd.concat([slope_upper_x_concat, slope_y_concat],
                                              ignore_index=True, axis=1)
-                        slope_df.to_csv(self.ProcCal + '/{}K_slope_data.csv'.format(cur_temp_file),
+                        self.slope_folder = self.ProcCal + '/Slope'
+                        isExist = os.path.exists(self.slope_folder)
+                        if not isExist:
+                            os.makedirs(self.slope_folder)
+                        slope_df.to_csv(self.slope_folder + '/{}K_slope_data.csv'.format(cur_temp_file),
                                         index=False, header=False)
 
                         # This section is to remove the linear background
@@ -1479,9 +1515,24 @@ class VSM_Data_Processing(QMainWindow):
                         slope_removal_spilt_data_df = pd.concat([list1_x_concat, y_slope_removal_upper_concat,
                                               list2_x_concat, y_slope_removal_lower_concat],
                                              ignore_index=True, axis=1)
-                        slope_removal_spilt_data_df.to_csv(self.ProcCal + '/{}K_slope_removal_spilt_data.csv'.format(cur_temp_file),
+                        self.slope_removal_spilt_folder = self.ProcCal + '/Slope_Removal_Spilt'
+                        isExist = os.path.exists(self.slope_removal_spilt_folder)
+                        if not isExist:
+                            os.makedirs(self.slope_removal_spilt_folder)
+                        slope_removal_spilt_data_df.to_csv(self.slope_removal_spilt_folder + '/{}K_slope_removal_spilt_data.csv'.format(cur_temp_file),
                                         index=False, header=False)
 
+                        x_all_slope_removed_processed = pd.concat([list1_x_concat, list2_x_concat], ignore_index=True)
+                        y_all_slope_removed_processed = pd.concat([y_slope_removal_upper_concat, y_slope_removal_lower_concat], ignore_index=True)
+
+                        slope_removal_data_df = pd.concat([x_all_slope_removed_processed, y_all_slope_removed_processed], axis=1)
+                        self.slope_removal_older = self.ProcCal + '/Slope_Removal'
+                        isExist = os.path.exists(self.slope_removal_older)
+                        if not isExist:
+                            os.makedirs(self.slope_removal_older)
+                        slope_removal_data_df.to_csv(
+                            self.slope_removal_older + '/{}K_slope_removal_data.csv'.format(cur_temp_file),
+                            index=False, header=False)
 
                     except Exception as e:
                         print(f"    Error extracting PM/DM: {e}")
@@ -1502,237 +1553,155 @@ class VSM_Data_Processing(QMainWindow):
                     if abs(ms_vertical_offset) > 1e-10:
                         M_upper_corrected = correct_vertical_offset(y_slope_removal_upper_concat, ms_vertical_offset)
                         M_lower_corrected = correct_vertical_offset(y_slope_removal_lower_concat, ms_vertical_offset)
+                        M_all_corrected = correct_vertical_offset(y_all_slope_removed_processed, ms_vertical_offset)
                     else:
                         M_upper_corrected = y_slope_removal_upper_concat.copy()
                         M_lower_corrected = y_slope_removal_lower_concat.copy()
+                        M_all_corrected = y_all_slope_removed_processed.copy()
                     # Re-calculate Ms after correction
 
                     ms_corrected_spilt_data_df = pd.concat([list1_x_concat, M_upper_corrected,
                                                              list2_x_concat, M_lower_corrected],
                                                             ignore_index=True, axis=1)
+                    self.ms_corrected_spilt_folder = self.ProcCal + '/Ms_Corrected_Spilt'
+                    isExist = os.path.exists(self.ms_corrected_spilt_folder)
+                    if not isExist:
+                        os.makedirs(self.ms_corrected_spilt_folder)
                     ms_corrected_spilt_data_df.to_csv(
-                        self.ProcCal + '/{}K_ms_corrected_spilt_data.csv'.format(cur_temp_file),
+                        self.ms_corrected_spilt_folder + '/{}K_ms_corrected_spilt_data.csv'.format(cur_temp_file),
                         index=False, header=False)
 
+                    ms_corrected_data_df = pd.concat([x_all_slope_removed_processed, M_all_corrected],
+                                                           ignore_index=True, axis=1)
+                    self.ms_corrected_folder = self.ProcCal + '/Ms_Corrected'
+                    isExist = os.path.exists(self.ms_corrected_folder)
+                    if not isExist:
+                        os.makedirs(self.ms_corrected_folder)
+                    ms_corrected_data_df.to_csv(
+                        self.ms_corrected_folder + '/{}K_ms_corrected_data.csv'.format(cur_temp_file),
+                        index=False, header=False)
 
                     Ms_temp = pd.DataFrame(
-                        {'Temperature': [int(cur_temp)], 'Saturation Field': [ms_avg], 'Upper': [ms_upper],
+                        {'Temperature': [cur_temp], 'Saturation Field': [ms_avg], 'Upper': [ms_upper],
                          'Lower': [ms_lower]})
                     Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
 
                     upper_fit = extract_coercivity_method1_fit(list1_x_concat, M_upper_corrected, include_slope=False)
 
+                    self.fit_summary_folder = self.ProcCal + '/Fit_Summary'
+                    isExist = os.path.exists(self.fit_summary_folder)
+                    if not isExist:
+                        os.makedirs(self.fit_summary_folder)
+
+                    self.fitted_curve_folder = self.ProcCal + '/Fitted_Curve'
+                    isExist = os.path.exists(self.fitted_curve_folder)
+                    if not isExist:
+                        os.makedirs(self.fitted_curve_folder)
+
                     if upper_fit['success']:
-                        print(f"  ✓ Upper fit successful!")
-                        print(f"    m (Ms): {upper_fit['m']:.6e} emu")
-                        print(f"    s:      {upper_fit['s']:.6f}")
-                        print(f"    c (Heb):{upper_fit['c']:.2f} Oe")
-                        print(f"    Hc:     {upper_fit['Hc']:.2f} Oe")
-                        print(f"    R²:     {upper_fit['r_squared']:.6f}")
+                        upper_fit_result = pd.DataFrame(upper_fit)
+                        upper_fit_result.to_csv(
+                            self.fit_summary_folder + '/{}K_ms_corrected_data_fitting_results_upper_curve.csv'.format(cur_temp_file),
+                            index=False, header=False)
+
+                        upper_fit_concat = pd.concat([list1_x_concat, upper_fit['M_fit']],
+                                                         ignore_index=True, axis=1)
+
+                        upper_fit_concat.to_csv(
+                            self.fitted_curve_folder + '/{}K_ms_corrected_data_fitting_curve_upper_curve.csv'.format(cur_temp_file),
+                            index=False, header=False)
                     else:
                         print(f"  ✗ Upper fit failed: {upper_fit.get('error', 'Unknown error')}")
+
 
                     # Step 4: Method 1 - Fit lower branch
                     lower_fit = extract_coercivity_method1_fit(list2_x_concat, M_lower_corrected, include_slope=False)
 
                     if lower_fit['success']:
-                        print(f"  ✓ Lower fit successful!")
-                        print(f"    m (Ms): {lower_fit['m']:.6e} emu")
-                        print(f"    s:      {lower_fit['s']:.6f}")
-                        print(f"    c (Heb):{lower_fit['c']:.2f} Oe")
-                        print(f"    Hc:     {lower_fit['Hc']:.2f} Oe")
-                        print(f"    R²:     {lower_fit['r_squared']:.6f}")
+                        lower_fit_result = pd.DataFrame(lower_fit)
+                        lower_fit_result.to_csv(
+                            self.fit_summary_folder + '/{}K_ms_corrected_data_fitting_results_lower_curve.csv'.format(
+                                cur_temp_file),
+                            index=False, header=False)
+                        low_fit_concat = pd.concat([list2_x_concat, lower_fit['M_fit']],
+                                                     ignore_index=True, axis=1)
+                        low_fit_concat.to_csv(
+                            self.fitted_curve_folder + '/{}K_ms_corrected_data_fitting_curve_lower_curve.csv'.format(cur_temp_file),
+                            index=False, header=False)
                     else:
                         print(f"  ✗ Lower fit failed: {lower_fit.get('error', 'Unknown error')}")
 
-
-                    method2_result = extract_coercivity_method2_data(H_upper, M_upper_corrected,
-                                                                     H_lower, M_lower_corrected)
+                    # Step 5: Method 2 - Data crossing
+                    method2_result = extract_coercivity_method2_data(list1_x, M_upper_corrected,
+                                                                     list2_x, M_lower_corrected)
                     if method2_result['success']:
-                        print(f"  ✓ Crossings found!")
-                        print(f"    Hc_left:  {method2_result['Hc_left']:.2f} Oe")
-                        print(f"    Hc_right: {method2_result['Hc_right']:.2f} Oe")
-                        print(f"    Hc (avg): {method2_result['Hc']:.2f} Oe")
-                        print(f"    Heb:      {method2_result['Heb']:.2f} Oe")
+                        method2_fit_result = pd.DataFrame(method2_result)
+                        method2_fit_result.to_csv(
+                            self.fit_summary_folder + '/{}K_direct_result.csv'.format(
+                                cur_temp_file),
+                            index=False, header=False)
                     else:
                         print(f"  ✗ Could not find crossings: {method2_result.get('error', 'Unknown')}")
 
-                #
-                #     params = lmfit.Parameters()
-                #     params.add('m', value=0.00001)
-                #     params.add('s', value=0.001)
-                #     params.add('c', value=-300)
-                #     params.add('a', value=-1e-8)
-                #     params.add('b', value=-1e-7)
-                #
-                #     result_lower = lmfit.minimize(tanh_model_with_slope, params.copy(), args=(list1_x,), kws={'data': list1_y})
-                #     result_upper = lmfit.minimize(tanh_model_with_slope, params.copy(), args=(list2_x,), kws={'data': list2_y})
-                #
-                #     fit_lower = tanh_model_with_slope(result_lower.params, list1_y)
-                #     fit_upper = tanh_model_with_slope(result_upper.params, list2_y)
-                #
-                #     lower_slope = result_lower.params['a'].value
-                #     upper_slope = result_upper.params['a'].value
-                #     final_slope = np.mean([lower_slope, upper_slope])
-                #     slope_final = final_slope * list1_x
-                #
-                #     slope_x_concat = pd.Series(list1_x)
-                #     slope_y_concat = pd.Series(slope_final)
-                #     slope_df = pd.concat([slope_x_concat, slope_y_concat],
-                #                          ignore_index=True, axis=1)
-                #     slope_df.to_csv(self.ProcCal + '/{}K_slope.csv'.format(cur_temp_file),
-                #                     index=False, header=False)
-                #
-                #     fig, ax = plt.subplots()
-                #     ax.scatter(list1_x, list1_y, label='Data', s=0.5, alpha=0.5, color='green')
-                #     ax.scatter(list2_x, list2_y, s=0.5, alpha=0.5, color='green')
-                #     ax.plot(list1_x, result_lower.residual + list1_y, label='Fitted tanh',
-                #             color='coral', linewidth=3)
-                #     ax.plot(list2_x, result_upper.residual + list2_y, color='coral', linewidth=3)
-                #     ax.plot(list1_x, slope_final, 'r--', label='Final Slope', linewidth=1)
-                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                #     plt.ylabel('Moment (emu)', fontsize=14)
-                #     plt.title("{} Time {}K Fitted Hysteresis".format('First', cur_temp), pad=10, wrap=True, fontsize=14)
-                #     plt.legend()
-                #     plt.tight_layout()
-                #     plt.savefig(self.fit_folder + "/{}_{}K_fitted_data.png".format('First', cur_temp_file))
-                #     plt.close()
-                #
-                #     fit_raw_list1_x_concat = pd.Series(list1_x)
-                #     # fit_raw_list1_y_concat = pd.Series(result_lower.residual + list1_y)
-                #     fit_raw_list1_y_concat = pd.Series(fit_lower)
-                #     fit_raw_list2_x_concat = pd.Series(list2_x)
-                #     # fit_raw_list2_y_concat = pd.Series(result_upper.residual + list2_y)
-                #     fit_raw_list2_y_concat = pd.Series(fit_upper)
-                #     fitted_raw_df = pd.concat([fit_raw_list1_x_concat, fit_raw_list1_y_concat, fit_raw_list2_x_concat, fit_raw_list2_y_concat],
-                #                          ignore_index=True, axis=1)
-                #     fitted_raw_df.to_csv(self.ProcCal + '/{}K_raw_fit.csv'.format(cur_temp_file),
-                #                     index=False, header=False)
-                #
-                #
-                #     # y_slope_removal = y - final_slope * x - final_offset
-                #
-                #
-                #     lower_x_shift = result_lower_slope_removal.params['c'].value
-                #     upper_x_shift = result_upper_slope_removal.params['c'].value
-                #     lower_y_shift = result_lower_slope_removal.params['m'].value
-                #     upper_y_shift = result_upper_slope_removal.params['m'].value
-                #     x_offset = lower_x_shift + (abs(lower_x_shift) + abs(upper_x_shift)) / 2
-                #     y_offset = upper_y_shift - (abs(lower_y_shift) + abs(upper_y_shift)) / 2
-                #
-                #     # Load raw data again from file_path
-                #     hysteresis_temp_df_Raw = pd.read_csv(file_path, header=0, engine='c')
-                #     x_raw = hysteresis_temp_df_Raw.iloc[:, 1]
-                #     y_raw = hysteresis_temp_df_Raw.iloc[:, 2]
-                #
-                #     x_raw = x_raw - x_offset
-                #     y_raw = y_raw - y_offset
-                #
-                #     self.processed_final_raw_folder = self.ProcessedRAW + '/RAW_Offset_Removal'
-                #     isExist = os.path.exists(self.processed_final_raw_folder)
-                #     if not isExist:
-                #         os.makedirs(self.processed_final_raw_folder)
-                #
-                #     plt.scatter(x_raw, y_raw, label='Processed', s=0.7, alpha=0.8)
-                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                #     plt.ylabel('Moment (emu)', fontsize=14)
-                #     plt.title("{}K Fitted Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                #     plt.legend()
-                #     plt.tight_layout()
-                #     plt.savefig(self.processed_final_raw_folder + "/{}K_RAW_WO_Offset.png".format(cur_temp_file))
-                #     plt.close()
-                #
-                #     self.ProcCalFinalRAW = self.ProcCal + '/Final_Processed_RAW_Data'
-                #     isExist = os.path.exists(self.ProcCalFinalRAW)
-                #     if not isExist:
-                #         os.makedirs(self.ProcCalFinalRAW)
-                #
-                #     final_RAW_df = pd.DataFrame()
-                #     final_RAW_df_comb = pd.DataFrame(list(zip(x_raw, y_raw)))
-                #     final_df = pd.concat([final_RAW_df, final_RAW_df_comb], ignore_index=True, axis=1)
-                #     final_df.to_csv(self.ProcCalFinalRAW + '/{}K_Final_RAW.csv'.format(cur_temp_file),
-                #                     index=False, header=False)
-                #
-                #     x_processed = x - x_offset
-                #     y_processed = y_slope_removal - y_offset
-                #
-                #     x_processed_lower = list1_x - x_offset
-                #     x_processed_upper = list2_x - x_offset
-                #     y_processed_lower = y_slope_removal_lower - y_offset
-                #     y_processed_upper = y_slope_removal_upper - y_offset
-                #
-                #     plt.scatter(x, y_slope_removal, label='Data', s=0.5, color='coral')
-                #     plt.scatter(x_processed, y_processed, label='Offset', s=0.5, alpha=0.5, color='blue')
-                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                #     plt.ylabel('Moment (emu)', fontsize=14)
-                #     plt.title("{}K Fitted Final Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                #     plt.legend()
-                #     plt.tight_layout()
-                #     self.final_folder = self.ProcessedRAW + '/Final_Processed_Comparison'
-                #     isExist = os.path.exists(self.final_folder)
-                #     if not isExist:
-                #         os.makedirs(self.final_folder)
-                #     plt.savefig(self.final_folder + "/{}K_Proceesed_data_Comparison.png".format(cur_temp_file))
-                #     plt.close()
-                #
-                #     plt.scatter(x_processed, y_processed, label='Processed', s=0.7, alpha=0.8)
-                #     plt.xlabel('Magnetic Field (Oe)', fontsize=14)
-                #     plt.ylabel('Moment (emu)', fontsize=14)
-                #     plt.title("{}K Fitted Hysteresis".format(cur_temp), pad=10, wrap=True, fontsize=14)
-                #     plt.legend()
-                #     plt.tight_layout()
-                #     self.final_folder = self.ProcessedRAW + '/Final_Processed'
-                #     isExist = os.path.exists(self.final_folder)
-                #     if not isExist:
-                #         os.makedirs(self.final_folder)
-                #     plt.savefig(self.final_folder + "/{}K_Proceesed_data.png".format(cur_temp_file))
-                #     plt.close()
-                #
-                #     final_spilt_df = pd.DataFrame()
-                #     x_processed_lower_concat = pd.Series(x_processed_lower)
-                #     y_processed_lower_concat = pd.Series(y_processed_lower)
-                #     x_processed_upper_concat = pd.Series(x_processed_upper)
-                #     y_processed_upper_concat = pd.Series(y_processed_upper)
-                #     final_spilt_df = pd.concat([x_processed_lower_concat, y_processed_lower_concat,
-                #                                 x_processed_upper_concat, y_processed_upper_concat],
-                #                                ignore_index=True, axis=1)
-                #     final_spilt_df.to_csv(self.ProcCal + '/{}K_Final_spliting.csv'.format(cur_temp_file),
-                #                           index=False, header=False)
-                #
-                #     self.ProcCalFinal = self.ProcCal + '/Final_Processed_Data'
-                #     isExist = os.path.exists(self.ProcCalFinal)
-                #     if not isExist:
-                #         os.makedirs(self.ProcCalFinal)
-                #
-                #     final_df = pd.DataFrame()
-                #     final_df_comb = pd.DataFrame(list(zip(x_processed, y_processed)))
-                #     final_df = pd.concat([final_df, final_df_comb], ignore_index=True, axis=1)
-                #     final_df.to_csv(self.ProcCalFinal + '/{}K_Final.csv'.format(cur_temp_file),
-                #                     index=False, header=False)
-                #
-                #     lower_final = lmfit.minimize(tanh_model_with_slope, params, args=(x_processed_lower,),
-                #                                  kws={'data': y_processed_lower})
-                #     upper_final = lmfit.minimize(tanh_model_with_slope, params, args=(x_processed_upper,),
-                #                                  kws={'data': y_processed_upper})
-                #
-                #     lower_coercivity = lower_final.params['c'].value
-                #     upper_coercivity = upper_final.params['c'].value
-                #     lower_Ms = lower_final.params['m'].value
-                #     upper_Ms = upper_final.params['m'].value
-                #
-                #     coercivity = abs(lower_coercivity - upper_coercivity)
-                #     Ms = abs(abs(upper_Ms) + abs(lower_Ms)) / 2
-                #
-                #     Ms_temp = pd.DataFrame({'Temperature': [int(cur_temp)],
-                #                             'Saturation Field': [Ms],
-                #                             'Upper': [upper_Ms],
-                #                             'Lower': [lower_Ms]})
-                #     Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
-                #
-                #     Coercivity_temp = pd.DataFrame({'Temperature': [int(cur_temp)],
-                #                                     'Coercivity': [coercivity]})
-                #     Coercivity_df = pd.concat([Coercivity_df, Coercivity_temp], ignore_index=True)
-                #
+                    # Step 6: Determine final values
+                    Hc_values = []
+                    Heb_values = []
+
+                    # Hc from upper branch fit
+                    if upper_fit['success'] and upper_fit['r_squared'] > 0.90 and lower_fit['success'] and lower_fit['r_squared'] > 0.90:
+                        Hc_left = upper_fit['c']
+                        Hc_right = lower_fit['c']
+                        Hc = abs(Hc_left + Hc_right)
+                        Hc_values.append(Hc)
+                        Heb = Hc_left - Hc_right
+                        Heb_values.append(Heb)
+
+                    # Hc from Method 2 (data crossings)
+                    if method2_result['success']:
+                        Hc_values.append(method2_result['Hc'])
+                        Heb_values.append(method2_result['Heb'])
+
+                    if len(Hc_values) > 0:
+                        Hc_final = np.mean(Hc_values)
+                    else:
+                        Hc_final = None
+
+                    if len(Heb_values) > 0:
+                        Heb_final = np.mean(Heb_values)
+                    else:
+                        Heb_final = None
+
+                    coercivity_temp = pd.DataFrame({'Temperature': [cur_temp],
+                                                        'Coercivity': [Hc_final]})
+                    Coercivity_df = pd.concat([Coercivity_df, coercivity_temp], ignore_index=True)
+
+                    eb_temp = pd.DataFrame({'Temperature': [cur_temp],
+                                                    'Exchange Bias': [Heb_final]})
+                    eb_df = pd.concat([eb_df, eb_temp], ignore_index=True)
+
+                    eb_all_corrected = x_all_slope_removed_processed - Heb_final
+                    eb_ms_corrected_data_df = pd.concat([eb_all_corrected, M_all_corrected],
+                                                     ignore_index=True, axis=1)
+
+                    self.ms_eb_corrected_folder = self.ProcCal + '/Ms_Eb_Corrected'
+                    isExist = os.path.exists(self.ms_eb_corrected_folder)
+                    if not isExist:
+                        os.makedirs(self.ms_eb_corrected_folder)
+                    eb_ms_corrected_data_df.to_csv(
+                        self.ms_eb_corrected_folder + '/{}K_eb_ms_corrected_data.csv'.format(cur_temp_file),
+                        index=False, header=False)
+
+                    eb_corrected_data_df = pd.concat([eb_all_corrected, y_all_slope_removed_processed],
+                                                        ignore_index=True, axis=1)
+                    self.eb_corrected_folder = self.ProcCal + '/Eb_Corrected'
+                    isExist = os.path.exists(self.eb_corrected_folder)
+                    if not isExist:
+                        os.makedirs(self.eb_corrected_folder)
+                    eb_corrected_data_df.to_csv(
+                        self.eb_corrected_folder + '/{}K_eb_corrected_data.csv'.format(cur_temp_file),
+                        index=False, header=False)
+
+
                 except Exception as e:
                     tb_str = traceback.format_exc()
                     print(f"Error processing temperature {file_name}: {e} {tb_str}")
@@ -1802,6 +1771,21 @@ class VSM_Data_Processing(QMainWindow):
         Coercivity_df.to_csv(self.ProcCal + '/Coercivity.csv', index=False)
         plt.close()
 
+        eb_df = eb_df.sort_values('Temperature')
+        x_temp = eb_df.iloc[:, 0]
+        y_rb = eb_df.iloc[:, 1]
+
+        plt.rc('xtick', labelsize=13)
+        plt.rc('ytick', labelsize=13)
+        fig, ax = plt.subplots()
+        ax.plot(x_temp, y_rb, color='black', marker='s', linewidth=2, markersize=5)
+        ax.set_xlabel('Temperature (K)', fontsize=14)
+        ax.set_ylabel('Exchange Bias', fontsize=14)
+        plt.tight_layout()
+        plt.savefig(self.ProcessedRAW + "/Exchange_bias.png")
+        eb_df.to_csv(self.ProcCal + '/Exchange_bias.csv', index=False)
+        plt.close()
+
         # Process individual hysteresis plots
         self.progress_bar.setValue(85)
         self.progress_label.setText("Processing individual hysteresis plots...")
@@ -1809,7 +1793,7 @@ class VSM_Data_Processing(QMainWindow):
 
         y_range_positive = 0
         y_range_negative = 0
-        data_csv_list_path = self.ProcCal + '/Final_Processed_Data/'
+        data_csv_list_path = self.ProcCal + '/Slope_Removal/'
 
         if os.path.exists(data_csv_list_path):
             data_csv_list = os.listdir(data_csv_list_path)
@@ -1824,22 +1808,22 @@ class VSM_Data_Processing(QMainWindow):
             self.process_individual_hysteresis(data_number_CSV, data_csv_list, data_csv_list_path,
                                         data_hyst_lim, self.Final_Hysteresis)
 
-        y_range_positive = 0
-        y_range_negative = 0
-        data_csv_list_path = self.ProcCal + '/Final_Processed_RAW_Data/'
-
-        if os.path.exists(data_csv_list_path):
-            data_csv_list = os.listdir(data_csv_list_path)
-            data_number_CSV = len(data_csv_list)
-            self.Final_Hysteresis_RAW = self.ProcessedRAW + '/Final_Hysteresis_RAW'
-            isExist = os.path.exists(self.Final_Hysteresis_RAW)
-            if not isExist:
-                os.makedirs(self.Final_Hysteresis_RAW)
-
-            data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list,
-                                         y_range_positive, y_range_negative)
-            self.process_individual_hysteresis(data_number_CSV, data_csv_list, data_csv_list_path,
-                                        data_hyst_lim, self.Final_Hysteresis_RAW)
+        # y_range_positive = 0
+        # y_range_negative = 0
+        # data_csv_list_path = self.save_folder_path + '/'
+        #
+        # if os.path.exists(data_csv_list_path):
+        #     data_csv_list = os.listdir(data_csv_list_path)
+        #     data_number_CSV = len(data_csv_list)
+        #     self.Final_Hysteresis_RAW = self.ProcessedRAW + '/Raw_Hysteresis'
+        #     isExist = os.path.exists(self.Final_Hysteresis_RAW)
+        #     if not isExist:
+        #         os.makedirs(self.Final_Hysteresis_RAW)
+        #
+        #     data_hyst_lim = self.y_range(data_number_CSV, data_csv_list_path, data_csv_list,
+        #                                  y_range_positive, y_range_negative)
+        #     self.process_individual_hysteresis(data_number_CSV, data_csv_list, data_csv_list_path,
+        #                                 data_hyst_lim, self.Final_Hysteresis_RAW)
 
         # Generate PowerPoint
         self.progress_bar.setValue(95)
@@ -1865,6 +1849,10 @@ class VSM_Data_Processing(QMainWindow):
             coercivity_path = os.path.join(self.ProcCal, 'Coercivity.csv')
             if os.path.exists(coercivity_path):
                 self.Coercivity_df = pd.read_csv(coercivity_path)
+
+            eb_path = os.path.join(self.ProcCal, 'Exchange_bias.csv')
+            if os.path.exists(coercivity_path):
+                self.eb_df = pd.read_csv(eb_path)
 
             # Update summary plot if any checkboxes are checked
             self.update_summary_plot()
@@ -1896,31 +1884,31 @@ class VSM_Data_Processing(QMainWindow):
     def to_ppt(self):
         """Generate PowerPoint presentations with hysteresis plots"""
         try:
-            if os.path.exists(self.ProcCal + '/Processed_Hyst.pptx'):
-                prs = Presentation(self.ProcCal + '/Processed_Hyst.pptx')
+            if os.path.exists(self.ProcCal + '/slope_removal.pptx'):
+                prs = Presentation(self.ProcCal + '/slope_removal.pptx')
                 prs.slide_width = Inches(13.33)
                 prs.slide_height = Inches(7.5)
             else:
                 prs = Presentation()
                 prs.slide_width = Inches(13.33)
                 prs.slide_height = Inches(7.5)
-                prs.save(self.ProcCal + '/Processed_Hyst.pptx')
-                prs = Presentation(self.ProcCal + '/Processed_Hyst.pptx')
+                prs.save(self.ProcCal + '/slope_removal.pptx')
+                prs = Presentation(self.ProcCal + '/slope_removal.pptx')
                 prs.slide_width = Inches(13.33)
                 prs.slide_height = Inches(7.5)
 
-            if os.path.exists(self.ProcCal + '/Processed_Hyst_RAW.pptx'):
-                prs_RAW = Presentation(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-                prs_RAW.slide_width = Inches(13.33)
-                prs_RAW.slide_height = Inches(7.5)
-            else:
-                prs_RAW = Presentation()
-                prs_RAW.slide_width = Inches(13.33)
-                prs_RAW.slide_height = Inches(7.5)
-                prs_RAW.save(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-                prs_RAW = Presentation(self.ProcCal + '/Processed_Hyst_RAW.pptx')
-                prs_RAW.slide_width = Inches(13.33)
-                prs_RAW.slide_height = Inches(7.5)
+            # if os.path.exists(self.ProcCal + '/raw_hysteresis.pptx'):
+            #     prs_RAW = Presentation(self.ProcCal + '/raw_hysteresis.pptx')
+            #     prs_RAW.slide_width = Inches(13.33)
+            #     prs_RAW.slide_height = Inches(7.5)
+            # else:
+            #     prs_RAW = Presentation()
+            #     prs_RAW.slide_width = Inches(13.33)
+            #     prs_RAW.slide_height = Inches(7.5)
+            #     prs_RAW.save(self.ProcCal + '/raw_hysteresis.pptx')
+            #     prs_RAW = Presentation(self.ProcCal + '/raw_hysteresis.pptx')
+            #     prs_RAW.slide_width = Inches(13.33)
+            #     prs_RAW.slide_height = Inches(7.5)
 
             dat_list_path = self.folder_selected + '*.DAT'
             dat_list = glob.glob(dat_list_path)
@@ -1957,17 +1945,17 @@ class VSM_Data_Processing(QMainWindow):
 
             Final_png_list = sorted(Final_png_list, key=extract_number)
 
-            Final_png_RAW_path = self.Final_Hysteresis_RAW + '/' + '*.png'
-            Final_png_RAW_list = glob.glob(Final_png_RAW_path)
-            data_number_Final_png_RAW_list = len(Final_png_RAW_list)
+            # Final_png_RAW_path = self.Final_Hysteresis_RAW + '/' + '*.png'
+            # Final_png_RAW_list = glob.glob(Final_png_RAW_path)
+            # data_number_Final_png_RAW_list = len(Final_png_RAW_list)
 
-            for i in range(0, data_number_Final_png_RAW_list, 1):
-                for j in range(len(Final_png_RAW_list[i]) - 1, 0, -1):
-                    if Final_png_RAW_list[i][j] == '/':
-                        Final_png_RAW_list[i] = Final_png_RAW_list[i][j + 1:]
-                        break
+            # for i in range(0, data_number_Final_png_RAW_list, 1):
+            #     for j in range(len(Final_png_RAW_list[i]) - 1, 0, -1):
+            #         if Final_png_RAW_list[i][j] == '/':
+            #             Final_png_RAW_list[i] = Final_png_RAW_list[i][j + 1:]
+            #             break
 
-            Final_png_RAW_list = sorted(Final_png_RAW_list, key=extract_number)
+            # Final_png_RAW_list = sorted(Final_png_RAW_list, key=extract_number)
 
             inital_x = 0
             initial_y = 0.89
@@ -1997,34 +1985,34 @@ class VSM_Data_Processing(QMainWindow):
                 inital_x += x_offset
                 iteration += 1
 
-            prs.save(self.ProcCal + '/Processed_Hyst.pptx')
+            prs.save(self.ProcCal + '/slope_removal.pptx')
 
-            blank_slide_layout = prs_RAW.slide_layouts[6]
-            slide = prs_RAW.slides.add_slide(blank_slide_layout)
-            text_frame = slide.shapes.add_textbox(Inches(5.67), Inches(0.06), Inches(2.03), Inches(0.57))
-            text_frame = text_frame.text_frame
-            p = text_frame.paragraphs[0]
-            run = p.add_run()
-            run.text = str(file_name)
-            font = run.font
-            font.name = 'Calibri'
-            font.size = Pt(28)
+            # blank_slide_layout = prs_RAW.slide_layouts[6]
+            # slide = prs_RAW.slides.add_slide(blank_slide_layout)
+            # text_frame = slide.shapes.add_textbox(Inches(5.67), Inches(0.06), Inches(2.03), Inches(0.57))
+            # text_frame = text_frame.text_frame
+            # p = text_frame.paragraphs[0]
+            # run = p.add_run()
+            # run.text = str(file_name)
+            # font = run.font
+            # font.name = 'Calibri'
+            # font.size = Pt(28)
+            #
+            # inital_x = 0
+            # initial_y = 0.89
+            # iteration = 0
 
-            inital_x = 0
-            initial_y = 0.89
-            iteration = 0
-
-            for k in range(0, data_number_Final_png_RAW_list, 1):
-                VSM = self.Final_Hysteresis_RAW + '/' + Final_png_RAW_list[k]
-                if iteration == 6:
-                    inital_x = 0
-                    initial_y = initial_y + y_offset
-                    iteration = 0
-                VSM_image = slide.shapes.add_picture(VSM, Inches(inital_x), Inches(initial_y), Inches(image_width))
-                inital_x += x_offset
-                iteration += 1
-
-            prs_RAW.save(self.ProcCal + '/Processed_Hyst_RAW.pptx')
+            # for k in range(0, data_number_Final_png_RAW_list, 1):
+            #     VSM = self.Final_Hysteresis_RAW + '/' + Final_png_RAW_list[k]
+            #     if iteration == 6:
+            #         inital_x = 0
+            #         initial_y = initial_y + y_offset
+            #         iteration = 0
+            #     VSM_image = slide.shapes.add_picture(VSM, Inches(inital_x), Inches(initial_y), Inches(image_width))
+            #     inital_x += x_offset
+            #     iteration += 1
+            #
+            # prs_RAW.save(self.ProcCal + '/raw_hysteresis.pptx')
 
         except Exception as e:
             print(f"Error generating PowerPoint: {e}")

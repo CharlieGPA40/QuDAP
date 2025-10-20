@@ -236,13 +236,13 @@ def extract_coercivity_method2_data(H_upper, M_upper, H_lower, M_lower):
         Hc = abs(Hc_left) + abs(Hc_right)
 
         # Heb = (Hc_right + Hc_left) / 2
-        Heb = (Hc_right + Hc_left) / 2
+        Heb = Hc_right - Hc_left
 
         return {
             'success': True,
             'Hc': Hc,
-            'Hc_left': Hc_left,
-            'Hc_right': Hc_right,
+            'Hc_left': [Hc_left],
+            'Hc_right': [Hc_right],
             'Heb': Heb,
             'method': 'data_crossing'
         }
@@ -254,7 +254,6 @@ def extract_coercivity_method2_data(H_upper, M_upper, H_lower, M_lower):
             'error': 'Could not find M=0 crossings',
             'method': 'data_crossing'
         }
-
 
 def extract_saturation_magnetization(H, M, high_field_fraction=0.8, n_points=5):
     """
@@ -322,7 +321,6 @@ def extract_saturation_magnetization(H, M, high_field_fraction=0.8, n_points=5):
         'vertical_offset': vertical_offset,
         'n_points_used': n_points
     }
-
 
 def correct_vertical_offset(M, vertical_offset):
     """
