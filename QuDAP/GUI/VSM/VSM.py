@@ -9,9 +9,11 @@ import platform
 system = platform.system()
 try:
     from QuDAP.GUI.VSM.VSMDataProcessing import VSM_Data_Processing
+    from QuDAP.GUI.VSM.vsm_background_removal import VSM_Background_Removal
     from QuDAP.misc.FileExport import FileExport
 except ImportError:
     from GUI.VSM.VSMDataProcessing import VSM_Data_Processing
+    from GUI.VSM.vsm_background_removal import VSM_Background_Removal
     from misc.FileExport import FileExport
 
 class VSM(QMainWindow):
@@ -49,7 +51,7 @@ class VSM(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, 'Error', f'{e}')
         # self.tab2_layout.addWidget(QLabel("Content of Tab 2"))
-        # self.tab3_layout.addWidget(QLabel("Content of Tab 3"))
+        self.tab3_layout.addWidget(VSM_Background_Removal())
 
         # Set the layout for each tab
         self.tab1.setLayout(self.tab1_layout)

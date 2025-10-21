@@ -154,6 +154,7 @@ class VSM_Data_Processing(QMainWindow):
             self.folder_selected = None
             self.ProcCal = None
             self.ProcessedRAW = None
+            self.is_processed = False
             self.init_ui()
         except Exception as e:
             print(f"Initialization error: {e}")
@@ -486,6 +487,9 @@ class VSM_Data_Processing(QMainWindow):
         self.folder = folder_path
         self.folder_selected = folder_path
 
+        # Reset processed flag when new files are loaded
+        self.is_processed = False
+
         # Initialize folder structure
         self.ProcessedRAW = self.folder_selected + 'Processed_Graph'
         self.ProcCal = self.folder_selected + 'Processed_Result'
@@ -537,6 +541,9 @@ class VSM_Data_Processing(QMainWindow):
             self.ProcessedRAW = self.folder_selected + 'Processed_Graph'
             self.ProcCal = self.folder_selected + 'Processed_Result'
 
+        # Reset processed flag
+        self.is_processed = False
+
         current_files = {self.file_tree.topLevelItem(i).text(0): self.file_tree.topLevelItem(i)
                          for i in range(self.file_tree.topLevelItemCount())}
 
@@ -564,6 +571,11 @@ class VSM_Data_Processing(QMainWindow):
 
     def on_item_selection_changed(self):
         """Handle file selection and update all plots"""
+        if not self.is_processed:
+            # Clear selection if not processed
+            self.file_tree.clearSelection()
+            return
+
         selected_items = self.file_tree.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
@@ -587,7 +599,19 @@ class VSM_Data_Processing(QMainWindow):
             thermal = hysteresis_temp_df.iloc[:, 0]
             cur_temp = round(thermal.mean(), 1)
             cur_temp_file = str(cur_temp).replace(".", "_")
-            cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[-2:] == '_0' else cur_temp_file
+            # cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[-2:] == '_0' else cur_temp_file
+            if cur_temp_file.endswith('_0'):
+                cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')]
+
+            # Case 2: ends with "_9" → parse the part before "_" as int, then +1
+            elif cur_temp_file.endswith('_9'):
+                head = cur_temp_file[:cur_temp_file.rfind('_')]
+                try:
+                    cur_temp_file = str(int(head) + 1)
+                except ValueError:
+                    # Fallback if the part before '_' isn't a clean integer
+                    # (optional) leave unchanged or handle/log as needed
+                    pass
 
             if cur_temp is None:
                 QMessageBox.warning(self, "Error",
@@ -607,7 +631,8 @@ class VSM_Data_Processing(QMainWindow):
                 'raw_data_fit': None,
                 'ms_corrected': None,
                 'eb_corrected': None,
-                'eb_ms_corrected': None
+                'eb_ms_corrected': None,
+                'split_data_fit': None
             }
 
             # Load data directly from the file in tree view
@@ -643,7 +668,8 @@ class VSM_Data_Processing(QMainWindow):
                 ms_corrected_data_path = os.path.join(self.ProcCal, 'Ms_Corrected',f'{cur_temp_file}K_ms_corrected_data.csv')
                 eb_corrected_data_path = os.path.join(self.ProcCal, 'Eb_Corrected', f'{cur_temp_file}K_eb_corrected_data.csv')
                 eb_ms_corrected_data_path = os.path.join(self.ProcCal, 'Ms_Eb_Corrected', f'{cur_temp_file}K_eb_ms_corrected_data.csv')
-
+                fitted_curve_data_path = os.path.join(self.ProcCal, 'Fitted_Curve',
+                                                         f'{cur_temp_file}K_ms_corrected_data_fitting_curve_upper_curve.csv')
                 # Load processed thermal drift data if available
                 if os.path.exists(thermal_data_path):
                     try:
@@ -655,7 +681,7 @@ class VSM_Data_Processing(QMainWindow):
                     except:
                         pass
 
-                if os.path.exists(raw_data_fit_path):
+                if os.path.exists(fitted_curve_data_path):
                     try:
                         raw_fit_df = pd.read_csv(raw_data_fit_path, header=None)
                         self.current_file_data['raw_data_fit'] = {
@@ -860,7 +886,9 @@ class VSM_Data_Processing(QMainWindow):
         self.raw_canvas.ax.set_ylabel('Moment (emu)', fontsize=11)
         self.raw_canvas.ax.set_title(f"{self.current_file_data['temperature']} K Hysteresis Loop", fontsize=12)
         if show_raw or show_processed or show_area or show_x_corr or show_y_corr or show_xy_corr:
-            self.raw_canvas.ax.legend(fontsize=8, loc='best')
+            handles, labels = self.raw_canvas.ax.get_legend_handles_labels()
+            if handles:
+                self.raw_canvas.ax.legend(fontsize=8, loc='best')
         self.raw_canvas.ax.grid(True, alpha=0.3)
         self.raw_canvas.ax.tick_params(labelsize=9)
         self.raw_canvas.fig.tight_layout()
@@ -877,36 +905,14 @@ class VSM_Data_Processing(QMainWindow):
 
             # Add fitted curves
             try:
-                def tanh_model_with_slope(params, x, data=None):
-                    m = params['m']
-                    s = params['s']
-                    c = params['c']
-                    a = params['a']
-                    b = params['b']
-                    model = m * np.tanh(s * (x - c)) + a * x + b
-                    if data is None:
-                        return model
-                    return model - data
+                upper_fit = extract_coercivity_method1_fit(split['x_lower'], split['y_lower'], include_slope=False)
+                lower_fit = extract_coercivity_method1_fit(split['x_upper'], split['y_upper'], include_slope=False)
+                if upper_fit['success'] and lower_fit['success']:
+                    self.fit_canvas.ax.plot(split['x_lower'], upper_fit['M_fit'], color='mediumblue', linestyle='-',
+                                            linewidth=2, label='Lower Fit')
+                    self.fit_canvas.ax.plot(split['x_upper'], lower_fit['M_fit'], color='darkorange', linestyle='-',
+                                            linewidth=2, label='Upper Fit')
 
-                params = lmfit.Parameters()
-                params.add('m', value=0.00001)
-                params.add('s', value=0.001)
-                params.add('c', value=0)
-                params.add('a', value=0)
-                params.add('b', value=0)
-
-                result_lower = lmfit.minimize(tanh_model_with_slope, params, args=(split['x_lower'],),
-                                              kws={'data': split['y_lower']})
-                result_upper = lmfit.minimize(tanh_model_with_slope, params, args=(split['x_upper'],),
-                                              kws={'data': split['y_upper']})
-
-                fit_lower = tanh_model_with_slope(result_lower.params, split['x_lower'])
-                fit_upper = tanh_model_with_slope(result_upper.params, split['x_upper'])
-
-                self.fit_canvas.ax.plot(split['x_lower'], fit_lower, color='mediumblue', linestyle='-',
-                                        linewidth=2, label='Lower Fit')
-                self.fit_canvas.ax.plot(split['x_upper'], fit_upper, color='darkorange', linestyle='-',
-                                        linewidth=2, label='Upper Fit')
 
             except Exception as e:
                 print(f"Fitting error: {e}")
@@ -914,7 +920,9 @@ class VSM_Data_Processing(QMainWindow):
         self.fit_canvas.ax.set_xlabel('Magnetic Field (Oe)', fontsize=11)
         self.fit_canvas.ax.set_ylabel('Moment (emu)', fontsize=11)
         self.fit_canvas.ax.set_title('Hysteresis Fitting', fontsize=12)
-        self.fit_canvas.ax.legend(fontsize=8, loc='best')
+        handles, labels = self.fit_canvas.ax.get_legend_handles_labels()
+        if handles:
+            self.fit_canvas.ax.legend(fontsize=8, loc='best')
         self.fit_canvas.ax.grid(True, alpha=0.3)
         self.fit_canvas.ax.tick_params(labelsize=9)
         self.fit_canvas.fig.tight_layout()
@@ -1110,7 +1118,6 @@ class VSM_Data_Processing(QMainWindow):
 
             # Clear checkboxes
             self.raw_plot_check_box.setChecked(False)
-            self.raw_fit_plot_check_box.setChecked(False)
             self.processed_plot_check_box.setChecked(False)
             self.area_plot_check_box.setChecked(False)
             self.x_correction_check_box.setChecked(False)
@@ -1132,6 +1139,10 @@ class VSM_Data_Processing(QMainWindow):
             self.save_folder_path = None
             self.ProcCal = None
             self.ProcessedRAW = None
+            self.is_processed = False
+
+            # Disable selection
+            self.file_tree.setSelectionMode(QTreeWidget.SelectionMode.NoSelection)
 
             # Reset label
             self.file_selection_display_label.setText('Please Upload Files or Directory')
@@ -1189,7 +1200,19 @@ class VSM_Data_Processing(QMainWindow):
             thermal = hysteresis_temp_df.iloc[:, 0]
             cur_temp = round(thermal.mean(), 1)
             cur_temp_file = str(cur_temp).replace(".", "_")
-            cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[-2:] == '_0' else cur_temp_file
+            # cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[-2:] == '_0' else cur_temp_file
+            if cur_temp_file.endswith('_0'):
+                cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')]
+
+            # Case 2: ends with "_9" → parse the part before "_" as int, then +1
+            elif cur_temp_file.endswith('_9'):
+                head = cur_temp_file[:cur_temp_file.rfind('_')]
+                try:
+                    cur_temp_file = str(int(head) + 1)
+                except ValueError:
+                    # Fallback if the part before '_' isn't a clean integer
+                    # (optional) leave unchanged or handle/log as needed
+                    pass
             x = hysteresis_temp_df.iloc[:, 0]
             y = hysteresis_temp_df.iloc[:, 1]
 
@@ -1269,10 +1292,14 @@ class VSM_Data_Processing(QMainWindow):
         else:
             hyst_lim = abs(plot_y_range_negative)
 
-        area_df = pd.DataFrame(columns=['Temperature', 'Area'])
-        Ms_df = pd.DataFrame(columns=['Temperature', 'Saturation Field', 'Upper', 'Lower'])
-        Coercivity_df = pd.DataFrame(columns=['Temperature', 'Coercivity'])
-        eb_df = pd.DataFrame(columns=['Temperature', 'Exchange Bias'])
+        # area_df = pd.DataFrame(columns=['Temperature', 'Area'])
+        area_list = []
+        # Ms_df = pd.DataFrame(columns=['Temperature', 'Saturation Field', 'Upper', 'Lower'])
+        ms_list = []
+        # Coercivity_df = pd.DataFrame(columns=['Temperature', 'Coercivity'])
+        coercivity_list = []
+        # eb_df = pd.DataFrame(columns=['Temperature', 'Exchange Bias'])
+        eb_list = []
 
         self.progress_bar.setValue(15)
         QApplication.processEvents()
@@ -1333,18 +1360,41 @@ class VSM_Data_Processing(QMainWindow):
                 try:
                     cur_temp = round(temperature_column.mean(), 1)
                     cur_temp_file = str(cur_temp).replace(".", "_")
-                    cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')] if cur_temp_file[
-                                                                                -2:] == '_0' else cur_temp_file
+
+                    if cur_temp_file.endswith('_0'):
+                        cur_temp_file = cur_temp_file[:cur_temp_file.rfind('_')]
+
+                    # Case 2: ends with "_9" → parse the part before "_" as int, then +1
+                    elif cur_temp_file.endswith('_9'):
+                        head = cur_temp_file[:cur_temp_file.rfind('_')]
+                        try:
+                            cur_temp_file = str(int(head) + 1)
+                        except ValueError:
+                            # Fallback if the part before '_' isn't a clean integer
+                            # (optional) leave unchanged or handle/log as needed
+                            pass
+
+
                     x = hysteresis_temp_df.iloc[:, 1]
                     y = hysteresis_temp_df.iloc[:, 2]
+
+                    self.raw_data_temp_folder = self.ProcCal + '/raw_data_with_temperature'
+                    isExist = os.path.exists(self.raw_data_temp_folder)
+                    if not isExist:
+                        os.makedirs(self.raw_data_temp_folder)
+                    raw_temp_df = pd.concat([x, y],
+                                         ignore_index=True, axis=1)
+                    raw_temp_df.to_csv(self.raw_data_temp_folder + '/{}K.csv'.format(cur_temp_file),
+                                    index=False, header=False)
 
                     # This section is for the area calculation
                     hysteresis_temp_df_area = hysteresis_temp_df.dropna()
                     x_drop = hysteresis_temp_df_area.iloc[:, 1]
                     y_drop = hysteresis_temp_df_area.iloc[:, 2]
                     area = np.trapz(y_drop, x_drop)
-                    area_temp = pd.DataFrame({'Temperature': [cur_temp], 'Area': [abs(area)]})
-                    area_df = pd.concat([area_df, area_temp], ignore_index=True)
+                    area_list.append({'Temperature': cur_temp, 'Area': abs(area)})
+                    # area_temp = pd.DataFrame({'Temperature': [cur_temp], 'Area': [abs(area)]})
+                    # area_df = pd.concat([area_df, area_temp], ignore_index=True)
                     plt.plot(x_drop, y_drop)
                     plt.fill_between(x_drop, y_drop, alpha=0.3)
                     plt.legend()
@@ -1398,7 +1448,7 @@ class VSM_Data_Processing(QMainWindow):
                     plt.close()
 
                     # This section split the raw data into upper half and lower half data
-                    self.split_folder = self.ProcessedRAW + '/Split_folder'
+                    self.split_folder = self.ProcCal + '/Split_folder'
                     isExist = os.path.exists(self.split_folder)
                     if not isExist:
                         os.makedirs(self.split_folder)
@@ -1438,21 +1488,33 @@ class VSM_Data_Processing(QMainWindow):
                         pm_dm_result = extract_pm_dm_slope(
                             x, y,
                             method='linear_saturation',
-                            saturation_threshold=0.80
+                            saturation_threshold=0.70
                         )
 
                         # Check quality
-                        if pm_dm_result['r_squared'] < 0.84:
-                            print(f"    Warning: Low R² = {pm_dm_result['r_squared']:.4f}")
+                        if pm_dm_result['r_squared'] < 0.8:
+                            print(f"    Warning: Low R² = {pm_dm_result['r_squared']:.4f} in {portion} using linear saturation method")
+
                             # Try symmetric method as backup
                             pm_dm_result_sym = extract_pm_dm_slope(
                                 x, y,
                                 method='symmetric',
-                                saturation_threshold=0.80
+                                saturation_threshold=0.70
                             )
-                            if pm_dm_result_sym['r_squared_pos'] > pm_dm_result['r_squared']:
+                            if pm_dm_result_sym['r_squared'] > pm_dm_result['r_squared']:
                                 pm_dm_result = pm_dm_result_sym
-                                print(f"    Using symmetric method instead")
+                                print(f"    Using symmetric method instead in {portion}")
+                                # Try high field method as backup
+                            if pm_dm_result['r_squared'] < 0.84 and pm_dm_result_sym['r_squared'] < 0.85:
+                                pm_dm_result_high_field = extract_pm_dm_slope(
+                                    x, y,
+                                    method='high_field_only',
+                                    saturation_threshold=0.70
+                                )
+                                pm_dm_result = pm_dm_result_high_field
+                                print(f"    Using high field method instead in {portion}")
+
+
 
                         chi_total = pm_dm_result['chi_total']
                         pm_dm_method = pm_dm_result['method']
@@ -1491,8 +1553,12 @@ class VSM_Data_Processing(QMainWindow):
                         pm_dm_result_lower = find_slope(list2_x, list2_y, portion='Lower')
                         slope_upper = pm_dm_result_upper['chi_total']
                         slope_lower = pm_dm_result_lower['chi_total']
-                        slope = (slope_lower + slope_upper) / 2
-
+                        if slope_lower and slope_upper:
+                            slope = (slope_lower + slope_upper) / 2
+                        elif not slope_lower:
+                            slope = slope_upper
+                        else:
+                            slope = slope_lower
                         slope_upper_x_concat = pd.Series(list1_x)
                         slope_y_concat = pd.Series(list1_x * slope)
                         slope_df = pd.concat([slope_upper_x_concat, slope_y_concat],
@@ -1505,9 +1571,9 @@ class VSM_Data_Processing(QMainWindow):
                                         index=False, header=False)
 
                         # This section is to remove the linear background
-                        M_corrected_upper = remove_pm_dm_contribution(list1_x, list1_y, pm_dm_result_upper['chi_total'],
+                        M_corrected_upper = remove_pm_dm_contribution(list1_x, list1_y, slope,
                                                                 remove_offset=False)
-                        M_corrected_lower = remove_pm_dm_contribution(list2_x, list2_y, pm_dm_result_upper['chi_total'],
+                        M_corrected_lower = remove_pm_dm_contribution(list2_x, list2_y, slope,
                                                                 remove_offset=False)
 
                         y_slope_removal_upper_concat = pd.Series(M_corrected_upper)
@@ -1581,10 +1647,12 @@ class VSM_Data_Processing(QMainWindow):
                         self.ms_corrected_folder + '/{}K_ms_corrected_data.csv'.format(cur_temp_file),
                         index=False, header=False)
 
-                    Ms_temp = pd.DataFrame(
-                        {'Temperature': [cur_temp], 'Saturation Field': [ms_avg], 'Upper': [ms_upper],
-                         'Lower': [ms_lower]})
-                    Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
+                    # Ms_temp = pd.DataFrame(
+                    #     {'Temperature': [cur_temp], 'Saturation Field': [ms_avg], 'Upper': [ms_upper],
+                    #      'Lower': [ms_lower]})
+                    # Ms_df = pd.concat([Ms_df, Ms_temp], ignore_index=True)
+                    ms_list.append({'Temperature': cur_temp, 'Saturation Field': ms_avg,
+                                    'Upper': ms_upper, 'Lower': ms_lower})
 
                     upper_fit = extract_coercivity_method1_fit(list1_x_concat, M_upper_corrected, include_slope=False)
 
@@ -1653,7 +1721,7 @@ class VSM_Data_Processing(QMainWindow):
                         Hc_right = lower_fit['c']
                         Hc = abs(Hc_left + Hc_right)
                         Hc_values.append(Hc)
-                        Heb = Hc_left - Hc_right
+                        Heb = Hc_left + Hc_right
                         Heb_values.append(Heb)
 
                     # Hc from Method 2 (data crossings)
@@ -1671,13 +1739,15 @@ class VSM_Data_Processing(QMainWindow):
                     else:
                         Heb_final = None
 
-                    coercivity_temp = pd.DataFrame({'Temperature': [cur_temp],
-                                                        'Coercivity': [Hc_final]})
-                    Coercivity_df = pd.concat([Coercivity_df, coercivity_temp], ignore_index=True)
+                    # coercivity_temp = pd.DataFrame({'Temperature': [cur_temp],
+                    #                                     'Coercivity': [Hc_final]})
+                    # Coercivity_df = pd.concat([Coercivity_df, coercivity_temp], ignore_index=True)
+                    coercivity_list.append({'Temperature': cur_temp, 'Coercivity': Hc_final})
 
-                    eb_temp = pd.DataFrame({'Temperature': [cur_temp],
-                                                    'Exchange Bias': [Heb_final]})
-                    eb_df = pd.concat([eb_df, eb_temp], ignore_index=True)
+                    # eb_temp = pd.DataFrame({'Temperature': [cur_temp],
+                    #                                 'Exchange Bias': [Heb_final]})
+                    # eb_df = pd.concat([eb_df, eb_temp], ignore_index=True)
+                    eb_list.append({'Temperature': cur_temp, 'Exchange Bias': Heb_final})
 
                     eb_all_corrected = x_all_slope_removed_processed - Heb_final
                     eb_ms_corrected_data_df = pd.concat([eb_all_corrected, M_all_corrected],
@@ -1712,6 +1782,7 @@ class VSM_Data_Processing(QMainWindow):
         self.progress_label.setText("Generating summary plots...")
         QApplication.processEvents()
 
+        area_df = pd.DataFrame(area_list) if area_list else pd.DataFrame(columns=['Temperature', 'Area'])
         area_df = area_df.sort_values('Temperature')
         x_temp = area_df.iloc[:, 0]
         y_area = area_df.iloc[:, 1]
@@ -1727,11 +1798,12 @@ class VSM_Data_Processing(QMainWindow):
         area_df.to_csv(self.ProcCal + '/Area_Relation.csv', index=False)
         plt.close()
 
-        Ms_df = Ms_df.sort_values('Temperature')
-        x_temp = Ms_df.iloc[:, 0]
-        y_ms = Ms_df.iloc[:, 1]
-        y_ms_upper = Ms_df.iloc[:, 2]
-        y_ms_lower = Ms_df.iloc[:, 3]
+        ms_df = pd.DataFrame(ms_list) if ms_list else pd.DataFrame(columns=['Temperature', 'Saturation Field', 'Upper', 'Lower'])
+        ms_df = ms_df.sort_values('Temperature')
+        x_temp = ms_df.iloc[:, 0]
+        y_ms = ms_df.iloc[:, 1]
+        y_ms_upper = ms_df.iloc[:, 2]
+        y_ms_lower = ms_df.iloc[:, 3]
 
         plt.rc('xtick', labelsize=13)
         plt.rc('ytick', labelsize=13)
@@ -1741,7 +1813,7 @@ class VSM_Data_Processing(QMainWindow):
         ax.set_ylabel('Saturation Field Ms', fontsize=14)
         plt.tight_layout()
         plt.savefig(self.ProcessedRAW + "/Saturation_Field.png")
-        Ms_df.to_csv(self.ProcCal + '/Saturation_Field.csv', index=False)
+        ms_df.to_csv(self.ProcCal + '/Saturation_Field.csv', index=False)
         plt.close()
 
         plt.rc('xtick', labelsize=13)
@@ -1756,9 +1828,11 @@ class VSM_Data_Processing(QMainWindow):
         plt.savefig(self.ProcessedRAW + "/Saturation_Field_Split.png")
         plt.close()
 
-        Coercivity_df = Coercivity_df.sort_values('Temperature')
-        x_temp = Coercivity_df.iloc[:, 0]
-        y_coerc = Coercivity_df.iloc[:, 1]
+        coercivity_df = pd.DataFrame(coercivity_list) if coercivity_list else pd.DataFrame(
+            columns=['Temperature', 'Coercivity'])
+        coercivity_df = coercivity_df.sort_values('Temperature')
+        x_temp = coercivity_df.iloc[:, 0]
+        y_coerc = coercivity_df.iloc[:, 1]
 
         plt.rc('xtick', labelsize=13)
         plt.rc('ytick', labelsize=13)
@@ -1768,9 +1842,11 @@ class VSM_Data_Processing(QMainWindow):
         ax.set_ylabel('Coercivity', fontsize=14)
         plt.tight_layout()
         plt.savefig(self.ProcessedRAW + "/Coercivity.png")
-        Coercivity_df.to_csv(self.ProcCal + '/Coercivity.csv', index=False)
+        coercivity_df.to_csv(self.ProcCal + '/Coercivity.csv', index=False)
         plt.close()
 
+        eb_df = pd.DataFrame(eb_list) if eb_list else pd.DataFrame(
+            columns=['Temperature', 'Exchange Bias'])
         eb_df = eb_df.sort_values('Temperature')
         x_temp = eb_df.iloc[:, 0]
         y_rb = eb_df.iloc[:, 1]
@@ -1865,12 +1941,17 @@ class VSM_Data_Processing(QMainWindow):
         self.progress_label.setText("Processing complete!")
         QApplication.processEvents()
 
+        # Enable file selection after processing
+        self.is_processed = True
+        self.file_tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
+
         # Show completion message
         QMessageBox.information(self, "Processing Complete",
                                 f"Successfully processed {number_CSV} files.\n\n" +
                                 "Results saved to:\n" +
                                 f"- {self.ProcessedRAW}\n" +
-                                f"- {self.ProcCal}")
+                                f"- {self.ProcCal}\n\n" +
+                                "You can now select files from the tree to view detailed plots.")
 
     def rstpage(self):
         try:

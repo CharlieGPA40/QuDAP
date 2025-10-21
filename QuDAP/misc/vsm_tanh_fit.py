@@ -236,7 +236,7 @@ def extract_coercivity_method2_data(H_upper, M_upper, H_lower, M_lower):
         Hc = abs(Hc_left) + abs(Hc_right)
 
         # Heb = (Hc_right + Hc_left) / 2
-        Heb = Hc_right - Hc_left
+        Heb = Hc_right + Hc_left
 
         return {
             'success': True,

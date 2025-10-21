@@ -307,11 +307,23 @@ def _extract_slope_linear_saturation(H, M, saturation_threshold=0.8, min_points=
             H_sat_lower, M_sat_lower)
 
         # Average the slopes
-        slope = (slope_upper + slope_lower) / 2
-        slope_origin = (slope_origin_upper + slope_origin_lower) / 2
-        intercept = (intercept_upper + intercept_lower) / 2
-        r_value = np.sqrt((r_value_upper**2 + r_value_lower**2) / 2)
-        std_err = (std_err_upper + std_err_lower) / 2
+        if len(H_sat_upper) < len(H_sat_lower):
+            slope = slope_lower
+            slope_origin = slope_origin_lower
+            intercept = intercept_lower
+            r_value = r_value_lower
+            std_err = std_err_lower
+        else:
+            slope = slope_upper
+            slope_origin = slope_origin_upper
+            intercept = intercept_upper
+            r_value = r_value_upper
+            std_err = std_err_upper
+        # slope = (slope_upper + slope_lower) / 2
+        # slope_origin = (slope_origin_upper + slope_origin_lower) / 2
+        # intercept = (intercept_upper + intercept_lower) / 2
+        # r_value = np.sqrt((r_value_upper**2 + r_value_lower**2) / 2)
+        # std_err = (std_err_upper + std_err_lower) / 2
 
     except Exception as e:
         raise ValueError(f"Linear fit failed: {e}")
