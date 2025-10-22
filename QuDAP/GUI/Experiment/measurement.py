@@ -41,7 +41,7 @@ from matplotlib.figure import Figure
 try:
     from GUI.QDesign.BNC845RF import COMMAND
 except ImportError:
-    from QuDAP.GUI.QDesign.BNC845RF import COMMAND
+    from QuDAP.GUI.Experiment.BNC845RF import COMMAND
 
 class NotificationManager:
     def __init__(self):
@@ -1110,7 +1110,7 @@ class Measurement(QMainWindow):
             self.clear_layout(self.Instruments_measurement_setup_layout)
         except AttributeError:
             pass
-        # rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
+        # rm = visa.ResourceManager('GUI/Experiment/visa_simulation.yaml@sim')
         rm = visa.ResourceManager()
         instruments = rm.list_resources()
         self.connection_ports = [instr for instr in instruments]
@@ -1477,7 +1477,7 @@ class Measurement(QMainWindow):
         return eto_setting_layout
 
     def connect_devices(self):
-        # self.rm = visa.ResourceManager('GUI/QDesign/visa_simulation.yaml@sim')
+        # self.rm = visa.ResourceManager('GUI/Experiment/visa_simulation.yaml@sim')
         self.rm = visa.ResourceManager()
         self.current_connection_index = self.instruments_selection_combo_box.currentIndex()
         self.current_connection = self.connection_combo.currentText()

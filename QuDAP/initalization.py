@@ -12,42 +12,42 @@ try:
     import QuDAP.GUI.Setting.Setting as Setting
     import QuDAP.GUI.Setting.AboutSoftware as AboutSoftware
     import QuDAP.GUI.Setting.Contact as Contact
-    import QuDAP.GUI.QDesign.PPMS as ppms
-    import QuDAP.GUI.QDesign.QD as qd
+    import QuDAP.GUI.Experiment.PPMS as ppms
+    import QuDAP.GUI.Experiment.QD as qd
     import QuDAP.GUI.VSM.VSM as vsm
     import QuDAP.GUI.ETO.ETO as eto
     import QuDAP.GUI.SHG.SHG as shg
     import QuDAP.GUI.SHG.SHG_General as shg_general
-    import QuDAP.GUI.QDesign.DSP7265 as dsp
-    import QuDAP.GUI.QDesign.Keithley2182nv as nv
-    import QuDAP.GUI.QDesign.Keithley6221 as cs
-    import QuDAP.GUI.QDesign.BNC845RF as rf
-    import QuDAP.GUI.QDesign.sr830 as sr
-    import QuDAP.GUI.QDesign.measurement as m
+    import QuDAP.GUI.Experiment.DSP7265 as dsp
+    import QuDAP.GUI.Experiment.Keithley2182nv as nv
+    import QuDAP.GUI.Experiment.Keithley6221 as cs
+    import QuDAP.GUI.Experiment.BNC845RF as rf
+    import QuDAP.GUI.Experiment.sr830 as sr
+    import QuDAP.GUI.Experiment.measurement as m
     import QuDAP.GUI.Dashboard.Dashboard as Dashboard
     import QuDAP.GUI.Plot.plotting as pt
-    import QuDAP.GUI.QDesign.ReadInstrument as reading_instrument
+    import QuDAP.GUI.Experiment.ReadInstrument as reading_instrument
     
 except ImportError as e:
     import GUI.FMR.FMR as fmr
     import GUI.Setting.Setting as Setting
     import GUI.Setting.AboutSoftware as AboutSoftware
     import GUI.Setting.Contact as Contact
-    import GUI.QDesign.PPMS as ppms
-    import GUI.QDesign.QD as qd
+    import GUI.Experiment.PPMS as ppms
+    import GUI.Experiment.QD as qd
     import GUI.VSM.VSM as vsm
     import GUI.ETO.ETO as eto
     import GUI.SHG.SHG as shg
     import GUI.SHG.SHG_General as shg_general
-    import GUI.QDesign.DSP7265 as dsp
-    import GUI.QDesign.Keithley2182nv as nv
-    import GUI.QDesign.Keithley6221 as cs
-    import GUI.QDesign.BNC845RF as rf
-    import GUI.QDesign.sr830 as sr
-    import GUI.QDesign.measurement as m
+    import GUI.Experiment.DSP7265 as dsp
+    import GUI.Experiment.Keithley2182nv as nv
+    import GUI.Experiment.Keithley6221 as cs
+    import GUI.Experiment.BNC845RF as rf
+    import GUI.Experiment.sr830 as sr
+    import GUI.Experiment.measurement as m
     import GUI.Dashboard.Dashboard as Dashboard
     import GUI.Plot.plotting as pt
-    import GUI.QDesign.ReadInstrument as reading_instrument
+    import GUI.Experiment.ReadInstrument as reading_instrument
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)

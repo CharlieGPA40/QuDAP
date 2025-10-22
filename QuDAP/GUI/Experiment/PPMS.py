@@ -377,7 +377,7 @@ class PPMS(QWidget):
 
     def start_server(self):
         if self.server_btn_clicked == False:
-            # import Data_Processing_Suite.GUI.QDesign.run_server as s
+            # import Data_Processing_Suite.GUI.Experiment.run_server as s
             try:
                 # user_flags = ['-ip=172.19.159.4']
                 # self.server = mpv.Server(user_flags, keep_server_open=True)

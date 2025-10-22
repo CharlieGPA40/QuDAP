@@ -251,7 +251,7 @@ class VSM_Background_Removal(QMainWindow):
 
             self.file_tree_layout.addWidget(self.file_tree)
             self.file_tree_group_box.setLayout(self.file_tree_layout)
-            self.file_tree_group_box.hide()  # Hide initially until files are loaded
+            # self.file_tree_group_box.hide()  # Hide initially until files are loaded
 
             self.file_tree_container = QWidget(self)
             self.file_tree_container.setLayout(QVBoxLayout())
@@ -345,15 +345,12 @@ class VSM_Background_Removal(QMainWindow):
             # Add to main layout
             self.main_layout.addWidget(self.title_label, alignment=Qt.AlignmentFlag.AlignTop)
             self.main_layout.addWidget(self.fileupload_container)
-            self.main_layout.addWidget(self.file_tree_container)
             self.main_layout.addWidget(self.button_container)
+            self.main_layout.addWidget(self.file_tree_container)
             self.main_layout.addLayout(self.progress_layout)
             self.main_layout.addWidget(self.figure_container)
             self.main_layout.addStretch(1)
-
             self.setCentralWidget(self.scroll_area)
-
-            print("UI initialization complete!")
 
         except Exception as e:
             print(f"Error in init_ui: {e}")
@@ -960,7 +957,7 @@ class VSM_Background_Removal(QMainWindow):
             self.removed_canvas.draw()
 
             self.file_tree.clear()
-            self.file_tree_group_box.hide()
+            # self.file_tree_group_box.hide()
             self.processed_files_data = {}
 
             self.data_folder = None
