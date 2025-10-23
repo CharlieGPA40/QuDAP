@@ -39,9 +39,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 try:
-    from GUI.QDesign.BNC845RF import COMMAND
+    from GUI.Experiment.BNC845RF import COMMAND
+    from GUI.Experiment.rigol_experiment import RIGOL_Measurement
 except ImportError:
     from QuDAP.GUI.Experiment.BNC845RF import COMMAND
+    from QuDAP.GUI.Experiment.rigol_experiment import RIGOL_Measurement
+
 
 class NotificationManager:
     def __init__(self):
@@ -631,15 +634,19 @@ class Measurement(QMainWindow):
             self.PRESET = False
             self.ETO_SELECTED = False
             self.FMR_SELECTED = False
+            self.CUSTOMIZE_SELECTED = False
             self.ETO_IV = False
             self.ETO_FIELD_DEP = False
             self.ETO_TEMP_DEP = False
             self.FMR_ST_FMR = False
+            self.CUSTOMIZED_1 = False
             self.demo_mode = False
             self.Keithley_2182_Connected = False
             self.Ketihley_6221_Connected = False
             self.BNC845RF_CONNECTED = False
             self.DSP7265_Connected = False
+            self.BK9129B_CONNECTED = False
+            self.RIGOLDSA875_CONNECTED = False
             self.field_mode_fixed = None
             self.keithley_2182nv = None
             self.keithley_6221 = None
@@ -712,6 +719,9 @@ class Measurement(QMainWindow):
         self.fmr_radio_button = QRadioButton("FMR")
         self.fmr_radio_button.setFont(self.font)
         self.fmr_radio_button.toggled.connect(self.fmr_measurement_selection)
+        self.customize_radio_button = QRadioButton("Customize")
+        self.customize_radio_button.setFont(self.font)
+        self.customize_radio_button.toggled.connect(self.customize_measurement_selection)
         self.demo_radio_buttom = QRadioButton("Demo")
         self.demo_radio_buttom.setFont(self.font)
         self.demo_radio_buttom.toggled.connect(self.demo_selection)
@@ -733,8 +743,10 @@ class Measurement(QMainWindow):
         self.radio_btn_layout.addStretch(1)
         self.radio_btn_layout.addWidget(self.fmr_radio_button)
         self.radio_btn_layout.addStretch(2)
+        self.radio_btn_layout.addWidget(self.customize_radio_button)
         self.radio_btn_layout.addWidget(self.demo_radio_buttom)
-        self.radio_btn_layout.addStretch(2)
+
+
 
         self.measurement_type_layout = QHBoxLayout()
 
@@ -769,6 +781,7 @@ class Measurement(QMainWindow):
             self.select_preset_buttom.setEnabled(False)
             self.FMR_SELECTED = False
             self.ETO_SELECTED = True
+            self.CUSTOMIZE_SELECTED = False
             eto_measurement_layout = QHBoxLayout()
             eto_measurement_label = QLabel('Measurement Type:')
             eto_measurement_label.setFont(self.font)
@@ -792,6 +805,7 @@ class Measurement(QMainWindow):
             self.select_preset_buttom.setEnabled(False)
             self.ETO_SELECTED = False
             self.FMR_SELECTED = True
+            self.CUSTOMIZE_SELECTED = False
             fmr_measurement_layout = QHBoxLayout()
             fmr_measurement_label = QLabel('Measurement Type:')
             fmr_measurement_label.setFont(self.font)
@@ -810,54 +824,188 @@ class Measurement(QMainWindow):
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
+    def customize_measurement_selection(self):
+        try:
+            self.select_preset_buttom.setEnabled(False)
+            self.ETO_SELECTED = False
+            self.FMR_SELECTED = False
+            self.CUSTOMIZE_SELECTED = True
+            customize_measurement_layout = QHBoxLayout()
+            customize_measurement_label = QLabel('Measurement Type:')
+            customize_measurement_label.setFont(self.font)
+            self.customize_measurement_combo_box = QComboBox()
+            self.customize_measurement_combo_box.setFont(self.font)
+            self.customize_measurement_combo_box.setStyleSheet(self.QCombo_stylesheet)
+            self.customize_measurement_combo_box.addItems(
+                [" ", "Customized 1", "Coming Soon"])
+            self.customize_measurement_combo_box.currentIndexChanged.connect(self.preset_validation)
+            customize_measurement_layout.addWidget(customize_measurement_label)
+            customize_measurement_layout.addWidget(self.customize_measurement_combo_box)
+            self.clear_layout(self.measurement_type_layout)
+            self.measurement_type_layout.addLayout(customize_measurement_layout)
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
     def demo_selection(self):
         self.ETO_SELECTED = False
         self.FMR_SELECTED = False
         self.clear_layout(self.measurement_type_layout)
         self.select_preset_buttom.setEnabled(True)
 
+    # def preset_reset(self):
+    #     def reset_button(button):
+    #         button.setAutoExclusive(False)
+    #         button.setChecked(False)
+    #         button.setAutoExclusive(True)
+    #
+    #     try:
+    #         self.PRESET = False
+    #         self.running = False
+    #         self.clear_layout(self.Instruments_Content_Layout)
+    #         try:
+    #             reset_button(self.eto_radio_button)
+    #             reset_button(self.fmr_radio_button)
+    #             reset_button(self.demo_radio_buttom)
+    #             reset_button(self.customize_radio_button)
+    #             self.instrument_connection_layout.removeWidget(self.instrument_container)
+    #             self.instrument_container.deleteLater()
+    #             self.clear_layout(self.measurement_type_layout)
+    #             self.instrument_connection_layout.removeWidget(self.ppms_container)
+    #             self.ppms_container.deleteLater()
+    #             self.main_layout.removeWidget(self.button_container)
+    #             self.button_container.deleteLater()
+    #             self.main_layout.removeWidget(self.log_box)
+    #             self.log_box.deleteLater()
+    #             self.main_layout.removeWidget(self.progress_bar)
+    #             self.progress_bar.deleteLater()
+    #
+    #             self.clear_layout(self.graphing_layout)
+    #             self.clear_layout(self.buttons_layout)
+    #
+    #         except Exception as e:
+    #             pass
+    #         try:
+    #             self.stop_measurement()
+    #             self.keithley_6221.close()
+    #             self.keithley_2182nv.close()
+    #             self.DSP7265.close()
+    #             self.bnc845rf.close()
+    #         except Exception as e:
+    #             pass
+    #     except Exception as e:
+    #         tb_str = traceback.format_exc()
+    #         QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+    #         return
+
     def preset_reset(self):
+        """Reset all preset configurations, widgets, and instrument connections"""
+
         def reset_button(button):
-            button.setAutoExclusive(False)
-            button.setChecked(False)
-            button.setAutoExclusive(True)
+            """Reset radio button state"""
+            if button is not None:
+                button.setAutoExclusive(False)
+                button.setChecked(False)
+                button.setAutoExclusive(True)
+
+        def safe_remove_widget(layout, widget_attr_name):
+            """Safely remove and delete a widget if it exists"""
+            if hasattr(self, widget_attr_name):
+                widget = getattr(self, widget_attr_name)
+                if widget is not None:
+                    try:
+                        layout.removeWidget(widget)
+                        widget.deleteLater()
+                        setattr(self, widget_attr_name, None)
+                        return True
+                    except Exception as e:
+                        print(f"Error removing {widget_attr_name}: {e}")
+            return False
+
+        def safe_clear_layout(layout_attr_name):
+            """Safely clear a layout if it exists"""
+            if hasattr(self, layout_attr_name):
+                layout = getattr(self, layout_attr_name)
+                if layout is not None:
+                    try:
+                        self.clear_layout(layout)
+                        return True
+                    except Exception as e:
+                        print(f"Error clearing {layout_attr_name}: {e}")
+            return False
+
+        def safe_close_instrument(instrument_attr_name):
+            """Safely close an instrument if it exists and is connected"""
+            if hasattr(self, instrument_attr_name):
+                instrument = getattr(self, instrument_attr_name)
+                if instrument is not None:
+                    try:
+                        instrument.close()
+                        print(f"Closed {instrument_attr_name}")
+                        setattr(self, instrument_attr_name, None)
+                        return True
+                    except Exception as e:
+                        print(f"Error closing {instrument_attr_name}: {e}")
+            return False
 
         try:
+            # Reset flags
             self.PRESET = False
             self.running = False
-            self.clear_layout(self.Instruments_Content_Layout)
-            try:
-                reset_button(self.eto_radio_button)
-                reset_button(self.fmr_radio_button)
-                reset_button(self.demo_radio_buttom)
-                self.clear_layout(self.measurement_type_layout)
-                self.clear_layout(self.graphing_layout)
-                self.clear_layout(self.buttons_layout)
-                self.instrument_connection_layout.removeWidget(self.ppms_container)
-                self.ppms_container.deleteLater()
-                self.instrument_connection_layout.removeWidget(self.instrument_container)
-                self.instrument_container.deleteLater()
-                self.main_layout.removeWidget(self.button_container)
-                self.button_container.deleteLater()
-                self.main_layout.removeWidget(self.log_box)
-                self.log_box.deleteLater()
-                self.main_layout.removeWidget(self.progress_bar)
-                self.progress_bar.deleteLater()
 
-            except Exception as e:
-                pass
-            try:
-                self.stop_measurement()
-                self.keithley_6221.close()
-                self.keithley_2182nv.close()
-                self.DSP7265.close()
-                self.bnc845rf.close()
-            except Exception as e:
-                pass
+            # Clear layouts
+            safe_clear_layout('Instruments_Content_Layout')
+            safe_clear_layout('measurement_type_layout')
+            safe_clear_layout('graphing_layout')
+            safe_clear_layout('buttons_layout')
+            safe_clear_layout('customize_layout_class')
+            safe_clear_layout('measurement_type_layout')
+
+            # Reset radio buttons
+            if hasattr(self, 'eto_radio_button'):
+                reset_button(self.eto_radio_button)
+            if hasattr(self, 'fmr_radio_button'):
+                reset_button(self.fmr_radio_button)
+            if hasattr(self, 'demo_radio_buttom'):
+                reset_button(self.demo_radio_buttom)
+            if hasattr(self, 'customize_radio_button'):
+                reset_button(self.customize_radio_button)
+
+            # Remove and delete widgets
+            if hasattr(self, 'instrument_connection_layout'):
+                safe_remove_widget(self.instrument_connection_layout, 'instrument_container')
+                safe_remove_widget(self.instrument_connection_layout, 'ppms_container')
+
+            if hasattr(self, 'main_layout'):
+                safe_remove_widget(self.main_layout, 'button_container')
+                safe_remove_widget(self.main_layout, 'log_box')
+                safe_remove_widget(self.main_layout, 'progress_bar')
+
+            # Stop measurement if running
+            if hasattr(self, 'stop_measurement'):
+                try:
+                    self.stop_measurement()
+                except Exception as e:
+                    print(f"Error stopping measurement: {e}")
+
+            # Close all instruments
+            instruments_to_close = [
+                'keithley_6221',
+                'keithley_2182nv',
+                'DSP7265',
+                'bnc845rf',
+                'rigol_dsa875',  # Add any other instruments
+                'bk_precision_9205b'
+            ]
+
+            for instrument_name in instruments_to_close:
+                safe_close_instrument(instrument_name)
+
         except Exception as e:
             tb_str = traceback.format_exc()
-            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-            return
+            print(f"Error during preset_reset: {tb_str}")
+            QMessageBox.warning(self, "Reset Error", f'Error during reset:\n{str(e)}')
 
     def preset_validation(self):
         if self.ETO_SELECTED:
@@ -867,6 +1015,11 @@ class Measurement(QMainWindow):
                 self.select_preset_buttom.setEnabled(True)
         elif self.FMR_SELECTED:
             if self.fmr_measurement_combo_box.currentIndex() == 0:
+                self.select_preset_buttom.setEnabled(False)
+            else:
+                self.select_preset_buttom.setEnabled(True)
+        elif self.CUSTOMIZE_SELECTED:
+            if self.customize_measurement_combo_box.currentIndex() == 0:
                 self.select_preset_buttom.setEnabled(False)
             else:
                 self.select_preset_buttom.setEnabled(True)
@@ -888,222 +1041,364 @@ class Measurement(QMainWindow):
                 self.FMR_ST_FMR = True
             else:
                 self.FMR_ST_FMR = False
+        elif self.CUSTOMIZE_SELECTED:
+            if self.customize_measurement_combo_box.currentIndex() == 1:
+                self.CUSTOMIZED_1 = True
+            else:
+                self.CUSTOMIZED_1 = False
         else:
             self.ETO_IV = False
             self.ETO_FIELD_DEP = False
             self.ETO_TEMP_DEP = False
             self.FMR_ST_FMR = False
+            self.CUSTOMIZED_1 = False
 
         try:
             if self.PRESET == False:
                 self.PRESET = True
 
                 # --------------------------------------- Part connection ----------------------------
-                self.ppms_container = QWidget()
-                self.ppms_main_layout = QHBoxLayout()
-                self.connection_group_box = QGroupBox("PPMS Connection")
-                self.connection_box_layout = QVBoxLayout()
+                if not self.CUSTOMIZE_SELECTED:
+                    self.ppms_container = QWidget()
+                    self.ppms_main_layout = QHBoxLayout()
+                    self.connection_group_box = QGroupBox("PPMS Connection")
+                    self.connection_box_layout = QVBoxLayout()
 
-                # --------------------------------------- Part connection_PPMS ----------------------------
-                if self.demo_radio_buttom.isChecked():
-                    self.demo_mode = True
-                    self.ppms_connection = QVBoxLayout()
-                    self.ppms_host_connection_layout = QHBoxLayout()
-                    self.ppms_port_connection_layout = QHBoxLayout()
-                    self.ppms_connection_button_layout = QHBoxLayout()
-                    self.host_label = QLabel("PPMS Host:")
-                    self.host_label.setFont(self.font)
-                    self.host_entry_box = QLineEdit("127.0.0.1")
-                    self.host_entry_box.setFont(self.font)
-                    self.host_entry_box.setFixedHeight(30)
-                    self.port_label = QLabel("PPMS Port:")
-                    self.port_label.setFont(self.font)
-                    self.port_entry_box = QLineEdit("5000")
-                    self.port_entry_box.setFont(self.font)
-                    self.port_entry_box.setFixedHeight(30)
-                    self.server_btn = QPushButton('Start Server')
-                    self.server_btn_clicked = False
-                    self.server_btn.clicked.connect(self.start_server)
-                    self.connect_btn = QPushButton('Client Connect')
-                    self.connect_btn.setEnabled(False)
-                    self.connect_btn_clicked = False
-                    self.connect_btn.clicked.connect(self.connect_client)
+                    # --------------------------------------- Part connection_PPMS ----------------------------
+                    if self.demo_radio_buttom.isChecked():
+                        self.demo_mode = True
+                        self.ppms_connection = QVBoxLayout()
+                        self.ppms_host_connection_layout = QHBoxLayout()
+                        self.ppms_port_connection_layout = QHBoxLayout()
+                        self.ppms_connection_button_layout = QHBoxLayout()
+                        self.host_label = QLabel("PPMS Host:")
+                        self.host_label.setFont(self.font)
+                        self.host_entry_box = QLineEdit("127.0.0.1")
+                        self.host_entry_box.setFont(self.font)
+                        self.host_entry_box.setFixedHeight(30)
+                        self.port_label = QLabel("PPMS Port:")
+                        self.port_label.setFont(self.font)
+                        self.port_entry_box = QLineEdit("5000")
+                        self.port_entry_box.setFont(self.font)
+                        self.port_entry_box.setFixedHeight(30)
+                        self.server_btn = QPushButton('Start Server')
+                        self.server_btn_clicked = False
+                        self.server_btn.clicked.connect(self.start_server)
+                        self.connect_btn = QPushButton('Client Connect')
+                        self.connect_btn.setEnabled(False)
+                        self.connect_btn_clicked = False
+                        self.connect_btn.clicked.connect(self.connect_client)
 
-                    self.ppms_host_connection_layout.addWidget(self.host_label, 1)
-                    self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+                        self.ppms_host_connection_layout.addWidget(self.host_label, 1)
+                        self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
 
-                    self.ppms_port_connection_layout.addWidget(self.port_label, 1)
-                    self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+                        self.ppms_port_connection_layout.addWidget(self.port_label, 1)
+                        self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
 
-                    self.ppms_connection_button_layout.addWidget(self.server_btn)
-                    self.ppms_connection_button_layout.addWidget(self.connect_btn)
+                        self.ppms_connection_button_layout.addWidget(self.server_btn)
+                        self.ppms_connection_button_layout.addWidget(self.connect_btn)
 
-                    self.ppms_connection.addLayout(self.ppms_host_connection_layout)
-                    self.ppms_connection.addLayout(self.ppms_port_connection_layout)
-                    self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+                        self.ppms_connection.addLayout(self.ppms_host_connection_layout)
+                        self.ppms_connection.addLayout(self.ppms_port_connection_layout)
+                        self.ppms_connection.addLayout(self.ppms_connection_button_layout)
 
-                    self.connection_group_box.setLayout(self.ppms_connection)
-                    self.ppms_main_layout.addWidget(self.connection_group_box)
-                    self.ppms_container.setFixedSize(380, 180)
-                    self.ppms_container.setLayout(self.ppms_main_layout)
+                        self.connection_group_box.setLayout(self.ppms_connection)
+                        self.ppms_main_layout.addWidget(self.connection_group_box)
+                        self.ppms_container.setFixedSize(380, 180)
+                        self.ppms_container.setLayout(self.ppms_main_layout)
 
-                    self.instrument_connection_layout.addWidget(self.ppms_container)
-                    self.server_btn.setStyleSheet(self.Button_stylesheet)
-                    self.connect_btn.setStyleSheet(self.Button_stylesheet)
+                        self.instrument_connection_layout.addWidget(self.ppms_container)
+                        self.server_btn.setStyleSheet(self.Button_stylesheet)
+                        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+                    else:
+                        self.ppms_connection = QVBoxLayout()
+                        self.ppms_host_connection_layout = QHBoxLayout()
+                        self.ppms_port_connection_layout = QHBoxLayout()
+                        self.ppms_connection_button_layout = QHBoxLayout()
+                        self.host_label = QLabel("PPMS Host:")
+                        self.host_label.setFont(self.font)
+                        self.host_entry_box = QLineEdit("127.0.0.1")
+                        self.host_entry_box.setFont(self.font)
+                        self.host_entry_box.setFixedHeight(30)
+                        self.port_label = QLabel("PPMS Port:")
+                        self.port_label.setFont(self.font)
+                        self.port_entry_box = QLineEdit("5000")
+                        self.port_entry_box.setFont(self.font)
+                        self.port_entry_box.setFixedHeight(30)
+                        self.server_btn = QPushButton('Start Server')
+                        self.server_btn_clicked = False
+                        self.server_btn.clicked.connect(self.start_server)
+                        self.connect_btn = QPushButton('Client Connect')
+                        self.connect_btn.setEnabled(False)
+                        self.connect_btn_clicked = False
+                        self.connect_btn.clicked.connect(self.connect_client)
+
+                        self.ppms_host_connection_layout.addWidget(self.host_label, 1)
+                        self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+
+                        self.ppms_port_connection_layout.addWidget(self.port_label, 1)
+                        self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+
+                        self.ppms_connection_button_layout.addWidget(self.server_btn)
+                        self.ppms_connection_button_layout.addWidget(self.connect_btn)
+
+                        self.ppms_connection.addLayout(self.ppms_host_connection_layout)
+                        self.ppms_connection.addLayout(self.ppms_port_connection_layout)
+                        self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+
+                        self.connection_group_box.setLayout(self.ppms_connection)
+                        self.ppms_main_layout.addWidget(self.connection_group_box)
+                        self.ppms_container.setFixedSize(380, 180)
+                        self.ppms_container.setLayout(self.ppms_main_layout)
+
+                        self.instrument_connection_layout.addWidget(self.ppms_container)
+                        self.server_btn.setStyleSheet(self.Button_stylesheet)
+                        self.connect_btn.setStyleSheet(self.Button_stylesheet)
+
+                    self.instrument_container = QWidget()
+                    self.instrument_main_layout = QHBoxLayout()
+                    self.instrument_connection_group_box = QGroupBox("Select Instruments")
+                    self.instrument_connection_box_layout = QVBoxLayout()
+
+                    self.Instru_main_layout = QVBoxLayout()
+                    self.instru_select_layout = QHBoxLayout()
+                    self.instru_connection_layout = QHBoxLayout()
+                    self.instru_cnt_btn_layout = QHBoxLayout()
+                    self.Instruments_sel_label = QLabel("Select Instruments:")
+                    self.Instruments_sel_label.setFont(self.font)
+                    self.instruments_selection_combo_box = QComboBox()
+                    self.instruments_selection_combo_box.setFont(self.font)
+                    self.instruments_selection_combo_box.setStyleSheet(self.QCombo_stylesheet)
+                    if self.eto_radio_button.isChecked():
+                        self.instruments_selection_combo_box.addItems(
+                            ["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
+                    elif self.fmr_radio_button.isChecked():
+                        self.instruments_selection_combo_box.addItems(["Select Instruments","BNC 845 RF", "DSP 7265 Lock-in"])
+                    elif self.demo_radio_buttom.isChecked():
+                        self.instruments_selection_combo_box.addItems(["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
+                    self.instruments_selection_combo_box.currentIndexChanged.connect(self.instru_combo_index_change)
+                    self.Instruments_port_label = QLabel("Channel:")
+                    self.Instruments_port_label.setFont(self.font)
+                    self.connection_combo = WideComboBox()
+                    self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
+                    self.connection_combo.setFont(self.font)
+
+                    self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
+                    self.refresh_btn.clicked.connect(self.refresh_Connection_List)
+                    self.instru_connect_btn = QPushButton('Connect')
+                    self.instru_connect_btn.clicked.connect(self.connect_devices)
+                    self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
+                    self.instru_select_layout.addWidget(self.instruments_selection_combo_box, 2)
+
+                    self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
+                    self.instru_connection_layout.addWidget(self.connection_combo, 3)
+                    self.refresh_Connection_List()
+                    self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
+                    self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
+                    self.Instru_main_layout.addLayout(self.instru_select_layout)
+                    self.Instru_main_layout.addLayout(self.instru_connection_layout)
+                    self.instrument_rs232_layout = QHBoxLayout()
+                    self.Instru_main_layout.addLayout(self.instrument_rs232_layout)
+                    self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
+                    self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
+                    self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
+                    self.instrument_container.setFixedSize(380, 180)
+                    self.instrument_container.setLayout(self.instrument_main_layout)
+                    self.instrument_connection_layout.addWidget(self.instrument_container)
+
+                    # self.PPMS_measurement_setup_layout = QHBoxLayout()
+                    self.eto_ppms_layout = QVBoxLayout()
+                    self.fmr_ppms_layout = QVBoxLayout()
+                    self.Instruments_Content_Layout.addLayout(self.eto_ppms_layout)
+                    self.Instruments_Content_Layout.addLayout(self.fmr_ppms_layout)
+
+                    self.Instruments_measurement_setup_layout = QVBoxLayout()
+                    self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
+
+                    self.main_layout.addLayout(self.Instruments_Content_Layout)
+
+                    self.graphing_layout = QHBoxLayout()
+
+                    figure_group_box = QGroupBox("Graph")
+                    figure_Layout = QVBoxLayout()
+                    self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
+                    self.canvas.axes_2 = self.canvas.axes.twinx()
+                    toolbar = NavigationToolbar(self.canvas, self)
+                    toolbar.setStyleSheet("""
+                                                     QWidget {
+                                                         border: None;
+                                                     }
+                                                 """)
+                    figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+                    figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+                    figure_group_box.setLayout(figure_Layout)
+                    figure_group_box.setFixedSize(1150,400)
+                    self.figure_container_layout = QHBoxLayout()
+                    self.figure_container = QWidget(self)
+                    self.buttons_layout = QHBoxLayout()
+                    self.start_measurement_btn = QPushButton('Start')
+                    self.start_measurement_btn.clicked.connect(self.start_measurement)
+                    self.stop_btn = QPushButton('Stop')
+                    self.stop_btn.clicked.connect(self.stop_measurement)
+                    self.rst_btn = QPushButton('Reset')
+                    self.rst_btn.clicked.connect(self.rst)
+                    self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
+                    self.stop_btn.setStyleSheet(self.Button_stylesheet)
+                    self.rst_btn.setStyleSheet(self.Button_stylesheet)
+                    self.buttons_layout.addStretch(4)
+                    self.buttons_layout.addWidget(self.rst_btn)
+                    self.buttons_layout.addWidget(self.stop_btn)
+                    self.buttons_layout.addWidget(self.start_measurement_btn)
+
+                    self.button_container = QWidget()
+                    self.button_container.setLayout(self.buttons_layout)
+                    self.button_container.setFixedSize(1150,80)
+                    self.figure_container_layout.addWidget(figure_group_box)
+                    self.figure_container.setLayout(self.figure_container_layout)
+                    self.graphing_layout.addWidget(self.figure_container)
+                    self.main_layout.addLayout(self.graphing_layout)
+                    self.main_layout.addWidget(self.button_container)
+
+                    self.setCentralWidget(self.scroll_area)
+                    self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
+                    self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
+                    self.refresh_btn.setStyleSheet(self.Button_stylesheet)
                 else:
-                    self.ppms_connection = QVBoxLayout()
-                    self.ppms_host_connection_layout = QHBoxLayout()
-                    self.ppms_port_connection_layout = QHBoxLayout()
-                    self.ppms_connection_button_layout = QHBoxLayout()
-                    self.host_label = QLabel("PPMS Host:")
-                    self.host_label.setFont(self.font)
-                    self.host_entry_box = QLineEdit("127.0.0.1")
-                    self.host_entry_box.setFont(self.font)
-                    self.host_entry_box.setFixedHeight(30)
-                    self.port_label = QLabel("PPMS Port:")
-                    self.port_label.setFont(self.font)
-                    self.port_entry_box = QLineEdit("5000")
-                    self.port_entry_box.setFont(self.font)
-                    self.port_entry_box.setFixedHeight(30)
-                    self.server_btn = QPushButton('Start Server')
-                    self.server_btn_clicked = False
-                    self.server_btn.clicked.connect(self.start_server)
-                    self.connect_btn = QPushButton('Client Connect')
-                    self.connect_btn.setEnabled(False)
-                    self.connect_btn_clicked = False
-                    self.connect_btn.clicked.connect(self.connect_client)
+                    self.instrument_container = QWidget()
+                    self.instrument_main_layout = QHBoxLayout()
+                    self.instrument_connection_group_box = QGroupBox("Select Instruments")
+                    self.instrument_connection_box_layout = QVBoxLayout()
 
-                    self.ppms_host_connection_layout.addWidget(self.host_label, 1)
-                    self.ppms_host_connection_layout.addWidget(self.host_entry_box, 2)
+                    self.Instru_main_layout = QVBoxLayout()
+                    self.instru_select_layout = QHBoxLayout()
+                    self.instru_connection_layout = QHBoxLayout()
+                    self.instru_cnt_btn_layout = QHBoxLayout()
+                    self.Instruments_sel_label = QLabel("Select Instruments:")
+                    self.Instruments_sel_label.setFont(self.font)
+                    self.instruments_selection_combo_box = QComboBox()
+                    self.instruments_selection_combo_box.setFont(self.font)
+                    self.instruments_selection_combo_box.setStyleSheet(self.QCombo_stylesheet)
+                    if self.CUSTOMIZED_1:
+                        self.instruments_selection_combo_box.addItems(
+                            ["Select Instruments", "Rigol DSA875", "B&K Precision 9205B"])
+                    self.instruments_selection_combo_box.currentIndexChanged.connect(self.instru_combo_index_change)
+                    self.Instruments_port_label = QLabel("Channel:")
+                    self.Instruments_port_label.setFont(self.font)
+                    self.connection_combo = WideComboBox()
+                    self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
+                    self.connection_combo.setFont(self.font)
 
-                    self.ppms_port_connection_layout.addWidget(self.port_label, 1)
-                    self.ppms_port_connection_layout.addWidget(self.port_entry_box, 2)
+                    self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
+                    self.refresh_btn.clicked.connect(self.refresh_Connection_List)
+                    self.instru_connect_btn = QPushButton('Connect')
+                    self.instru_connect_btn.clicked.connect(self.connect_devices)
+                    self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
+                    self.instru_select_layout.addWidget(self.instruments_selection_combo_box, 2)
 
-                    self.ppms_connection_button_layout.addWidget(self.server_btn)
-                    self.ppms_connection_button_layout.addWidget(self.connect_btn)
+                    self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
+                    self.instru_connection_layout.addWidget(self.connection_combo, 3)
+                    self.refresh_Connection_List()
+                    self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
+                    self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
+                    self.Instru_main_layout.addLayout(self.instru_select_layout)
+                    self.Instru_main_layout.addLayout(self.instru_connection_layout)
+                    self.instrument_rs232_layout = QHBoxLayout()
+                    self.Instru_main_layout.addLayout(self.instrument_rs232_layout)
+                    self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
+                    self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
+                    self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
+                    self.instrument_container.setFixedSize(770, 180)
+                    self.instrument_container.setLayout(self.instrument_main_layout)
+                    self.instrument_connection_layout.addWidget(self.instrument_container)
 
-                    self.ppms_connection.addLayout(self.ppms_host_connection_layout)
-                    self.ppms_connection.addLayout(self.ppms_port_connection_layout)
-                    self.ppms_connection.addLayout(self.ppms_connection_button_layout)
+                    # self.PPMS_measurement_setup_layout = QHBoxLayout()
+                    self.customize_layout = QVBoxLayout()
+                    self.Instruments_Content_Layout.addLayout(self.customize_layout)
 
-                    self.connection_group_box.setLayout(self.ppms_connection)
-                    self.ppms_main_layout.addWidget(self.connection_group_box)
-                    self.ppms_container.setFixedSize(380, 180)
-                    self.ppms_container.setLayout(self.ppms_main_layout)
+                    self.Instruments_measurement_setup_layout = QVBoxLayout()
+                    self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
-                    self.instrument_connection_layout.addWidget(self.ppms_container)
-                    self.server_btn.setStyleSheet(self.Button_stylesheet)
-                    self.connect_btn.setStyleSheet(self.Button_stylesheet)
+                    self.main_layout.addLayout(self.Instruments_Content_Layout)
+                    self.rigol_measurement = RIGOL_Measurement(True, True)
+                    self.customize_layout_class = self.rigol_measurement.init_ui()
+                    self.main_layout.addLayout(self.customize_layout_class)
+                    # self.setCentralWidget(self.scroll_area)
+                    self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
+                    self.refresh_btn.setStyleSheet(self.Button_stylesheet)
+                    self.setCentralWidget(self.scroll_area)
 
-                self.instrument_container = QWidget()
-                self.instrument_main_layout = QHBoxLayout()
-                self.instrument_connection_group_box = QGroupBox("Select Instruments")
-                self.instrument_connection_box_layout = QVBoxLayout()
-
-                self.Instru_main_layout = QVBoxLayout()
-                self.instru_select_layout = QHBoxLayout()
-                self.instru_connection_layout = QHBoxLayout()
-                self.instru_cnt_btn_layout = QHBoxLayout()
-                self.Instruments_sel_label = QLabel("Select Instruments:")
-                self.Instruments_sel_label.setFont(self.font)
-                self.instruments_selection_combo_box = QComboBox()
-                self.instruments_selection_combo_box.setFont(self.font)
-                self.instruments_selection_combo_box.setStyleSheet(self.QCombo_stylesheet)
-                if self.eto_radio_button.isChecked():
-                    self.instruments_selection_combo_box.addItems(
-                        ["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
-                elif self.fmr_radio_button.isChecked():
-                    self.instruments_selection_combo_box.addItems(["Select Instruments","BNC 845 RF", "DSP 7265 Lock-in"])
-                elif self.demo_radio_buttom.isChecked():
-                    self.instruments_selection_combo_box.addItems(["Select Instruments", "Keithley 2182 nv", "Keithley 6221", "DSP 7265 Lock-in"])
-                self.instruments_selection_combo_box.currentIndexChanged.connect(self.instru_combo_index_change)
-                self.Instruments_port_label = QLabel("Channel:")
-                self.Instruments_port_label.setFont(self.font)
-                self.connection_combo = WideComboBox()
-                self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
-                self.connection_combo.setFont(self.font)
-
-                self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
-                self.refresh_btn.clicked.connect(self.refresh_Connection_List)
-                self.instru_connect_btn = QPushButton('Connect')
-                self.instru_connect_btn.clicked.connect(self.connect_devices)
-                self.instru_select_layout.addWidget(self.Instruments_sel_label, 1)
-                self.instru_select_layout.addWidget(self.instruments_selection_combo_box, 2)
-
-                self.instru_connection_layout.addWidget(self.Instruments_port_label, 1)
-                self.instru_connection_layout.addWidget(self.connection_combo, 3)
-                self.refresh_Connection_List()
-                self.instru_cnt_btn_layout.addWidget(self.refresh_btn, 2)
-                self.instru_cnt_btn_layout.addWidget(self.instru_connect_btn, 2)
-                self.Instru_main_layout.addLayout(self.instru_select_layout)
-                self.Instru_main_layout.addLayout(self.instru_connection_layout)
-                self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
-                self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
-                self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-                self.instrument_container.setFixedSize(380, 180)
-                self.instrument_container.setLayout(self.instrument_main_layout)
-                self.instrument_connection_layout.addWidget(self.instrument_container)
-
-                # self.PPMS_measurement_setup_layout = QHBoxLayout()
-                self.eto_ppms_layout = QVBoxLayout()
-                self.fmr_ppms_layout = QVBoxLayout()
-                self.Instruments_Content_Layout.addLayout(self.eto_ppms_layout)
-                self.Instruments_Content_Layout.addLayout(self.fmr_ppms_layout)
-
-                self.Instruments_measurement_setup_layout = QVBoxLayout()
-                self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
-
-                self.main_layout.addLayout(self.Instruments_Content_Layout)
-
-                self.graphing_layout = QHBoxLayout()
-
-                figure_group_box = QGroupBox("Graph")
-                figure_Layout = QVBoxLayout()
-                self.canvas = MplCanvas(self, width=100, height=4, dpi=100)
-                self.canvas.axes_2 = self.canvas.axes.twinx()
-                toolbar = NavigationToolbar(self.canvas, self)
-                toolbar.setStyleSheet("""
-                                                 QWidget {
-                                                     border: None;
-                                                 }
-                                             """)
-                figure_Layout.addWidget(toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-                figure_Layout.addWidget(self.canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-                figure_group_box.setLayout(figure_Layout)
-                figure_group_box.setFixedSize(1150,400)
-                self.figure_container_layout = QHBoxLayout()
-                self.figure_container = QWidget(self)
-                self.buttons_layout = QHBoxLayout()
-                self.start_measurement_btn = QPushButton('Start')
-                self.start_measurement_btn.clicked.connect(self.start_measurement)
-                self.stop_btn = QPushButton('Stop')
-                self.stop_btn.clicked.connect(self.stop_measurement)
-                self.rst_btn = QPushButton('Reset')
-                self.rst_btn.clicked.connect(self.rst)
-                self.start_measurement_btn.setStyleSheet(self.Button_stylesheet)
-                self.stop_btn.setStyleSheet(self.Button_stylesheet)
-                self.rst_btn.setStyleSheet(self.Button_stylesheet)
-                self.buttons_layout.addStretch(4)
-                self.buttons_layout.addWidget(self.rst_btn)
-                self.buttons_layout.addWidget(self.stop_btn)
-                self.buttons_layout.addWidget(self.start_measurement_btn)
-
-                self.button_container = QWidget()
-                self.button_container.setLayout(self.buttons_layout)
-                self.button_container.setFixedSize(1150,80)
-                self.figure_container_layout.addWidget(figure_group_box)
-                self.figure_container.setLayout(self.figure_container_layout)
-                self.graphing_layout.addWidget(self.figure_container)
-                self.main_layout.addLayout(self.graphing_layout)
-                self.main_layout.addWidget(self.button_container)
-
-                self.setCentralWidget(self.scroll_area)
-                self.select_preset_buttom.setStyleSheet(self.Button_stylesheet)
-                self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
-                self.refresh_btn.setStyleSheet(self.Button_stylesheet)
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+    def create_rs232_settings_ui(self):
+        """Create RS232 configuration UI"""
+        # Clear existing layout
+        self.safe_clear_layout("instrument_rs232_layout")
+
+        # RS232 Settings Layout
+        rs232_main_layout = QHBoxLayout()
+
+        # Baud Rate
+        baud_rate_label = QLabel("Baud Rate:")
+        baud_rate_label.setFont(self.font)
+        self.baud_rate_combo = QComboBox()
+        self.baud_rate_combo.setFont(self.font)
+        self.baud_rate_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.baud_rate_combo.addItems([
+            "300", "1200", "2400", "4800", "9600",
+            "19200", "38400", "57600", "115200"
+        ])
+        self.baud_rate_combo.setCurrentText("9600")  # Default
+
+        # Data Bits
+        data_bits_label = QLabel("Data Bits:")
+        data_bits_label.setFont(self.font)
+        self.data_bits_combo = QComboBox()
+        self.data_bits_combo.setFont(self.font)
+        self.data_bits_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.data_bits_combo.addItems(["5", "6", "7", "8"])
+        self.data_bits_combo.setCurrentText("8")  # Default
+
+        # Parity
+        parity_label = QLabel("Parity:")
+        parity_label.setFont(self.font)
+        self.parity_combo = QComboBox()
+        self.parity_combo.setFont(self.font)
+        self.parity_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.parity_combo.addItems(["None", "Even", "Odd", "Mark", "Space"])
+        self.parity_combo.setCurrentText("None")  # Default
+
+        # Stop Bits
+        stop_bits_label = QLabel("Stop Bits:")
+        stop_bits_label.setFont(self.font)
+        self.stop_bits_combo = QComboBox()
+        self.stop_bits_combo.setFont(self.font)
+        self.stop_bits_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.stop_bits_combo.addItems(["1", "1.5", "2"])
+        self.stop_bits_combo.setCurrentText("1")  # Default
+
+        # Flow Control
+        flow_control_label = QLabel("Flow Control:")
+        flow_control_label.setFont(self.font)
+        self.flow_control_combo = QComboBox()
+        self.flow_control_combo.setFont(self.font)
+        self.flow_control_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.flow_control_combo.addItems(["None", "Hardware (RTS/CTS)", "Software (XON/XOFF)"])
+        self.flow_control_combo.setCurrentText("None")  # Default
+
+        # Add widgets to layout
+        rs232_main_layout.addWidget(baud_rate_label)
+        rs232_main_layout.addWidget(self.baud_rate_combo)
+        rs232_main_layout.addWidget(data_bits_label)
+        rs232_main_layout.addWidget(self.data_bits_combo)
+        rs232_main_layout.addWidget(parity_label)
+        rs232_main_layout.addWidget(self.parity_combo)
+        rs232_main_layout.addWidget(stop_bits_label)
+        rs232_main_layout.addWidget(self.stop_bits_combo)
+        rs232_main_layout.addWidget(flow_control_label)
+        rs232_main_layout.addWidget(self.flow_control_combo)
+        return rs232_main_layout
 
     def refresh_Connection_List(self):
         try:
@@ -1734,6 +2029,19 @@ class Measurement(QMainWindow):
                     self.instru_connect_btn.setText('Disconnect')
                 else:
                     self.instru_connect_btn.setText('Connect')
+        elif self.CUSTOMIZED_1:
+            if self.current_connection_index == 1:
+                if self.RIGOLDSA875_CONNECTED:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
+
+            elif self.current_connection_index == 2:
+                if self.BK9129B_CONNECTED:
+                    self.instru_connect_btn.setText('Disconnect')
+                else:
+                    self.instru_connect_btn.setText('Connect')
+
 
     def bnc845rf_window_ui(self):
         self.bnc845rf_main_layout = QHBoxLayout()
@@ -3341,6 +3649,18 @@ class Measurement(QMainWindow):
             # self.DSP7265.close()
         except Exception:
             pass
+
+    def safe_clear_layout(self, layout_attr_name):
+        """Safely clear a layout if it exists"""
+        if hasattr(self, layout_attr_name):
+            layout = getattr(self, layout_attr_name)
+            if layout is not None:
+                try:
+                    self.clear_layout(layout)
+                    return True
+                except Exception as e:
+                    print(f"Error clearing {layout_attr_name}: {e}")
+        return False
 
     def stop_measurement(self):
         try:
