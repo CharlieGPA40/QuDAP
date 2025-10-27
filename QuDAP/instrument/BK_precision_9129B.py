@@ -1,4 +1,4 @@
-class COMMAND:
+class BK_9129_COMMAND:
     # IEEE488.2 Common Commands
     def clear(self, instrument):
         """Clear all status registers"""
@@ -92,9 +92,9 @@ class COMMAND:
         instrument.write('SOUR:OUTP:PROT:CLE')
 
     # Voltage Commands
-    def set_voltage(self, instrument, voltage: float, unit: str = 'V'):
+    def set_voltage(self, instrument, voltage_channel: float = '', unit_channel: str = 'V'):
         """Set voltage for selected channel (unit: V, mV, kV, uV)"""
-        instrument.write(f'VOLT {voltage}{unit}')
+        instrument.write(f'VOLT {voltage_channel}{unit_channel}')
 
     def get_voltage(self, instrument) -> str:
         """Query voltage setting for selected channel"""

@@ -1,4 +1,4 @@
-class COMMAND:
+class RIGOL_COMMAND:
     """
     RIGOL DSA800 Series Spectrum Analyzer Command Class
     Supports models: DSA815, DSA832, DSA875 (and -TG variants)

@@ -164,7 +164,6 @@ class VSM_Data_Processing(QMainWindow):
     def init_ui(self):
         try:
             if self.isInit == False:
-                print("Starting UI initialization...")
                 self.isInit = True
 
                 # Load stylesheets with fallback
@@ -466,8 +465,6 @@ class VSM_Data_Processing(QMainWindow):
                 self.VSM_data_extraction_main_layout.addStretch(1)
 
                 self.setCentralWidget(self.scroll_area)
-
-                print("UI initialization complete!")
 
         except Exception as e:
             print(f"Error in init_ui: {e}")

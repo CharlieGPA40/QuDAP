@@ -40,10 +40,14 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 try:
     from GUI.Experiment.BNC845RF import COMMAND
+    from instrument.BK_precision_9129B import BK_9129_COMMAND
+    from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from GUI.Experiment.rigol_experiment import RIGOL_Measurement
 except ImportError:
     from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from QuDAP.GUI.Experiment.rigol_experiment import RIGOL_Measurement
+    from QuDAP.instrument.BK_precision_9129B import BK_9129_COMMAND
+    from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
 
 
 class NotificationManager:
@@ -665,6 +669,32 @@ class Measurement(QMainWindow):
             self.ac_current_freq = None
             self.ac_current_offset = None
             self.ac_current_waveform = None
+            self.INSTRUMENT_RS232_PRESETS = {
+                "DSP 7265 Lock-in": {
+                    'baud_rate': 9600,
+                    'data_bits': 8,
+                    'parity': 'None',
+                    'stop_bits': 1.0,
+                    'flow_control': 'None',
+                    'id_command': 'ID'
+                },
+                "BNC 845 RF": {
+                    'baud_rate': 9600,
+                    'data_bits': 8,
+                    'parity': 'None',
+                    'stop_bits': 1.0,
+                    'flow_control': 'None',
+                    'id_command': '*IDN?'
+                },
+                "B&K Precision 9205B": {
+                    'baud_rate': 9600,
+                    'data_bits': 8,
+                    'parity': 'None',
+                    'stop_bits': 1.0,
+                    'flow_control': 'None',
+                    'id_command': '*IDN?'
+                }
+            }
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -746,8 +776,6 @@ class Measurement(QMainWindow):
         self.radio_btn_layout.addWidget(self.customize_radio_button)
         self.radio_btn_layout.addWidget(self.demo_radio_buttom)
 
-
-
         self.measurement_type_layout = QHBoxLayout()
 
         self.select_preset_btn_layout = QHBoxLayout()
@@ -760,7 +788,7 @@ class Measurement(QMainWindow):
         self.preset_group_box.setLayout(self.preset_layout)
 
         self.preset_container = QWidget()
-        self.preset_container.setFixedSize(380, 180)
+        self.preset_container.setFixedSize(380, 200)
 
         self.preset_container_layout = QHBoxLayout()
         self.preset_container_layout.addWidget(self.preset_group_box, 1)
@@ -1104,7 +1132,7 @@ class Measurement(QMainWindow):
 
                         self.connection_group_box.setLayout(self.ppms_connection)
                         self.ppms_main_layout.addWidget(self.connection_group_box)
-                        self.ppms_container.setFixedSize(380, 180)
+                        self.ppms_container.setFixedSize(380, 200)
                         self.ppms_container.setLayout(self.ppms_main_layout)
 
                         self.instrument_connection_layout.addWidget(self.ppms_container)
@@ -1182,7 +1210,7 @@ class Measurement(QMainWindow):
                     self.connection_combo = WideComboBox()
                     self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
                     self.connection_combo.setFont(self.font)
-
+                    self.connection_combo.currentIndexChanged.connect(self.instrument_connection_modification)
                     self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
                     self.refresh_btn.clicked.connect(self.refresh_Connection_List)
                     self.instru_connect_btn = QPushButton('Connect')
@@ -1202,7 +1230,7 @@ class Measurement(QMainWindow):
                     self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
                     self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
                     self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-                    self.instrument_container.setFixedSize(380, 180)
+                    self.instrument_container.setFixedSize(380, 200)
                     self.instrument_container.setLayout(self.instrument_main_layout)
                     self.instrument_connection_layout.addWidget(self.instrument_container)
 
@@ -1287,6 +1315,7 @@ class Measurement(QMainWindow):
                     self.connection_combo = WideComboBox()
                     self.connection_combo.setStyleSheet(self.QCombo_stylesheet)
                     self.connection_combo.setFont(self.font)
+                    self.connection_combo.currentIndexChanged.connect(self.instrument_connection_modification)
 
                     self.refresh_btn = QPushButton(icon=QIcon("GUI/Icon/refresh.svg"))
                     self.refresh_btn.clicked.connect(self.refresh_Connection_List)
@@ -1307,7 +1336,7 @@ class Measurement(QMainWindow):
                     self.Instru_main_layout.addLayout(self.instru_cnt_btn_layout)
                     self.instrument_connection_group_box.setLayout(self.Instru_main_layout)
                     self.instrument_main_layout.addWidget(self.instrument_connection_group_box)
-                    self.instrument_container.setFixedSize(770, 180)
+                    self.instrument_container.setFixedSize(770, 200)
                     self.instrument_container.setLayout(self.instrument_main_layout)
                     self.instrument_connection_layout.addWidget(self.instrument_container)
 
@@ -1331,10 +1360,29 @@ class Measurement(QMainWindow):
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
+    def instrument_connection_modification(self):
+        connection_string = self.connection_combo.currentText()
+        current_instrument = self.instruments_selection_combo_box.currentText()
+        if "ASRL" in connection_string or "COM" in connection_string:
+            self.safe_clear_layout("instrument_rs232_layout")
+            self.instrument_rs232_layout.addLayout(self.create_rs232_settings_ui())
+            self.apply_preset_rs232_settings(current_instrument)
+        else:
+            self.safe_clear_layout("instrument_rs232_layout")
+
+    def apply_preset_rs232_settings(self, instrument_name):
+        """Apply preset RS232 settings for known instruments"""
+        if instrument_name in self.INSTRUMENT_RS232_PRESETS:
+            preset = self.INSTRUMENT_RS232_PRESETS[instrument_name]
+            self.baud_rate_combo.setCurrentText(str(preset['baud_rate']))
+            self.data_bits_combo.setCurrentText(str(preset['data_bits']))
+            self.parity_combo.setCurrentText(preset['parity'])
+            self.stop_bits_combo.setCurrentText(str(preset['stop_bits']))
+            self.flow_control_combo.setCurrentText(preset['flow_control'])
+
     def create_rs232_settings_ui(self):
         """Create RS232 configuration UI"""
         # Clear existing layout
-        self.safe_clear_layout("instrument_rs232_layout")
 
         # RS232 Settings Layout
         rs232_main_layout = QHBoxLayout()
@@ -1857,11 +1905,72 @@ class Measurement(QMainWindow):
                     QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                     self.instru_connect_btn.setText('Connect')
 
+    def get_rs232_settings(self):
+        """Get current RS232 settings as a dictionary"""
+        if not hasattr(self, 'baud_rate_combo'):
+            return None
+
+        return {
+            'baud_rate': int(self.baud_rate_combo.currentText()),
+            'data_bits': int(self.data_bits_combo.currentText()),
+            'parity': self.parity_combo.currentText(),
+            'stop_bits': float(self.stop_bits_combo.currentText()),
+            'flow_control': self.flow_control_combo.currentText()
+        }
+
+    def connect_rs232_instrument(self, instrument):
+        """Connect to instrument via RS232 using PyVISA"""
+        try:
+            settings = self.get_rs232_settings()
+            if settings:
+                instrument.baud_rate = settings['baud_rate']
+                instrument.data_bits = settings['data_bits']
+
+                # Set parity
+                parity_map = {
+                    'None': visa.constants.Parity.none,
+                    'Even': visa.constants.Parity.even,
+                    'Odd': visa.constants.Parity.odd,
+                    'Mark': visa.constants.Parity.mark,
+                    'Space': visa.constants.Parity.space
+                }
+                instrument.parity = parity_map[settings['parity']]
+
+                # Set stop bits
+                stopbits_map = {
+                    1.0: visa.constants.StopBits.one,
+                    1.5: visa.constants.StopBits.one_and_a_half,
+                    2.0: visa.constants.StopBits.two
+                }
+                instrument.stop_bits = stopbits_map[settings['stop_bits']]
+
+                # Set flow control
+                if settings['flow_control'] == 'Hardware (RTS/CTS)':
+                    instrument.flow_control = visa.constants.ControlFlow.rts_cts
+                elif settings['flow_control'] == 'Software (XON/XOFF)':
+                    instrument.flow_control = visa.constants.ControlFlow.xon_xoff
+                else:
+                    instrument.flow_control = visa.constants.ControlFlow.none
+
+            # Set timeout (milliseconds)
+            instrument.timeout = 5000
+            return instrument
+
+        except visa.Error as e:
+            QMessageBox.critical(self, "Connection Error", f"Failed to connect:\n{str(e)}")
+            return None
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Unexpected error:\n{str(e)}")
+            return None
+
     def connect_keithley_2182(self):
         if self.Keithley_2182_Connected == False:
             try:
                 if not self.demo_mode:
-                    self.keithley_2182nv = self.rm.open_resource(self.current_connection, timeout=10000)
+                    self.keithley_2182nv = self.rm.open_resource(self.current_connection)
+                    if "ASRL" in self.current_connection or "COM" in self.current_connection:
+                        self.connect_rs232_instrument(self.keithley_2182nv)
+                    self.keithley_2182nv.timeout=10000
                     time.sleep(2)
                     model_2182 = self.keithley_2182nv.query('*IDN?')
                     QMessageBox.information(self, "Connected", F"Connected to {model_2182}")
@@ -1885,7 +1994,10 @@ class Measurement(QMainWindow):
         if self.Ketihley_6221_Connected == False:
             try:
                 if not self.demo_mode:
-                    self.keithley_6221 = self.rm.open_resource(self.current_connection, timeout=10000)
+                    self.keithley_6221 = self.rm.open_resource(self.current_connection)
+                    if "ASRL" in self.current_connection or "COM" in self.current_connection:
+                        self.connect_rs232_instrument(self.keithley_6221)
+                    self.keithley_6221.timeout=10000
                     time.sleep(2)
                     Model_6221 = self.keithley_6221.query('*IDN?')
                     QMessageBox.information(self, "Connected", F"Connected to {Model_6221}")
@@ -1911,7 +2023,10 @@ class Measurement(QMainWindow):
         if self.DSP7265_Connected == False:
             try:
                 if not self.demo_mode:
-                    self.DSP7265 = self.rm.open_resource(self.current_connection, timeout=10000)
+                    self.DSP7265 = self.rm.open_resource(self.current_connection)
+                    if "ASRL" in self.current_connection or "COM" in self.current_connection:
+                        self.connect_rs232_instrument(self.DSP7265)
+                    self.DSP7265.timeout = 10000
                     time.sleep(2)
                     DSPModel = self.DSP7265.query('ID')
                     QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
@@ -1944,7 +2059,10 @@ class Measurement(QMainWindow):
     def connect_bnc_845_rf(self):
         if self.BNC845RF_CONNECTED == False:
             try:
-                self.bnc845rf = self.rm.open_resource(self.current_connection, timeout=10000)
+                self.bnc845rf = self.rm.open_resource(self.current_connection)
+                if "ASRL" in self.current_connection or "COM" in self.current_connection:
+                    self.connect_rs232_instrument(self.bnc845rf)
+                self.bnc845rf.timeout = 10000
                 time.sleep(2)
                 bnc845rf_model = self.bnc845rf.query('*IDN?')
                 self.BNC845RF_CONNECTED = True
@@ -1957,6 +2075,62 @@ class Measurement(QMainWindow):
             self.instru_connect_btn.setText('Connect')
             self.close_dsp7265()
             self.DSP7265_Connected = False
+
+    def connect_bk9129(self):
+        if self.BK9129B_CONNECTED == False:
+            try:
+                self.bk9129 = self.rm.open_resource(self.current_connection)
+                if "ASRL" in self.current_connection or "COM" in self.current_connection:
+                    self.connect_rs232_instrument(self.bk9129)
+                self.bk9129.timeout = 10000
+                time.sleep(2)
+                bk9129_model = BK_9129_COMMAND().get_id(self.bk9129)
+                self.BK9129B_CONNECTED = True
+                QMessageBox.information(self, "Connected", F"Connected to {bk9129_model}")
+                self.instru_connect_btn.setText('Disconnect')
+                self.customized_1_ui()
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+        else:
+            self.instru_connect_btn.setText('Connect')
+            self.close_bk9129()
+            self.DSP7265_Connected = False
+
+    def connect_rigol_dsa875(self):
+        if self.RIGOLDSA875_CONNECTED == False:
+            try:
+                self.rigol_dsa875 = self.rm.open_resource(self.current_connection)
+                if "ASRL" in self.current_connection or "COM" in self.current_connection:
+                    self.connect_rs232_instrument(self.rigol_dsa875)
+                self.rigol_dsa875.timeout = 10000
+                time.sleep(2)
+                rigol_dsa875_model = RIGOL_COMMAND().get_id(self.rigol_dsa875)
+                self.RIGOLDSA875_CONNECTED = True
+                QMessageBox.information(self, "Connected", F"Connected to {rigol_dsa875_model}")
+                self.instru_connect_btn.setText('Disconnect')
+                self.customized_1_ui()
+            except visa.errors.VisaIOError:
+                QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+        else:
+            self.instru_connect_btn.setText('Connect')
+            self.close_bk9129()
+            self.DSP7265_Connected = False
+
+    def close_rigol_dsa875(self):
+        try:
+            self.rigol_dsa875.close()
+            self.RIGOLDSA875_CONNECTED = False
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+    def close_bk9129(self):
+        try:
+            self.bk9129.close()
+            self.BK9129B_CONNECTED = False
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
     def close_keithley_2182(self):
         try:
@@ -2042,6 +2216,10 @@ class Measurement(QMainWindow):
                 else:
                     self.instru_connect_btn.setText('Connect')
 
+    def customized_1_ui(self):
+        self.rigol_measurement = RIGOL_Measurement(self.rigol_dsa875, self.bk9129)
+        self.customize_layout_class = self.rigol_measurement.init_ui()
+        self.main_layout.addLayout(self.customize_layout_class)
 
     def bnc845rf_window_ui(self):
         self.bnc845rf_main_layout = QHBoxLayout()

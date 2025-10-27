@@ -144,7 +144,6 @@ class VSM_Background_Removal(QMainWindow):
             if self.isInit:
                 return
 
-            print("Starting UI initialization...")
             self.isInit = True
 
             # Load stylesheets
