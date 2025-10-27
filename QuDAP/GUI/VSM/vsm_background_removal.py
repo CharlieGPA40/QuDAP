@@ -555,7 +555,7 @@ class VSM_Background_Removal(QMainWindow):
         QApplication.processEvents()
 
         if self.data_folder:
-            data_csv_list_path = self.data_folder
+            data_csv_list_path = self.data_folder + '/'
             if not os.path.exists(data_csv_list_path):
                 data_csv_list_path = self.data_folder + '/'
 
@@ -566,13 +566,12 @@ class VSM_Background_Removal(QMainWindow):
             data_files_dict = {os.path.basename(f): f for f in self.data_csv_files}
 
         data_number_CSV = len(data_csv_list)
-
         if data_number_CSV == 0:
             QMessageBox.warning(self, "No Files", "No CSV files found in data input.")
             return
 
         if self.background_folder:
-            bg_csv_list_path = self.background_folder
+            bg_csv_list_path = self.background_folder + '/'
             if not os.path.exists(bg_csv_list_path):
                 bg_csv_list_path = self.background_folder + '/'
 
