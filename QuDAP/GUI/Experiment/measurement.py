@@ -1117,6 +1117,7 @@ class Measurement(QMainWindow):
             self.ac_current_freq = None
             self.ac_current_offset = None
             self.ac_current_waveform = None
+            self.KEITHLEY_6221_TEST_ON = False
             self.always_enabled_widgets = []
             self.INSTRUMENT_RS232_PRESETS = {
                 "DSP 7265 Lock-in": {
@@ -3561,7 +3562,22 @@ class Measurement(QMainWindow):
         self.Keithey_6221_main_layout.addLayout(self.keithley_6221_radio_button_layout)
         self.Keithey_curSour_layout = QVBoxLayout()
         self.Keithey_6221_main_layout.addLayout(self.Keithey_curSour_layout)
+
+
         return self.Keithey_6221_main_layout
+
+    def keithley_6221_test_button_ui(self):
+        self.keithley_6221_test_layout_container = QWidget()
+        self.keithley_6221_test_layout_container.setMinimumHeight(60)
+        self.keithley_6221_test_layout = QHBoxLayout()
+        self.keithley_6221_test_button = QPushButton("On")
+        self.keithley_6221_test_button.setFont(self.font)
+        self.keithley_6221_test_button.setStyleSheet(self.Button_stylesheet)
+        self.keithley_6221_test_button.clicked.connect(self.keithley_6221_test_on_off)
+        self.keithley_6221_test_layout.addStretch(1)
+        self.keithley_6221_test_layout.addWidget(self.keithley_6221_test_button)
+        self.keithley_6221_test_layout_container.setLayout(self.keithley_6221_test_layout)
+        return self.keithley_6221_test_layout_container
 
     def keithley_6221_dc(self):
         try:
@@ -3614,6 +3630,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_DC_single_layout.addWidget(self.keithley_6221_DC_single_combobox)
         self.keithley_6221_DC_range_single_layout.addLayout(self.keithley_6221_DC_single_layout)
         self.Keithey_curSour_layout.addLayout(self.keithley_6221_DC_range_single_layout)
+        self.Keithey_curSour_layout.addWidget(self.keithley_6221_test_button_ui())
 
         self.keithley_6221_DC_selection_btn_group = QButtonGroup()
         self.keithley_6221_DC_selection_btn_group.addButton(self.keithley_6221_DC_range_checkbox)
@@ -3782,10 +3799,169 @@ class Measurement(QMainWindow):
         self.keithley_6221_ac_range_single_layout.addLayout(self.keithley_6221_ac_phase_maker_trigger_layout)
 
         self.Keithey_curSour_layout.addLayout(self.keithley_6221_ac_range_single_layout)
+        self.Keithey_curSour_layout.addWidget(self.keithley_6221_test_button_ui())
 
         self.keithley_6221_ac_selection_btn_group = QButtonGroup()
         self.keithley_6221_ac_selection_btn_group.addButton(self.keithley_6221_ac_range_checkbox)
         self.keithley_6221_ac_selection_btn_group.addButton(self.keithley_6221_ac_single_checkbox)
+
+    def keithley_6221_test_on_off(self):
+        if not self.KEITHLEY_6221_TEST_ON:
+            self.KEITHLEY_6221_TEST_ON = True
+            self.keithley_6221_test_button.setText('OFF')
+            if not self.demo_mode:
+                if self.keithley_6221_DC_radio.isChecked():
+                    if self.keithley_6221_DC_range_checkbox.isChecked():
+                        init_current = float(self.keithley_6221_DC_range_init_entry.text())
+                        dc_range_unit = self.keithley_6221_DC_range_combobox.currentIndex()
+                        if dc_range_unit != 0:
+                            if dc_range_unit == 1:  # mA
+                                DC_range_selected_unit = 'e-3'
+                            elif dc_range_unit == 2:  # uA
+                                DC_range_selected_unit = 'e-6'
+                            elif dc_range_unit == 3:  # nA
+                                DC_range_selected_unit = 'e-9'
+                            elif dc_range_unit == 4:  # pA
+                                DC_range_selected_unit = 'e-12'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.keithley_6221_test_button.setText('ON')
+                            self.KEITHLEY_6221_TEST_ON = False
+                            return
+                        current = [f"{init_current}{DC_range_selected_unit}"]
+                    elif self.keithley_6221_DC_single_checkbox.isChecked():
+                        single_dc_current = self.keithley_6221_DC_single_entry.text()
+                        single_dc_current = single_dc_current.replace(" ", "")
+                        single_dc_current = [float(item) for item in single_dc_current.split(',')]
+                        signle_dc_unit = self.keithley_6221_DC_single_combobox.currentIndex()
+                        if signle_dc_unit != 0:
+                            if signle_dc_unit == 1:  # mA
+                                DC_single_selected_unit = 'e-3'
+                            elif signle_dc_unit == 2:  # uA
+                                DC_single_selected_unit = 'e-6'
+                            elif signle_dc_unit == 3:  # nA
+                                DC_single_selected_unit = 'e-9'
+                            elif signle_dc_unit == 4:  # pA
+                                DC_single_selected_unit = 'e-12'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.keithley_6221_test_button.setText('ON')
+                            self.KEITHLEY_6221_TEST_ON = False
+                            return
+                        current = [f"{single_dc_current[0]}{DC_single_selected_unit}"]
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                        self.keithley_6221_test_button.setText('ON')
+                        self.KEITHLEY_6221_TEST_ON = False
+                        return
+                    if current:
+                        self.keithley_6221.write(":OUTP OFF")  # Set source function to current
+                        self.keithley_6221.write("CURRent:RANGe:AUTO ON \n")
+                        self.keithley_6221.write(f'CURR {current} \n')
+                        self.keithley_6221.write(":OUTP ON")  # Turn on the output
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please enter the current')
+                        self.keithley_6221_test_button.setText('ON')
+                        self.KEITHLEY_6221_TEST_ON = False
+                elif self.keithley_6221_ac_radio.isChecked():
+                    if self.keithley_6221_ac_range_checkbox.isChecked():
+                        init_current = float(self.keithley_6221_ac_range_init_entry.text())
+                        ac_range_unit = self.keithley_6221_ac_range_combobox.currentIndex()
+                        if ac_range_unit != 0:
+                            if ac_range_unit == 1:  # mA
+                                ac_range_selected_unit = 'e-3'
+                            elif ac_range_unit == 2:  # uA
+                                ac_range_selected_unit = 'e-6'
+                            elif ac_range_unit == 3:  # nA
+                                ac_range_selected_unit = 'e-9'
+                            elif ac_range_unit == 4:  # pA
+                                ac_range_selected_unit = 'e-12'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.keithley_6221_test_button.setText('ON')
+                            self.KEITHLEY_6221_TEST_ON = False
+                            return
+                        current = [f"{init_current}{ac_range_selected_unit}"]
+                    elif self.keithley_6221_ac_single_checkbox.isChecked():
+                        single_ac_current = self.keithley_6221_ac_single_entry.text()
+                        single_ac_current = single_ac_current.replace(" ", "")
+                        single_ac_current = [float(item) for item in self.single_ac_current.split(',')]
+                        ac_single_unit = self.keithley_6221_ac_single_combobox.currentIndex()
+                        if ac_single_unit != 0:
+                            if ac_single_unit == 1:  # mA
+                                ac_range_selected_unit = 'e-3'
+                            elif ac_single_unit == 2:  # uA
+                                ac_range_selected_unit = 'e-6'
+                            elif ac_single_unit == 3:  # nA
+                                ac_range_selected_unit = 'e-9'
+                            elif ac_single_unit == 4:  # pA
+                                ac_range_selected_unit = 'e-12'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.keithley_6221_test_button.setText('ON')
+                            self.KEITHLEY_6221_TEST_ON = False
+                            return
+                        current = [f"{single_ac_current[0]}{ac_range_selected_unit}"]
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                        self.keithley_6221_test_button.setText('ON')
+                        self.KEITHLEY_6221_TEST_ON = False
+                        return
+
+                    ac_current_waveform_index = self.keithley_6221_ac_waveform_combo_box.currentIndex()
+                    if ac_current_waveform_index != 0:
+                        if self.ac_single_unit == 1:  # sine
+                            ac_current_waveform = "SIN"
+                        elif self.ac_single_unit == 2:  # square
+                            ac_current_waveform = "SQU"
+                        elif self.ac_single_unit == 3:  # ramp
+                            ac_current_waveform = "RAMP"
+                        elif self.ac_single_unit == 4:  # arbx
+                            ac_current_waveform = "ARB0"
+                        else:
+                            ac_current_waveform = None
+
+                    ac_current_freq = self.keithley_6221_ac_freq_entry_box.text()
+                    ac_current_offset = self.keithley_6221_ac_offset_entry_box.text()
+                    ac_offset_unit = self.keithley_6221_ac_offset_units_combo.currentIndex()
+                    if ac_offset_unit == 0:
+                        ac_offset_unit = ''
+                    elif ac_offset_unit == 1:  # mA
+                        ac_offset_unit = 'e-3'
+                    elif ac_offset_unit == 2:  # uA
+                        ac_offset_unit = 'e-6'
+                    elif ac_offset_unit == 3:  # nA
+                        ac_offset_unit = 'e-9'
+                    elif ac_offset_unit == 4:  # pA
+                        ac_offset_unit = 'e-12'
+                    ac_current_offset = ac_current_offset + ac_offset_unit
+                    if current and ac_current_waveform and ac_current_freq:
+                        self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+                        self.keithley_6221.write('CURR:RANG:AUTO ON \n')
+                        self.keithley_6221.write(f'SOUR:WAVE:FUNC {ac_current_waveform} \n')
+                        self.keithley_6221.write(f'SOUR:WAVE:AMPL {current} \n')
+                        self.keithley_6221.write(f'SOUR:WAVE:FREQ {ac_current_freq} \n')
+                        self.keithley_6221.write(f'SOUR:WAVE:OFFset {ac_current_offset} \n')
+                        self.keithley_6221.write('SOUR:WAVE:RANG BEST \n')
+                        self.keithley_6221.write('SOUR:WAVE:ARM \n')
+                        self.keithley_6221.write('SOUR:WAVE:INIT \n')
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Missing Items')
+                        self.keithley_6221_test_button.setText('ON')
+                        self.KEITHLEY_6221_TEST_ON = False
+        else:
+            self.KEITHLEY_6221_TEST_ON = False
+            self.keithley_6221_test_button.setText('ON')
+            try:
+                if not self.demo_mode:
+                    self.keithley_6221.write(":OUTP OFF")  # Set source function to current
+                    self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+            except Exception as e:
+                None
 
     def dsp7265_imode_selection(self):
         try:
@@ -3845,8 +4021,29 @@ class Measurement(QMainWindow):
         self.dsp_sens_index = self.dsp7265_sens_combo.currentIndex()
         self.dsp_sens_text = self.dsp7265_sens_combo.currentText()
         if self.dsp_sens_index != 0:
-            self.DSP7265.write(f'SEN {str(self.dsp_sens_index)}')
-            self.dsp7265_sensitivity_reading_value_label.setText(self.dsp_sens_text)
+            self.DSP7265.write(f'SEN {str(self.dsp_sens_index-1)}')
+            sen_idx = int(self.DSP7265.query("SEN"))
+            mode = int(self.DSP7265.query("IMODE"))
+
+            if mode > 0:  # Current mode
+                sen_values = ["2fA", "5fA", "10fA", "20fA", "50fA", "100fA", "200fA",
+                              "500fA", "1pA", "2pA", "5pA", "10pA", "20pA", "50pA",
+                              "100pA", "200pA", "500pA", "1nA", "2nA", "5nA", "10nA",
+                              "20nA", "50nA", "100nA", "200nA", "500nA", "1\u00B5A"]
+            else:  # Voltage mode
+                sen_values = ["Unknown", "2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV",
+                              "1 \u00B5V", "2 \u00B5V", "5 \u00B5V", "10 \u00B5V", "20 \u00B5V", "50 \u00B5V",
+                              "100 \u00B5V",
+                              "200 \u00B5V", "500 \u00B5V", "1 mV", "2 mV", "5 mV", "10 mV", "20 mV", "50 mV", "100 mV",
+                              "200 mV",
+                              "500 mV",
+                              "1 V", "Auto"]
+
+            sensitivity_read = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
+            self.dsp7265_sensitivity_reading_value_label.setText(sensitivity_read)
+            if sen_idx != self.dsp_sens_index - 1:
+                QMessageBox.warning(self, "Sensitivity Setting Error!",
+                                    "Please try to turn on the source and try again!")
         elif self.dsp_sens_index > 27:
             self.DSP7265.write('AS')
 
@@ -3855,7 +4052,16 @@ class Measurement(QMainWindow):
         self.dsp_tc_text = self.dsp7265_TC_combo.currentText()
         if self.dsp_tc_index != 0:
             self.DSP7265.write(f'TC {str(self.dsp_tc_index-1)}')
-            self.dsp7265_time_constant_reading_value_label.setText(self.dsp_tc_text)
+            tc_idx = int(self.DSP7265.query("TC"))
+            tc_values = ["10 \u00B5s", "20 \u00B5s", "40 \u00B5s", "80 \u00B5s", "160 \u00B5s"
+                , "320 \u00B5s", "640 \u00B5s", "5 ms", "10 ms", "20 ms", "50 ms", "100 ms", "200 ms", "500 ms"
+                , "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s", "500 s", "1 ks", "2 ks", '5 ks',
+                         "10 ks", "20 ks", "50 ks", "100 ks"]
+            time_constant_read = tc_values[tc_idx] if tc_idx < len(tc_values) else "Unknown"
+            self.dsp7265_time_constant_reading_value_label.setText(time_constant_read)
+            if tc_idx != self.dsp_tc_index-1:
+                QMessageBox.warning(self, "Time Constant Setting Error!", "Please try to turn on the source and try again!")
+
 
     def dsp726_ref_channel_selection(self):
         self.dsp_ref_channel_index = self.dsp7265_ref_channel_combo.currentIndex()
