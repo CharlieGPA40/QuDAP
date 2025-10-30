@@ -40,12 +40,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 try:
-    from GUI.Experiment.BNC845RF import COMMAND
+    # from GUI.Experiment.BNC845RF import COMMAND
     from instrument.BK_precision_9129B import BK_9129_COMMAND
     from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from GUI.Experiment.rigol_experiment import RIGOL_Measurement
 except ImportError:
-    from QuDAP.GUI.Experiment.BNC845RF import COMMAND
+    # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from QuDAP.GUI.Experiment.rigol_experiment import RIGOL_Measurement
     from QuDAP.instrument.BK_precision_9129B import BK_9129_COMMAND
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
@@ -3888,7 +3888,7 @@ class Measurement(QMainWindow):
                     elif self.keithley_6221_ac_single_checkbox.isChecked():
                         single_ac_current = self.keithley_6221_ac_single_entry.text()
                         single_ac_current = single_ac_current.replace(" ", "")
-                        single_ac_current = [float(item) for item in self.single_ac_current.split(',')]
+                        single_ac_current = [float(item) for item in single_ac_current.split(',')]
                         ac_single_unit = self.keithley_6221_ac_single_combobox.currentIndex()
                         if ac_single_unit != 0:
                             if ac_single_unit == 1:  # mA
