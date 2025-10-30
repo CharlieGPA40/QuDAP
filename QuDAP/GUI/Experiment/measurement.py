@@ -41,14 +41,16 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 try:
     # from GUI.Experiment.BNC845RF import COMMAND
-    from instrument.BK_precision_9129B import BK_9129_COMMAND
-    from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
-    from GUI.Experiment.rigol_experiment import RIGOL_Measurement
-except ImportError:
-    # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from QuDAP.GUI.Experiment.rigol_experiment import RIGOL_Measurement
     from QuDAP.instrument.BK_precision_9129B import BK_9129_COMMAND
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
+    
+except ImportError:
+    # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
+    from instrument.BK_precision_9129B import BK_9129_COMMAND
+    from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
+    from GUI.Experiment.rigol_experiment import RIGOL_Measurement
+    
 
 class ExitProtection:
     def __init__(self):
@@ -3859,7 +3861,7 @@ class Measurement(QMainWindow):
                     if current:
                         self.keithley_6221.write(":OUTP OFF")  # Set source function to current
                         self.keithley_6221.write("CURRent:RANGe:AUTO ON \n")
-                        self.keithley_6221.write(f'CURR {current} \n')
+                        self.keithley_6221.write(f'CURR {current[0]} \n')
                         self.keithley_6221.write(":OUTP ON")  # Turn on the output
                     else:
                         QMessageBox.warning(self, 'Warning', 'Please enter the current')
@@ -3914,13 +3916,13 @@ class Measurement(QMainWindow):
 
                     ac_current_waveform_index = self.keithley_6221_ac_waveform_combo_box.currentIndex()
                     if ac_current_waveform_index != 0:
-                        if self.ac_single_unit == 1:  # sine
+                        if ac_current_waveform_index == 1:  # sine
                             ac_current_waveform = "SIN"
-                        elif self.ac_single_unit == 2:  # square
+                        elif ac_current_waveform_index == 2:  # square
                             ac_current_waveform = "SQU"
-                        elif self.ac_single_unit == 3:  # ramp
+                        elif ac_current_waveform_index == 3:  # ramp
                             ac_current_waveform = "RAMP"
-                        elif self.ac_single_unit == 4:  # arbx
+                        elif ac_current_waveform_index == 4:  # arbx
                             ac_current_waveform = "ARB0"
                         else:
                             ac_current_waveform = None
@@ -3943,7 +3945,7 @@ class Measurement(QMainWindow):
                         self.keithley_6221.write("SOUR:WAVE:ABOR \n")
                         self.keithley_6221.write('CURR:RANG:AUTO ON \n')
                         self.keithley_6221.write(f'SOUR:WAVE:FUNC {ac_current_waveform} \n')
-                        self.keithley_6221.write(f'SOUR:WAVE:AMPL {current} \n')
+                        self.keithley_6221.write(f'SOUR:WAVE:AMPL {current[0]} \n')
                         self.keithley_6221.write(f'SOUR:WAVE:FREQ {ac_current_freq} \n')
                         self.keithley_6221.write(f'SOUR:WAVE:OFFset {ac_current_offset} \n')
                         self.keithley_6221.write('SOUR:WAVE:RANG BEST \n')
