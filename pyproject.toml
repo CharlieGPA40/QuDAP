@@ -41,7 +41,8 @@ dependencies = [
     "pythonnet",
     "requests",
     "newportxps",
-    'clr'
+    'clr',
+    'scipy'
 ]
 
 [project.scripts]
