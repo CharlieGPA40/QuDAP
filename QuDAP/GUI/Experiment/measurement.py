@@ -1,7 +1,7 @@
 import sys
 import csv
 from typing import Optional, Dict, Any, List, Tuple
-import glob
+import subprocess
 import random
 import time
 import platform
@@ -9,6 +9,7 @@ import datetime
 import traceback
 import os
 import requests
+import threading
 
 import pyvisa as visa
 import matplotlib
@@ -49,6 +50,452 @@ except ImportError:
     from QuDAP.instrument.BK_precision_9129B import BK_9129_COMMAND
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
 
+class ExitProtection:
+    def __init__(self):
+        self.original_exit = sys.exit
+
+    def install(self):
+        sys.exit = self._protected_exit
+        print("✓ Exit protection installed")
+
+    def uninstall(self):
+        sys.exit = self.original_exit
+
+    def _protected_exit(self, code=0):
+        print(f"⚠ Prevented sys.exit({code}) - Application continues running")
+        return  # Don't actually exit
+
+def is_multivu_running():
+    """
+    Check if MultiVu application is running
+    Returns True if detected, False otherwise
+    """
+    try:
+        if os.name == 'nt':  # Windows
+
+            result = subprocess.run(
+                ['tasklist'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            if 'MultiVu.exe' in result.stdout or 'Dynacool.exe' in result.stdout or 'Multivu.exe' in result.stdout:
+                is_running = True
+            else:
+                is_running = False
+
+            return is_running
+
+        else:  # Linux/Mac
+            result = subprocess.run(
+                ['pgrep', '-f', 'MultiVu'],
+                capture_output=True,
+                timeout=5
+            )
+            return result.returncode == 0
+
+    except subprocess.TimeoutExpired:
+        print("⚠ Timeout checking for MultiVu")
+        return False
+    except Exception as e:
+        print(f"⚠ Error checking for MultiVu: {e}")
+        return False
+
+def find_multivu_path():
+    """
+    Try to find MultiVu installation path
+    Returns path if found, None otherwise
+    """
+    common_paths = [
+        r"C:\Program Files\Quantum Design\MultiVu\MultiVu.exe",
+        r"C:\Program Files (x86)\Quantum Design\MultiVu\MultiVu.exe",
+        r"C:\QD\MultiVu\MultiVu.exe",
+        r"C:\QdDynacool\MultiVu\MultiVu.exe",
+        r"C:\QdDynacool\MultiVu\Dynacool.exe"
+    ]
+
+    for path in common_paths:
+        if os.path.exists(path):
+            print(f"✓ Found MultiVu at: {path}")
+            return path
+
+    print("✗ MultiVu installation not found")
+    return None
+
+
+class PPMSCommandExecutor:
+    """
+    Executes PPMS commands in a separate thread with timeout protection
+    """
+
+    def __init__(self, client, notification_manager=None):
+        """
+        Args:
+            client: MultiPyVu client instance
+            notification_manager: NotificationManager instance for alerts
+        """
+        self.client = client
+        self.notification_manager = notification_manager
+        self.result = None
+        self.error = None
+
+    def execute_with_timeout(self, func, args=(), kwargs=None, timeout=30):
+        """
+        Execute a function with timeout protection
+
+        Args:
+            func: Function to execute
+            args: Positional arguments
+            kwargs: Keyword arguments
+            timeout: Timeout in seconds
+
+        Returns:
+            Tuple (success: bool, result: any)
+        """
+        if kwargs is None:
+            kwargs = {}
+
+        self.result = None
+        self.error = None
+
+        # Create thread
+        thread = threading.Thread(
+            target=self._run_function,
+            args=(func, args, kwargs)
+        )
+        thread.daemon = True
+
+        # Start thread
+        thread.start()
+
+        # Wait with timeout
+        thread.join(timeout=timeout)
+
+        # Check if still running
+        if thread.is_alive():
+            error_msg = f"Command timeout after {timeout} seconds"
+            print(f"⚠ {error_msg}")
+
+            if self.notification_manager:
+                self.notification_manager.send_message(
+                    f"PPMS command timed out: {func.__name__}",
+                    'warning'
+                )
+
+            return (False, None)
+
+        # Check for errors
+        if self.error:
+            print(f"⚠ Command error: {self.error}")
+
+            if self.notification_manager:
+                self.notification_manager.send_message(
+                    f"PPMS command error: {self.error}",
+                    'critical'
+                )
+
+            return (False, None)
+
+        return (True, self.result)
+
+    def _run_function(self, func, args, kwargs):
+        """Run function in thread (internal use)"""
+        try:
+            self.result = func(*args, **kwargs)
+        except SystemExit as e:
+            self.error = f"SystemExit: {e}"
+        except Exception as e:
+            self.error = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+
+class ThreadSafePPMSCommands:
+    """
+    Thread-safe wrapper for your PPMS commands
+    """
+
+    def __init__(self, client, notification_manager=None):
+        self.client = client
+        self.notification_manager = notification_manager
+        self.executor = PPMSCommandExecutor(client, notification_manager)
+
+    def get_chamber_status(self, timeout=10):
+        """
+        Get chamber status with timeout protection
+
+        Args:
+            timeout: Timeout in seconds
+
+        Returns:
+            Tuple (success: bool, chamber_status: any)
+        """
+
+        def _get_chamber():
+            try:
+                return self.client.get_chamber()
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Chamber status error: {e}", 'critical'
+                    )
+                raise
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Chamber status error: {e}", 'critical'
+                    )
+                raise
+
+        success, result = self.executor.execute_with_timeout(
+            _get_chamber,
+            timeout=timeout
+        )
+
+        return success, result
+
+    def set_temperature(self, set_point, temp_rate, timeout=30):
+        """
+        Set temperature with timeout protection
+
+        Args:
+            set_point: Target temperature (K)
+            temp_rate: Temperature rate (K/min)
+            timeout: Timeout in seconds
+
+        Returns:
+            bool: Success status
+        """
+
+        def _set_temp():
+            try:
+                self.client.set_temperature(
+                    set_point,
+                    temp_rate,
+                    self.client.temperature.approach_mode.fast_settle
+                )
+                print(f"✓ Temperature set to {set_point} K")
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Temperature set error: {e}", 'critical'
+                    )
+                raise
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Temperature status error: {e}", 'critical'
+                    )
+                raise
+
+        success, _ = self.executor.execute_with_timeout(
+            _set_temp,
+            timeout=timeout
+        )
+
+        return success
+
+    def set_field(self, set_point, field_rate, append_text_func=None, timeout=30):
+        """
+        Set magnetic field with timeout protection
+
+        Args:
+            set_point: Target field (Oe)
+            field_rate: Field rate (Oe/s)
+            append_text_func: Optional function to append text to GUI
+            timeout: Timeout in seconds
+
+        Returns:
+            bool: Success status
+        """
+
+        def _set_field():
+            try:
+                self.client.set_field(
+                    set_point,
+                    field_rate,
+                    self.client.field.approach_mode.linear,
+                    self.client.field.driven_mode.driven
+                )
+
+                if append_text_func:
+                    append_text_func(f'Setting Field to {set_point} Oe... \n', 'orange')
+                else:
+                    print(f"✓ Field set to {set_point} Oe")
+
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Field set error: {e}", 'critical'
+                    )
+                raise
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Field status error: {e}", 'critical'
+                    )
+                raise
+
+        success, _ = self.executor.execute_with_timeout(
+            _set_field,
+            timeout=timeout
+        )
+
+        return success
+
+    def read_temperature(self, timeout=10):
+        """
+        Read temperature with timeout protection
+
+        Args:
+            timeout: Timeout in seconds
+
+        Returns:
+            Tuple (success: bool, temperature: float, status: str, unit: str)
+        """
+
+        def _read_temp():
+            try:
+                temperature, status = self.client.get_temperature()
+                temp_unit = self.client.temperature.units
+                return (temperature, status, temp_unit)
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Temperature read error: {e}", 'critical'
+                    )
+                raise
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Temperature status error: {e}", 'critical'
+                    )
+                raise
+
+        success, result = self.executor.execute_with_timeout(
+            _read_temp,
+            timeout=timeout
+        )
+
+        if success and result:
+            return (True,) + result
+        else:
+            return (False, None, None, None)
+
+    def read_field(self, timeout=10):
+        """
+        Read magnetic field with timeout protection
+
+        Args:
+            timeout: Timeout in seconds
+
+        Returns:
+            Tuple (success: bool, field: float, status: str, unit: str)
+        """
+
+        def _read_field():
+            try:
+                field, status = self.client.get_field()
+                field_unit = self.client.field.units
+                return (field, status, field_unit)
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Field read error: {e}", 'critical'
+                    )
+                raise
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                if self.notification_manager:
+                    self.notification_manager.send_message(
+                        f"Field status error: {e}", 'critical'
+                    )
+                raise
+
+        success, result = self.executor.execute_with_timeout(
+            _read_field,
+            timeout=timeout
+        )
+
+        if success and result:
+            return (True,) + result
+        else:
+            return (False, None, None, None)
+
+    def wait_for_temperature(self, target_temp, tolerance=0.5, max_wait=600, check_interval=2):
+        """
+        Wait for temperature to stabilize with timeout
+
+        Args:
+            target_temp: Target temperature (K)
+            tolerance: Acceptable deviation (K)
+            max_wait: Maximum wait time (seconds)
+            check_interval: Time between checks (seconds)
+
+        Returns:
+            bool: True if reached, False if timeout
+        """
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            success, temp, status, _ = self.read_temperature(timeout=10)
+
+            if not success:
+                print("⚠ Failed to read temperature")
+                time.sleep(check_interval)
+                continue
+
+            print(f"  Current: {temp:.2f} K → Target: {target_temp:.2f} K")
+
+            if abs(temp - target_temp) <= tolerance:
+                print(f"✓ Temperature stabilized at {temp:.2f} K")
+                return True
+
+            time.sleep(check_interval)
+
+        print(f"⚠ Temperature wait timeout after {max_wait}s")
+        return False
+
+    def wait_for_field(self, target_field, tolerance=10, max_wait=600, check_interval=2):
+        """
+        Wait for field to stabilize with timeout
+
+        Args:
+            target_field: Target field (Oe)
+            tolerance: Acceptable deviation (Oe)
+            max_wait: Maximum wait time (seconds)
+            check_interval: Time between checks (seconds)
+
+        Returns:
+            bool: True if reached, False if timeout
+        """
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            success, field, status, _ = self.read_field(timeout=10)
+
+            if not success:
+                print("⚠ Failed to read field")
+                time.sleep(check_interval)
+                continue
+
+            print(f"  Current: {field:.1f} Oe → Target: {target_field:.1f} Oe")
+
+            if abs(field - target_field) <= tolerance:
+                print(f"✓ Field stabilized at {field:.1f} Oe")
+                return True
+
+            time.sleep(check_interval)
+
+        print(f"⚠ Field wait timeout after {max_wait}s")
+        return False
 
 class NotificationManager:
     def __init__(self):
@@ -634,6 +1081,7 @@ class MplCanvas(FigureCanvas):
 class Measurement(QMainWindow):
     def __init__(self):
         super().__init__()
+        ExitProtection().install()
         try:
             self.PRESET = False
             self.ETO_SELECTED = False
@@ -669,6 +1117,7 @@ class Measurement(QMainWindow):
             self.ac_current_freq = None
             self.ac_current_offset = None
             self.ac_current_waveform = None
+            self.always_enabled_widgets = []
             self.INSTRUMENT_RS232_PRESETS = {
                 "DSP 7265 Lock-in": {
                     'baud_rate': 9600,
@@ -1176,7 +1625,7 @@ class Measurement(QMainWindow):
 
                         self.connection_group_box.setLayout(self.ppms_connection)
                         self.ppms_main_layout.addWidget(self.connection_group_box)
-                        self.ppms_container.setFixedSize(380, 180)
+                        self.ppms_container.setFixedSize(380, 200)
                         self.ppms_container.setLayout(self.ppms_main_layout)
 
                         self.instrument_connection_layout.addWidget(self.ppms_container)
@@ -1491,6 +1940,47 @@ class Measurement(QMainWindow):
                     self.clear_layout(child.layout())
 
     def start_server(self):
+        if not is_multivu_running():
+            reply = QMessageBox.question(
+                self,
+                "MultiVu Not Running",
+                "MultiVu application is not running!\n\n"
+                "MultiVu must be running before starting the server.\n\n"
+                "Would you like to:\n"
+                "• Yes - Try to start MultiVu automatically\n"
+                "• No - Cancel and start it manually",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                # Try to start MultiVu
+                multivu_path = find_multivu_path()
+
+                if multivu_path:
+                    try:
+                        subprocess.Popen([multivu_path])
+                        QMessageBox.information(
+                            self,
+                            "Starting MultiVu",
+                            "MultiVu is starting...\n\n"
+                            "Please wait for it to fully load,\n"
+                            "then click 'Start Server' again."
+                        )
+                    except Exception as e:
+                        QMessageBox.warning(
+                            self, "Error",
+                            f"Failed to start MultiVu:\n{e}"
+                        )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "MultiVu Not Found",
+                        "Could not find MultiVu installation.\n"
+                        "Please start MultiVu manually."
+                    )
+
+            return
         if self.server_btn_clicked == False:
             try:
                 # self.start_server_thread()
@@ -1558,7 +2048,7 @@ class Measurement(QMainWindow):
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_temp_group_box)
                 self.PPMS_measurement_setup_layout.addWidget(self.ppms_field_group_box)
-                if self.ETO_SELECTED:
+                if self.ETO_SELECTED or self.demo_mode:
                     self.eto_ppms_layout.addLayout(self.eto_setup_ui())
                     self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
                 elif self.FMR_SELECTED:
@@ -1696,7 +2186,7 @@ class Measurement(QMainWindow):
         if self.ETO_IV:
             eto_status_setting_group_box = QGroupBox('ETO I-V Setting')
             eto_status_setting_group_box.setLayout(self.eto_field_dep_setting_ui())
-        elif self.ETO_FIELD_DEP:
+        elif self.ETO_FIELD_DEP or self.demo_mode:
             eto_status_setting_group_box = QGroupBox('ETO Field Dependence Setting')
             eto_status_setting_group_box.setLayout(self.eto_field_dep_setting_ui())
         elif self.ETO_TEMP_DEP:
@@ -1812,7 +2302,7 @@ class Measurement(QMainWindow):
         eto_setting_demag_field_layout.addWidget(self.eto_setting_demag_field_line_edit)
         eto_setting_layout.addLayout(eto_setting_demag_field_layout)
 
-        if self.ETO_FIELD_DEP:
+        if self.ETO_FIELD_DEP or self.demo_mode:
             self.eto_setting_zero_field_record_check_box = QCheckBox('Record Zero Field')
             self.eto_setting_zero_field_record_check_box.setFont(self.font)
             eto_setting_layout.addWidget(self.eto_setting_zero_field_record_check_box)
@@ -3851,11 +4341,29 @@ class Measurement(QMainWindow):
             pass
 
         self.running = False
+        self.measurement_active = False
+        self.set_all_inputs_enabled(True)
+
+        # Update buttons
+        if hasattr(self, 'start_measurement_btn'):
+            self.start_measurement_btn.setEnabled(True)
+        if hasattr(self, 'stop_btn'):
+            self.stop_btn.setEnabled(False)
+
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
         self.ppms_field_Three_zone_radio_enabled = False
         self.nv_channel_1_enabled = None
         self.nv_channel_2_enabled = None
+
+        self.canvas.figure.savefig(
+            self.folder_path + "{}_{}_run{}.png".format(self.sample_id, self.measurement, self.run))
+        time.sleep(5)
+        image_path = r"{}{}_{}_run{}.png".format(self.folder_path, self.sample_id, self.measurement, self.run)
+        if not os.path.exists(image_path):
+            print("No Such File.")
+        caption = f"Data preview"
+        NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
         try:
             if self.worker is not None:
                 self.worker.stop()
@@ -3870,6 +4378,151 @@ class Measurement(QMainWindow):
         # except Exception:
         #     pass
 
+    # ========================================================================
+    # AUTOMATIC WIDGET ENABLING/DISABLING SYSTEM
+    # ========================================================================
+
+    def set_all_inputs_enabled(self, enabled):
+        """
+        Master method: Automatically enable/disable ALL input widgets
+
+        Args:
+            enabled (bool): True to enable, False to disable
+        """
+        # Get the central widget (contains all UI elements)
+        central_widget = self.centralWidget()
+
+        if central_widget is None:
+            print("Warning: No central widget found")
+            return
+
+        # Build list of widgets that should never be disabled
+        self._build_always_enabled_list()
+
+        # Recursively process all widgets
+        self._recursive_set_enabled(central_widget, enabled)
+
+
+    def _build_always_enabled_list(self):
+        """
+        Build list of widgets that should NEVER be disabled
+        These are typically: Start, Stop, Reset buttons and status displays
+        """
+        self.always_enabled_widgets = []
+
+        # Add control buttons (always keep enabled)
+        widgets_to_keep = [
+            'start_measurement_btn',
+            'stop_btn',
+            'rst_btn',
+            # Add other buttons that should stay enabled
+        ]
+
+        for widget_name in widgets_to_keep:
+            if hasattr(self, widget_name):
+                widget = getattr(self, widget_name)
+                if widget is not None:
+                    self.always_enabled_widgets.append(widget)
+
+    def _recursive_set_enabled(self, parent_widget, enabled):
+        """
+        Recursively find and enable/disable all input widgets
+
+        Args:
+            parent_widget (QWidget): Parent widget to search
+            enabled (bool): True to enable, False to disable
+        """
+        # Define which widget types are "input widgets"
+        input_widget_types = (
+            QLineEdit,  # Text input boxes
+            QComboBox,  # Dropdown menus
+            # QSpinBox,  # Integer spinners
+            # QDoubleSpinBox,  # Float spinners
+            QRadioButton,  # Radio buttons
+            QCheckBox,  # Checkboxes
+            QPushButton,  # Buttons (except control buttons)
+        )
+
+        # Find all child widgets of input types
+        for child in parent_widget.findChildren(QWidget):
+            # Check if it's an input widget type
+            if isinstance(child, input_widget_types):
+                # Check if it should be excluded
+                if child not in self.always_enabled_widgets:
+                    # Set enabled state
+                    child.setEnabled(enabled)
+
+    # ========================================================================
+    # ADVANCED: CUSTOM EXCLUSION RULES
+    # ========================================================================
+
+    def _should_widget_be_disabled(self, widget):
+        """
+        Optional: Add custom logic to determine if a widget should be disabled
+
+        Args:
+            widget (QWidget): Widget to check
+
+        Returns:
+            bool: True if widget should be disabled, False to skip
+        """
+        # Don't disable if in always-enabled list
+        if widget in self.always_enabled_widgets:
+            return False
+
+        # Don't disable if widget is hidden
+        if not widget.isVisible():
+            return False
+
+        # Don't disable buttons with specific text
+        if isinstance(widget, QPushButton):
+            button_text = widget.text().lower()
+            if button_text in ['start', 'stop', 'reset', 'cancel']:
+                return False
+
+        # Custom rule: Don't disable widgets with specific object names
+        if widget.objectName() in ['status_display', 'log_viewer']:
+            return False
+
+        # Default: widget should be disabled
+        return True
+
+    # ========================================================================
+    # OPTIONAL: GRANULAR CONTROL
+    # ========================================================================
+
+    def disable_specific_section(self, section_name, enabled=False):
+        """
+        Optional: Disable only a specific section of the UI
+
+        Args:
+            section_name (str): Name of the container widget/layout
+            enabled (bool): True to enable, False to disable
+        """
+        if hasattr(self, section_name):
+            section_widget = getattr(self, section_name)
+            if isinstance(section_widget, QWidget):
+                self._recursive_set_enabled(section_widget, enabled)
+
+    def get_all_disabled_widgets(self):
+        """
+        Optional: Get a list of all currently disabled widgets
+        Useful for debugging
+
+        Returns:
+            list: List of disabled widgets
+        """
+        central = self.centralWidget()
+        if not central:
+            return []
+
+        disabled_widgets = []
+        for widget in central.findChildren(QWidget):
+            if not widget.isEnabled():
+                disabled_widgets.append(widget)
+
+        return disabled_widgets
+
     def start_measurement(self):
         dialog = LogWindow()
         if dialog.exec():
@@ -3883,6 +4536,15 @@ class Measurement(QMainWindow):
                     self.progress_bar.deleteLater()
                 except Exception:
                     pass
+
+                self.set_all_inputs_enabled(False)
+                self.measurement_active = True
+
+                # Update buttons
+                if hasattr(self, 'start_measurement_btn'):
+                    self.start_measurement_btn.setEnabled(False)
+                if hasattr(self, 'stop_btn'):
+                    self.stop_btn.setEnabled(True)
                 self.running = True
                 self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user = dialog.get_text()
                 self.log_box = QTextEdit(self)
@@ -3931,7 +4593,7 @@ class Measurement(QMainWindow):
                 init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
                 demag_field = float(self.eto_setting_demag_field_line_edit.text())
                 f.write(f"Demagnetization Field: {demag_field}\n")
-                self.notification.send_notification(message="Measurement Start")
+                # self.notification.send_notification(message="Measurement Start")
                 if self.eto_setting_zero_field_record_check_box.isChecked():
                     record_zero_field = True
                     f.write(f"Record Zero Field: Yes\n")
@@ -4516,7 +5178,7 @@ class Measurement(QMainWindow):
                 self.worker = None
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
-        self.stop_measurement()
+        # self.stop_measurement()
         QMessageBox.information(self, "Measurement Finished", "The measurement has completed successfully!")
 
     def append_text(self, text, color):
@@ -4577,6 +5239,8 @@ class Measurement(QMainWindow):
                 eto_number_of_avg, init_temp_rate, demag_field, record_zero_field
                 ):
         try:
+            ppms = ThreadSafePPMSCommands(client, NotificationManager())
+
             def deltaH_chk(currentField):
                 if ppms_field_One_zone_radio_enabled:
                     deltaH = zone1_step_field
@@ -4602,7 +5266,10 @@ class Measurement(QMainWindow):
 
             def get_chamber_status():
                 try:
-                    cT = client.get_chamber()
+                    success, cT = ppms.get_chamber_status(timeout=10)
+                    # cT = client.get_chamber()
+                    if not success:
+                        stop_measurement()
                     return cT
                 except SystemExit as e:
                     tb_str = traceback.format_exc()
@@ -4611,9 +5278,16 @@ class Measurement(QMainWindow):
 
             def set_temperature(set_point, temp_rate):
                 try:
-                    client.set_temperature(set_point,
-                                           temp_rate,
-                                           client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
+                    success = ppms.set_temperature(
+                        set_point=set_point,
+                        temp_rate=temp_rate,
+                        timeout=10  # 30 second timeout
+                    )
+                    if not success:
+                        stop_measurement()
+                    # client.set_temperature(set_point,
+                    #                        temp_rate,
+                    #                        client.temperature.approach_mode.fast_settle)  # fast_settle/no_overshoot
                 except SystemExit as e:
                     tb_str = traceback.format_exc()
                     NotificationManager().send_message(
@@ -4621,10 +5295,17 @@ class Measurement(QMainWindow):
 
             def set_field(set_point, field_rate):
                 try:
-                    client.set_field(set_point,
-                                     field_rate,
-                                     client.field.approach_mode.linear,  # linear/oscillate
-                                     client.field.driven_mode.driven)
+                    success = ppms.set_field(
+                        set_point=set_point,
+                        field_rate=field_rate,
+                        timeout=10
+                    )
+                    if not success:
+                        stop_measurement()
+                    # client.set_field(set_point,
+                    #                  field_rate,
+                    #                  client.field.approach_mode.linear,  # linear/oscillate
+                    #                  client.field.driven_mode.driven)
                     append_text(f'Setting Field to {str(set_point)} Oe... \n', 'orange')
                 except SystemExit as e:
                     tb_str = traceback.format_exc()
@@ -4633,9 +5314,12 @@ class Measurement(QMainWindow):
 
             def read_temperature():
                 try:
-                    temperature, status = client.get_temperature()
-                    temp_unit = client.temperature.units
-                    return temperature, status, temp_unit
+                    success, temp, status, unit = ppms.read_temperature(timeout=10)
+                    if not success:
+                        stop_measurement()
+                    # temperature, status = client.get_temperature()
+                    # temp_unit = client.temperature.units
+                    return temp, status, unit
                 except SystemExit as e:
                     tb_str = traceback.format_exc()
                     NotificationManager().send_message(
@@ -4643,9 +5327,12 @@ class Measurement(QMainWindow):
 
             def read_field():
                 try:
-                    field, status = client.get_field()
-                    field_unit = client.field.units
-                    return field, status, field_unit
+                    success, field, status, unit = ppms.read_field(timeout=10)
+                    if not success:
+                        stop_measurement()
+                    # field, status = client.get_field()
+                    # field_unit = client.field.units
+                    return field, status, unit
                 except SystemExit as e:
                     tb_str = traceback.format_exc()
                     NotificationManager().send_message(
@@ -5675,6 +6362,7 @@ class Measurement(QMainWindow):
                     time.sleep(10)
                     append_text(f'Loop is at {str(TempList[i])} K Temperature\n', 'blue')
                     temp_set_point = TempList[i]
+                    set_temperature(temp_set_point, 20)
                     append_text(f'Waiting for {temp_set_point} K Temperature\n', 'red')
                     time.sleep(4)
                     update_ppms_temp_reading_label(str(temp_set_point), 'K', 'chasing')
