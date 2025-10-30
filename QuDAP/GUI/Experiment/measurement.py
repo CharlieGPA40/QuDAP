@@ -3953,6 +3953,10 @@ class Measurement(QMainWindow):
                         QMessageBox.warning(self, 'Warning', 'Missing Items')
                         self.keithley_6221_test_button.setText('ON')
                         self.KEITHLEY_6221_TEST_ON = False
+                if self.DSP7265:
+                    time.sleep(2)
+                    cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+                    self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
         else:
             self.KEITHLEY_6221_TEST_ON = False
             self.keithley_6221_test_button.setText('ON')
@@ -3960,6 +3964,10 @@ class Measurement(QMainWindow):
                 if not self.demo_mode:
                     self.keithley_6221.write(":OUTP OFF")  # Set source function to current
                     self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+                    if self.DSP7265:
+                        time.sleep(2)
+                        cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
+                        self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
             except Exception as e:
                 None
 
