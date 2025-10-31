@@ -58,7 +58,7 @@ class ExitProtection:
 
     def install(self):
         sys.exit = self._protected_exit
-        print("✓ Exit protection installed")
+        # print("✓ Exit protection installed")
 
     def uninstall(self):
         sys.exit = self.original_exit
@@ -1814,9 +1814,9 @@ class Measurement(QMainWindow):
                     self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
                     self.main_layout.addLayout(self.Instruments_Content_Layout)
-                    self.rigol_measurement = RIGOL_Measurement(True, True)
-                    self.customize_layout_class = self.rigol_measurement.init_ui()
-                    self.main_layout.addLayout(self.customize_layout_class)
+                    # self.rigol_measurement = RIGOL_Measurement(True, True)
+                    # self.customize_layout_class = self.rigol_measurement.init_ui()
+                    # self.main_layout.addLayout(self.customize_layout_class)
                     # self.setCentralWidget(self.scroll_area)
                     self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
                     self.refresh_btn.setStyleSheet(self.Button_stylesheet)
