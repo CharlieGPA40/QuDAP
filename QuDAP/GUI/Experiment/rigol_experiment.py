@@ -598,9 +598,7 @@ class BK9205_RIGOL_Worker(QThread):
         try:
             # Use APP:VOLT command to set only the specified channel
             if source_type == 'voltage':
-                print(channel_num, value, round(value, 2))
                 if channel_num == 1:
-
                     self.bk9205_cmd.set_all_voltages(self.bk9205, value, 0, 0, 'V')
                 elif channel_num == 2:
                     self.bk9205_cmd.set_all_voltages(self.bk9205, 0, value, 0, 'V')
@@ -790,6 +788,7 @@ class BK9205_RIGOL_Worker(QThread):
                 # Get trace data
                 trace_data_str = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
                 trace_data = [float(x) for x in trace_data_str.split(',')]
+                print(trace_data_str)
 
                 # Get frequency data
                 start_freq = float(self.rigol_cmd.get_start_frequency(self.rigol))
@@ -824,7 +823,7 @@ class BK9205_RIGOL_Worker(QThread):
 
         except Exception as e:
             self.append_text.emit(f"    ✗ Error capturing spectrum: {str(e)}")
-            return self._generate_demo_spectrum()
+            # return self._generate_demo_spectrum()
 
     def _generate_demo_spectrum(self):
         """Generate demo spectrum data."""
