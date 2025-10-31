@@ -1972,7 +1972,7 @@ class RIGOL_Measurement(QWidget):
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
-                    demo_mode=getattr(self, 'demo_mode', True),
+                    demo_mode=getattr(self, 'demo_mode', False),
                     settling_time=1.0,
                     spectrum_averaging=1,
                     save_individual_spectra=True
