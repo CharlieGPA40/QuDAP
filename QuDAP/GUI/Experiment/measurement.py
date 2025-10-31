@@ -2612,6 +2612,7 @@ class Measurement(QMainWindow):
                 self.rigol_dsa875.timeout = 10000
                 time.sleep(2)
                 rigol_dsa875_model = RIGOL_COMMAND().get_id(self.rigol_dsa875)
+                print('Enter', rigol_dsa875_model)
                 self.RIGOLDSA875_CONNECTED = True
                 QMessageBox.information(self, "Connected", F"Connected to {rigol_dsa875_model}")
                 self.instru_connect_btn.setText('Disconnect')
