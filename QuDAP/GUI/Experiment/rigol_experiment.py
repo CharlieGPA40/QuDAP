@@ -25,6 +25,7 @@ try:
 except ImportError:
     # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
+    from instrument.BK_precision_9129B import BK_9129_COMMAND
     # from GUI.Experiment.rigol_experiment import RIGOL_Measurement
 
 class BK9205_RIGOL_Worker(QThread):
