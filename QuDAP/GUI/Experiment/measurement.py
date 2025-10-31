@@ -6543,8 +6543,7 @@ class Measurement(QMainWindow):
                             save_plot(self.field_array, self.lockin_x, 'black', True, False, True, str(TempList[i]), str(current[j]))
                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
 
-                        NotificationManager().send_message(
-                            "Your measurement went wrong, possible PPMS client lost connection", 'critical')
+                        # NotificationManager().send_message()
                         current_progress = int((i+1) * (j+1) / totoal_progress * 100)
                         progress_update(int(current_progress))
                 time.sleep(2)
