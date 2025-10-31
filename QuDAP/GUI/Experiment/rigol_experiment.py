@@ -598,7 +598,9 @@ class BK9205_RIGOL_Worker(QThread):
         try:
             # Use APP:VOLT command to set only the specified channel
             if source_type == 'voltage':
+                print(channel_num, value, round(value, 2))
                 if channel_num == 1:
+
                     self.bk9205_cmd.set_all_voltages(self.bk9205, value, 0, 0, 'V')
                 elif channel_num == 2:
                     self.bk9205_cmd.set_all_voltages(self.bk9205, 0, value, 0, 'V')
