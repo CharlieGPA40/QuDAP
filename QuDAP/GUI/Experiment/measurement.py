@@ -3981,7 +3981,7 @@ class Measurement(QMainWindow):
                     self.keithley_6221.write(":OUTP OFF")  # Set source function to current
                     self.keithley_6221.write("SOUR:WAVE:ABOR \n")
                     if self.DSP7265:
-                        time.sleep(5)
+                        time.sleep(2)
                         cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
                         self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
             except Exception as e:
