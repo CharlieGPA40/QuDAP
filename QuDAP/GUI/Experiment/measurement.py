@@ -2628,7 +2628,7 @@ class Measurement(QMainWindow):
         else:
             self.instru_connect_btn.setText('Connect')
             self.close_bk9129()
-            self.DSP7265_Connected = False
+            self.BK9129B_CONNECTED = False
 
     def connect_rigol_dsa875(self):
         if self.RIGOLDSA875_CONNECTED == False:
@@ -2648,8 +2648,8 @@ class Measurement(QMainWindow):
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
         else:
             self.instru_connect_btn.setText('Connect')
-            self.close_bk9129()
-            self.DSP7265_Connected = False
+            self.close_rigol_dsa875()
+            self.RIGOLDSA875_CONNECTED = False
 
     def close_rigol_dsa875(self):
         try:
