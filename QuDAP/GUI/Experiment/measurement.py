@@ -2383,7 +2383,7 @@ class Measurement(QMainWindow):
                         self.instru_connect_btn.setText('Connect')
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-        if self.demo_radio_buttom.isChecked():
+        elif self.demo_radio_buttom.isChecked():
 
             if self.current_connection_index == 0:
                 return None
@@ -2411,6 +2411,31 @@ class Measurement(QMainWindow):
                     tb_str = traceback.format_exc()
                     QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                     self.instru_connect_btn.setText('Connect')
+
+        elif self.CUSTOMIZED_1:
+            if self.CUSTOMIZED_1:
+                try:
+                    if self.current_connection_index == 0:
+                        return None
+                    elif self.current_connection_index == 1:
+                        try:
+                            self.connect_rigol_dsa875()
+                        except Exception as e:
+                            self.RIGOLDSA875_CONNECTED = False
+                            tb_str = traceback.format_exc()
+                            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+                            self.instru_connect_btn.setText('Connect')
+                    elif self.current_connection_index == 2:
+                        try:
+                            self.connect_bk9129()
+                        except Exception as e:
+                            self.BK9129B_CONNECTED = False
+                            tb_str = traceback.format_exc()
+                            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+                            self.instru_connect_btn.setText('Connect')
+                except visa.errors.VisaIOError:
+                    QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+
 
     def get_rs232_settings(self):
         """Get current RS232 settings as a dictionary"""
