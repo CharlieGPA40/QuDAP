@@ -1105,6 +1105,8 @@ class Measurement(QMainWindow):
             self.keithley_2182nv = None
             self.keithley_6221 = None
             self.DSP7265 = None
+            self.rigol_dsa875 = None
+            self.bk9129 = None
             self.worker = None  # Initialize the worker to None
             self.notification = NotificationManager()
             self.disable_combobox_scrolling()
