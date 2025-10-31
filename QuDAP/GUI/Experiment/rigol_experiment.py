@@ -54,6 +54,7 @@ class BK9205_RIGOL_Worker(QThread):
 
     update_rigol_freq_label = pyqtSignal(str)
     update_rigol_power_label = pyqtSignal(str)
+    save_individual_plot = pyqtSignal(str)
 
     # Plotting signals
     update_2d_plot = pyqtSignal(list, list, list)  # x_data (indices), y_data (voltages), z_data (peak powers)
@@ -304,9 +305,14 @@ class BK9205_RIGOL_Worker(QThread):
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
 
+
             # Step 8: Update plots
             self._update_plots()
+            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+            self.save_individual_plot.emit(plot_filename)
             time.sleep(1)
+
+        self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
     def _measure_series_channels(self):
@@ -369,9 +375,12 @@ class BK9205_RIGOL_Worker(QThread):
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
 
+
             # Update plots
             self._update_plots()
-
+            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+            self.save_individual_plot.emit(plot_filename)
+        self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
     def _measure_parallel_channels(self):
@@ -428,9 +437,12 @@ class BK9205_RIGOL_Worker(QThread):
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
 
+
             # Update plots
             self._update_plots()
-
+            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+            self.save_individual_plot.emit(plot_filename)
+        self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
     def _measure_all_channels(self):
@@ -498,7 +510,11 @@ class BK9205_RIGOL_Worker(QThread):
         if self.save_individual_spectra:
             self._save_individual_spectrum(result, 0)
 
+
         self._update_plots()
+        plot_filename = f"{self.file_name}_point_spectrum.png"
+        self.save_individual_plot.emit(plot_filename)
+        self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
     def _measure_all_channels_one_varying(self, enabled_channels, varying_channel):
@@ -561,8 +577,11 @@ class BK9205_RIGOL_Worker(QThread):
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
 
-            self._update_plots()
 
+            self._update_plots()
+            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+            self.save_individual_plot.emit(plot_filename)
+        self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
     # ==================================================================================
@@ -1819,7 +1838,10 @@ class RIGOL_Measurement(QWidget):
         bk9205_setting_layout = QVBoxLayout()
 
         bk9205_range_layout = QHBoxLayout()
-        range_from_label = QLabel(f'{channel} Range: From')
+        if type == 'voltage':
+            range_from_label = QLabel(f'{channel} Range (V): From')
+        else:
+            range_from_label = QLabel(f'{channel} Range (A): From')
         range_from_label.setFont(self.font)
         range_from_entry = QLineEdit()
         range_from_entry.setFont(self.font)
@@ -1838,10 +1860,13 @@ class RIGOL_Measurement(QWidget):
         bk9205_range_layout.addWidget(range_from_entry)
         bk9205_range_layout.addWidget(range_to_label)
         bk9205_range_layout.addWidget(range_to_entry)
-        bk9205_range_layout.addWidget(bk9205_range_unit_combo_box)
+        # bk9205_range_layout.addWidget(bk9205_range_unit_combo_box)
 
         bk9205_step_layout = QHBoxLayout()
-        step_label = QLabel('Step Size:')
+        if type == 'voltage':
+            step_label = QLabel('Step Size (V):')
+        else:
+            step_label = QLabel('Step Size (A):')
         step_label.setFont(self.font)
         step_entry = QLineEdit()
         step_entry.setFont(self.font)
@@ -1854,11 +1879,11 @@ class RIGOL_Measurement(QWidget):
             step_unit_combo_box.addItems(["Select Unit", "A", "mA", "µA"])
         bk9205_step_layout.addWidget(step_label)
         bk9205_step_layout.addWidget(step_entry)
-        bk9205_step_layout.addWidget(step_unit_combo_box)
+        # bk9205_step_layout.addWidget(step_unit_combo_box)
 
         bk9205_setting_layout.addLayout(bk9205_range_layout)
         bk9205_setting_layout.addLayout(bk9205_step_layout)
-        return bk9205_setting_layout, range_from_entry, range_to_entry, step_entry
+        return bk9205_setting_layout, range_from_entry, range_to_entry, step_entry,
 
     def safe_clear_layout(self, layout_attr_name):
         """Safely clear a layout if it exists"""
@@ -2071,6 +2096,7 @@ class RIGOL_Measurement(QWidget):
         # RIGOL updates
         self.worker.update_rigol_freq_label.connect(self.update_rigol_freq_label)
         self.worker.update_rigol_power_label.connect(self.update_rigol_power_label)
+        self.worker.save_individual_plot.connect(self.save_individual_spectrum_plot)
 
         # Plotting
         self.worker.update_2d_plot.connect(self.update_2d_plot)
@@ -2340,6 +2366,21 @@ class RIGOL_Measurement(QWidget):
         except Exception as e:
             print(f"Error clearing plots: {e}")
 
+    def save_individual_spectrum_plot(self, filename):
+        """Save current spectrum plot (right side) to file."""
+        try:
+            spectrum_file = f"{self.folder_path}/{filename}"
+            self.single_canvas.figure.savefig(
+                spectrum_file,
+                dpi=300,
+                bbox_inches='tight',
+                facecolor='white',
+                edgecolor='none'
+            )
+            self.append_text(f"    ✓ Spectrum plot saved: {filename}")
+        except Exception as e:
+            self.append_text(f"    ✗ Error saving spectrum plot: {str(e)}")
+
     def save_plot(self, filename):
         """Save current plots to files."""
         try:
@@ -2353,15 +2394,15 @@ class RIGOL_Measurement(QWidget):
                 edgecolor='none'
             )
 
-            # Save spectrum plot
-            spectrum_file = f"{self.folder_path}/{filename}_spectrum.png"
-            self.single_canvas.figure.savefig(
-                spectrum_file,
-                dpi=300,
-                bbox_inches='tight',
-                facecolor='white',
-                edgecolor='none'
-            )
+            # # Save spectrum plot
+            # spectrum_file = f"{self.folder_path}/{filename}_spectrum.png"
+            # self.single_canvas.figure.savefig(
+            #     spectrum_file,
+            #     dpi=300,
+            #     bbox_inches='tight',
+            #     facecolor='white',
+            #     edgecolor='none'
+            # )
 
             self.append_text(f"✓ Plots saved: {filename}_cumulative.png, {filename}_spectrum.png")
 
