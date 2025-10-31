@@ -1443,8 +1443,8 @@ class RIGOL_Measurement(QWidget):
         bk9205_channel_selection_layout = QHBoxLayout()
         bk9205_channel_selection_label = QLabel('Select Output Channel:')
         bk9205_channel_selection_label.setFont(self.font)
-        from QuDAP.GUI.Experiment.measurement import WideComboBox
-        self.bk9205_channel_selection_combo_box = WideComboBox()
+        # from QuDAP.GUI.Experiment.measurement import WideComboBox
+        self.bk9205_channel_selection_combo_box = QComboBox()
         self.bk9205_channel_selection_combo_box.setFont(self.font)
         self.bk9205_channel_selection_combo_box.setStyleSheet(self.QCombo_stylesheet)
         self.bk9205_channel_selection_combo_box.addItems(
@@ -1464,8 +1464,8 @@ class RIGOL_Measurement(QWidget):
         self.bk9205_source_label_layout = QHBoxLayout()
         bk9205_source_selection_layout = QLabel('Select Output Source:')
         bk9205_source_selection_layout.setFont(self.font)
-        from QuDAP.GUI.Experiment.measurement import WideComboBox
-        self.bk9205_source_selection_combo_box = WideComboBox()
+        # from QuDAP.GUI.Experiment.measurement import WideComboBox
+        self.bk9205_source_selection_combo_box = QComboBox()
         self.bk9205_source_selection_combo_box.setFont(self.font)
         self.bk9205_source_selection_combo_box.setStyleSheet(self.QCombo_stylesheet)
         self.bk9205_source_selection_combo_box.addItems(
