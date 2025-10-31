@@ -3586,7 +3586,7 @@ class Measurement(QMainWindow):
         self.keithley_6221_test_layout_container = QWidget()
         self.keithley_6221_test_layout_container.setMinimumHeight(60)
         self.keithley_6221_test_layout = QHBoxLayout()
-        self.keithley_6221_test_button = QPushButton("On")
+        self.keithley_6221_test_button = QPushButton("Test")
         self.keithley_6221_test_button.setFont(self.font)
         self.keithley_6221_test_button.setStyleSheet(self.Button_stylesheet)
         self.keithley_6221_test_button.clicked.connect(self.keithley_6221_test_on_off)
