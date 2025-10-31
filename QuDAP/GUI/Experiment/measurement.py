@@ -2724,9 +2724,10 @@ class Measurement(QMainWindow):
                     self.instru_connect_btn.setText('Connect')
 
     def customized_1_ui(self):
-        self.rigol_measurement = RIGOL_Measurement(self.rigol_dsa875, self.bk9129)
-        self.customize_layout_class = self.rigol_measurement.init_ui()
-        self.main_layout.addLayout(self.customize_layout_class)
+        if self.rigol_dsa875 and self.bk9129:
+            self.rigol_measurement = RIGOL_Measurement(self.rigol_dsa875, self.bk9129)
+            self.customize_layout_class = self.rigol_measurement.init_ui()
+            self.main_layout.addLayout(self.customize_layout_class)
 
     def bnc845rf_window_ui(self):
         self.bnc845rf_main_layout = QHBoxLayout()
