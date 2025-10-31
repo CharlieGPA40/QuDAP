@@ -4567,7 +4567,7 @@ class Measurement(QMainWindow):
         try:
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_6221.write("SOUR:WAVE:ABOR \n")
-            self.keithley_2182nv.write("*RST")
+            # self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
             self.update_keithley_6221_update_label('N/A', 'OFF')
 
@@ -4594,7 +4594,7 @@ class Measurement(QMainWindow):
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_6221.write("SOUR:WAVE:ABOR \n")
             self.update_keithley_6221_update_label('N/A', 'OFF')
-            self.keithley_2182nv.write("*RST")
+            # self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
         except Exception:
             pass
@@ -5419,9 +5419,9 @@ class Measurement(QMainWindow):
         try:
             self.keithley_6221.write(":OUTP OFF")
             self.keithley_6221.write("SOUR:WAVE:ABOR \n")
-            self.keithley_6221.write("*RST")
+            # self.keithley_6221.write("*RST")
             self.keithley_6221.write("*CLS")
-            self.keithley_2182nv.write("*RST")
+            # self.keithley_2182nv.write("*RST")
             self.keithley_2182nv.write("*CLS")
         except Exception:
             pass
@@ -5729,7 +5729,7 @@ class Measurement(QMainWindow):
                         update_ppms_field_reading_label(str(MyField), field_unit, sF)
 
                         if Ketihley_6221_Connected:
-                            keithley_6221.write('CLE')
+                            # keithley_6221.write('CLE')
                             if keithley_6221_dc_config:
                                 keithley_6221.write(":OUTP OFF")  # Set source function to current
                                 keithley_6221.write("CURRent:RANGe:AUTO ON \n")
