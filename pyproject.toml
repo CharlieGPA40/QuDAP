@@ -42,7 +42,8 @@ dependencies = [
     "requests",
     "newportxps",
     'clr',
-    'scipy'
+    'scipy',
+    'lmfit'
 ]
 
 [project.scripts]
