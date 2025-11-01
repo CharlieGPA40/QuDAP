@@ -5427,6 +5427,7 @@ class Measurement(QMainWindow):
             pass
 
         self.running = False
+        self.set_all_inputs_enabled(True)
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
         self.ppms_field_Three_zone_radio_enabled = False
