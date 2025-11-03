@@ -5612,9 +5612,9 @@ class Measurement(QMainWindow):
             ppms = ThreadSafePPMSCommands(client, NotificationManager())
 
             def convert_to_seconds(time_str):
-                # Extract numeric part and unit
                 import re
-                match = re.match(r"(\d+(?:\.\d+)?)(ms|s|ks|us|µs)", time_str)
+                # Allow optional space between number and unit
+                match = re.match(r"(\d+(?:\.\d+)?)\s*(us|µs|ms|s|ks)", time_str.strip())
                 if not match:
                     raise ValueError(f"Invalid time format: {time_str}")
 
