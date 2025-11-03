@@ -787,7 +787,7 @@ class BK9205_RIGOL_Worker(QThread):
                 # Get trace data
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
                 trace_data = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
-                trace_data = trace_data [1:]
+                trace_data_chopped = trace_data[1:]
 
                 # Get frequency data
                 start_freq = float(self.rigol_cmd.get_start_frequency(self.rigol))
@@ -797,7 +797,7 @@ class BK9205_RIGOL_Worker(QThread):
 
                 spectrum = {
                     'frequencies': frequencies,
-                    'powers': trace_data
+                    'powers': trace_data_chopped
                 }
                 spectra.append(spectrum)
 
@@ -2419,7 +2419,7 @@ class RIGOL_Measurement(QWidget):
             self.worker.wait()
             self.worker = None
             self.append_text("Measurement stopped by user")
-            BK_9129_COMMAND.set_output_state(self.BK_9205_CONNECTED, 'OFF')
+            BK_9129_COMMAND().set_output_state(self.BK_9205_CONNECTED, 'OFF')
 
         # Re-enable start button
         if hasattr(self, 'start_measurement_btn'):
