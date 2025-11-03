@@ -599,6 +599,7 @@ class BK9205_RIGOL_Worker(QThread):
             # Use APP:VOLT command to set only the specified channel
             if source_type == 'voltage':
                 if channel_num == 1:
+                    print(value)
                     self.bk9205_cmd.set_all_voltages(self.bk9205, value, 0, 0, 'V')
                 elif channel_num == 2:
                     self.bk9205_cmd.set_all_voltages(self.bk9205, 0, value, 0, 'V')
@@ -788,6 +789,7 @@ class BK9205_RIGOL_Worker(QThread):
                 # Get trace data
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
                 trace_data_str = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
+                print*(trace_data_str)
                 trace_data = [float(x) for x in trace_data_str.split(',')]
                 print(trace_data_str)
 
@@ -1975,7 +1977,7 @@ class RIGOL_Measurement(QWidget):
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
-                    demo_mode=getattr(self, 'demo_mode', True),
+                    demo_mode=getattr(self, 'demo_mode', False),
                     settling_time=1.0,
                     spectrum_averaging=1,
                     save_individual_spectra=True
