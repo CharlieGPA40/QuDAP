@@ -276,18 +276,14 @@ class BK9205_RIGOL_Worker(QThread):
 
             # Step 1: Set voltage/current using set_all_voltages/currents command
             self.bk9205_cmd.set_remote_mode(self.bk9205)
-            print('setting the voltage')
             self._set_channel_voltage_all_command(channel_num, value, source_type)
-            print('Turn on the voltage')
             # Step 2: Turn on the channel
             self._turn_on_channel(channel_num)
-            print('Waiting')
             # Step 3: Wait for settling
             self._wait_settling(f"Settling... ({self.settling_time}s)")
 
             # Step 4: Read back voltages/currents and update labels
             self._read_and_update_labels()
-            print('Spectrum')
             # Step 5: Capture spectrum
             spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
 
@@ -681,13 +677,8 @@ class BK9205_RIGOL_Worker(QThread):
         try:
             # Select and turn on the channel
             ch_name = f'CH{channel_num}'
-            print(ch_name)
             self.bk9205_cmd.select_channel(self.bk9205, ch_name)
-            print('Get selected channel')
-            print(self.bk9205_cmd.get_selected_channel(self.bk9205))
             self.bk9205_cmd.set_channel_output_state(self.bk9205, 'ON')
-            print('Set channel')
-            print(self.bk9205_cmd.get_channel_output_state(self.bk9205))
             self.append_text.emit(f"    Turned ON Ch{channel_num}")
             if channel_num == 1:
                 self.update_bk9205_ch1_status_label.emit(f"On")
@@ -796,11 +787,6 @@ class BK9205_RIGOL_Worker(QThread):
                 # Get trace data
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
                 trace_data = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
-                # print('Trace grabbing successful')
-                # print(trace_data_str)
-                # trace_data = [float(x) for x in trace_data_str.split(',')]
-                # print(trace_data_str)
-                print(trace_data)
                 trace_data = trace_data [1:]
 
                 # Get frequency data
@@ -2433,6 +2419,7 @@ class RIGOL_Measurement(QWidget):
             self.worker.wait()
             self.worker = None
             self.append_text("Measurement stopped by user")
+            BK_9129_COMMAND.set_output_state(self.BK_9205_CONNECTED, 'OFF')
 
         # Re-enable start button
         if hasattr(self, 'start_measurement_btn'):
