@@ -277,7 +277,7 @@ class BK9205_RIGOL_Worker(QThread):
             # Step 1: Set voltage/current using set_all_voltages/currents command
             print('setting the voltage')
             self._set_channel_voltage_all_command(channel_num, value, source_type)
-            print('Turn on he voltage')
+            print('Turn on the voltage')
             # Step 2: Turn on the channel
             self._turn_on_channel(channel_num)
             print('Waiting')
@@ -680,9 +680,12 @@ class BK9205_RIGOL_Worker(QThread):
         try:
             # Select and turn on the channel
             ch_name = f'CH{channel_num}'
+            print(ch_name)
             self.bk9205_cmd.select_channel(self.bk9205, ch_name)
+            print('Get selected channel')
             print(self.bk9205_cmd.get_selected_channel(self.bk9205))
             self.bk9205_cmd.set_channel_output_state(self.bk9205, 'ON')
+            print('Set channel')
             print(self.bk9205_cmd.get_channel_output_state(self.bk9205))
             self.append_text.emit(f"    Turned ON Ch{channel_num}")
             if channel_num == 1:
