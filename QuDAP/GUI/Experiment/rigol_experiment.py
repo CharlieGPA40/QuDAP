@@ -681,7 +681,9 @@ class BK9205_RIGOL_Worker(QThread):
             # Select and turn on the channel
             ch_name = f'CH{channel_num}'
             self.bk9205_cmd.select_channel(self.bk9205, ch_name)
+            print(self.bk9205_cmd.get_selected_channel(self.bk9205))
             self.bk9205_cmd.set_channel_output_state(self.bk9205, 'ON')
+            print(self.bk9205_cmd.get_channel_output_state(self.bk9205))
             self.append_text.emit(f"    Turned ON Ch{channel_num}")
             if channel_num == 1:
                 self.update_bk9205_ch1_status_label.emit(f"On")
