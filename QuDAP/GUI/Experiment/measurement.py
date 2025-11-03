@@ -125,7 +125,6 @@ def find_multivu_path():
     print("✗ MultiVu installation not found")
     return None
 
-
 class PPMSCommandExecutor:
     """
     Executes PPMS commands in a separate thread with timeout protection
@@ -1168,6 +1167,7 @@ class Measurement(QMainWindow):
 
         # Pass all other events through
         return super().eventFilter(obj, event)
+
     def init_ui(self):
         titlefont = QFont("Arial", 20)
         self.font = QFont("Arial", 13)
@@ -1350,51 +1350,6 @@ class Measurement(QMainWindow):
         self.clear_layout(self.measurement_type_layout)
         self.select_preset_buttom.setEnabled(True)
 
-    # def preset_reset(self):
-    #     def reset_button(button):
-    #         button.setAutoExclusive(False)
-    #         button.setChecked(False)
-    #         button.setAutoExclusive(True)
-    #
-    #     try:
-    #         self.PRESET = False
-    #         self.running = False
-    #         self.clear_layout(self.Instruments_Content_Layout)
-    #         try:
-    #             reset_button(self.eto_radio_button)
-    #             reset_button(self.fmr_radio_button)
-    #             reset_button(self.demo_radio_buttom)
-    #             reset_button(self.customize_radio_button)
-    #             self.instrument_connection_layout.removeWidget(self.instrument_container)
-    #             self.instrument_container.deleteLater()
-    #             self.clear_layout(self.measurement_type_layout)
-    #             self.instrument_connection_layout.removeWidget(self.ppms_container)
-    #             self.ppms_container.deleteLater()
-    #             self.main_layout.removeWidget(self.button_container)
-    #             self.button_container.deleteLater()
-    #             self.main_layout.removeWidget(self.log_box)
-    #             self.log_box.deleteLater()
-    #             self.main_layout.removeWidget(self.progress_bar)
-    #             self.progress_bar.deleteLater()
-    #
-    #             self.clear_layout(self.graphing_layout)
-    #             self.clear_layout(self.buttons_layout)
-    #
-    #         except Exception as e:
-    #             pass
-    #         try:
-    #             self.stop_measurement()
-    #             self.keithley_6221.close()
-    #             self.keithley_2182nv.close()
-    #             self.DSP7265.close()
-    #             self.bnc845rf.close()
-    #         except Exception as e:
-    #             pass
-    #     except Exception as e:
-    #         tb_str = traceback.format_exc()
-    #         QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-    #         return
-
     def preset_reset(self):
         """Reset all preset configurations, widgets, and instrument connections"""
 
@@ -1447,16 +1402,19 @@ class Measurement(QMainWindow):
 
         try:
             # Reset flags
+            self.select_preset_buttom.setEnabled(True)
             self.PRESET = False
             self.running = False
 
             # Clear layouts
+            self.clear_layout(self.measurement_type_layout)
+            safe_clear_layout('measurement_type_layout')
             safe_clear_layout('Instruments_Content_Layout')
             safe_clear_layout('measurement_type_layout')
             safe_clear_layout('graphing_layout')
             safe_clear_layout('buttons_layout')
             safe_clear_layout('customize_layout_class')
-            safe_clear_layout('measurement_type_layout')
+
 
             # Reset radio buttons
             if hasattr(self, 'eto_radio_button'):
@@ -1491,7 +1449,7 @@ class Measurement(QMainWindow):
                 'keithley_2182nv',
                 'DSP7265',
                 'bnc845rf',
-                'rigol_dsa875',  # Add any other instruments
+                'rigol_dsa875',
                 'bk_precision_9205b'
             ]
 
@@ -1505,7 +1463,7 @@ class Measurement(QMainWindow):
 
     def preset_validation(self):
         if self.ETO_SELECTED:
-            if self.eto_measurement_combo_box.currentIndex() == 1:
+            if self.eto_measurement_combo_box.currentIndex() == 0:
                 self.select_preset_buttom.setEnabled(False)
             else:
                 self.select_preset_buttom.setEnabled(True)
@@ -1521,6 +1479,7 @@ class Measurement(QMainWindow):
                 self.select_preset_buttom.setEnabled(True)
 
     def preset_select(self):
+        self.select_preset_buttom.setEnabled(False)
         if self.ETO_SELECTED:
             if self.eto_measurement_combo_box.currentIndex() == 1:
                 self.ETO_IV = True
@@ -1735,6 +1694,7 @@ class Measurement(QMainWindow):
                     self.start_measurement_btn = QPushButton('Start')
                     self.start_measurement_btn.clicked.connect(self.start_measurement)
                     self.stop_btn = QPushButton('Stop')
+                    self.stop_btn.setEnabled(False)
                     self.stop_btn.clicked.connect(self.stop_measurement)
                     self.rst_btn = QPushButton('Reset')
                     self.rst_btn.clicked.connect(self.rst)
@@ -4637,10 +4597,6 @@ class Measurement(QMainWindow):
         # except Exception:
         #     pass
 
-    # ========================================================================
-    # AUTOMATIC WIDGET ENABLING/DISABLING SYSTEM
-    # ========================================================================
-
     def set_all_inputs_enabled(self, enabled):
         """
         Master method: Automatically enable/disable ALL input widgets
@@ -4660,7 +4616,6 @@ class Measurement(QMainWindow):
 
         # Recursively process all widgets
         self._recursive_set_enabled(central_widget, enabled)
-
 
     def _build_always_enabled_list(self):
         """
@@ -4711,10 +4666,6 @@ class Measurement(QMainWindow):
                     # Set enabled state
                     child.setEnabled(enabled)
 
-    # ========================================================================
-    # ADVANCED: CUSTOM EXCLUSION RULES
-    # ========================================================================
-
     def _should_widget_be_disabled(self, widget):
         """
         Optional: Add custom logic to determine if a widget should be disabled
@@ -4745,10 +4696,6 @@ class Measurement(QMainWindow):
 
         # Default: widget should be disabled
         return True
-
-    # ========================================================================
-    # OPTIONAL: GRANULAR CONTROL
-    # ========================================================================
 
     def disable_specific_section(self, section_name, enabled=False):
         """
@@ -4883,7 +4830,7 @@ class Measurement(QMainWindow):
                             self.keithley_2182nv.write(':SYST:BEEP:STAT 0')
                             self.log_box.append(str(model_2182))
                             # Initialize and configure the instrument
-                            self.keithley_2182nv.write("*RST")
+                            # self.keithley_2182nv.write("*RST")
                             self.keithley_2182nv.write("*CLS")
                             f.write(f"Instrument: Keithley 2182nv enabled\n")
                             self.nv_NPLC = self.NPLC_entry.text()
@@ -5427,11 +5374,20 @@ class Measurement(QMainWindow):
             pass
 
         self.running = False
+        self.measurement_active = False
+        self.set_all_inputs_enabled(True)
+
         self.ppms_field_One_zone_radio_enabled = False
         self.ppms_field_Two_zone_radio_enabled = False
         self.ppms_field_Three_zone_radio_enabled = False
         self.nv_channel_1_enabled = None
         self.nv_channel_2_enabled = None
+        # Update buttons
+        if hasattr(self, 'start_measurement_btn'):
+            self.start_measurement_btn.setEnabled(True)
+        if hasattr(self, 'stop_btn'):
+            self.stop_btn.setEnabled(False)
+
         try:
             if self.worker is not None:
                 self.worker.stop()
