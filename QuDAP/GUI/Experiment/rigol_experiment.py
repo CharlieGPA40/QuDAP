@@ -275,6 +275,7 @@ class BK9205_RIGOL_Worker(QThread):
             )
 
             # Step 1: Set voltage/current using set_all_voltages/currents command
+            self.bk9205_cmd.set_remote_mode(self.bk9205)
             print('setting the voltage')
             self._set_channel_voltage_all_command(channel_num, value, source_type)
             print('Turn on the voltage')
