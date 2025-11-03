@@ -786,6 +786,7 @@ class BK9205_RIGOL_Worker(QThread):
                 time.sleep(0.5)  # Adjust based on sweep time
 
                 # Get trace data
+                self.rigol_cmd.set_data_format(self.rigol, 'REAL')
                 trace_data_str = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
                 trace_data = [float(x) for x in trace_data_str.split(',')]
                 print(trace_data_str)
