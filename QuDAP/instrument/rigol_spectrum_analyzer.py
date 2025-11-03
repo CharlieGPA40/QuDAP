@@ -405,7 +405,14 @@ class RIGOL_COMMAND:
     def get_trace_data(self, instrument, trace: str) -> str:
         """Read trace data (TRACE1|TRACE2|TRACE3|TRACE4)"""
         if trace in ['TRACE1', 'TRACE2', 'TRACE3', 'TRACE4']:
-            return instrument.query(f':TRACE:DATA? {trace}')
+            instrument.write(f':TRACE:DATA? {trace}')
+            raw_data = instrument.read_raw()
+            header_len = 2 + int(chr(raw_data[1]))
+            data_bytes = raw_data[header_len:-1]
+            num_points = len(data_bytes) // 4
+            import struct
+            trace = struct.unpack(f'<{num_points}f', data_bytes)
+            return trace
 
     def clear_all_traces(self, instrument):
         """Clear all traces"""

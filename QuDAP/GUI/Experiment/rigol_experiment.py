@@ -797,11 +797,11 @@ class BK9205_RIGOL_Worker(QThread):
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
                 print(self.rigol_cmd.get_data_format(self.rigol))
                 print('Grabing Trace')
-                trace_data_str = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
-                print('Trace grabbing successful')
-                print(trace_data_str)
-                trace_data = [float(x) for x in trace_data_str.split(',')]
-                print(trace_data_str)
+                trace_data = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
+                # print('Trace grabbing successful')
+                # print(trace_data_str)
+                # trace_data = [float(x) for x in trace_data_str.split(',')]
+                # print(trace_data_str)
 
                 # Get frequency data
                 start_freq = float(self.rigol_cmd.get_start_frequency(self.rigol))
