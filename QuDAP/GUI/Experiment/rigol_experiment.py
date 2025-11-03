@@ -791,17 +791,16 @@ class BK9205_RIGOL_Worker(QThread):
                 self.rigol_cmd.single_sweep(self.rigol)
 
                 # Wait for sweep to complete
-                time.sleep(0.5)  # Adjust based on sweep time
+                time.sleep(2)  # Adjust based on sweep time
 
                 # Get trace data
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
-                print(self.rigol_cmd.get_data_format(self.rigol))
-                print('Grabing Trace')
                 trace_data = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
                 # print('Trace grabbing successful')
                 # print(trace_data_str)
                 # trace_data = [float(x) for x in trace_data_str.split(',')]
                 # print(trace_data_str)
+                print(trace_data)
                 trace_data = trace_data [1:]
 
                 # Get frequency data
