@@ -824,7 +824,7 @@ class BK9205_RIGOL_Worker(QThread):
 
         except Exception as e:
             self.append_text.emit(f"    ✗ Error capturing spectrum: {str(e)}")
-            # return self._generate_demo_spectrum()
+            return self._generate_demo_spectrum()
 
     def _generate_demo_spectrum(self):
         """Generate demo spectrum data."""
@@ -1975,7 +1975,7 @@ class RIGOL_Measurement(QWidget):
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
-                    demo_mode=getattr(self, 'demo_mode', False),
+                    demo_mode=getattr(self, 'demo_mode', True),
                     settling_time=1.0,
                     spectrum_averaging=1,
                     save_individual_spectra=True
