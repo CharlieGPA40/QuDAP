@@ -794,9 +794,8 @@ class BK9205_RIGOL_Worker(QThread):
                 stop_freq = float(self.rigol_cmd.get_stop_frequency(self.rigol))
                 num_points = len(trace_data)
                 frequencies = np.linspace(start_freq, stop_freq, num_points).tolist()
-
                 spectrum = {
-                    'frequencies': frequencies,
+                    'frequencies': frequencies[1:],
                     'powers': trace_data_chopped
                 }
                 spectra.append(spectrum)
@@ -899,13 +898,14 @@ class BK9205_RIGOL_Worker(QThread):
             self.append_text.emit(f"    ✗ Error saving spectrum: {str(e)}")
 
     def _save_consolidated_data(self):
-        """Save consolidated data file with all measurements."""
+        """Save consolidated data file with all measurements and complete spectra."""
         try:
-            self.append_text.emit("\nSaving consolidated measurement data...")
+            self.append_text("\nSaving consolidated measurement data...")
 
             data_file = f"{self.folder_path}/{self.file_name}_all_data.txt"
 
             with open(data_file, 'w') as f:
+                # Write header information
                 f.write("# BK9205 + RIGOL Consolidated Measurement Data\n")
                 f.write("=" * 80 + "\n")
                 f.write(f"# Measurement Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -917,10 +917,10 @@ class BK9205_RIGOL_Worker(QThread):
                 f.write(f"# Spectrum Averaging: {self.spectrum_averaging}\n")
                 f.write("=" * 80 + "\n\n")
 
-                # Write column headers
+                # Write summary table
+                f.write("# SUMMARY TABLE\n")
                 f.write("# Point\tTimestamp\tSource_Value\tUnit\tPeak_Power(dBm)\tPeak_Freq(Hz)\tCenter_Freq(Hz)\n")
 
-                # Write data
                 for result in self.measurement_results:
                     point = result['point']
                     timestamp = result['timestamp']
@@ -948,10 +948,59 @@ class BK9205_RIGOL_Worker(QThread):
                     f.write(
                         f"{point}\t{timestamp}\t{value:.6f}\t{unit}\t{peak_power:.6f}\t{peak_freq:.6e}\t{center_freq:.6e}\n")
 
-            self.append_text.emit(f"✓ Saved consolidated data: {data_file}")
+                # Write complete spectrum data with side-by-side power columns
+                f.write("\n\n# COMPLETE SPECTRUM DATA\n")
+                f.write("# All power values are in dBm\n")
+                f.write("# Frequency data is the same for all measurements\n")
+                f.write("=" * 80 + "\n")
+
+                # Get frequency data (same for all measurements)
+                freq_data = self.measurement_results[0]['spectrum']['frequencies']
+
+                # Build header for spectrum data
+                header = "Frequency(Hz)"
+                for result in self.measurement_results:
+                    point = result['point']
+
+                    # Get source value for column label
+                    if 'value' in result:
+                        value = result['value']
+                        unit = result['unit']
+                    elif 'total_value' in result:
+                        value = result['total_value']
+                        unit = result['unit']
+                    elif 'varying_value' in result:
+                        value = result['varying_value']
+                        unit = result.get('unit', 'V')
+                    else:
+                        value = 0
+                        unit = 'V'
+
+                    header += f"\tPoint_{point}_{value:.6f}{unit}_Power(dBm)"
+
+                f.write(header + "\n")
+
+                # Write data rows
+                num_freq_points = len(freq_data)
+                for i in range(num_freq_points):
+                    row = f"{freq_data[i]:.6e}"
+
+                    # Append power value from each measurement
+                    for result in self.measurement_results:
+                        power = result['spectrum']['powers'][i]
+                        row += f"\t{power:.6f}"
+
+                    f.write(row + "\n")
+
+            self.append_text(f"✓ Saved consolidated data: {data_file}")
 
             # Also save summary statistics
             self._save_summary_statistics()
+
+        except Exception as e:
+            self.append_text(f"✗ Error saving consolidated data: {str(e)}")
+            import traceback
+            self.append_text(traceback.format_exc())
 
         except Exception as e:
             self.append_text.emit(f"✗ Error saving consolidated data: {str(e)}")
