@@ -802,6 +802,7 @@ class BK9205_RIGOL_Worker(QThread):
                 # print(trace_data_str)
                 # trace_data = [float(x) for x in trace_data_str.split(',')]
                 # print(trace_data_str)
+                trace_data = trace_data [1:]
 
                 # Get frequency data
                 start_freq = float(self.rigol_cmd.get_start_frequency(self.rigol))
