@@ -790,7 +790,9 @@ class BK9205_RIGOL_Worker(QThread):
                 # Get trace data
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
                 print(self.rigol_cmd.get_data_format(self.rigol))
+                print('Grabing Trace')
                 trace_data_str = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
+                print('Trace grabbing successful')
                 print(trace_data_str)
                 trace_data = [float(x) for x in trace_data_str.split(',')]
                 print(trace_data_str)
@@ -828,7 +830,7 @@ class BK9205_RIGOL_Worker(QThread):
 
         except Exception as e:
             self.append_text.emit(f"    ✗ Error capturing spectrum: {str(e)}")
-            return self._generate_demo_spectrum()
+            # return self._generate_demo_spectrum()
 
     def _generate_demo_spectrum(self):
         """Generate demo spectrum data."""
