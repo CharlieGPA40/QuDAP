@@ -1786,9 +1786,9 @@ class Measurement(QMainWindow):
                     self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
                     self.main_layout.addLayout(self.Instruments_Content_Layout)
-                    self.rigol_measurement = RIGOL_Measurement(True, True)
-                    self.customize_layout_class = self.rigol_measurement.init_ui()
-                    self.main_layout.addLayout(self.customize_layout_class)
+                    # self.rigol_measurement = RIGOL_Measurement(True, True)
+                    # self.customize_layout_class = self.rigol_measurement.init_ui()
+                    # self.main_layout.addLayout(self.customize_layout_class)
                     # self.setCentralWidget(self.scroll_area)
                     self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
                     self.refresh_btn.setStyleSheet(self.Button_stylesheet)
@@ -5037,6 +5037,7 @@ class Measurement(QMainWindow):
                             self.stop_measurement()
                             return
                     self.append_text('Keithley 2182 connected!\n', 'green')
+                dsp7265_current_time_constant = None
                 if self.DSP7265_Connected:
                     self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
                     if self.demo_mode:
