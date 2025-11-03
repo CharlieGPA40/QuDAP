@@ -275,17 +275,18 @@ class BK9205_RIGOL_Worker(QThread):
             )
 
             # Step 1: Set voltage/current using set_all_voltages/currents command
+            print('setting the voltage')
             self._set_channel_voltage_all_command(channel_num, value, source_type)
-
+            print('Turn on he voltage')
             # Step 2: Turn on the channel
             self._turn_on_channel(channel_num)
-
+            print('Waiting')
             # Step 3: Wait for settling
             self._wait_settling(f"Settling... ({self.settling_time}s)")
 
             # Step 4: Read back voltages/currents and update labels
             self._read_and_update_labels()
-
+            print('Spectrum')
             # Step 5: Capture spectrum
             spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
 
@@ -788,8 +789,9 @@ class BK9205_RIGOL_Worker(QThread):
 
                 # Get trace data
                 self.rigol_cmd.set_data_format(self.rigol, 'REAL')
+                print(self.rigol_cmd.get_data_format(self.rigol))
                 trace_data_str = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
-                print*(trace_data_str)
+                print(trace_data_str)
                 trace_data = [float(x) for x in trace_data_str.split(',')]
                 print(trace_data_str)
 
