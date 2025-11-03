@@ -405,7 +405,7 @@ class RIGOL_COMMAND:
     def get_trace_data(self, instrument, trace: str) -> str:
         """Read trace data (TRACE1|TRACE2|TRACE3|TRACE4)"""
         if trace in ['TRACE1', 'TRACE2', 'TRACE3', 'TRACE4']:
-            return instrument.query(f':TRACe:DATA? {trace}')
+            return instrument.query(f':TRACE:DATA? {trace}')
 
     def clear_all_traces(self, instrument):
         """Clear all traces"""
