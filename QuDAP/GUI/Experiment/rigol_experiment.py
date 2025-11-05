@@ -302,12 +302,12 @@ class BK9205_RIGOL_Worker(QThread):
             # Step 7: Save individual spectrum file
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
 
 
             # Step 8: Update plots
             self._update_plots()
-            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-            self.save_individual_plot.emit(plot_filename)
             time.sleep(1)
             self._save_consolidated_data()
 
@@ -373,12 +373,13 @@ class BK9205_RIGOL_Worker(QThread):
             # Save individual spectrum
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
 
 
             # Update plots
             self._update_plots()
-            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-            self.save_individual_plot.emit(plot_filename)
+
             time.sleep(1)
             self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
@@ -437,12 +438,12 @@ class BK9205_RIGOL_Worker(QThread):
             # Save individual spectrum
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
-
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
 
             # Update plots
             self._update_plots()
-            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-            self.save_individual_plot.emit(plot_filename)
+
             time.sleep(1)
             self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
@@ -512,11 +513,11 @@ class BK9205_RIGOL_Worker(QThread):
 
         if self.save_individual_spectra:
             self._save_individual_spectrum(result, 0)
-
+            plot_filename = f"{self.file_name}_point_spectrum.png"
+            self.save_individual_plot.emit(plot_filename)
 
         self._update_plots()
-        plot_filename = f"{self.file_name}_point_spectrum.png"
-        self.save_individual_plot.emit(plot_filename)
+
         self.save_plot.emit(self.file_name)
         time.sleep(1)
         self._save_consolidated_data()
@@ -581,11 +582,12 @@ class BK9205_RIGOL_Worker(QThread):
 
             if self.save_individual_spectra:
                 self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
 
 
             self._update_plots()
-            plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-            self.save_individual_plot.emit(plot_filename)
+            
             time.sleep(1)
             self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
@@ -2033,7 +2035,7 @@ class RIGOL_Measurement(QWidget):
                     demo_mode=getattr(self, 'demo_mode', False),
                     settling_time=1.0,
                     spectrum_averaging=1,
-                    save_individual_spectra=True
+                    save_individual_spectra=False
                 )
 
                 # Connect signals
