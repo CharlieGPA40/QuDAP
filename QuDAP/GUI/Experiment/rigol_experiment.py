@@ -900,7 +900,7 @@ class BK9205_RIGOL_Worker(QThread):
     def _save_consolidated_data(self):
         """Save consolidated data file with all measurements and complete spectra."""
         try:
-            self.append_text("\nSaving consolidated measurement data...")
+            self.append_text.emit("\nSaving consolidated measurement data...")
 
             data_file = f"{self.folder_path}/{self.file_name}_all_data.txt"
 
@@ -917,36 +917,36 @@ class BK9205_RIGOL_Worker(QThread):
                 f.write(f"# Spectrum Averaging: {self.spectrum_averaging}\n")
                 f.write("=" * 80 + "\n\n")
 
-                # Write summary table
-                f.write("# SUMMARY TABLE\n")
-                f.write("# Point\tTimestamp\tSource_Value\tUnit\tPeak_Power(dBm)\tPeak_Freq(Hz)\tCenter_Freq(Hz)\n")
-
-                for result in self.measurement_results:
-                    point = result['point']
-                    timestamp = result['timestamp']
-
-                    # Determine source value
-                    if 'value' in result:
-                        value = result['value']
-                        unit = result['unit']
-                    elif 'total_value' in result:
-                        value = result['total_value']
-                        unit = result['unit']
-                    elif 'varying_value' in result:
-                        value = result['varying_value']
-                        unit = result.get('unit', 'V')
-                    else:
-                        value = 0
-                        unit = 'V'
-
-                    spectrum = result['spectrum']
-                    peak_power = max(spectrum['powers'])
-                    peak_idx = spectrum['powers'].index(peak_power)
-                    peak_freq = spectrum['frequencies'][peak_idx]
-                    center_freq = (spectrum['frequencies'][0] + spectrum['frequencies'][-1]) / 2
-
-                    f.write(
-                        f"{point}\t{timestamp}\t{value:.6f}\t{unit}\t{peak_power:.6f}\t{peak_freq:.6e}\t{center_freq:.6e}\n")
+                # # Write summary table
+                # f.write("# SUMMARY TABLE\n")
+                # f.write("# Point\tTimestamp\tSource_Value\tUnit\tPeak_Power(dBm)\tPeak_Freq(Hz)\tCenter_Freq(Hz)\n")
+                #
+                # for result in self.measurement_results:
+                #     point = result['point']
+                #     timestamp = result['timestamp']
+                #
+                #     # Determine source value
+                #     if 'value' in result:
+                #         value = result['value']
+                #         unit = result['unit']
+                #     elif 'total_value' in result:
+                #         value = result['total_value']
+                #         unit = result['unit']
+                #     elif 'varying_value' in result:
+                #         value = result['varying_value']
+                #         unit = result.get('unit', 'V')
+                #     else:
+                #         value = 0
+                #         unit = 'V'
+                #
+                #     spectrum = result['spectrum']
+                #     peak_power = max(spectrum['powers'])
+                #     peak_idx = spectrum['powers'].index(peak_power)
+                #     peak_freq = spectrum['frequencies'][peak_idx]
+                #     center_freq = (spectrum['frequencies'][0] + spectrum['frequencies'][-1]) / 2
+                #
+                #     f.write(
+                #         f"{point}\t{timestamp}\t{value:.6f}\t{unit}\t{peak_power:.6f}\t{peak_freq:.6e}\t{center_freq:.6e}\n")
 
                 # Write complete spectrum data with side-by-side power columns
                 f.write("\n\n# COMPLETE SPECTRUM DATA\n")
@@ -976,7 +976,7 @@ class BK9205_RIGOL_Worker(QThread):
                         value = 0
                         unit = 'V'
 
-                    header += f"\tPoint_{point}_{value:.6f}{unit}_Power(dBm)"
+                    header += f"\t{value:.3f}{unit}"
 
                 f.write(header + "\n")
 
@@ -992,7 +992,7 @@ class BK9205_RIGOL_Worker(QThread):
 
                     f.write(row + "\n")
 
-            self.append_text(f"✓ Saved consolidated data: {data_file}")
+            self.append_text.emit(f"✓ Saved consolidated data: {data_file}")
 
             # Also save summary statistics
             self._save_summary_statistics()
@@ -2022,7 +2022,7 @@ class RIGOL_Measurement(QWidget):
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
-                    demo_mode=getattr(self, 'demo_mode', False),
+                    demo_mode=getattr(self, 'demo_mode', True),
                     settling_time=1.0,
                     spectrum_averaging=1,
                     save_individual_spectra=True
@@ -2468,7 +2468,8 @@ class RIGOL_Measurement(QWidget):
             self.worker.wait()
             self.worker = None
             self.append_text("Measurement stopped by user")
-            BK_9129_COMMAND().set_output_state(self.BK_9205_CONNECTED, 'OFF')
+            if hasattr(self, 'BK_9205_CONNECTED'):
+                BK_9129_COMMAND().set_output_state(self.BK_9205_CONNECTED, 'OFF')
 
         # Re-enable start button
         if hasattr(self, 'start_measurement_btn'):
