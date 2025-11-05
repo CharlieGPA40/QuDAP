@@ -309,6 +309,7 @@ class BK9205_RIGOL_Worker(QThread):
             plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
             self.save_individual_plot.emit(plot_filename)
             time.sleep(1)
+            self._save_consolidated_data()
 
         self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
@@ -378,6 +379,8 @@ class BK9205_RIGOL_Worker(QThread):
             self._update_plots()
             plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
             self.save_individual_plot.emit(plot_filename)
+            time.sleep(1)
+            self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
@@ -440,6 +443,8 @@ class BK9205_RIGOL_Worker(QThread):
             self._update_plots()
             plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
             self.save_individual_plot.emit(plot_filename)
+            time.sleep(1)
+            self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
@@ -513,6 +518,8 @@ class BK9205_RIGOL_Worker(QThread):
         plot_filename = f"{self.file_name}_point_spectrum.png"
         self.save_individual_plot.emit(plot_filename)
         self.save_plot.emit(self.file_name)
+        time.sleep(1)
+        self._save_consolidated_data()
         self.progress_update.emit(100)
 
     def _measure_all_channels_one_varying(self, enabled_channels, varying_channel):
@@ -579,6 +586,8 @@ class BK9205_RIGOL_Worker(QThread):
             self._update_plots()
             plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
             self.save_individual_plot.emit(plot_filename)
+            time.sleep(1)
+            self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
