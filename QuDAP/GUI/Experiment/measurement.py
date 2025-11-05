@@ -1125,6 +1125,7 @@ class Measurement(QMainWindow):
             self.ac_current_offset = None
             self.ac_current_waveform = None
             self.KEITHLEY_6221_TEST_ON = False
+            self.BNC845_AM_ON = False
             self.always_enabled_widgets = []
             self.INSTRUMENT_RS232_PRESETS = {
                 "DSP 7265 Lock-in": {
@@ -1936,7 +1937,7 @@ class Measurement(QMainWindow):
                 if child_layout:
                     self.clear_layout(child_layout)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def start_server(self):
         if not is_multivu_running():
@@ -2209,7 +2210,7 @@ class Measurement(QMainWindow):
         fmr_measurement_status_layout, self.fmr_measurement_status_repetition_reading_label, self.fmr_measurement_status_time_remaining_in_days_reading_label, self.fmr_measurement_status_time_remaining_in_hours_reading_label, self.fmr_measurement_status_time_remaining_in_mins_reading_label, self.fmr_measurement_status_cur_percent_reading_label = fmr_main_ui_class.fmr_measurement_status_ui()
         fmr_status_reading_group_box.setLayout(fmr_measurement_status_layout)
         if self.FMR_ST_FMR:
-            fmr_status_setting_group_box = QGroupBox('ST_FMR Setting')
+            fmr_status_setting_group_box = QGroupBox('ST FMR Setting')
             fmr_setting_layout, self.fmr_setting_average_line_edit, self.fmr_setting_init_temp_rate_line_edit = fmr_main_ui_class.st_fmr_setting_ui()
             fmr_status_setting_group_box.setLayout(fmr_setting_layout)
         else:
@@ -2579,7 +2580,7 @@ class Measurement(QMainWindow):
                 self.DSP7265_Connected = True
                 self.instru_connect_btn.setText('Disconnect')
 
-                self.dsp7265_Window()
+                self.dsp7265_window()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
         else:
@@ -2754,6 +2755,10 @@ class Measurement(QMainWindow):
             self.customize_layout_class = self.rigol_measurement.init_ui()
             self.main_layout.addLayout(self.customize_layout_class)
 
+    # ---------------------------------------------------------------------------------
+    #  BNC 845 Portion
+    # ---------------------------------------------------------------------------------
+
     def bnc845rf_window_ui(self):
         self.bnc845rf_main_layout = QHBoxLayout()
 
@@ -2805,7 +2810,7 @@ class Measurement(QMainWindow):
         self.bnc845rf_modulation_depth_reading_layout.addWidget(self.bnc845rf_modulation_depth_reading_label)
 
         self.bnc845rf_modulation_frequency_reading_layout = QHBoxLayout()
-        bnc845rf_modulation_frequency_label = QLabel('Modulation Depth:')
+        bnc845rf_modulation_frequency_label = QLabel('Modulation Frequency:')
         bnc845rf_modulation_frequency_label.setFont(self.font)
         self.bnc845rf_modulation_frequency_reading_label = QLabel('N/A')
         self.bnc845rf_modulation_frequency_reading_label.setFont(self.font)
@@ -2872,6 +2877,7 @@ class Measurement(QMainWindow):
         self.bnc845rf_modulation_combo.addItems(
             ["Select Modulation", "Pulse Mod", "Amplitude Mod", "Frequency Mod", "Phase Mod"])
         self.bnc845rf_modulation_combo.currentIndexChanged.connect(self.bnc845rf_modulation_selection_ui)
+
         self.bnc845rf_modulation_select_layout.addWidget(self.bnc845rf_modulation_label)
         self.bnc845rf_modulation_select_layout.addWidget(self.bnc845rf_modulation_combo)
 
@@ -2892,7 +2898,7 @@ class Measurement(QMainWindow):
             self.bnc845rf_frequency_zone_3 = False
             self.bnc845rf_frequency_zone_customized = False
 
-            self.bnc845rf_frequency_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.bnc845rf_frequency_zone_number_label = QLabel('Number of Independent Frequency Regions:')
             self.bnc845rf_frequency_zone_number_label.setFont(self.font)
             self.bnc845rf_frequency_zone_one_radio_button = QRadioButton("1")
             self.bnc845rf_frequency_zone_one_radio_button.setFont(self.font)
@@ -2906,6 +2912,13 @@ class Measurement(QMainWindow):
             self.bnc845rf_frequency_zone_customized_radio_button = QRadioButton("Customize")
             self.bnc845rf_frequency_zone_customized_radio_button.setFont(self.font)
             self.bnc845rf_frequency_zone_customized_radio_button.toggled.connect(self.select_frequency_zone)
+
+            self.bnc845rf_frequency_zone_radio_button_group = QButtonGroup()
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_one_radio_button)
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_two_radio_button)
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_three_radio_button)
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(
+                self.bnc845rf_frequency_zone_customized_radio_button)
 
             self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_one_radio_button)
             self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_two_radio_button)
@@ -2933,7 +2946,7 @@ class Measurement(QMainWindow):
             self.bnc845rf_power_zone_1 = False
             self.bnc845rf_power_zone_customized = False
 
-            self.bnc845rf_power_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.bnc845rf_power_zone_number_label = QLabel('Number of Independent Power Regions:')
             self.bnc845rf_power_zone_number_label.setFont(self.font)
             self.bnc845rf_power_zone_one_radio_button = QRadioButton("1")
             self.bnc845rf_power_zone_one_radio_button.setFont(self.font)
@@ -2942,24 +2955,32 @@ class Measurement(QMainWindow):
             self.bnc845rf_power_zone_customized_radio_button.setFont(self.font)
             self.bnc845rf_power_zone_customized_radio_button.toggled.connect(self.select_power_zone)
 
-            self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_one_radio_button)
-            self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_customized_radio_button)
+            self.bnc845rf_power_radio_buttom_layout.addWidget(self.bnc845rf_power_zone_one_radio_button)
+            self.bnc845rf_power_radio_buttom_layout.addWidget(self.bnc845rf_power_zone_customized_radio_button)
 
-            self.bnc845rf_power_setting_layout = QHBoxLayout()
-            bnc845rf_power_setting_label = QLabel('Power:')
-            bnc845rf_power_setting_label.setFont(self.font)
-            self.bnc845rf_power_setting_entry = QLineEdit()
-            self.bnc845rf_power_setting_entry.setFont(self.font)
-            bnc845rf_power_setting_unit_label = QLabel('dbm')
-            bnc845rf_power_setting_unit_label.setFont(self.font)
-            self.bnc845rf_power_setting_layout.addWidget(bnc845rf_power_setting_label)
-            self.bnc845rf_power_setting_layout.addWidget(self.bnc845rf_power_setting_entry)
-            self.bnc845rf_power_setting_layout.addWidget(bnc845rf_power_setting_unit_label)
+            self.bnc845rf_power_zone_radio_button_group = QButtonGroup()
+            self.bnc845rf_power_zone_radio_button_group.addButton(self.bnc845rf_power_zone_one_radio_button)
+            self.bnc845rf_power_zone_radio_button_group.addButton(self.bnc845rf_power_zone_customized_radio_button)
+
+
+            self.bnc845rf_frequency_setting_layout = QHBoxLayout()
+            bnc845rf_frequency_setting_label = QLabel('Frequency:')
+            bnc845rf_frequency_setting_label.setFont(self.font)
+            self.bnc845rf_frequency_setting_entry = QLineEdit()
+            self.bnc845rf_frequency_setting_entry.setFont(self.font)
+            bnc845rf_frequency_setting_unit_combo = QComboBox()
+            bnc845rf_frequency_setting_unit_combo.setFont(self.font)
+            bnc845rf_frequency_setting_unit_combo.setStyleSheet(self.QCombo_stylesheet)
+            bnc845rf_frequency_setting_unit_combo.addItems(
+                ["Select Unit", "Hz", "kHz", "MHz", "GHz"])
+            self.bnc845rf_frequency_setting_layout.addWidget(bnc845rf_frequency_setting_label)
+            self.bnc845rf_frequency_setting_layout.addWidget(self.bnc845rf_frequency_setting_entry)
+            self.bnc845rf_frequency_setting_layout.addWidget(bnc845rf_frequency_setting_unit_combo)
 
             self.bnc845rf_loop_setting_content_layout.addWidget(self.bnc845rf_frequency_zone_number_label)
-            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_frequency_radio_buttom_layout)
-            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_frequency_zone_layout)
-            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_setting_layout)
+            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_radio_buttom_layout)
+            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_zone_layout)
+            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_frequency_setting_layout)
         elif self.bnc845rf_loop_setting_combo.currentIndex() == 3:
             self.bnc845rf_frequency_radio_buttom_layout = QHBoxLayout()
             self.bnc845rf_frequency_zone_layout = QVBoxLayout()
@@ -2969,7 +2990,7 @@ class Measurement(QMainWindow):
             self.bnc845rf_frequency_zone_3 = False
             self.bnc845rf_frequency_zone_customized = False
 
-            self.bnc845rf_frequency_zone_number_label = QLabel('Number of Independent Step Regions:')
+            self.bnc845rf_frequency_zone_number_label = QLabel('Number of Independent Frequency Regions:')
             self.bnc845rf_frequency_zone_number_label.setFont(self.font)
             self.bnc845rf_frequency_zone_one_radio_button = QRadioButton("1")
             self.bnc845rf_frequency_zone_one_radio_button.setFont(self.font)
@@ -2984,25 +3005,41 @@ class Measurement(QMainWindow):
             self.bnc845rf_frequency_zone_customized_radio_button.setFont(self.font)
             self.bnc845rf_frequency_zone_customized_radio_button.toggled.connect(self.select_frequency_zone)
 
+            self.bnc845rf_frequency_zone_radio_button_group = QButtonGroup()
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_one_radio_button)
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_two_radio_button)
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_three_radio_button)
+            self.bnc845rf_frequency_zone_radio_button_group.addButton(self.bnc845rf_frequency_zone_customized_radio_button)
+
             self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_one_radio_button)
             self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_two_radio_button)
             self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_three_radio_button)
             self.bnc845rf_frequency_radio_buttom_layout.addWidget(self.bnc845rf_frequency_zone_customized_radio_button)
-            self.bnc845rf_power_setting_layout = QHBoxLayout()
-            bnc845rf_power_setting_label = QLabel('Power:')
-            bnc845rf_power_setting_label.setFont(self.font)
-            self.bnc845rf_power_setting_entry = QLineEdit()
-            self.bnc845rf_power_setting_entry.setFont(self.font)
-            bnc845rf_power_setting_unit_label = QLabel('dbm')
-            bnc845rf_power_setting_unit_label.setFont(self.font)
-            self.bnc845rf_power_setting_layout.addWidget(bnc845rf_power_setting_label)
-            self.bnc845rf_power_setting_layout.addWidget(self.bnc845rf_power_setting_entry)
-            self.bnc845rf_power_setting_layout.addWidget(bnc845rf_power_setting_unit_label)
+
+            self.bnc845rf_power_radio_buttom_layout = QHBoxLayout()
+            self.bnc845rf_power_zone_layout = QVBoxLayout()
+
+            self.bnc845rf_power_zone_1 = False
+            self.bnc845rf_power_zone_customized = False
+
+            self.bnc845rf_power_zone_number_label = QLabel('Number of Independent Power Regions:')
+            self.bnc845rf_power_zone_number_label.setFont(self.font)
+            self.bnc845rf_power_zone_one_radio_button = QRadioButton("1")
+            self.bnc845rf_power_zone_one_radio_button.setFont(self.font)
+            self.bnc845rf_power_zone_one_radio_button.toggled.connect(self.select_power_zone)
+            self.bnc845rf_power_zone_customized_radio_button = QRadioButton("Customize")
+            self.bnc845rf_power_zone_customized_radio_button.setFont(self.font)
+            self.bnc845rf_power_zone_customized_radio_button.toggled.connect(self.select_power_zone)
+
+            self.bnc845rf_power_radio_buttom_layout.addWidget(self.bnc845rf_power_zone_one_radio_button)
+            self.bnc845rf_power_radio_buttom_layout.addWidget(self.bnc845rf_power_zone_customized_radio_button)
 
             self.bnc845rf_loop_setting_content_layout.addWidget(self.bnc845rf_frequency_zone_number_label)
             self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_frequency_radio_buttom_layout)
             self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_frequency_zone_layout)
-            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_setting_layout)
+            self.bnc845rf_loop_setting_content_layout.addWidget(self.bnc845rf_power_zone_number_label)
+            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_radio_buttom_layout)
+            self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_zone_layout)
 
     def bnc845rf_modulation_selection_ui(self):
         try:
@@ -3045,14 +3082,21 @@ class Measurement(QMainWindow):
                 bnc845rf_am_source_layout.addWidget(bnc845rf_am_source_label)
                 bnc845rf_am_source_layout.addWidget(self.bnc845rf_am_source_combo)
 
+                self.bnc845rf_am_modulation_on_off_button = QPushButton('On')
+                self.bnc845rf_am_modulation_on_off_button.setFont(self.font)
+                self.bnc845rf_am_modulation_on_off_button.setStyleSheet(self.Button_stylesheet)
+                self.bnc845rf_am_modulation_on_off_button.clicked.connect(self.bnc845_am_control)
+
                 self.bnc845rf_am_layout.addLayout(bnc845rf_am_freq_layout)
                 self.bnc845rf_am_layout.addLayout(bnc845rf_am_depth_layout)
                 self.bnc845rf_am_layout.addLayout(bnc845rf_am_source_layout)
+                self.bnc845rf_am_layout.addWidget(self.bnc845rf_am_modulation_on_off_button)
                 self.bnc845rf_modulation_selected_layout.addLayout(self.bnc845rf_am_layout)
             elif self.bnc845rf_modulation_combo.currentIndex() == 3:
                 None
             else:
                 None
+
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -3101,16 +3145,14 @@ class Measurement(QMainWindow):
                 self.bnc845rf_power_zone_one_radio_button.setChecked(False)
                 self.bnc845rf_power_zone_1 = True
                 self.bnc845rf_power_zone_customized = False
-                self.select_frequency_zone_one()
-                self.bnc845rf_frequency_zone_one_radio_button.setChecked(False)
-            elif self.bnc845rf_frequency_zone_customized_radio_button.isChecked() and self.bnc845rf_frequency_zone_customized == False:
-                self.bnc845rf_frequency_zone_customized_radio_button.setChecked(False)
-                self.bnc845rf_frequency_zone_1 = False
-                self.bnc845rf_frequency_zone_2 = False
-                self.bnc845rf_frequency_zone_3 = False
-                self.bnc845rf_frequency_zone_customized = True
-                self.select_frequency_zone_customize()
-                self.bnc845rf_frequency_zone_customized_radio_button.setChecked(False)
+                self.select_power_zone_one()
+                self.bnc845rf_power_zone_one_radio_button.setChecked(False)
+            elif self.bnc845rf_power_zone_customized_radio_button.isChecked() and self.bnc845rf_power_zone_customized == False:
+                self.bnc845rf_power_zone_customized_radio_button.setChecked(False)
+                self.bnc845rf_power_zone_1 = False
+                self.bnc845rf_power_zone_customized = True
+                self.select_power_zone_customize()
+                self.bnc845rf_power_zone_customized_radio_button.setChecked(False)
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
@@ -3157,6 +3199,44 @@ class Measurement(QMainWindow):
 
         self.clear_layout(self.bnc845rf_frequency_zone_layout)
         self.bnc845rf_frequency_zone_layout.addLayout(self.bnc845rf_frequency_zone_one_freq_layout)
+
+    def select_power_zone_one(self):
+        self.bnc845rf_power_zone_one_power_layout = QVBoxLayout()
+
+        self.bnc845rf_power_zone_range_layout = QHBoxLayout()
+        bnc845rf_power_zone_one_power_from_label = QLabel('Range: From')
+        bnc845rf_power_zone_one_power_from_label.setFont(self.font)
+        self.bnc845rf_power_zone_one_power_from_entry = QLineEdit()
+        self.bnc845rf_power_zone_one_power_from_entry.setFont(self.font)
+        bnc845rf_power_zone_one_power_to_label = QLabel(' to ')
+        bnc845rf_power_zone_one_power_to_label.setFont(self.font)
+        self.bnc845rf_power_zone_one_power_to_entry = QLineEdit()
+        self.bnc845rf_power_zone_one_power_to_entry.setFont(self.font)
+        bnc845rf_power_zone_one_power_unit_label = QLabel('dBm')
+        bnc845rf_power_zone_one_power_unit_label.setFont(self.font)
+        self.bnc845rf_power_zone_range_layout.addWidget(bnc845rf_power_zone_one_power_from_label)
+        self.bnc845rf_power_zone_range_layout.addWidget(self.bnc845rf_power_zone_one_power_from_entry)
+        self.bnc845rf_power_zone_range_layout.addWidget(bnc845rf_power_zone_one_power_to_label)
+        self.bnc845rf_power_zone_range_layout.addWidget(self.bnc845rf_power_zone_one_power_to_entry)
+        self.bnc845rf_power_zone_range_layout.addWidget(bnc845rf_power_zone_one_power_unit_label)
+
+        self.bnc845rf_power_zone_step_layout = QHBoxLayout()
+        bnc845rf_power_zone_one_power_step_label = QLabel('Step Size:')
+        bnc845rf_power_zone_one_power_step_label.setFont(self.font)
+        self.bnc845rf_power_zone_one_power_step_entry = QLineEdit()
+        self.bnc845rf_power_zone_one_power_step_entry.setFont(self.font)
+        bnc845rf_power_zone_one_power_step_unit_label = QLabel('dBm')
+        bnc845rf_power_zone_one_power_step_unit_label.setFont(self.font)
+
+        self.bnc845rf_power_zone_step_layout.addWidget(bnc845rf_power_zone_one_power_step_label)
+        self.bnc845rf_power_zone_step_layout.addWidget(self.bnc845rf_power_zone_one_power_step_entry)
+        self.bnc845rf_power_zone_step_layout.addWidget(bnc845rf_power_zone_one_power_step_unit_label)
+
+        self.bnc845rf_power_zone_one_power_layout.addLayout(self.bnc845rf_power_zone_range_layout)
+        self.bnc845rf_power_zone_one_power_layout.addLayout(self.bnc845rf_power_zone_step_layout)
+
+        self.clear_layout(self.bnc845rf_power_zone_layout)
+        self.bnc845rf_power_zone_layout.addLayout(self.bnc845rf_power_zone_one_power_layout)
 
     def select_frequency_zone_two(self):
         self.select_frequency_zone_one()
@@ -3265,7 +3345,686 @@ class Measurement(QMainWindow):
         self.clear_layout(self.bnc845rf_frequency_zone_layout)
         self.bnc845rf_frequency_zone_layout.addLayout(self.bnc845rf_frequency_zone_customized_layout)
 
-    def dsp7265_Window(self):
+    def select_power_zone_customize(self):
+        self.bnc845rf_power_zone_customized_layout = QHBoxLayout()
+        bnc845rf_power_zone_customized_label = QLabel('Power List: [')
+        bnc845rf_power_zone_customized_label.setFont(self.font)
+        self.bnc845rf_power_zone_customized_entry = QLineEdit()
+        self.bnc845rf_power_zone_customized_entry.setFont(self.font)
+        bnc845rf_power_zone_customized_end_label = QLabel(']')
+        bnc845rf_power_zone_customized_end_label.setFont(self.font)
+        bnc845rf_power_zone_customized_unit_label = QLabel('dBm')
+        bnc845rf_power_zone_customized_unit_label.setFont(self.font)
+        self.bnc845rf_power_zone_customized_layout.addWidget(bnc845rf_power_zone_customized_label)
+        self.bnc845rf_power_zone_customized_layout.addWidget(self.bnc845rf_power_zone_customized_entry)
+        self.bnc845rf_power_zone_customized_layout.addWidget(bnc845rf_power_zone_customized_end_label)
+        self.bnc845rf_power_zone_customized_layout.addWidget(bnc845rf_power_zone_customized_unit_label)
+
+        self.clear_layout(self.bnc845rf_power_zone_layout)
+        self.bnc845rf_power_zone_layout.addLayout(self.bnc845rf_power_zone_customized_layout)
+
+    def bnc845_am_control(self):
+        print(self.get_bnc845rf_settings())
+        # if self.BNC845_AM_ON == False:
+        #     self.BNC845_AM_ON = True
+        #     self.bnc845rf_am_modulation_on_off_button.setText('OFF')
+        #     BNC_845M_COMMAND().set_am_state(self.bnc845rf, 'ON')
+        # else:
+        #     self.BNC845_AM_ON = False
+        #     self.bnc845rf_am_modulation_on_off_button.setText('ON')
+        #     BNC_845M_COMMAND().set_am_state(self.bnc845rf, 'OFF')
+
+    def get_bnc845rf_settings(self):
+        """
+        Get all BNC845RF settings and return them as a dictionary.
+        Frequencies and power values are returned as lists.
+        """
+        settings = {}
+
+        try:
+            # Get loop setting type
+            settings['loop_type'] = self.bnc845rf_loop_setting_combo.currentText()
+
+            # Get frequency settings based on loop type
+            if self.bnc845rf_loop_setting_combo.currentIndex() in [1, 3]:  # Frequency Dependent or Both
+                settings['frequency_zones'] = {}
+
+                # Determine which frequency zone is selected
+                if hasattr(self, 'bnc845rf_frequency_zone_1') and self.bnc845rf_frequency_zone_1:
+                    settings['frequency_zone_count'] = 1
+                    settings['frequency_zones']['zone_1'] = self._get_frequency_zone_one()
+                    settings['frequency_zones']['final_list'] = self._get_frequency_zone_one()['frequency_list']
+
+                elif hasattr(self, 'bnc845rf_frequency_zone_2') and self.bnc845rf_frequency_zone_2:
+                    settings['frequency_zone_count'] = 2
+                    settings['frequency_zones']['zone_1'] = self._get_frequency_zone_one()
+                    settings['frequency_zones']['zone_2'] = self._get_frequency_zone_two()
+                    settings['frequency_zones']['final_list'] = self._get_frequency_zone_one()['frequency_list'] + self._get_frequency_zone_two()['frequency_list']
+
+                elif hasattr(self, 'bnc845rf_frequency_zone_3') and self.bnc845rf_frequency_zone_3:
+                    settings['frequency_zone_count'] = 3
+                    settings['frequency_zones']['zone_1'] = self._get_frequency_zone_one()
+                    settings['frequency_zones']['zone_2'] = self._get_frequency_zone_two()
+                    settings['frequency_zones']['zone_3'] = self._get_frequency_zone_three()
+                    settings['frequency_zones'][
+                        'final_list'] = self._get_frequency_zone_one()['frequency_list'] + self._get_frequency_zone_two()['frequency_list'] + self._get_frequency_zone_three()['frequency_list']
+
+                elif hasattr(self, 'bnc845rf_frequency_zone_customized') and self.bnc845rf_frequency_zone_customized:
+                    settings['frequency_zone_count'] = 'customized'
+                    settings['frequency_zones']['customized'] = self._get_frequency_zone_customized()
+                    settings['frequency_zones']['final_list'] = self._get_frequency_zone_customized()
+
+            # Get power settings based on loop type
+            if self.bnc845rf_loop_setting_combo.currentIndex() == 1:  # Frequency Dependent only
+                if hasattr(self, 'bnc845rf_power_setting_entry'):
+                    settings['power'] = self.bnc845rf_power_setting_entry.text()
+
+            elif self.bnc845rf_loop_setting_combo.currentIndex() in [2, 3]:  # Power Dependent or Both
+                settings['power_zones'] = {}
+
+                # Determine which power zone is selected
+                if hasattr(self, 'bnc845rf_power_zone_1') and self.bnc845rf_power_zone_1:
+                    settings['power_zone_count'] = 1
+                    settings['power_zones']['zone_1'] = self._get_power_zone_one()
+
+                elif hasattr(self, 'bnc845rf_power_zone_customized') and self.bnc845rf_power_zone_customized:
+                    settings['power_zone_count'] = 'customized'
+                    settings['power_zones']['customized'] = self._get_power_zone_customized()
+
+            # Get frequency setting for Power Dependent mode
+            if self.bnc845rf_loop_setting_combo.currentIndex() == 2:  # Power Dependent only
+                if hasattr(self, 'bnc845rf_frequency_setting_entry'):
+                    settings['frequency'] = self.bnc845rf_frequency_setting_entry.text()
+
+            # Get modulation settings (input settings)
+            settings['modulation_settings'] = self._get_modulation_settings()
+
+            # Get modulation readings (from instrument)
+            settings['modulation_readings'] = self._get_modulation_readings()
+
+            # Get current instrument readings
+            # settings['instrument_readings'] = self._get_instrument_readings()
+
+            return settings
+
+        except Exception as e:
+            import traceback
+            tb_str = traceback.format_exc()
+            print(f"Error getting BNC845RF settings: {tb_str} {str(e)}")
+            return {}
+
+    def _get_frequency_zone_one(self):
+        """Get frequency zone 1 settings and return as list"""
+        zone_data = {
+            'from': self.bnc845rf_frequency_zone_one_freq_from_entry.text(),
+            'to': self.bnc845rf_frequency_zone_one_freq_to_entry.text(),
+            'step': self.bnc845rf_frequency_zone_one_freq_step_entry.text(),
+            'unit': self.bnc845rf_frequency_zone_one_freq_unit_combo.currentText()
+        }
+
+        # Generate frequency list
+        zone_data['frequency_list'] = self._generate_frequency_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step'],
+            zone_data['unit']
+        )
+
+        return zone_data
+
+    def _get_frequency_zone_two(self):
+        """Get frequency zone 2 settings and return as list"""
+        zone_data = {
+            'from': self.bnc845rf_frequency_zone_two_freq_from_entry.text(),
+            'to': self.bnc845rf_frequency_zone_two_freq_to_entry.text(),
+            'step': self.bnc845rf_frequency_zone_two_freq_step_entry.text(),
+            'unit': self.bnc845rf_frequency_zone_two_freq_unit_combo.currentText()
+        }
+
+        # Generate frequency list
+        zone_data['frequency_list'] = self._generate_frequency_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step'],
+            zone_data['unit']
+        )
+
+        return zone_data
+
+    def _get_frequency_zone_three(self):
+        """Get frequency zone 3 settings and return as list"""
+        zone_data = {
+            'from': self.bnc845rf_frequency_zone_three_freq_from_entry.text(),
+            'to': self.bnc845rf_frequency_zone_three_freq_to_entry.text(),
+            'step': self.bnc845rf_frequency_zone_three_freq_step_entry.text(),
+            'unit': self.bnc845rf_frequency_zone_three_freq_unit_combo.currentText()
+        }
+
+        # Generate frequency list
+        zone_data['frequency_list'] = self._generate_frequency_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step'],
+            zone_data['unit']
+        )
+
+        return zone_data
+
+    def _get_frequency_zone_customized(self):
+        """Get customized frequency zone settings"""
+        zone_data = {
+            'raw_input': self.bnc845rf_frequency_zone_customized_entry.text(),
+            'unit': self.bnc845rf_frequency_zone_customized_unit_combo.currentText()
+        }
+
+        # Parse the frequency list from the entry
+        frequency_str = self.bnc845rf_frequency_zone_customized_entry.text()
+        zone_data['frequency_list'] = self._parse_custom_list(frequency_str)
+
+        return zone_data
+
+    def _get_power_zone_one(self):
+        """Get power zone 1 settings and return as list in dBm"""
+        zone_data = {
+            'from': self.bnc845rf_power_zone_one_power_from_entry.text(),
+            'to': self.bnc845rf_power_zone_one_power_to_entry.text(),
+            'step': self.bnc845rf_power_zone_one_power_step_entry.text(),
+            'unit': 'dBm'
+        }
+
+        # Generate power list
+        zone_data['power_list'] = self._generate_power_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _get_power_zone_customized(self):
+        """Get customized power zone settings"""
+        zone_data = {
+            'raw_input': self.bnc845rf_power_zone_customized_entry.text(),
+            'unit': 'dBm'
+        }
+
+        # Parse the power list from the entry
+        power_str = self.bnc845rf_power_zone_customized_entry.text()
+        zone_data['power_list'] = self._parse_custom_list(power_str)
+
+        return zone_data
+
+    def _get_modulation_settings(self):
+        """Get modulation settings (user input settings)"""
+        modulation_data = {
+            'type': self.bnc845rf_modulation_combo.currentText()
+        }
+
+        # Get modulation-specific settings
+        if self.bnc845rf_modulation_combo.currentIndex() == 2:  # Amplitude Modulation
+            if hasattr(self, 'bnc845rf_am_freq_entry'):
+                modulation_data['am_frequency'] = self.bnc845rf_am_freq_entry.text()
+                modulation_data['am_frequency_unit'] = 'Hz'
+
+            if hasattr(self, 'bnc845rf_am_depth_entry'):
+                modulation_data['am_depth'] = self.bnc845rf_am_depth_entry.text()
+                modulation_data['am_depth_unit'] = '%'
+
+            if hasattr(self, 'bnc845rf_am_source_combo'):
+                modulation_data['am_source'] = self.bnc845rf_am_source_combo.currentText()
+
+        return modulation_data
+
+    def _get_modulation_readings(self):
+        """
+        Get all modulation readings from the instrument display.
+        These are the actual measured/read values from the BNC845RF.
+        """
+        readings = {}
+
+        try:
+            # Get modulation type reading from label
+            if hasattr(self, 'bnc845rf_modulation_reading_label'):
+                readings['modulation_type'] = self.bnc845rf_modulation_reading_label.text()
+
+            # Get modulation depth reading from label
+            if hasattr(self, 'bnc845rf_modulation_depth_reading_label'):
+                readings['modulation_depth'] = self.bnc845rf_modulation_depth_reading_label.text()
+
+            # Get modulation frequency reading from label
+            if hasattr(self, 'bnc845rf_modulation_frequency_reading_label'):
+                readings['modulation_frequency'] = self.bnc845rf_modulation_frequency_reading_label.text()
+
+            # Get modulation state reading from label
+            if hasattr(self, 'bnc845rf_modulation_state_reading_label'):
+                readings['modulation_state'] = self.bnc845rf_modulation_state_reading_label.text()
+
+        except Exception as e:
+            print(f"Error getting modulation readings: {str(e)}")
+
+        return readings
+
+    def _get_modulation_readings_from_instrument(self, instrument, bnc_cmd):
+        """
+        Query all modulation settings directly from the BNC845RF instrument.
+        This queries the actual instrument state, not just the UI labels.
+
+        Args:
+            instrument: VISA instrument object
+            bnc_cmd: BNC_845M_COMMAND instance
+
+        Returns:
+            Dictionary with all modulation readings from instrument
+        """
+        readings = {}
+
+        try:
+            # Query AM (Amplitude Modulation) settings
+            try:
+                readings['am_state'] = bnc_cmd.get_am_state(instrument).strip()
+                readings['am_depth'] = bnc_cmd.get_am_depth(instrument).strip()
+                readings['am_source'] = bnc_cmd.get_am_source(instrument).strip()
+                readings['am_internal_frequency'] = bnc_cmd.get_am_internal_frequency(instrument).strip()
+            except Exception as e:
+                readings['am_error'] = str(e)
+
+            # Query FM (Frequency Modulation) settings
+            try:
+                readings['fm_state'] = bnc_cmd.get_fm_state(instrument).strip()
+                readings['fm_deviation'] = bnc_cmd.get_fm_deviation(instrument).strip()
+                readings['fm_source'] = bnc_cmd.get_fm_source(instrument).strip()
+                readings['fm_internal_frequency'] = bnc_cmd.get_fm_internal_frequency(instrument).strip()
+                readings['fm_sensitivity'] = bnc_cmd.get_fm_sensitivity(instrument).strip()
+                readings['fm_coupling'] = bnc_cmd.get_fm_coupling(instrument).strip()
+            except Exception as e:
+                readings['fm_error'] = str(e)
+
+            # Query PM (Phase Modulation) settings
+            try:
+                readings['pm_state'] = bnc_cmd.get_pm_state(instrument).strip()
+                readings['pm_deviation'] = bnc_cmd.get_pm_deviation(instrument).strip()
+                readings['pm_source'] = bnc_cmd.get_pm_source(instrument).strip()
+                readings['pm_sensitivity'] = bnc_cmd.get_pm_sensitivity(instrument).strip()
+            except Exception as e:
+                readings['pm_error'] = str(e)
+
+            # Query Pulse Modulation settings
+            try:
+                readings['pulse_state'] = bnc_cmd.get_pulse_state(instrument).strip()
+                readings['pulse_source'] = bnc_cmd.get_pulse_source(instrument).strip()
+                readings['pulse_polarity'] = bnc_cmd.get_pulse_polarity(instrument).strip()
+                readings['pulse_internal_frequency'] = bnc_cmd.get_pulse_internal_frequency(instrument).strip()
+                readings['pulse_internal_period'] = bnc_cmd.get_pulse_internal_period(instrument).strip()
+                readings['pulse_internal_width'] = bnc_cmd.get_pulse_internal_width(instrument).strip()
+                readings['pulse_mode'] = bnc_cmd.get_pulse_mode(instrument).strip()
+            except Exception as e:
+                readings['pulse_error'] = str(e)
+
+        except Exception as e:
+            readings['general_error'] = str(e)
+            print(f"Error querying modulation from instrument: {str(e)}")
+
+        return readings
+
+    def apply_modulation_settings_to_instrument(self, instrument, bnc_cmd):
+        """
+        Apply the current UI modulation settings to the BNC845RF instrument.
+
+        Args:
+            instrument: VISA instrument object
+            bnc_cmd: BNC_845M_COMMAND instance
+
+        Returns:
+            Dictionary with success status and any errors
+        """
+        result = {
+            'success': False,
+            'applied_settings': {},
+            'errors': []
+        }
+
+        try:
+            modulation_type = self.bnc845rf_modulation_combo.currentIndex()
+
+            # First, turn off all modulations
+            try:
+                bnc_cmd.set_am_state(instrument, 'OFF')
+                bnc_cmd.set_fm_state(instrument, 'OFF')
+                bnc_cmd.set_pm_state(instrument, 'OFF')
+                bnc_cmd.set_pulse_state(instrument, 'OFF')
+            except Exception as e:
+                result['errors'].append(f"Error turning off modulations: {str(e)}")
+
+            # Apply Pulse Modulation (index 1)
+            if modulation_type == 1:
+                try:
+                    bnc_cmd.set_pulse_state(instrument, 'ON')
+                    result['applied_settings']['modulation_type'] = 'Pulse Modulation'
+                    result['applied_settings']['pulse_state'] = 'ON'
+                except Exception as e:
+                    result['errors'].append(f"Pulse modulation error: {str(e)}")
+
+            # Apply Amplitude Modulation (index 2)
+            elif modulation_type == 2:
+                try:
+                    if hasattr(self, 'bnc845rf_am_freq_entry') and self.bnc845rf_am_freq_entry.text():
+                        am_freq = float(self.bnc845rf_am_freq_entry.text())
+                        bnc_cmd.set_am_internal_frequency(instrument, am_freq, 'Hz')
+                        result['applied_settings']['am_frequency'] = f"{am_freq} Hz"
+
+                    if hasattr(self, 'bnc845rf_am_depth_entry') and self.bnc845rf_am_depth_entry.text():
+                        am_depth = float(self.bnc845rf_am_depth_entry.text()) / 100.0  # Convert % to 0-0.99
+                        bnc_cmd.set_am_depth(instrument, am_depth)
+                        result['applied_settings']['am_depth'] = f"{am_depth}"
+
+                    if hasattr(self, 'bnc845rf_am_source_combo'):
+                        am_source = self.bnc845rf_am_source_combo.currentText()
+                        bnc_cmd.set_am_source(instrument, am_source)
+                        result['applied_settings']['am_source'] = am_source
+
+                    bnc_cmd.set_am_state(instrument, 'ON')
+                    result['applied_settings']['modulation_type'] = 'Amplitude Modulation'
+                    result['applied_settings']['am_state'] = 'ON'
+
+                except Exception as e:
+                    result['errors'].append(f"AM modulation error: {str(e)}")
+
+            # Apply Frequency Modulation (index 3)
+            elif modulation_type == 3:
+                try:
+                    # Add FM settings here when FM UI is implemented
+                    bnc_cmd.set_fm_state(instrument, 'ON')
+                    result['applied_settings']['modulation_type'] = 'Frequency Modulation'
+                    result['applied_settings']['fm_state'] = 'ON'
+                except Exception as e:
+                    result['errors'].append(f"FM modulation error: {str(e)}")
+
+            # Apply Phase Modulation (index 4)
+            elif modulation_type == 4:
+                try:
+                    # Add PM settings here when PM UI is implemented
+                    bnc_cmd.set_pm_state(instrument, 'ON')
+                    result['applied_settings']['modulation_type'] = 'Phase Modulation'
+                    result['applied_settings']['pm_state'] = 'ON'
+                except Exception as e:
+                    result['errors'].append(f"PM modulation error: {str(e)}")
+
+            # Check if there were any errors
+            result['success'] = len(result['errors']) == 0
+
+        except Exception as e:
+            result['errors'].append(f"General error: {str(e)}")
+            result['success'] = False
+
+        return result
+
+    def apply_frequency_settings_to_instrument(self, instrument, bnc_cmd):
+        """
+        Apply frequency settings from the UI to the BNC845RF instrument.
+
+        Args:
+            instrument: VISA instrument object
+            bnc_cmd: BNC_845M_COMMAND instance
+
+        Returns:
+            Dictionary with success status and applied settings
+        """
+        result = {
+            'success': False,
+            'applied_settings': {},
+            'errors': []
+        }
+
+        try:
+            loop_type = self.bnc845rf_loop_setting_combo.currentIndex()
+
+            # Frequency Dependent (index 1)
+            if loop_type == 1:
+                try:
+                    bnc_cmd.set_frequency_mode(instrument, 'SWEep')
+
+                    # Get frequency zone settings
+                    settings = self.get_bnc845rf_settings()
+                    if 'frequency_zones' in settings:
+                        zones = settings['frequency_zones']
+
+                        # For simplicity, use zone_1 settings
+                        if 'zone_1' in zones:
+                            zone = zones['zone_1']
+                            freq_list = zone.get('frequency_list', [])
+
+                            if freq_list:
+                                bnc_cmd.set_frequency_start(instrument, freq_list[0], 'Hz')
+                                bnc_cmd.set_frequency_stop(instrument, freq_list[-1], 'Hz')
+                                bnc_cmd.set_sweep_points(instrument, len(freq_list))
+
+                                result['applied_settings']['frequency_start'] = f"{freq_list[0]} Hz"
+                                result['applied_settings']['frequency_stop'] = f"{freq_list[-1]} Hz"
+                                result['applied_settings']['sweep_points'] = len(freq_list)
+
+                    # Set fixed power
+                    if hasattr(self, 'bnc845rf_power_setting_entry') and self.bnc845rf_power_setting_entry.text():
+                        power = float(self.bnc845rf_power_setting_entry.text())
+                        bnc_cmd.set_power_mode(instrument, 'FIXed')
+                        bnc_cmd.set_power_level(instrument, power, 'dBm')
+                        result['applied_settings']['power'] = f"{power} dBm"
+
+                    result['applied_settings']['mode'] = 'Frequency Sweep'
+
+                except Exception as e:
+                    result['errors'].append(f"Frequency sweep error: {str(e)}")
+
+            # Power Dependent (index 2)
+            elif loop_type == 2:
+                try:
+                    bnc_cmd.set_power_mode(instrument, 'SWEep')
+
+                    # Get power zone settings
+                    settings = self.get_bnc845rf_settings()
+                    if 'power_zones' in settings:
+                        zones = settings['power_zones']
+
+                        if 'zone_1' in zones:
+                            zone = zones['zone_1']
+                            power_list = zone.get('power_list', [])
+
+                            if power_list:
+                                bnc_cmd.set_power_start(instrument, power_list[0], 'dBm')
+                                bnc_cmd.set_power_stop(instrument, power_list[-1], 'dBm')
+                                bnc_cmd.set_sweep_points(instrument, len(power_list))
+
+                                result['applied_settings']['power_start'] = f"{power_list[0]} dBm"
+                                result['applied_settings']['power_stop'] = f"{power_list[-1]} dBm"
+                                result['applied_settings']['sweep_points'] = len(power_list)
+
+                    # Set fixed frequency
+                    if hasattr(self,
+                               'bnc845rf_frequency_setting_entry') and self.bnc845rf_frequency_setting_entry.text():
+                        freq = float(self.bnc845rf_frequency_setting_entry.text())
+                        bnc_cmd.set_frequency_mode(instrument, 'CW')
+                        bnc_cmd.set_frequency_cw(instrument, freq, 'Hz')
+                        result['applied_settings']['frequency'] = f"{freq} Hz"
+
+                    result['applied_settings']['mode'] = 'Power Sweep'
+
+                except Exception as e:
+                    result['errors'].append(f"Power sweep error: {str(e)}")
+
+            result['success'] = len(result['errors']) == 0
+
+        except Exception as e:
+            result['errors'].append(f"General error: {str(e)}")
+            result['success'] = False
+
+        return result
+
+    def update_ui_from_instrument(self, instrument, bnc_cmd):
+        """
+        Update all UI labels with current readings from the BNC845RF instrument.
+
+        Args:
+            instrument: VISA instrument object
+            bnc_cmd: BNC_845M_COMMAND instance
+        """
+        try:
+            # Update current frequency reading
+            if hasattr(self, 'bnc845rf_current_frequency_reading_label'):
+                try:
+                    freq = bnc_cmd.get_frequency_cw(instrument).strip()
+                    self.bnc845rf_current_frequency_reading_label.setText(freq)
+                except:
+                    pass
+
+            # Update current power reading
+            if hasattr(self, 'bnc845rf_current_power_reading_label'):
+                try:
+                    power = bnc_cmd.get_power_level(instrument).strip()
+                    self.bnc845rf_current_power_reading_label.setText(power)
+                except:
+                    pass
+
+            # Update RF state
+            if hasattr(self, 'bnc845rf_state_reading_label'):
+                try:
+                    state = bnc_cmd.get_output_state(instrument).strip()
+                    self.bnc845rf_state_reading_label.setText(state)
+                except:
+                    pass
+
+            # Update modulation type
+            if hasattr(self, 'bnc845rf_modulation_reading_label'):
+                try:
+                    # Check which modulation is active
+                    am_state = bnc_cmd.get_am_state(instrument).strip()
+                    fm_state = bnc_cmd.get_fm_state(instrument).strip()
+                    pm_state = bnc_cmd.get_pm_state(instrument).strip()
+                    pulse_state = bnc_cmd.get_pulse_state(instrument).strip()
+
+                    if am_state == '1' or am_state.upper() == 'ON':
+                        self.bnc845rf_modulation_reading_label.setText('AM')
+                    elif fm_state == '1' or fm_state.upper() == 'ON':
+                        self.bnc845rf_modulation_reading_label.setText('FM')
+                    elif pm_state == '1' or pm_state.upper() == 'ON':
+                        self.bnc845rf_modulation_reading_label.setText('PM')
+                    elif pulse_state == '1' or pulse_state.upper() == 'ON':
+                        self.bnc845rf_modulation_reading_label.setText('PULSE')
+                    else:
+                        self.bnc845rf_modulation_reading_label.setText('OFF')
+                except:
+                    pass
+
+            # Update modulation depth (for AM)
+            if hasattr(self, 'bnc845rf_modulation_depth_reading_label'):
+                try:
+                    depth = bnc_cmd.get_am_depth(instrument).strip()
+                    # Convert to percentage
+                    depth_val = float(depth) * 100
+                    self.bnc845rf_modulation_depth_reading_label.setText(f"{depth_val:.1f}%")
+                except:
+                    pass
+
+            # Update modulation frequency (for AM)
+            if hasattr(self, 'bnc845rf_modulation_frequency_reading_label'):
+                try:
+                    freq = bnc_cmd.get_am_internal_frequency(instrument).strip()
+                    self.bnc845rf_modulation_frequency_reading_label.setText(freq)
+                except:
+                    pass
+
+            # Update modulation state
+            if hasattr(self, 'bnc845rf_modulation_state_reading_label'):
+                try:
+                    am_state = bnc_cmd.get_am_state(instrument).strip()
+                    if am_state == '1' or am_state.upper() == 'ON':
+                        self.bnc845rf_modulation_state_reading_label.setText('ON')
+                    else:
+                        self.bnc845rf_modulation_state_reading_label.setText('OFF')
+                except:
+                    pass
+
+        except Exception as e:
+            print(f"Error updating UI from instrument: {str(e)}")
+
+    def _generate_frequency_list(self, from_val, to_val, step_val, unit):
+        """
+        Generate a list of frequencies from start to end with given step.
+        Returns list in base unit (Hz).
+        """
+        try:
+            start = float(from_val)
+            end = float(to_val)
+            step = float(step_val)
+
+            # Convert to Hz based on unit
+            unit_multiplier = {
+                'Hz': 1,
+                'kHz': 1e3,
+                'MHz': 1e6,
+                'GHz': 1e9
+            }
+
+            multiplier = unit_multiplier.get(unit, 1)
+
+            start_hz = start * multiplier
+            end_hz = end * multiplier
+            step_hz = step * multiplier
+
+            # Generate list
+            frequency_list = []
+            current = start_hz
+            while current <= end_hz:
+                frequency_list.append(current)
+                current += step_hz
+
+            return frequency_list
+
+        except (ValueError, TypeError):
+            return []
+
+    def _generate_power_list(self, from_val, to_val, step_val):
+        """
+        Generate a list of power values from start to end with given step.
+        Returns list in dBm.
+        """
+        try:
+            start = float(from_val)
+            end = float(to_val)
+            step = float(step_val)
+
+            # Generate list
+            power_list = []
+            current = start
+            while current <= end:
+                power_list.append(current)
+                current += step
+
+            return power_list
+
+        except (ValueError, TypeError):
+            return []
+
+    def _parse_custom_list(self, list_string):
+        """
+        Parse a comma-separated string of values into a list of floats.
+        Example: "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
+        """
+        try:
+            # Remove brackets if present
+            list_string = list_string.strip('[]')
+
+            # Split by comma and convert to float
+            values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
+
+            return values
+
+        except (ValueError, TypeError, AttributeError):
+            return []
+
+    # ---------------------------------------------------------------------------------
+    #  DSP 7265 Portion
+    # ---------------------------------------------------------------------------------
+
+    def dsp7265_window(self):
         # self.dsp726_Container = QWidget(self)
 
         self.dsp7265_reading_groupbox = QGroupBox('DSP 7265 Reading')
@@ -4660,6 +5419,351 @@ class Measurement(QMainWindow):
         self.clear_layout(self.ppms_zone_temp_layout)
         self.ppms_zone_temp_layout.addLayout(self.ppms_zone_cus_temp_layout)
 
+    def get_ppms_field_settings(self):
+        """
+        Get all PPMS field settings and return them as a dictionary.
+        Field values are returned as lists in Oersteds (Oe).
+
+        Returns:
+            Dictionary with field zone configuration
+        """
+        settings = {}
+
+        try:
+            # Determine which field zone is selected
+            if hasattr(self, 'Field_setup_Zone_1') and self.Field_setup_Zone_1:
+                settings['field_zone_count'] = 1
+                settings['field_zones'] = {
+                    'zone_1': self._get_field_zone_one()
+                }
+
+            elif hasattr(self, 'Field_setup_Zone_2') and self.Field_setup_Zone_2:
+                settings['field_zone_count'] = 2
+                settings['field_zones'] = {
+                    'zone_1': self._get_field_zone_one(),
+                    'zone_2': self._get_field_zone_two()
+                }
+
+            elif hasattr(self, 'Field_setup_Zone_3') and self.Field_setup_Zone_3:
+                settings['field_zone_count'] = 3
+                settings['field_zones'] = {
+                    'zone_1': self._get_field_zone_one(),
+                    'zone_2': self._get_field_zone_two(),
+                    'zone_3': self._get_field_zone_three()
+                }
+
+            # Get field mode (continuous or stepped)
+            if hasattr(self, 'ppms_field_cointinous_mode_radio_button'):
+                settings[
+                    'field_mode'] = 'continuous' if self.ppms_field_cointinous_mode_radio_button.isChecked() else 'stepped'
+
+            return settings
+
+        except Exception as e:
+            import traceback
+            tb_str = traceback.format_exc()
+            print(f"Error getting PPMS field settings: {tb_str} {str(e)}")
+            return {}
+
+    def _get_field_zone_one(self):
+        """Get field zone 1 settings and return as list"""
+        zone_data = {
+            'top': self.ppms_zone1_from_entry.text() if hasattr(self, 'ppms_zone1_from_entry') else '',
+            'bottom': self.ppms_zone1_to_entry.text() if hasattr(self, 'ppms_zone1_to_entry') else '',
+            'step': self.ppms_zone1_field_step_entry.text() if hasattr(self, 'ppms_zone1_field_step_entry') else '',
+            'rate': self.ppms_zone1_field_rate_entry.text() if hasattr(self, 'ppms_zone1_field_rate_entry') else '220',
+            'unit': 'Oe'
+        }
+
+        # Generate field list
+        zone_data['field_list'] = self._generate_field_list(
+            zone_data['top'],
+            zone_data['bottom'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _get_field_zone_two(self):
+        """Get field zone 2 settings and return as list"""
+        zone_data = {
+            'top': self.ppms_zone2_from_entry.text() if hasattr(self, 'ppms_zone2_from_entry') else '',
+            'bottom': self.ppms_zone2_to_entry.text() if hasattr(self, 'ppms_zone2_to_entry') else '',
+            'step': self.ppms_zone2_field_step_entry.text() if hasattr(self, 'ppms_zone2_field_step_entry') else '',
+            'rate': self.ppms_zone2_field_rate_entry.text() if hasattr(self, 'ppms_zone2_field_rate_entry') else '220',
+            'unit': 'Oe'
+        }
+
+        # Generate field list
+        zone_data['field_list'] = self._generate_field_list(
+            zone_data['top'],
+            zone_data['bottom'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _get_field_zone_three(self):
+        """Get field zone 3 settings and return as list"""
+        zone_data = {
+            'top': self.ppms_zone3_from_entry.text() if hasattr(self, 'ppms_zone3_from_entry') else '',
+            'bottom': self.ppms_zone3_to_entry.text() if hasattr(self, 'ppms_zone3_to_entry') else '',
+            'step': self.ppms_zone3_field_step_entry.text() if hasattr(self, 'ppms_zone3_field_step_entry') else '',
+            'rate': self.ppms_zone3_field_rate_entry.text() if hasattr(self, 'ppms_zone3_field_rate_entry') else '220',
+            'unit': 'Oe'
+        }
+
+        # Generate field list
+        zone_data['field_list'] = self._generate_field_list(
+            zone_data['top'],
+            zone_data['bottom'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _generate_field_list(self, top_val, bottom_val, step_val):
+        """
+        Generate a list of field values from top to bottom with given step.
+        Returns list in Oersteds (Oe).
+
+        Args:
+            top_val: Starting field value (string)
+            bottom_val: Ending field value (string)
+            step_val: Step size (string)
+
+        Returns:
+            List of field values in Oe
+        """
+        try:
+            top = float(top_val) if top_val else 0
+            bottom = float(bottom_val) if bottom_val else 0
+            step = float(step_val) if step_val else 0
+
+            if step == 0:
+                # For continuous mode, just return endpoints
+                return [top, bottom]
+
+            # Generate list from top to bottom
+            field_list = []
+            current = top
+
+            # Determine direction
+            if top > bottom:
+                # Going down
+                while current >= bottom:
+                    field_list.append(current)
+                    current -= step
+            else:
+                # Going up
+                while current <= bottom:
+                    field_list.append(current)
+                    current += step
+
+            return field_list
+
+        except (ValueError, TypeError):
+            return []
+
+    def get_ppms_temperature_settings(self):
+        """
+        Get all PPMS temperature settings and return them as a dictionary.
+        Temperature values are returned as lists in Kelvin (K).
+
+        Returns:
+            Dictionary with temperature zone configuration
+        """
+        settings = {}
+
+        try:
+            # Determine which temperature zone is selected
+            if hasattr(self, 'Temp_setup_Zone_1') and self.Temp_setup_Zone_1:
+                settings['temp_zone_count'] = 1
+                settings['temp_zones'] = {'zone_1': self._get_temp_zone_one()}
+
+            elif hasattr(self, 'Temp_setup_Zone_2') and self.Temp_setup_Zone_2:
+                settings['temp_zone_count'] = 2
+                settings['temp_zones'] = {
+                    'zone_1': self._get_temp_zone_one(),
+                    'zone_2': self._get_temp_zone_two()
+                }
+
+            elif hasattr(self, 'Temp_setup_Zone_3') and self.Temp_setup_Zone_3:
+                settings['temp_zone_count'] = 3
+                settings['temp_zones'] = {
+                    'zone_1': self._get_temp_zone_one(),
+                    'zone_2': self._get_temp_zone_two(),
+                    'zone_3': self._get_temp_zone_three()
+                }
+
+            elif hasattr(self, 'Temp_setup_Zone_Cus') and self.Temp_setup_Zone_Cus:
+                settings['temp_zone_count'] = 'customized'
+                settings['temp_zones'] = {
+                    'customized': self._get_temp_zone_customized()
+                }
+
+            return settings
+
+        except Exception as e:
+            import traceback
+            tb_str = traceback.format_exc()
+            print(f"Error getting PPMS temperature settings: {tb_str} {str(e)}")
+            return {}
+
+    def _get_temp_zone_one(self):
+        """Get temperature zone 1 settings and return as list"""
+        zone_data = {
+            'from': self.ppms_zone1_temp_from_entry.text() if hasattr(self, 'ppms_zone1_temp_from_entry') else '',
+            'to': self.ppms_zone1_temp_to_entry.text() if hasattr(self, 'ppms_zone1_temp_to_entry') else '',
+            'step': self.ppms_zone1_temp_step_entry.text() if hasattr(self, 'ppms_zone1_temp_step_entry') else '',
+            'rate': self.ppms_zone1_temp_rate_entry.text() if hasattr(self, 'ppms_zone1_temp_rate_entry') else '5',
+            'unit': 'K'
+        }
+
+        # Generate temperature list
+        zone_data['temp_list'] = self._generate_temp_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _get_temp_zone_two(self):
+        """Get temperature zone 2 settings and return as list"""
+        zone_data = {
+            'from': self.ppms_zone2_temp_from_entry.text() if hasattr(self, 'ppms_zone2_temp_from_entry') else '',
+            'to': self.ppms_zone2_temp_to_entry.text() if hasattr(self, 'ppms_zone2_temp_to_entry') else '',
+            'step': self.ppms_zone2_temp_step_entry.text() if hasattr(self, 'ppms_zone2_temp_step_entry') else '',
+            'unit': 'K'
+        }
+
+        # Generate temperature list
+        zone_data['temp_list'] = self._generate_temp_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _get_temp_zone_three(self):
+        """Get temperature zone 3 settings and return as list"""
+        zone_data = {
+            'from': self.ppms_zone3_temp_from_entry.text() if hasattr(self, 'ppms_zone3_temp_from_entry') else '',
+            'to': self.ppms_zone3_temp_to_entry.text() if hasattr(self, 'ppms_zone3_temp_to_entry') else '',
+            'step': self.ppms_zone3_temp_step_entry.text() if hasattr(self, 'ppms_zone3_temp_step_entry') else '',
+            'unit': 'K'
+        }
+
+        # Generate temperature list
+        zone_data['temp_list'] = self._generate_temp_list(
+            zone_data['from'],
+            zone_data['to'],
+            zone_data['step']
+        )
+
+        return zone_data
+
+    def _get_temp_zone_customized(self):
+        """Get customized temperature zone settings"""
+        zone_data = {
+            'raw_input': self.ppms_zone_cus_temp_list_entry.text() if hasattr(self,
+                                                                              'ppms_zone_cus_temp_list_entry') else '',
+            'rate': self.ppms_zone_cus_temp_rate_entry.text() if hasattr(self,
+                                                                         'ppms_zone_cus_temp_rate_entry') else '5',
+            'unit': 'K'
+        }
+
+        # Parse the temperature list from the entry
+        temp_str = zone_data['raw_input']
+        zone_data['temp_list'] = self._parse_custom_list(temp_str)
+
+        return zone_data
+
+    def _generate_temp_list(self, from_val, to_val, step_val):
+        """
+        Generate a list of temperature values from start to end with given step.
+        Returns list in Kelvin (K).
+
+        Args:
+            from_val: Starting temperature (string)
+            to_val: Ending temperature (string)
+            step_val: Step size (string)
+
+        Returns:
+            List of temperature values in K
+        """
+        try:
+            start = float(from_val) if from_val else 0
+            end = float(to_val) if to_val else 0
+            step = float(step_val) if step_val else 0
+
+            if step == 0:
+                return []
+
+            # Generate list
+            temp_list = []
+            current = start
+
+            # Determine direction
+            if start < end:
+                # Going up
+                while current <= end:
+                    temp_list.append(current)
+                    current += step
+            else:
+                # Going down
+                while current >= end:
+                    temp_list.append(current)
+                    current -= step
+
+            return temp_list
+
+        except (ValueError, TypeError):
+            return []
+
+    def get_combined_field_temp_lists(self):
+        """
+        Get combined field and temperature lists for experiment iteration.
+
+        Returns:
+            Dictionary with combined field and temperature configurations
+        """
+        combined = {
+            'field_settings': self.get_ppms_field_settings(),
+            'temp_settings': self.get_ppms_temperature_settings()
+        }
+
+        # Generate complete field list (all zones combined)
+        all_fields = []
+        field_settings = combined['field_settings']
+        if 'field_zones' in field_settings:
+            for zone_name in sorted(field_settings['field_zones'].keys()):
+                zone = field_settings['field_zones'][zone_name]
+                field_list = zone.get('field_list', [])
+                all_fields.extend(field_list)
+
+        combined['all_fields'] = all_fields
+
+        # Generate complete temperature list (all zones combined)
+        all_temps = []
+        temp_settings = combined['temp_settings']
+        if 'temp_zones' in temp_settings:
+            for zone_name in sorted(temp_settings['temp_zones'].keys()):
+                zone = temp_settings['temp_zones'][zone_name]
+                temp_list = zone.get('temp_list', [])
+                all_temps.extend(temp_list)
+
+        combined['all_temps'] = all_temps
+
+        # Calculate total measurement points
+        combined['total_field_points'] = len(all_fields)
+        combined['total_temp_points'] = len(all_temps)
+        combined['total_measurements'] = len(all_fields) * len(all_temps) if all_temps else len(all_fields)
+
+        return combined
+
     def rst(self):
         try:
             self.worker = None
@@ -4695,7 +5799,7 @@ class Measurement(QMainWindow):
             if layout is not None:
                 try:
                     self.clear_layout(layout)
-                    QApplication.processEvents()
+                    # QApplication.processEvents()
                     return True
                 except Exception as e:
                     print(f"Error clearing {layout_attr_name}: {e}")
