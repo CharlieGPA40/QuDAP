@@ -571,8 +571,8 @@ class BNC_845M_COMMAND:
 
     def set_am_depth(self, instrument, depth: float):
         """Set AM modulation depth (0-0.99)"""
-        if 0 <= depth <= 0.99:
-            instrument.write(f':SOURce:AM:DEPTh {depth}')
+        if 0 <= depth <= 100:
+            instrument.write(f'SOUR:AM:DEPT {str(depth)}')
 
     def get_am_depth(self, instrument) -> str:
         """Query AM modulation depth"""

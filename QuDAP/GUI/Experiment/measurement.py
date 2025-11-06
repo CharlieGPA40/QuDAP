@@ -1841,386 +1841,8 @@ class Measurement(QMainWindow):
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
-    def instrument_connection_modification(self):
-        connection_string = self.connection_combo.currentText()
-        current_instrument = self.instruments_selection_combo_box.currentText()
-        if "ASRL" in connection_string or "COM" in connection_string:
-            self.safe_clear_layout("instrument_rs232_layout")
-            self.instrument_rs232_layout.addLayout(self.create_rs232_settings_ui())
-            self.apply_preset_rs232_settings(current_instrument)
-        else:
-            self.safe_clear_layout("instrument_rs232_layout")
-
-    def apply_preset_rs232_settings(self, instrument_name):
-        """Apply preset RS232 settings for known instruments"""
-        if instrument_name in self.INSTRUMENT_RS232_PRESETS:
-            preset = self.INSTRUMENT_RS232_PRESETS[instrument_name]
-            self.baud_rate_combo.setCurrentText(str(preset['baud_rate']))
-            self.data_bits_combo.setCurrentText(str(preset['data_bits']))
-            self.parity_combo.setCurrentText(preset['parity'])
-            self.stop_bits_combo.setCurrentText(str(preset['stop_bits']))
-            self.flow_control_combo.setCurrentText(preset['flow_control'])
-
-    def create_rs232_settings_ui(self):
-        """Create RS232 configuration UI"""
-        # Clear existing layout
-
-        # RS232 Settings Layout
-        rs232_main_layout = QHBoxLayout()
-
-        # Baud Rate
-        baud_rate_label = QLabel("Baud Rate:")
-        baud_rate_label.setFont(self.font)
-        self.baud_rate_combo = QComboBox()
-        self.baud_rate_combo.setFont(self.font)
-        self.baud_rate_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.baud_rate_combo.addItems([
-            "300", "1200", "2400", "4800", "9600",
-            "19200", "38400", "57600", "115200"
-        ])
-        self.baud_rate_combo.setCurrentText("9600")  # Default
-
-        # Data Bits
-        data_bits_label = QLabel("Data Bits:")
-        data_bits_label.setFont(self.font)
-        self.data_bits_combo = QComboBox()
-        self.data_bits_combo.setFont(self.font)
-        self.data_bits_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.data_bits_combo.addItems(["5", "6", "7", "8"])
-        self.data_bits_combo.setCurrentText("8")  # Default
-
-        # Parity
-        parity_label = QLabel("Parity:")
-        parity_label.setFont(self.font)
-        self.parity_combo = QComboBox()
-        self.parity_combo.setFont(self.font)
-        self.parity_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.parity_combo.addItems(["None", "Even", "Odd", "Mark", "Space"])
-        self.parity_combo.setCurrentText("None")  # Default
-
-        # Stop Bits
-        stop_bits_label = QLabel("Stop Bits:")
-        stop_bits_label.setFont(self.font)
-        self.stop_bits_combo = QComboBox()
-        self.stop_bits_combo.setFont(self.font)
-        self.stop_bits_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.stop_bits_combo.addItems(["1", "1.5", "2"])
-        self.stop_bits_combo.setCurrentText("1")  # Default
-
-        # Flow Control
-        flow_control_label = QLabel("Flow Control:")
-        flow_control_label.setFont(self.font)
-        self.flow_control_combo = QComboBox()
-        self.flow_control_combo.setFont(self.font)
-        self.flow_control_combo.setStyleSheet(self.QCombo_stylesheet)
-        self.flow_control_combo.addItems(["None", "Hardware (RTS/CTS)", "Software (XON/XOFF)"])
-        self.flow_control_combo.setCurrentText("None")  # Default
-
-        # Add widgets to layout
-        rs232_main_layout.addWidget(baud_rate_label)
-        rs232_main_layout.addWidget(self.baud_rate_combo)
-        rs232_main_layout.addWidget(data_bits_label)
-        rs232_main_layout.addWidget(self.data_bits_combo)
-        rs232_main_layout.addWidget(parity_label)
-        rs232_main_layout.addWidget(self.parity_combo)
-        rs232_main_layout.addWidget(stop_bits_label)
-        rs232_main_layout.addWidget(self.stop_bits_combo)
-        rs232_main_layout.addWidget(flow_control_label)
-        rs232_main_layout.addWidget(self.flow_control_combo)
-        return rs232_main_layout
-
-    def refresh_Connection_List(self):
-        try:
-            self.clear_layout(self.Instruments_measurement_setup_layout)
-        except AttributeError:
-            pass
-        # rm = visa.ResourceManager('GUI/Experiment/visa_simulation.yaml@sim')
-        rm = visa.ResourceManager()
-        instruments = rm.list_resources()
-        self.connection_ports = [instr for instr in instruments]
-        self.Keithley_2182_Connected = False
-        self.Ketihley_6221_Connected = False
-        self.BNC845RF_CONNECTED = False
-        self.DSP7265_Connected = False
-        self.instru_connect_btn.setText('Connect')
-        self.connection_combo.clear()
-        self.connection_combo.addItems(["None"])
-        self.connection_combo.addItems(self.connection_ports)
-        if self.demo_mode:
-            self.connection_combo.addItems(["K2182 Demo"])
-            self.connection_combo.addItems(["K6221 Demo"])
-            self.connection_combo.addItems(["DSP7265 Demo"])
-
-    def check_validator(self, validator_model, entry):
-        try:
-            if float(entry.displayText()) <= validator_model.top() and float(
-                    entry.displayText()) >= validator_model.bottom():
-                return True
-            else:
-                QMessageBox.warning(self, "Error", "Input Out of range")
-                return False
-        except:
-            return False
-
-    def clear_layout(self, layout):
-        """Clear layout properly"""
-        if layout is None:
-            return
-
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-
-            if widget:
-                widget.setParent(None)
-                widget.deleteLater()
-            else:
-                child_layout = item.layout()
-                if child_layout:
-                    self.clear_layout(child_layout)
-
-        # QApplication.processEvents()
-
-    def start_server(self):
-        if not is_multivu_running():
-            reply = QMessageBox.question(
-                self,
-                "MultiVu Not Running",
-                "MultiVu application is not running!\n\n"
-                "MultiVu must be running before starting the server.\n\n"
-                "Would you like to:\n"
-                "• Yes - Try to start MultiVu automatically\n"
-                "• No - Cancel and start it manually",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-
-            if reply == QMessageBox.StandardButton.Yes:
-                # Try to start MultiVu
-                multivu_path = find_multivu_path()
-
-                if multivu_path:
-                    try:
-                        subprocess.Popen([multivu_path])
-                        QMessageBox.information(
-                            self,
-                            "Starting MultiVu",
-                            "MultiVu is starting...\n\n"
-                            "Please wait for it to fully load,\n"
-                            "then click 'Start Server' again."
-                        )
-                    except Exception as e:
-                        QMessageBox.warning(
-                            self, "Error",
-                            f"Failed to start MultiVu:\n{e}"
-                        )
-                else:
-                    QMessageBox.warning(
-                        self,
-                        "MultiVu Not Found",
-                        "Could not find MultiVu installation.\n"
-                        "Please start MultiVu manually."
-                    )
-
-            return
-        if self.server_btn_clicked == False:
-            try:
-                # self.start_server_thread()
-                if self.demo_mode:
-                    self.server_btn.setText('Stop Server')
-                    self.server_btn_clicked = True
-                    self.connect_btn.setEnabled(True)
-                else:
-                    self.server = mpv.Server()
-                    self.server.open()
-                    self.server_btn.setText('Stop Server')
-                    self.server_btn_clicked = True
-                    self.connect_btn.setEnabled(True)
-            except SystemExit as e:
-                QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
-                                                               'was detected. Please start MultiVu and retry without administration')
-                self.server_btn.setText('Start Server')
-                event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-                QApplication.sendEvent(self, event)
-                event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-                QApplication.sendEvent(self, event)
-                if not self.demo_mode:
-                    self.server.close()
-                self.server_btn_clicked = False
-                self.connect_btn.setEnabled(False)
-                return
-        elif self.server_btn_clicked == True:
-            if not self.demo_mode:
-                self.server.close()
-            event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-            QApplication.sendEvent(self, event)
-            event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-            QApplication.sendEvent(self, event)
-            self.server_btn.setText('Start Server')
-            self.server_btn_clicked = False
-            self.connect_btn.setEnabled(False)
-
-    def connect_client(self):
-        self.host = self.host_entry_box.displayText()
-        self.port = self.port_entry_box.displayText()
-        if self.connect_btn_clicked == False:
-            try:
-                if not self.demo_mode:
-                    self.client = mpv.Client(host=self.host, port=int(self.port))
-                    self.client.open()
-                else:
-                    self.client = None
-                self.PPMS_measurement_setup_layout = QHBoxLayout()
-                self.connect_btn.setText('Stop Client')
-                self.connect_btn_clicked = True
-                self.server_btn.setEnabled(False)
-                self.client_keep_going = True
-                self.ppms_reading_group_box = QGroupBox('PPMS Status')
-                self.ppms_temp_group_box = QGroupBox('Temperature Setup')
-                self.ppms_field_group_box = QGroupBox('Field Setup')
-
-                self.ppms_reading_group_box.setLayout(self.ppms_status_reading_ui())
-                self.ppms_temp_group_box.setLayout(self.ppms_temperature_setup_ui())
-                self.ppms_field_group_box.setLayout(self.ppms_field_setup_ui())
-
-                self.ppms_reading_group_box.setFixedWidth(340)
-                self.ppms_temp_group_box.setFixedWidth(350)
-                self.ppms_field_group_box.setFixedWidth(420)
-
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_temp_group_box)
-                self.PPMS_measurement_setup_layout.addWidget(self.ppms_field_group_box)
-                if self.ETO_SELECTED or self.demo_mode:
-                    self.eto_ppms_layout.addLayout(self.eto_setup_ui())
-                    self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
-                elif self.FMR_SELECTED:
-                    self.fmr_ppms_layout.addLayout(self.fmr_setup_ui())
-                    self.fmr_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
 
 
-            except SystemExit as e:
-                QMessageBox.critical(self, 'Client connection failed!', 'Please try again')
-
-        elif self.connect_btn_clicked == True:
-            if self.client is not None:
-                if not self.demo_mode:
-                    self.client.close_client()
-                    self.client = None
-            self.clear_layout(self.eto_ppms_layout)
-            self.clear_layout(self.fmr_ppms_layout)
-            self.client_keep_going = False
-            self.connect_btn.setText('Start Client')
-            self.connect_btn_clicked = False
-            self.server_btn.setEnabled(True)
-
-    def ppms_status_reading_ui(self):
-        self.ppms_reading_layout = QVBoxLayout()
-        self.ppms_temp_layout = QHBoxLayout()
-        self.ppms_temp_label = QLabel('Temperature (K):')
-        self.ppms_temp_label.setFont(self.font)
-        self.ppms_reading_temp_label = QLabel('N/A K')
-        self.ppms_reading_temp_label.setFont(self.font)
-        self.ppms_temp_layout.addWidget(self.ppms_temp_label)
-        self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
-        self.ppms_field_layout = QHBoxLayout()
-        self.ppms_field_label = QLabel('Field (Oe):')
-        self.ppms_field_label.setFont(self.font)
-        self.ppms_reading_field_label = QLabel('N/A Oe')
-        self.ppms_reading_field_label.setFont(self.font)
-        self.ppms_field_layout.addWidget(self.ppms_field_label)
-        self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
-
-        self.ppms_chamber_layout = QHBoxLayout()
-        self.ppms_chamber_label = QLabel('Chamber Status:')
-        self.ppms_chamber_label.setFont(self.font)
-        self.ppms_reading_chamber_label = QLabel('N/A')
-        self.ppms_reading_chamber_label.setFont(self.font)
-        self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
-        self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
-
-        self.ppms_reading_layout.addLayout(self.ppms_temp_layout)
-        self.ppms_reading_layout.addLayout(self.ppms_field_layout)
-        self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
-        return self.ppms_reading_layout
-
-    def ppms_temperature_setup_ui(self):
-        # if self.ETO_FIELD_DEP:
-        self.ppms_temp_setting_layout = QVBoxLayout()
-        self.ppms_temp_radio_buttom_layout = QHBoxLayout()
-        self.ppms_zone_temp_layout = QVBoxLayout()
-        self.Temp_setup_Zone_1 = False
-        self.Temp_setup_Zone_2 = False
-        self.Temp_setup_Zone_3 = False
-        self.Temp_setup_Zone_Cus = False
-        self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
-        self.ppms_temp_zone_number_label.setFont(self.font)
-        self.ppms_temp_One_zone_radio = QRadioButton("1")
-        self.ppms_temp_One_zone_radio.setFont(self.font)
-        self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
-        self.ppms_temp_Two_zone_radio = QRadioButton("2")
-        self.ppms_temp_Two_zone_radio.setFont(self.font)
-        self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
-        self.ppms_temp_Three_zone_radio = QRadioButton("3")
-        self.ppms_temp_Three_zone_radio.setFont(self.font)
-        self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
-        self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
-        self.ppms_temp_Customize_zone_radio.setFont(self.font)
-        self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
-        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
-        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
-        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
-        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
-        self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
-        self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
-        self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
-
-        return self.ppms_temp_setting_layout
-
-    def ppms_field_setup_ui(self):
-        # if self.ETO_FIELD_DEP:
-        self.ppms_field_setting_layout = QVBoxLayout()
-        self.ppms_field_mode_buttom_layout = QHBoxLayout()
-        self.ppms_field_radio_buttom_layout = QHBoxLayout()
-        self.ppms_zone_field_layout = QVBoxLayout()
-
-        self.Field_setup_Zone_1 = False
-        self.Field_setup_Zone_2 = False
-        self.Field_setup_Zone_3 = False
-
-        self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
-        self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
-        self.ppms_field_cointinous_mode_radio_button.setChecked(True)
-        self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
-
-        self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
-        self.ppms_field_fixed_mode_radio_button.setFont(self.font)
-        self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
-
-        self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
-        self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
-        self.ppms_field_mode_buttom_group = QButtonGroup()
-        self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
-        self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
-
-        self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
-        self.ppms_field_zone_number_label.setFont(self.font)
-        self.ppms_field_One_zone_radio = QRadioButton("1")
-        self.ppms_field_One_zone_radio.setFont(self.font)
-        self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
-        self.ppms_field_Two_zone_radio = QRadioButton("2")
-        self.ppms_field_Two_zone_radio.setFont(self.font)
-        self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
-        self.ppms_field_Three_zone_radio = QRadioButton("3")
-        self.ppms_field_Three_zone_radio.setFont(self.font)
-        self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
-        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
-        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
-        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
-        self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
-        self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
-        self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
-        self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
-        return self.ppms_field_setting_layout
 
     def eto_setup_ui(self):
         eto_reading_setting_layout = QHBoxLayout()
@@ -2370,6 +1992,141 @@ class Measurement(QMainWindow):
 
         return eto_setting_layout
 
+    # ---------------------------------------------------------------------------------
+    #  Instrument Connection
+    # ---------------------------------------------------------------------------------
+    def start_server(self):
+        if not is_multivu_running():
+            reply = QMessageBox.question(
+                self,
+                "MultiVu Not Running",
+                "MultiVu application is not running!\n\n"
+                "MultiVu must be running before starting the server.\n\n"
+                "Would you like to:\n"
+                "• Yes - Try to start MultiVu automatically\n"
+                "• No - Cancel and start it manually",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                # Try to start MultiVu
+                multivu_path = find_multivu_path()
+
+                if multivu_path:
+                    try:
+                        subprocess.Popen([multivu_path])
+                        QMessageBox.information(
+                            self,
+                            "Starting MultiVu",
+                            "MultiVu is starting...\n\n"
+                            "Please wait for it to fully load,\n"
+                            "then click 'Start Server' again."
+                        )
+                    except Exception as e:
+                        QMessageBox.warning(
+                            self, "Error",
+                            f"Failed to start MultiVu:\n{e}"
+                        )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "MultiVu Not Found",
+                        "Could not find MultiVu installation.\n"
+                        "Please start MultiVu manually."
+                    )
+
+            return
+        if self.server_btn_clicked == False:
+            try:
+                # self.start_server_thread()
+                if self.demo_mode:
+                    self.server_btn.setText('Stop Server')
+                    self.server_btn_clicked = True
+                    self.connect_btn.setEnabled(True)
+                else:
+                    self.server = mpv.Server()
+                    self.server.open()
+                    self.server_btn.setText('Stop Server')
+                    self.server_btn_clicked = True
+                    self.connect_btn.setEnabled(True)
+            except SystemExit as e:
+                QMessageBox.critical(self, 'No Server detected', 'No running instance of MultiVu '
+                                                                 'was detected. Please start MultiVu and retry without administration')
+                self.server_btn.setText('Start Server')
+                event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(self, event)
+                event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+                QApplication.sendEvent(self, event)
+                if not self.demo_mode:
+                    self.server.close()
+                self.server_btn_clicked = False
+                self.connect_btn.setEnabled(False)
+                return
+        elif self.server_btn_clicked == True:
+            if not self.demo_mode:
+                self.server.close()
+            event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            QApplication.sendEvent(self, event)
+            event = QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            QApplication.sendEvent(self, event)
+            self.server_btn.setText('Start Server')
+            self.server_btn_clicked = False
+            self.connect_btn.setEnabled(False)
+
+    def connect_client(self):
+        self.host = self.host_entry_box.displayText()
+        self.port = self.port_entry_box.displayText()
+        if self.connect_btn_clicked == False:
+            try:
+                if not self.demo_mode:
+                    self.client = mpv.Client(host=self.host, port=int(self.port))
+                    self.client.open()
+                else:
+                    self.client = None
+                self.PPMS_measurement_setup_layout = QHBoxLayout()
+                self.connect_btn.setText('Stop Client')
+                self.connect_btn_clicked = True
+                self.server_btn.setEnabled(False)
+                self.client_keep_going = True
+                self.ppms_reading_group_box = QGroupBox('PPMS Status')
+                self.ppms_temp_group_box = QGroupBox('Temperature Setup')
+                self.ppms_field_group_box = QGroupBox('Field Setup')
+
+                self.ppms_reading_group_box.setLayout(self.ppms_status_reading_ui())
+                self.ppms_temp_group_box.setLayout(self.ppms_temperature_setup_ui())
+                self.ppms_field_group_box.setLayout(self.ppms_field_setup_ui())
+
+                self.ppms_reading_group_box.setFixedWidth(340)
+                self.ppms_temp_group_box.setFixedWidth(350)
+                self.ppms_field_group_box.setFixedWidth(420)
+
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_reading_group_box)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_temp_group_box)
+                self.PPMS_measurement_setup_layout.addWidget(self.ppms_field_group_box)
+                if self.ETO_SELECTED or self.demo_mode:
+                    self.eto_ppms_layout.addLayout(self.eto_setup_ui())
+                    self.eto_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
+                elif self.FMR_SELECTED:
+                    self.fmr_ppms_layout.addLayout(self.fmr_setup_ui())
+                    self.fmr_ppms_layout.addLayout(self.PPMS_measurement_setup_layout)
+
+
+            except SystemExit as e:
+                QMessageBox.critical(self, 'Client connection failed!', 'Please try again')
+
+        elif self.connect_btn_clicked == True:
+            if self.client is not None:
+                if not self.demo_mode:
+                    self.client.close_client()
+                    self.client = None
+            self.clear_layout(self.eto_ppms_layout)
+            self.clear_layout(self.fmr_ppms_layout)
+            self.client_keep_going = False
+            self.connect_btn.setText('Start Client')
+            self.connect_btn_clicked = False
+            self.server_btn.setEnabled(True)
+
     def connect_devices(self):
         # self.rm = visa.ResourceManager('GUI/Experiment/visa_simulation.yaml@sim')
         self.rm = visa.ResourceManager()
@@ -2479,6 +2236,116 @@ class Measurement(QMainWindow):
                             self.instru_connect_btn.setText('Connect')
                 except visa.errors.VisaIOError:
                     QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
+
+    def instrument_connection_modification(self):
+        connection_string = self.connection_combo.currentText()
+        current_instrument = self.instruments_selection_combo_box.currentText()
+        if "ASRL" in connection_string or "COM" in connection_string:
+            self.safe_clear_layout("instrument_rs232_layout")
+            self.instrument_rs232_layout.addLayout(self.create_rs232_settings_ui())
+            self.apply_preset_rs232_settings(current_instrument)
+        else:
+            self.safe_clear_layout("instrument_rs232_layout")
+
+    def apply_preset_rs232_settings(self, instrument_name):
+        """Apply preset RS232 settings for known instruments"""
+        if instrument_name in self.INSTRUMENT_RS232_PRESETS:
+            preset = self.INSTRUMENT_RS232_PRESETS[instrument_name]
+            self.baud_rate_combo.setCurrentText(str(preset['baud_rate']))
+            self.data_bits_combo.setCurrentText(str(preset['data_bits']))
+            self.parity_combo.setCurrentText(preset['parity'])
+            self.stop_bits_combo.setCurrentText(str(preset['stop_bits']))
+            self.flow_control_combo.setCurrentText(preset['flow_control'])
+
+    def create_rs232_settings_ui(self):
+        """Create RS232 configuration UI"""
+        # Clear existing layout
+
+        # RS232 Settings Layout
+        rs232_main_layout = QHBoxLayout()
+
+        # Baud Rate
+        baud_rate_label = QLabel("Baud Rate:")
+        baud_rate_label.setFont(self.font)
+        self.baud_rate_combo = QComboBox()
+        self.baud_rate_combo.setFont(self.font)
+        self.baud_rate_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.baud_rate_combo.addItems([
+            "300", "1200", "2400", "4800", "9600",
+            "19200", "38400", "57600", "115200"
+        ])
+        self.baud_rate_combo.setCurrentText("9600")  # Default
+
+        # Data Bits
+        data_bits_label = QLabel("Data Bits:")
+        data_bits_label.setFont(self.font)
+        self.data_bits_combo = QComboBox()
+        self.data_bits_combo.setFont(self.font)
+        self.data_bits_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.data_bits_combo.addItems(["5", "6", "7", "8"])
+        self.data_bits_combo.setCurrentText("8")  # Default
+
+        # Parity
+        parity_label = QLabel("Parity:")
+        parity_label.setFont(self.font)
+        self.parity_combo = QComboBox()
+        self.parity_combo.setFont(self.font)
+        self.parity_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.parity_combo.addItems(["None", "Even", "Odd", "Mark", "Space"])
+        self.parity_combo.setCurrentText("None")  # Default
+
+        # Stop Bits
+        stop_bits_label = QLabel("Stop Bits:")
+        stop_bits_label.setFont(self.font)
+        self.stop_bits_combo = QComboBox()
+        self.stop_bits_combo.setFont(self.font)
+        self.stop_bits_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.stop_bits_combo.addItems(["1", "1.5", "2"])
+        self.stop_bits_combo.setCurrentText("1")  # Default
+
+        # Flow Control
+        flow_control_label = QLabel("Flow Control:")
+        flow_control_label.setFont(self.font)
+        self.flow_control_combo = QComboBox()
+        self.flow_control_combo.setFont(self.font)
+        self.flow_control_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.flow_control_combo.addItems(["None", "Hardware (RTS/CTS)", "Software (XON/XOFF)"])
+        self.flow_control_combo.setCurrentText("None")  # Default
+
+        # Add widgets to layout
+        rs232_main_layout.addWidget(baud_rate_label)
+        rs232_main_layout.addWidget(self.baud_rate_combo)
+        rs232_main_layout.addWidget(data_bits_label)
+        rs232_main_layout.addWidget(self.data_bits_combo)
+        rs232_main_layout.addWidget(parity_label)
+        rs232_main_layout.addWidget(self.parity_combo)
+        rs232_main_layout.addWidget(stop_bits_label)
+        rs232_main_layout.addWidget(self.stop_bits_combo)
+        rs232_main_layout.addWidget(flow_control_label)
+        rs232_main_layout.addWidget(self.flow_control_combo)
+        return rs232_main_layout
+
+    def refresh_Connection_List(self):
+        try:
+            self.clear_layout(self.Instruments_measurement_setup_layout)
+        except AttributeError:
+            pass
+        # rm = visa.ResourceManager('GUI/Experiment/visa_simulation.yaml@sim')
+        rm = visa.ResourceManager()
+        instruments = rm.list_resources()
+        self.connection_ports = [instr for instr in instruments]
+        self.Keithley_2182_Connected = False
+        self.Ketihley_6221_Connected = False
+        self.BNC845RF_CONNECTED = False
+        self.DSP7265_Connected = False
+        self.instru_connect_btn.setText('Connect')
+        self.connection_combo.clear()
+        self.connection_combo.addItems(["None"])
+        self.connection_combo.addItems(self.connection_ports)
+        if self.demo_mode:
+            self.connection_combo.addItems(["K2182 Demo"])
+            self.connection_combo.addItems(["K6221 Demo"])
+            self.connection_combo.addItems(["DSP7265 Demo"])
 
     def get_rs232_settings(self):
         """Get current RS232 settings as a dictionary"""
@@ -2802,6 +2669,10 @@ class Measurement(QMainWindow):
                 else:
                     self.instru_connect_btn.setText('Connect')
 
+    # ---------------------------------------------------------------------------------
+    #  Customized Experiment
+    # ---------------------------------------------------------------------------------
+
     def customized_1_ui(self):
         if self.rigol_dsa875 and self.bk9129:
             self.rigol_measurement = RIGOL_Measurement(self.rigol_dsa875, self.bk9129)
@@ -2837,33 +2708,16 @@ class Measurement(QMainWindow):
             QMessageBox.warning(self, "Missing Connection ",
                                 f"Please connect to PPMS client before start")
             return
-
+        temp_field_dict = self.get_combined_field_temp_lists()
+        print(temp_field_dict)
         if self.DSP7265_Connected == False:
             QMessageBox.warning(self, "Missing Connection ",
                                 f"Please connect to lock-in amplifier client before start")
             return
 
-
     def bnc845rf_window_ui(self):
         self.fmr_widget = FMR_Measurement(bnc845=self.bnc845rf)
         self.Instruments_measurement_setup_layout.addWidget(self.fmr_widget)
-
-    def _parse_custom_list(self, list_string):
-        """
-        Parse a comma-separated string of values into a list of floats.
-        Example: "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
-        """
-        try:
-            # Remove brackets if present
-            list_string = list_string.strip('[]')
-
-            # Split by comma and convert to float
-            values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
-
-            return values
-
-        except (ValueError, TypeError, AttributeError):
-            return []
 
     # ---------------------------------------------------------------------------------
     #  DSP 7265 Portion
@@ -3051,11 +2905,11 @@ class Measurement(QMainWindow):
 
         self.dsp7265_auto_phase = QPushButton('Auto Phase')
         self.dsp7265_auto_phase.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_phase.clicked.connect(self.dsp725_auto_phase)
+        self.dsp7265_auto_phase.clicked.connect(self.dsp7265_auto_phase)
 
         self.dsp7265_auto_Measurement = QPushButton('Auto Meas.')
         self.dsp7265_auto_Measurement.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_Measurement.clicked.connect(self.dsp725_auto_meas)
+        self.dsp7265_auto_Measurement.clicked.connect(self.dsp7265_auto_meas)
 
         self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_sense)
         self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_phase)
@@ -3318,10 +3172,10 @@ class Measurement(QMainWindow):
         if self.dsp7265_float_index != 0:
             self.DSP7265.write(f'FLOAT {str(self.dsp7265_float_index - 1)}')
 
-    def dsp725_auto_phase(self):
+    def dsp7265_auto_phase(self):
         self.DSP7265.write('AQN')
 
-    def dsp725_auto_meas(self):
+    def dsp7265_auto_meas(self):
         self.DSP7265.write('ASM')
 
     def dsp7265_freq_setting(self):
@@ -3332,6 +3186,10 @@ class Measurement(QMainWindow):
             self.DSP7265.write(f'OF. {freq}')
             cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
             self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
+
+    # ---------------------------------------------------------------------------------
+    #  Keithley 2182 Portion
+    # ---------------------------------------------------------------------------------
 
     def keithley2182_window_ui(self):
         self.Keithley_2182_Container = QWidget(self)
@@ -3408,6 +3266,10 @@ class Measurement(QMainWindow):
         self.keithley_2182_contain_layout = QHBoxLayout()
         self.keithley_2182_contain_layout.addWidget(self.keithley_2182_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.keithley_2182_contain_layout)
+
+    # ---------------------------------------------------------------------------------
+    #  Keithley 6221 Portion
+    # ---------------------------------------------------------------------------------
 
     def keithley6221_window_ui(self):
         self.keithley6221_reading_groupbox = QGroupBox('Keithley 6221 Reading')
@@ -3910,6 +3772,119 @@ class Measurement(QMainWindow):
             self.keithley_6221_DC_range_step_entry.setEnabled(True)
             self.keithley_6221_DC_range_combobox.setEnabled(True)
 
+    # ---------------------------------------------------------------------------------
+    #  PPMS Portion
+    # ---------------------------------------------------------------------------------
+
+    def ppms_status_reading_ui(self):
+        self.ppms_reading_layout = QVBoxLayout()
+        self.ppms_temp_layout = QHBoxLayout()
+        self.ppms_temp_label = QLabel('Temperature (K):')
+        self.ppms_temp_label.setFont(self.font)
+        self.ppms_reading_temp_label = QLabel('N/A K')
+        self.ppms_reading_temp_label.setFont(self.font)
+        self.ppms_temp_layout.addWidget(self.ppms_temp_label)
+        self.ppms_temp_layout.addWidget(self.ppms_reading_temp_label)
+        self.ppms_field_layout = QHBoxLayout()
+        self.ppms_field_label = QLabel('Field (Oe):')
+        self.ppms_field_label.setFont(self.font)
+        self.ppms_reading_field_label = QLabel('N/A Oe')
+        self.ppms_reading_field_label.setFont(self.font)
+        self.ppms_field_layout.addWidget(self.ppms_field_label)
+        self.ppms_field_layout.addWidget(self.ppms_reading_field_label)
+
+        self.ppms_chamber_layout = QHBoxLayout()
+        self.ppms_chamber_label = QLabel('Chamber Status:')
+        self.ppms_chamber_label.setFont(self.font)
+        self.ppms_reading_chamber_label = QLabel('N/A')
+        self.ppms_reading_chamber_label.setFont(self.font)
+        self.ppms_chamber_layout.addWidget(self.ppms_chamber_label)
+        self.ppms_chamber_layout.addWidget(self.ppms_reading_chamber_label)
+
+        self.ppms_reading_layout.addLayout(self.ppms_temp_layout)
+        self.ppms_reading_layout.addLayout(self.ppms_field_layout)
+        self.ppms_reading_layout.addLayout(self.ppms_chamber_layout)
+        return self.ppms_reading_layout
+
+    def ppms_temperature_setup_ui(self):
+        # if self.ETO_FIELD_DEP:
+        self.ppms_temp_setting_layout = QVBoxLayout()
+        self.ppms_temp_radio_buttom_layout = QHBoxLayout()
+        self.ppms_zone_temp_layout = QVBoxLayout()
+        self.Temp_setup_Zone_1 = False
+        self.Temp_setup_Zone_2 = False
+        self.Temp_setup_Zone_3 = False
+        self.Temp_setup_Zone_Cus = False
+        self.ppms_temp_zone_number_label = QLabel('Number of Independent Step Regions:')
+        self.ppms_temp_zone_number_label.setFont(self.font)
+        self.ppms_temp_One_zone_radio = QRadioButton("1")
+        self.ppms_temp_One_zone_radio.setFont(self.font)
+        self.ppms_temp_One_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_Two_zone_radio = QRadioButton("2")
+        self.ppms_temp_Two_zone_radio.setFont(self.font)
+        self.ppms_temp_Two_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_Three_zone_radio = QRadioButton("3")
+        self.ppms_temp_Three_zone_radio.setFont(self.font)
+        self.ppms_temp_Three_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_Customize_zone_radio = QRadioButton("Customize")
+        self.ppms_temp_Customize_zone_radio.setFont(self.font)
+        self.ppms_temp_Customize_zone_radio.toggled.connect(self.temp_zone_selection)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_One_zone_radio)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Two_zone_radio)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Three_zone_radio)
+        self.ppms_temp_radio_buttom_layout.addWidget(self.ppms_temp_Customize_zone_radio)
+        self.ppms_temp_setting_layout.addWidget(self.ppms_temp_zone_number_label)
+        self.ppms_temp_setting_layout.addLayout(self.ppms_temp_radio_buttom_layout)
+        self.ppms_temp_setting_layout.addLayout(self.ppms_zone_temp_layout)
+
+        return self.ppms_temp_setting_layout
+
+    def ppms_field_setup_ui(self):
+        # if self.ETO_FIELD_DEP:
+        self.ppms_field_setting_layout = QVBoxLayout()
+        self.ppms_field_mode_buttom_layout = QHBoxLayout()
+        self.ppms_field_radio_buttom_layout = QHBoxLayout()
+        self.ppms_zone_field_layout = QVBoxLayout()
+
+        self.Field_setup_Zone_1 = False
+        self.Field_setup_Zone_2 = False
+        self.Field_setup_Zone_3 = False
+
+        self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
+        self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
+        self.ppms_field_cointinous_mode_radio_button.setChecked(True)
+        self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
+
+        self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
+        self.ppms_field_fixed_mode_radio_button.setFont(self.font)
+        self.ppms_field_fixed_mode_radio_button.toggled.connect(self.disable_step_field)
+
+        self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_cointinous_mode_radio_button)
+        self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_fixed_mode_radio_button)
+        self.ppms_field_mode_buttom_group = QButtonGroup()
+        self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
+        self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
+
+        self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
+        self.ppms_field_zone_number_label.setFont(self.font)
+        self.ppms_field_One_zone_radio = QRadioButton("1")
+        self.ppms_field_One_zone_radio.setFont(self.font)
+        self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
+        self.ppms_field_Two_zone_radio = QRadioButton("2")
+        self.ppms_field_Two_zone_radio.setFont(self.font)
+        self.ppms_field_Two_zone_radio.toggled.connect(self.field_zone_selection)
+        self.ppms_field_Three_zone_radio = QRadioButton("3")
+        self.ppms_field_Three_zone_radio.setFont(self.font)
+        self.ppms_field_Three_zone_radio.toggled.connect(self.field_zone_selection)
+        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
+        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
+        self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
+        self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
+        self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
+        self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
+        self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
+        return self.ppms_field_setting_layout
+
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
             if self.ppms_field_One_zone_radio.isChecked():
@@ -4276,24 +4251,36 @@ class Measurement(QMainWindow):
             # Determine which field zone is selected
             if hasattr(self, 'Field_setup_Zone_1') and self.Field_setup_Zone_1:
                 settings['field_zone_count'] = 1
+                zone_1 = self._get_field_zone_one()
                 settings['field_zones'] = {
-                    'zone_1': self._get_field_zone_one()
+                    'zone_1': zone_1
                 }
+                # Create full sweep: from → to → from
+                settings['field_list'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
 
             elif hasattr(self, 'Field_setup_Zone_2') and self.Field_setup_Zone_2:
                 settings['field_zone_count'] = 2
+                zone_1 = self._get_field_zone_one()
+                zone_2 = self._get_field_zone_two()
                 settings['field_zones'] = {
-                    'zone_1': self._get_field_zone_one(),
-                    'zone_2': self._get_field_zone_two()
+                    'zone_1': zone_1,
+                    'zone_2': zone_2
                 }
+                # Create full sweep: zone1(from→to) → zone2(from→to) → zone2(to→from) → zone1(to→from)
+                settings['field_list'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
 
             elif hasattr(self, 'Field_setup_Zone_3') and self.Field_setup_Zone_3:
                 settings['field_zone_count'] = 3
+                zone_1 = self._get_field_zone_one()
+                zone_2 = self._get_field_zone_two()
+                zone_3 = self._get_field_zone_three()
                 settings['field_zones'] = {
-                    'zone_1': self._get_field_zone_one(),
-                    'zone_2': self._get_field_zone_two(),
-                    'zone_3': self._get_field_zone_three()
+                    'zone_1': zone_1,
+                    'zone_2': zone_2,
+                    'zone_3': zone_3
                 }
+                # Create full sweep: z1 → z2 → z3 → z3(reverse) → z2(reverse) → z1(reverse)
+                settings['field_list'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2, zone_3])
 
             # Get field mode (continuous or stepped)
             if hasattr(self, 'ppms_field_cointinous_mode_radio_button'):
@@ -4308,104 +4295,149 @@ class Measurement(QMainWindow):
             print(f"Error getting PPMS field settings: {tb_str} {str(e)}")
             return {}
 
-    def _get_field_zone_one(self):
-        """Get field zone 1 settings and return as list"""
-        zone_data = {
-            'top': self.ppms_zone1_from_entry.text() if hasattr(self, 'ppms_zone1_from_entry') else '',
-            'bottom': self.ppms_zone1_to_entry.text() if hasattr(self, 'ppms_zone1_to_entry') else '',
-            'step': self.ppms_zone1_field_step_entry.text() if hasattr(self, 'ppms_zone1_field_step_entry') else '',
-            'rate': self.ppms_zone1_field_rate_entry.text() if hasattr(self, 'ppms_zone1_field_rate_entry') else '220',
-            'unit': 'Oe'
-        }
-
-        # Generate field list
-        zone_data['field_list'] = self._generate_field_list(
-            zone_data['top'],
-            zone_data['bottom'],
-            zone_data['step']
-        )
-
-        return zone_data
-
-    def _get_field_zone_two(self):
-        """Get field zone 2 settings and return as list"""
-        zone_data = {
-            'top': self.ppms_zone2_from_entry.text() if hasattr(self, 'ppms_zone2_from_entry') else '',
-            'bottom': self.ppms_zone2_to_entry.text() if hasattr(self, 'ppms_zone2_to_entry') else '',
-            'step': self.ppms_zone2_field_step_entry.text() if hasattr(self, 'ppms_zone2_field_step_entry') else '',
-            'rate': self.ppms_zone2_field_rate_entry.text() if hasattr(self, 'ppms_zone2_field_rate_entry') else '220',
-            'unit': 'Oe'
-        }
-
-        # Generate field list
-        zone_data['field_list'] = self._generate_field_list(
-            zone_data['top'],
-            zone_data['bottom'],
-            zone_data['step']
-        )
-
-        return zone_data
-
-    def _get_field_zone_three(self):
-        """Get field zone 3 settings and return as list"""
-        zone_data = {
-            'top': self.ppms_zone3_from_entry.text() if hasattr(self, 'ppms_zone3_from_entry') else '',
-            'bottom': self.ppms_zone3_to_entry.text() if hasattr(self, 'ppms_zone3_to_entry') else '',
-            'step': self.ppms_zone3_field_step_entry.text() if hasattr(self, 'ppms_zone3_field_step_entry') else '',
-            'rate': self.ppms_zone3_field_rate_entry.text() if hasattr(self, 'ppms_zone3_field_rate_entry') else '220',
-            'unit': 'Oe'
-        }
-
-        # Generate field list
-        zone_data['field_list'] = self._generate_field_list(
-            zone_data['top'],
-            zone_data['bottom'],
-            zone_data['step']
-        )
-
-        return zone_data
-
-    def _generate_field_list(self, top_val, bottom_val, step_val):
+    def _create_bidirectional_sweep_no_duplicates(self, zones):
         """
-        Generate a list of field values from top to bottom with given step.
-        Returns list in Oersteds (Oe).
+        Create bidirectional sweep with no duplicate points at zone boundaries,
+        but keeps the turning point (maximum field) duplicated.
 
-        Args:
-            top_val: Starting field value (string)
-            bottom_val: Ending field value (string)
-            step_val: Step size (string)
-
-        Returns:
-            List of field values in Oe
+        Example:
+            Zone 1: [0, 100, 200]
+            Zone 2: [200, 300, 400]
+            Forward: [0, 100, 200, 300, 400]  (200 only once at boundary)
+            Add duplicate at turning point: [0, 100, 200, 300, 400, 400]
+            Reverse: [300, 200, 100, 0]
+            Full: [0, 100, 200, 300, 400, 400, 300, 200, 100, 0]
         """
         try:
-            top = float(top_val) if top_val else 0
-            bottom = float(bottom_val) if bottom_val else 0
-            step = float(step_val) if step_val else 0
+            # Build forward sweep, removing duplicates at boundaries
+            forward_sweep = []
+            for i, zone in enumerate(zones):
+                if 'field_list' in zone and zone['field_list']:
+                    if i == 0:
+                        # First zone: add all points
+                        forward_sweep.extend(zone['field_list'])
+                    else:
+                        # Subsequent zones: skip first point if it matches last point
+                        if forward_sweep and zone['field_list'][0] == forward_sweep[-1]:
+                            forward_sweep.extend(zone['field_list'][1:])
+                        else:
+                            forward_sweep.extend(zone['field_list'])
 
-            if step == 0:
-                # For continuous mode, just return endpoints
-                return [top, bottom]
+            if not forward_sweep:
+                return []
 
-            # Generate list from top to bottom
-            field_list = []
-            current = top
+            # Build reverse sweep (excluding the last point to avoid it being there 3 times)
+            reverse_sweep = forward_sweep[:-1][::-1]
+
+            # Combine: forward + duplicate turning point + reverse
+            # This creates: [0, 100, 200, 300, 400] + [400] + [300, 200, 100, 0]
+            full_sweep = forward_sweep + [forward_sweep[-1]] + reverse_sweep
+
+            return full_sweep
+
+        except Exception as e:
+            print(f"Error creating bidirectional sweep: {str(e)}")
+            return []
+
+    def _get_field_zone_one(self):
+        """Get field zone 1 settings and return as dictionary with field list"""
+        try:
+            zone_data = {
+                'from': float(self.ppms_zone1_from_entry.text()),
+                'to': float(self.ppms_zone1_to_entry.text()),
+                'step': float(self.ppms_zone1_field_step_entry.text()),
+                'unit': 'Oe'  # Assuming Oersteds
+            }
+
+            # Generate field list
+            zone_data['field_list'] = self._generate_field_list(
+                zone_data['from'],
+                zone_data['to'],
+                zone_data['step']
+            )
+
+            return zone_data
+
+        except Exception as e:
+            print(f"Error getting field zone 1: {str(e)}")
+            return {}
+
+    def _get_field_zone_two(self):
+        """Get field zone 2 settings and return as dictionary with field list"""
+        try:
+            zone_data = {
+                'from': float(self.ppms_zone2_from_entry.text()),
+                'to': float(self.ppms_zone2_to_entry.text()),
+                'step': float(self.ppms_zone2_field_step_entry.text()),
+                'unit': 'Oe'
+            }
+
+            zone_data['field_list'] = self._generate_field_list(
+                zone_data['from'],
+                zone_data['to'],
+                zone_data['step']
+            )
+
+            return zone_data
+
+        except Exception as e:
+            print(f"Error getting field zone 2: {str(e)}")
+            return {}
+
+    def _get_field_zone_three(self):
+        """Get field zone 3 settings and return as dictionary with field list"""
+        try:
+            zone_data = {
+                'from': float(self.ppms_zone3_from_entry.text()),
+                'to': float(self.ppms_zone3_to_entry.text()),
+                'step': float(self.ppms_zone3_field_step_entry.text()),
+                'unit': 'Oe'
+            }
+
+            zone_data['field_list'] = self._generate_field_list(
+                zone_data['from'],
+                zone_data['to'],
+                zone_data['step']
+            )
+
+            return zone_data
+
+        except Exception as e:
+            print(f"Error getting field zone 3: {str(e)}")
+            return {}
+
+    def _generate_field_list(self, from_val, to_val, step_val):
+        """
+        Generate a list of field values from start to end with given step.
+        Handles both positive and negative sweeps.
+
+        Args:
+            from_val: Starting field value
+            to_val: Ending field value
+            step_val: Step size (always positive)
+
+        Returns:
+            List of field values
+        """
+        try:
+            import numpy as np
+
+            # Ensure step is positive
+            step = abs(step_val)
 
             # Determine direction
-            if top > bottom:
-                # Going down
-                while current >= bottom:
-                    field_list.append(current)
-                    current -= step
+            if from_val <= to_val:
+                # Positive sweep
+                # Add small epsilon to include endpoint
+                field_list = np.arange(from_val, to_val + step / 2, step).tolist()
             else:
-                # Going up
-                while current <= bottom:
-                    field_list.append(current)
-                    current += step
+                # Negative sweep
+                field_list = np.arange(from_val, to_val - step / 2, -step).tolist()
 
             return field_list
 
-        except (ValueError, TypeError):
+        except Exception as e:
+            print(f"Error generating field list: {str(e)}")
             return []
 
     def get_ppms_temperature_settings(self):
@@ -4607,6 +4639,26 @@ class Measurement(QMainWindow):
 
         return combined
 
+    # ---------------------------------------------------------------------------------
+    #  MISC
+    # ---------------------------------------------------------------------------------
+    def _parse_custom_list(self, list_string):
+        """
+        Parse a comma-separated string of values into a list of floats.
+        Example: "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
+        """
+        try:
+            # Remove brackets if present
+            list_string = list_string.strip('[]')
+
+            # Split by comma and convert to float
+            values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
+
+            return values
+
+        except (ValueError, TypeError, AttributeError):
+            return []
+
     def rst(self):
         try:
             self.worker = None
@@ -4634,6 +4686,25 @@ class Measurement(QMainWindow):
             # self.DSP7265.close()
         except Exception:
             pass
+
+    def clear_layout(self, layout):
+        """Clear layout properly"""
+        if layout is None:
+            return
+
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
+            else:
+                child_layout = item.layout()
+                if child_layout:
+                    self.clear_layout(child_layout)
+
+        # QApplication.processEvents()
 
     def safe_clear_layout(self, layout_attr_name):
         """Safely clear a layout if it exists"""
