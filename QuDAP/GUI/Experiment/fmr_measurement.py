@@ -354,7 +354,7 @@ class FMR_Measurement(QWidget):
                 bnc845rf_am_freq_layout.addWidget(bnc845rf_am_freq_unit_label)
 
                 bnc845rf_am_depth_layout = QHBoxLayout()
-                bnc845rf_am_depth_label = QLabel('Mod Frequency:')
+                bnc845rf_am_depth_label = QLabel('Mod Depth:')
                 bnc845rf_am_depth_label.setFont(self.font)
                 self.bnc845rf_am_depth_entry = QLineEdit()
                 self.bnc845rf_am_depth_entry.setFont(self.font)
@@ -375,15 +375,15 @@ class FMR_Measurement(QWidget):
                 bnc845rf_am_source_layout.addWidget(bnc845rf_am_source_label)
                 bnc845rf_am_source_layout.addWidget(self.bnc845rf_am_source_combo)
 
-                self.bnc845rf_am_modulation_on_off_button = QPushButton('On')
-                self.bnc845rf_am_modulation_on_off_button.setFont(self.font)
-                self.bnc845rf_am_modulation_on_off_button.setStyleSheet(self.Button_stylesheet)
-                self.bnc845rf_am_modulation_on_off_button.clicked.connect(self.bnc845_am_control)
+                # self.bnc845rf_am_modulation_on_off_button = QPushButton('On')
+                # self.bnc845rf_am_modulation_on_off_button.setFont(self.font)
+                # self.bnc845rf_am_modulation_on_off_button.setStyleSheet(self.Button_stylesheet)
+                # self.bnc845rf_am_modulation_on_off_button.clicked.connect(self.bnc845_am_control)
 
                 self.bnc845rf_am_layout.addLayout(bnc845rf_am_freq_layout)
                 self.bnc845rf_am_layout.addLayout(bnc845rf_am_depth_layout)
                 self.bnc845rf_am_layout.addLayout(bnc845rf_am_source_layout)
-                self.bnc845rf_am_layout.addWidget(self.bnc845rf_am_modulation_on_off_button)
+                # self.bnc845rf_am_layout.addWidget(self.bnc845rf_am_modulation_on_off_button)
                 self.bnc845rf_modulation_selected_layout.addLayout(self.bnc845rf_am_layout)
             elif self.bnc845rf_modulation_combo.currentIndex() == 3:
                 None
@@ -898,7 +898,7 @@ class FMR_Measurement(QWidget):
 
         return readings
 
-    def apply_modulation_settings_to_instrument(self, instrument, bnc_cmd):
+    def apply_modulation_settings_to_instrument(self, settings, instrument, bnc_cmd):
         """
         Apply the current UI modulation settings to the BNC845RF instrument.
 
@@ -916,8 +916,6 @@ class FMR_Measurement(QWidget):
         }
 
         try:
-            modulation_type = self.bnc845rf_modulation_combo.currentIndex()
-
             # First, turn off all modulations
             try:
                 bnc_cmd.set_am_state(instrument, 'OFF')
@@ -928,7 +926,10 @@ class FMR_Measurement(QWidget):
                 result['errors'].append(f"Error turning off modulations: {str(e)}")
 
             # Apply Pulse Modulation (index 1)
-            if modulation_type == 1:
+            if settings['modulation_settings']['type'] == 'None':
+                print('No Modulation')
+            elif settings['modulation_settings']['type'] == 'Pulse Mod':
+                print('Pulse Mod')
                 try:
                     bnc_cmd.set_pulse_state(instrument, 'ON')
                     result['applied_settings']['modulation_type'] = 'Pulse Modulation'
@@ -937,22 +938,19 @@ class FMR_Measurement(QWidget):
                     result['errors'].append(f"Pulse modulation error: {str(e)}")
 
             # Apply Amplitude Modulation (index 2)
-            elif modulation_type == 2:
+            elif settings['modulation_settings']['type'] == 'Amplitude Mod':
                 try:
-                    if hasattr(self, 'bnc845rf_am_freq_entry') and self.bnc845rf_am_freq_entry.text():
-                        am_freq = float(self.bnc845rf_am_freq_entry.text())
-                        bnc_cmd.set_am_internal_frequency(instrument, am_freq, 'Hz')
-                        result['applied_settings']['am_frequency'] = f"{am_freq} Hz"
+                    am_freq = str(settings['modulation_settings']['am_frequency'])
+                    bnc_cmd.set_am_internal_frequency(instrument, am_freq, 'Hz')
+                    result['applied_settings']['am_frequency'] = f"{am_freq} Hz"
 
-                    if hasattr(self, 'bnc845rf_am_depth_entry') and self.bnc845rf_am_depth_entry.text():
-                        am_depth = float(self.bnc845rf_am_depth_entry.text()) / 100.0  # Convert % to 0-0.99
-                        bnc_cmd.set_am_depth(instrument, am_depth)
-                        result['applied_settings']['am_depth'] = f"{am_depth}"
+                    am_depth = settings['modulation_settings']['am_depth']  # Convert % to 0-0.99
+                    bnc_cmd.set_am_depth(instrument, am_depth)
+                    result['applied_settings']['am_depth'] = f"{am_depth}"
 
-                    if hasattr(self, 'bnc845rf_am_source_combo'):
-                        am_source = self.bnc845rf_am_source_combo.currentText()
-                        bnc_cmd.set_am_source(instrument, am_source)
-                        result['applied_settings']['am_source'] = am_source
+                    am_source = settings['modulation_settings']['am_source']
+                    bnc_cmd.set_am_source(instrument, am_source)
+                    result['applied_settings']['am_source'] = am_source
 
                     bnc_cmd.set_am_state(instrument, 'ON')
                     result['applied_settings']['modulation_type'] = 'Amplitude Modulation'
@@ -962,7 +960,7 @@ class FMR_Measurement(QWidget):
                     result['errors'].append(f"AM modulation error: {str(e)}")
 
             # Apply Frequency Modulation (index 3)
-            elif modulation_type == 3:
+            elif settings['modulation_settings']['type'] == 'Frequency Mod':
                 try:
                     # Add FM settings here when FM UI is implemented
                     bnc_cmd.set_fm_state(instrument, 'ON')
@@ -972,7 +970,7 @@ class FMR_Measurement(QWidget):
                     result['errors'].append(f"FM modulation error: {str(e)}")
 
             # Apply Phase Modulation (index 4)
-            elif modulation_type == 4:
+            elif settings['modulation_settings']['type'] == 'Phase Mod':
                 try:
                     # Add PM settings here when PM UI is implemented
                     bnc_cmd.set_pm_state(instrument, 'ON')
@@ -1100,9 +1098,51 @@ class FMR_Measurement(QWidget):
         """
         try:
             # Update current frequency reading
+            def format_frequency_with_unit(freq_hz):
+                """
+                Convert frequency in Hz to the most appropriate unit and format for display.
+
+                Args:
+                    freq_hz: Frequency value in Hz (can be string or float)
+
+                Returns:
+                    Formatted string with value and unit (e.g., "2.5 GHz")
+                """
+                try:
+                    # Convert to float if it's a string
+                    freq_value = float(freq_hz)
+
+                    # Determine the best unit based on magnitude
+                    if freq_value >= 1e9:
+                        converted = freq_value / 1e9
+                        unit = 'GHz'
+                    elif freq_value >= 1e6:
+                        converted = freq_value / 1e6
+                        unit = 'MHz'
+                    elif freq_value >= 1e3:
+                        converted = freq_value / 1e3
+                        unit = 'kHz'
+                    else:
+                        converted = freq_value
+                        unit = 'Hz'
+
+                    # Format the number (remove unnecessary decimal places)
+                    if converted >= 100:
+                        formatted = f"{converted:.2f}"
+                    elif converted >= 10:
+                        formatted = f"{converted:.3f}"
+                    else:
+                        formatted = f"{converted:.4f}"
+
+                    return f"{formatted} {unit}"
+
+                except (ValueError, TypeError):
+                    return "N/A"
+
             if hasattr(self, 'bnc845rf_current_frequency_reading_label'):
                 try:
                     freq = bnc_cmd.get_frequency_cw(instrument).strip()
+                    freq = format_frequency_with_unit(freq)
                     self.bnc845rf_current_frequency_reading_label.setText(freq)
                 except:
                     pass
@@ -1111,7 +1151,7 @@ class FMR_Measurement(QWidget):
             if hasattr(self, 'bnc845rf_current_power_reading_label'):
                 try:
                     power = bnc_cmd.get_power_level(instrument).strip()
-                    self.bnc845rf_current_power_reading_label.setText(power)
+                    self.bnc845rf_current_power_reading_label.setText(f"{float(power):.2f} dBm")
                 except:
                     pass
 
@@ -1146,22 +1186,22 @@ class FMR_Measurement(QWidget):
                     pass
 
             # Update modulation depth (for AM)
-            if hasattr(self, 'bnc845rf_modulation_depth_reading_label'):
-                try:
-                    depth = bnc_cmd.get_am_depth(instrument).strip()
-                    # Convert to percentage
-                    depth_val = float(depth) * 100
-                    self.bnc845rf_modulation_depth_reading_label.setText(f"{depth_val:.1f}%")
-                except:
-                    pass
-
-            # Update modulation frequency (for AM)
-            if hasattr(self, 'bnc845rf_modulation_frequency_reading_label'):
-                try:
-                    freq = bnc_cmd.get_am_internal_frequency(instrument).strip()
-                    self.bnc845rf_modulation_frequency_reading_label.setText(freq)
-                except:
-                    pass
+            # if hasattr(self, 'bnc845rf_modulation_depth_reading_label'):
+            #     try:
+            #         depth = bnc_cmd.get_am_depth(instrument).strip()
+            #         # Convert to percentage
+            #         depth_val = float(depth) * 100
+            #         self.bnc845rf_modulation_depth_reading_label.setText(f"{depth_val:.1f}%")
+            #     except:
+            #         pass
+            #
+            # # Update modulation frequency (for AM)
+            # if hasattr(self, 'bnc845rf_modulation_frequency_reading_label'):
+            #     try:
+            #         freq = bnc_cmd.get_am_internal_frequency(instrument).strip()
+            #         self.bnc845rf_modulation_frequency_reading_label.setText(freq)
+            #     except:
+            #         pass
 
             # Update modulation state
             if hasattr(self, 'bnc845rf_modulation_state_reading_label'):
