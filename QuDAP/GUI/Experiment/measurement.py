@@ -2760,18 +2760,21 @@ class Measurement(QMainWindow):
     # ---------------------------------------------------------------------------------
 
     def bnc845rf_window_ui(self):
-        self.bnc845rf_main_layout = QHBoxLayout()
-
-        self.bnc845rf_reading_groupbox =QGroupBox("BNC 845RF Reading")
-        self.bnc845rf_reading_groupbox.setLayout(self.bnc845rf_window_reading_ui())
-        self.bnc845rf_reading_groupbox.setFixedWidth(560)
-
-        self.bnc845rf_setting_groupbox =QGroupBox("BNC 845RF Setting")
-        self.bnc845rf_setting_groupbox.setLayout(self.bnc845rf_window_setting_ui())
-        self.bnc845rf_setting_groupbox.setFixedWidth(560)
-
-        self.bnc845rf_main_layout.addWidget(self.bnc845rf_reading_groupbox)
-        self.bnc845rf_main_layout.addWidget(self.bnc845rf_setting_groupbox)
+        fmr_main_ui_class = FMR_Measurement(bnc845=self.bnc845rf)
+        self.bnc845rf_main_layout = fmr_main_ui_class.init_ui()
+        #
+        # self.bnc845rf_main_layout = QHBoxLayout()
+        #
+        # self.bnc845rf_reading_groupbox =QGroupBox("BNC 845RF Reading")
+        # self.bnc845rf_reading_groupbox.setLayout(self.bnc845rf_window_reading_ui())
+        # self.bnc845rf_reading_groupbox.setFixedWidth(560)
+        #
+        # self.bnc845rf_setting_groupbox =QGroupBox("BNC 845RF Setting")
+        # self.bnc845rf_setting_groupbox.setLayout(self.bnc845rf_window_setting_ui())
+        # self.bnc845rf_setting_groupbox.setFixedWidth(560)
+        #
+        # self.bnc845rf_main_layout.addWidget(self.bnc845rf_reading_groupbox)
+        # self.bnc845rf_main_layout.addWidget(self.bnc845rf_setting_groupbox)
         self.Instruments_measurement_setup_layout.addLayout(self.bnc845rf_main_layout)
 
     def bnc845rf_window_reading_ui(self):
@@ -2836,8 +2839,8 @@ class Measurement(QMainWindow):
         self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_current_frequency_layout)
         self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_current_power_layout)
         self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_layout)
-        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_depth_reading_layout)
-        self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_frequency_reading_layout)
+        # self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_depth_reading_layout)
+        # self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_frequency_reading_layout)
         self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_modulation_state_layout)
         self.bnc845rf_window_reading_layout.addLayout(self.bnc845rf_state_layout)
 
