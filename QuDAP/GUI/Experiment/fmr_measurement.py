@@ -1451,7 +1451,9 @@ class FMR_Measurement(QWidget):
                     errors.extend(zone1_errors)
                     errors.extend(zone2_errors)
                 else:
-                    freq_data['Final_list'] = zone1_data['frequency_list'] + zone2_data['frequency_list']
+                    frequency_list = zone1_data['frequency_list'] + zone2_data['frequency_list']
+                    final_list = list(dict.fromkeys(frequency_list))
+                    freq_data['Final_list'] = final_list
                     freq_data['zone_1'] = zone1_data
                     freq_data['zone_2'] = zone2_data
 
@@ -1465,7 +1467,9 @@ class FMR_Measurement(QWidget):
                     errors.extend(zone2_errors)
                     errors.extend(zone3_errors)
                 else:
-                    freq_data['Final_list'] = zone1_data['frequency_list'] + zone2_data['frequency_list'] + zone3_data['frequency_list']
+                    frequency_list = zone1_data['frequency_list'] + zone2_data['frequency_list'] + zone3_data['frequency_list']
+                    final_list = list(dict.fromkeys(frequency_list))
+                    freq_data['Final_list'] = final_list
                     freq_data['zone_1'] = zone1_data
                     freq_data['zone_2'] = zone2_data
                     freq_data['zone_3'] = zone3_data
