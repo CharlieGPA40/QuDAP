@@ -60,10 +60,12 @@ class FMR_Measurement(QWidget):
 
         self.bnc845rf_main_layout.addWidget(self.bnc845rf_reading_groupbox)
         self.bnc845rf_main_layout.addWidget(self.bnc845rf_setting_groupbox)
-        return self.bnc845rf_main_layout
-        # self.Instruments_measurement_setup_layout.addLayout(self.bnc845rf_main_layout)
+        self.setLayout(self.bnc845rf_main_layout)
+        # return self.bnc845rf_main_layout
+        # self.main_layout.addLayout(self.bnc845rf_main_layout)
 
     def bnc845rf_window_reading_ui(self):
+        print('enter')
         self.bnc845rf_window_reading_layout = QVBoxLayout()
 
         self.bnc845rf_current_frequency_layout = QHBoxLayout()
@@ -133,6 +135,7 @@ class FMR_Measurement(QWidget):
         return self.bnc845rf_window_reading_layout
 
     def bnc845rf_window_setting_ui(self):
+        print('Enter Settings')
         self.bnc845rf_setting_layout = QVBoxLayout()
 
         self.bnc845rf_loop_setting_content_layout = QVBoxLayout()
@@ -178,6 +181,7 @@ class FMR_Measurement(QWidget):
 
     def bnc845rf_loop_selection_ui(self):
         self.clear_layout(self.bnc845rf_loop_setting_content_layout)
+        print(self.bnc845rf_loop_setting_combo.currentIndex())
         if self.bnc845rf_loop_setting_combo.currentIndex() == 1:
             self.bnc845rf_frequency_radio_buttom_layout = QHBoxLayout()
             self.bnc845rf_frequency_zone_layout = QVBoxLayout()
@@ -257,14 +261,14 @@ class FMR_Measurement(QWidget):
             bnc845rf_frequency_setting_label.setFont(self.font)
             self.bnc845rf_frequency_setting_entry = QLineEdit()
             self.bnc845rf_frequency_setting_entry.setFont(self.font)
-            bnc845rf_frequency_setting_unit_combo = QComboBox()
-            bnc845rf_frequency_setting_unit_combo.setFont(self.font)
-            bnc845rf_frequency_setting_unit_combo.setStyleSheet(self.QCombo_stylesheet)
-            bnc845rf_frequency_setting_unit_combo.addItems(
+            self.bnc845rf_frequency_setting_unit_combo = QComboBox()
+            self.bnc845rf_frequency_setting_unit_combo.setFont(self.font)
+            self.bnc845rf_frequency_setting_unit_combo.setStyleSheet(self.QCombo_stylesheet)
+            self.bnc845rf_frequency_setting_unit_combo.addItems(
                 ["Select Unit", "Hz", "kHz", "MHz", "GHz"])
             self.bnc845rf_frequency_setting_layout.addWidget(bnc845rf_frequency_setting_label)
             self.bnc845rf_frequency_setting_layout.addWidget(self.bnc845rf_frequency_setting_entry)
-            self.bnc845rf_frequency_setting_layout.addWidget(bnc845rf_frequency_setting_unit_combo)
+            self.bnc845rf_frequency_setting_layout.addWidget(self.bnc845rf_frequency_setting_unit_combo)
 
             self.bnc845rf_loop_setting_content_layout.addWidget(self.bnc845rf_frequency_zone_number_label)
             self.bnc845rf_loop_setting_content_layout.addLayout(self.bnc845rf_power_radio_buttom_layout)
@@ -609,7 +613,7 @@ class FMR_Measurement(QWidget):
         self.bnc845rf_frequency_zone_three_step_layout.addWidget(self.bnc845rf_frequency_zone_three_freq_step_unit_combo)
 
         self.bnc845rf_frequency_zone_three_freq_layout.addLayout(self.bnc845rf_frequency_zone_three_range_layout)
-        self.bnc845rf_frequency_zone_three_freq_layout.addLayout(self.bnc845rf_frequency_zone_two_step_layout)
+        self.bnc845rf_frequency_zone_three_freq_layout.addLayout(self.bnc845rf_frequency_zone_three_step_layout)
 
         self.bnc845rf_frequency_zone_layout.addLayout(self.bnc845rf_frequency_zone_three_freq_layout)
 
@@ -653,7 +657,7 @@ class FMR_Measurement(QWidget):
         self.bnc845rf_power_zone_layout.addLayout(self.bnc845rf_power_zone_customized_layout)
 
     def bnc845_am_control(self):
-        print(self.get_bnc845rf_settings())
+        None
         # if self.BNC845_AM_ON == False:
         #     self.BNC845_AM_ON = True
         #     self.bnc845rf_am_modulation_on_off_button.setText('OFF')
@@ -663,84 +667,6 @@ class FMR_Measurement(QWidget):
         #     self.bnc845rf_am_modulation_on_off_button.setText('ON')
         #     BNC_845M_COMMAND().set_am_state(self.bnc845rf, 'OFF')
 
-    def get_bnc845rf_settings(self):
-        """
-        Get all BNC845RF settings and return them as a dictionary.
-        Frequencies and power values are returned as lists.
-        """
-        settings = {}
-
-        try:
-            # Get loop setting type
-            settings['loop_type'] = self.bnc845rf_loop_setting_combo.currentText()
-
-            # Get frequency settings based on loop type
-            if self.bnc845rf_loop_setting_combo.currentIndex() in [1, 3]:  # Frequency Dependent or Both
-                settings['frequency_zones'] = {}
-
-                # Determine which frequency zone is selected
-                if hasattr(self, 'bnc845rf_frequency_zone_1') and self.bnc845rf_frequency_zone_1:
-                    settings['frequency_zone_count'] = 1
-                    settings['frequency_zones']['zone_1'] = self._get_frequency_zone_one()
-                    settings['frequency_zones']['final_list'] = self._get_frequency_zone_one()['frequency_list']
-
-                elif hasattr(self, 'bnc845rf_frequency_zone_2') and self.bnc845rf_frequency_zone_2:
-                    settings['frequency_zone_count'] = 2
-                    settings['frequency_zones']['zone_1'] = self._get_frequency_zone_one()
-                    settings['frequency_zones']['zone_2'] = self._get_frequency_zone_two()
-                    settings['frequency_zones']['final_list'] = self._get_frequency_zone_one()['frequency_list'] + self._get_frequency_zone_two()['frequency_list']
-
-                elif hasattr(self, 'bnc845rf_frequency_zone_3') and self.bnc845rf_frequency_zone_3:
-                    settings['frequency_zone_count'] = 3
-                    settings['frequency_zones']['zone_1'] = self._get_frequency_zone_one()
-                    settings['frequency_zones']['zone_2'] = self._get_frequency_zone_two()
-                    settings['frequency_zones']['zone_3'] = self._get_frequency_zone_three()
-                    settings['frequency_zones'][
-                        'final_list'] = self._get_frequency_zone_one()['frequency_list'] + self._get_frequency_zone_two()['frequency_list'] + self._get_frequency_zone_three()['frequency_list']
-
-                elif hasattr(self, 'bnc845rf_frequency_zone_customized') and self.bnc845rf_frequency_zone_customized:
-                    settings['frequency_zone_count'] = 'customized'
-                    settings['frequency_zones']['customized'] = self._get_frequency_zone_customized()
-                    settings['frequency_zones']['final_list'] = self._get_frequency_zone_customized()
-
-            # Get power settings based on loop type
-            if self.bnc845rf_loop_setting_combo.currentIndex() == 1:  # Frequency Dependent only
-                if hasattr(self, 'bnc845rf_power_setting_entry'):
-                    settings['power'] = self.bnc845rf_power_setting_entry.text()
-
-            elif self.bnc845rf_loop_setting_combo.currentIndex() in [2, 3]:  # Power Dependent or Both
-                settings['power_zones'] = {}
-
-                # Determine which power zone is selected
-                if hasattr(self, 'bnc845rf_power_zone_1') and self.bnc845rf_power_zone_1:
-                    settings['power_zone_count'] = 1
-                    settings['power_zones']['zone_1'] = self._get_power_zone_one()
-
-                elif hasattr(self, 'bnc845rf_power_zone_customized') and self.bnc845rf_power_zone_customized:
-                    settings['power_zone_count'] = 'customized'
-                    settings['power_zones']['customized'] = self._get_power_zone_customized()
-
-            # Get frequency setting for Power Dependent mode
-            if self.bnc845rf_loop_setting_combo.currentIndex() == 2:  # Power Dependent only
-                if hasattr(self, 'bnc845rf_frequency_setting_entry'):
-                    settings['frequency'] = self.bnc845rf_frequency_setting_entry.text()
-
-            # Get modulation settings (input settings)
-            settings['modulation_settings'] = self._get_modulation_settings()
-
-            # Get modulation readings (from instrument)
-            settings['modulation_readings'] = self._get_modulation_readings()
-
-            # Get current instrument readings
-            # settings['instrument_readings'] = self._get_instrument_readings()
-
-            return settings
-
-        except Exception as e:
-            import traceback
-            tb_str = traceback.format_exc()
-            print(f"Error getting BNC845RF settings: {tb_str} {str(e)}")
-            return {}
 
     def _get_frequency_zone_one(self):
         """Get frequency zone 1 settings and return as list"""
@@ -748,7 +674,8 @@ class FMR_Measurement(QWidget):
             'from': self.bnc845rf_frequency_zone_one_freq_from_entry.text(),
             'to': self.bnc845rf_frequency_zone_one_freq_to_entry.text(),
             'step': self.bnc845rf_frequency_zone_one_freq_step_entry.text(),
-            'unit': self.bnc845rf_frequency_zone_one_freq_unit_combo.currentText()
+            'unit': self.bnc845rf_frequency_zone_one_freq_unit_combo.currentText(),
+            'step_unit': self.bnc845rf_frequency_zone_one_freq_step_unit_combo.currentText()
         }
 
         # Generate frequency list
@@ -756,7 +683,8 @@ class FMR_Measurement(QWidget):
             zone_data['from'],
             zone_data['to'],
             zone_data['step'],
-            zone_data['unit']
+            zone_data['unit'],
+            zone_data['step_unit']
         )
 
         return zone_data
@@ -767,7 +695,8 @@ class FMR_Measurement(QWidget):
             'from': self.bnc845rf_frequency_zone_two_freq_from_entry.text(),
             'to': self.bnc845rf_frequency_zone_two_freq_to_entry.text(),
             'step': self.bnc845rf_frequency_zone_two_freq_step_entry.text(),
-            'unit': self.bnc845rf_frequency_zone_two_freq_unit_combo.currentText()
+            'unit': self.bnc845rf_frequency_zone_two_freq_unit_combo.currentText(),
+            'step_unit': self.bnc845rf_frequency_zone_two_freq_step_unit_combo.currentText()
         }
 
         # Generate frequency list
@@ -775,7 +704,8 @@ class FMR_Measurement(QWidget):
             zone_data['from'],
             zone_data['to'],
             zone_data['step'],
-            zone_data['unit']
+            zone_data['unit'],
+            zone_data['step_unit']
         )
 
         return zone_data
@@ -786,7 +716,8 @@ class FMR_Measurement(QWidget):
             'from': self.bnc845rf_frequency_zone_three_freq_from_entry.text(),
             'to': self.bnc845rf_frequency_zone_three_freq_to_entry.text(),
             'step': self.bnc845rf_frequency_zone_three_freq_step_entry.text(),
-            'unit': self.bnc845rf_frequency_zone_three_freq_unit_combo.currentText()
+            'unit': self.bnc845rf_frequency_zone_three_freq_unit_combo.currentText(),
+            'step_unit': self.bnc845rf_frequency_zone_three_freq_step_unit_combo.currentText()
         }
 
         # Generate frequency list
@@ -794,7 +725,8 @@ class FMR_Measurement(QWidget):
             zone_data['from'],
             zone_data['to'],
             zone_data['step'],
-            zone_data['unit']
+            zone_data['unit'],
+            zone_data['step_unit']
         )
 
         return zone_data
@@ -807,8 +739,19 @@ class FMR_Measurement(QWidget):
         }
 
         # Parse the frequency list from the entry
+        unit = self.bnc845rf_frequency_zone_customized_unit_combo.currentText()
         frequency_str = self.bnc845rf_frequency_zone_customized_entry.text()
-        zone_data['frequency_list'] = self._parse_custom_list(frequency_str)
+        unit_multiplier = {
+            'Hz': 1,
+            'kHz': 1e3,
+            'MHz': 1e6,
+            'GHz': 1e9
+        }
+
+        multiplier = unit_multiplier.get(unit, 1)
+        freq_list = self._parse_custom_list(frequency_str)
+        frequency_list_hz = [freq * multiplier for freq in freq_list]
+        zone_data['frequency_list'] = frequency_list_hz
 
         return zone_data
 
@@ -1234,7 +1177,7 @@ class FMR_Measurement(QWidget):
         except Exception as e:
             print(f"Error updating UI from instrument: {str(e)}")
 
-    def _generate_frequency_list(self, from_val, to_val, step_val, unit):
+    def _generate_frequency_list(self, from_val, to_val, step_val, unit, step_unit):
         """
         Generate a list of frequencies from start to end with given step.
         Returns list in base unit (Hz).
@@ -1253,10 +1196,11 @@ class FMR_Measurement(QWidget):
             }
 
             multiplier = unit_multiplier.get(unit, 1)
+            step_multiplier = unit_multiplier.get(step_unit, 1)
 
             start_hz = start * multiplier
             end_hz = end * multiplier
-            step_hz = step * multiplier
+            step_hz = step * step_multiplier
 
             # Generate list
             frequency_list = []
@@ -1308,9 +1252,6 @@ class FMR_Measurement(QWidget):
 
         except (ValueError, TypeError, AttributeError):
             return []
-
-    def fmr_setup_ui(self):
-        None
 
     def fmr_measurement_status_ui(self):
         fmr_measurement_status_layout = QVBoxLayout()
@@ -1407,4 +1348,642 @@ class FMR_Measurement(QWidget):
                 fmr_setting_average_line_edit,
                 fmr_setting_init_temp_rate_line_edit)
 
+    def validate_and_get_all_settings(self):
+        """
+        Validate that all required fields are filled and return all settings.
+        Returns a tuple: (is_valid, settings_dict, error_messages)
+        """
+        errors = []
+        settings = {}
 
+        try:
+            # 1. Check Loop Type Selection
+            loop_index = self.bnc845rf_loop_setting_combo.currentIndex()
+            if loop_index == 0:  # "Select Loop"
+                errors.append("Please select an experiment loop type")
+                return False, {}, errors
+
+            settings['loop_type'] = self.bnc845rf_loop_setting_combo.currentText()
+
+            # 2. Validate Frequency Settings (for loop types 1 and 3)
+            if loop_index in [1, 3]:  # Frequency Dependent or Both
+                freq_valid, freq_data, freq_errors = self._validate_frequency_settings()
+                if not freq_valid:
+                    errors.extend(freq_errors)
+                else:
+                    settings['frequency_settings'] = freq_data
+
+            # 3. Validate Power Settings (for loop types 2 and 3)
+            if loop_index in [2, 3]:  # Power Dependent or Both
+                power_valid, power_data, power_errors = self._validate_power_settings()
+                if not power_valid:
+                    errors.extend(power_errors)
+                else:
+                    settings['power_settings'] = power_data
+
+            # 4. Validate Fixed Power (for loop type 1)
+            if loop_index == 1:  # Frequency Dependent
+                power_valid, power_value, power_error = self._validate_fixed_power()
+                if not power_valid:
+                    errors.append(power_error)
+                else:
+                    settings['power_settings'] = power_value
+
+            # 5. Validate Fixed Frequency (for loop type 2)
+            if loop_index == 2:  # Power Dependent
+                freq_valid, freq_value, freq_error = self._validate_fixed_frequency()
+                if not freq_valid:
+                    errors.append(freq_error)
+                else:
+                    settings['frequency_settings'] = freq_value
+
+            # 6. Validate Modulation Settings
+            mod_valid, mod_data, mod_errors = self._validate_modulation_settings()
+            if not mod_valid:
+                errors.extend(mod_errors)
+            else:
+                settings['modulation_settings'] = mod_data
+
+            # Determine if all validations passed
+            is_valid = len(errors) == 0
+            # settings = self.get_bnc845rf_settings()
+
+            return is_valid, settings, errors
+
+        except Exception as e:
+            import traceback
+            tb_str = traceback.format_exc()
+            errors.append(f"Validation error: {str(e)}")
+            print(f"Validation exception: {tb_str}")
+            return False, {}, errors
+
+    def _validate_frequency_settings(self):
+        """Validate frequency zone settings"""
+        errors = []
+        freq_data = {}
+
+        try:
+            # Check if any frequency zone is selected
+            if not any([
+                getattr(self, 'bnc845rf_frequency_zone_1', False),
+                getattr(self, 'bnc845rf_frequency_zone_2', False),
+                getattr(self, 'bnc845rf_frequency_zone_3', False),
+                getattr(self, 'bnc845rf_frequency_zone_customized', False)
+            ]):
+                errors.append("Please select a frequency zone configuration")
+                return False, {}, errors
+
+            # Validate Zone 1 (always present if any zone is selected)
+            if self.bnc845rf_frequency_zone_1:
+                zone1_valid, zone1_data, zone1_errors = self._validate_frequency_zone_one()
+                if not zone1_valid:
+                    errors.extend(zone1_errors)
+                else:
+                    freq_data['Final_list'] = zone1_data['frequency_list']
+                    freq_data['zone_1'] = zone1_data
+
+
+            # Validate Zone 2
+            if self.bnc845rf_frequency_zone_2:
+                zone1_valid, zone1_data, zone1_errors = self._validate_frequency_zone_one()
+                zone2_valid, zone2_data, zone2_errors = self._validate_frequency_zone_two()
+                if not zone1_valid or not zone2_valid:
+                    errors.extend(zone1_errors)
+                    errors.extend(zone2_errors)
+                else:
+                    freq_data['Final_list'] = zone1_data['frequency_list'] + zone2_data['frequency_list']
+                    freq_data['zone_1'] = zone1_data
+                    freq_data['zone_2'] = zone2_data
+
+            # Validate Zone 3
+            if self.bnc845rf_frequency_zone_3:
+                zone1_valid, zone1_data, zone1_errors = self._validate_frequency_zone_one()
+                zone2_valid, zone2_data, zone2_errors = self._validate_frequency_zone_two()
+                zone3_valid, zone3_data, zone3_errors = self._validate_frequency_zone_three()
+                if not zone1_valid or not zone2_valid or not zone3_valid:
+                    errors.extend(zone1_errors)
+                    errors.extend(zone2_errors)
+                    errors.extend(zone3_errors)
+                else:
+                    freq_data['Final_list'] = zone1_data['frequency_list'] + zone2_data['frequency_list'] + zone3_data['frequency_list']
+                    freq_data['zone_1'] = zone1_data
+                    freq_data['zone_2'] = zone2_data
+                    freq_data['zone_3'] = zone3_data
+
+            # Validate Customized
+            if self.bnc845rf_frequency_zone_customized:
+                custom_valid, custom_data, custom_errors = self._validate_frequency_zone_customized()
+                if not custom_valid:
+                    errors.extend(custom_errors)
+                else:
+                    freq_data['Final_list'] = custom_data['frequency_list']
+                    freq_data['customized'] = custom_data
+
+            is_valid = len(errors) == 0
+            return is_valid, freq_data, errors
+
+        except Exception as e:
+            errors.append(f"Frequency validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_frequency_zone_one(self):
+        """Validate frequency zone 1 fields"""
+        errors = []
+        zone_data = {}
+
+        try:
+            # Check if fields exist
+            if not hasattr(self, 'bnc845rf_frequency_zone_one_freq_from_entry'):
+                errors.append("Zone 1: Frequency fields not initialized")
+                return False, {}, errors
+
+            # Get values
+            from_val = self.bnc845rf_frequency_zone_one_freq_from_entry.text().strip()
+            to_val = self.bnc845rf_frequency_zone_one_freq_to_entry.text().strip()
+            step_val = self.bnc845rf_frequency_zone_one_freq_step_entry.text().strip()
+            unit = self.bnc845rf_frequency_zone_one_freq_unit_combo.currentText()
+            step_unit = self.bnc845rf_frequency_zone_one_freq_step_unit_combo.currentText()
+
+            # Check if empty
+            if not from_val:
+                errors.append("Zone 1: 'From' frequency is empty")
+            if not to_val:
+                errors.append("Zone 1: 'To' frequency is empty")
+            if not step_val:
+                errors.append("Zone 1: 'Step' size is empty")
+            if unit == "Select Unit":
+                errors.append("Zone 1: Please select frequency unit")
+            if step_unit == "Select Unit":
+                errors.append("Zone 1: Please select step frequency unit")
+
+
+
+            # Validate numeric values
+            try:
+                from_num = float(from_val) if from_val else 0
+                to_num = float(to_val) if to_val else 0
+                step_num = float(step_val) if step_val else 0
+
+                if from_num < 0:
+                    errors.append("Zone 1: 'From' frequency must be positive")
+                if to_num < 0:
+                    errors.append("Zone 1: 'To' frequency must be positive")
+                if step_num <= 0:
+                    errors.append("Zone 1: 'Step' size must be greater than zero")
+                if from_num >= to_num:
+                    errors.append("Zone 1: 'From' frequency must be less than 'To' frequency")
+
+                # Store validated data
+                if len(errors) == 0:
+                    zone_data = {
+                        'from': from_num,
+                        'to': to_num,
+                        'step': step_num,
+                        'unit': unit,
+                        'frequency_list': self._generate_frequency_list(from_val, to_val, step_val, unit, step_unit)
+                    }
+
+            except ValueError:
+                errors.append("Zone 1: Invalid numeric values")
+
+            is_valid = len(errors) == 0
+            return is_valid, zone_data, errors
+
+        except Exception as e:
+            errors.append(f"Zone 1 validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_frequency_zone_two(self):
+        """Validate frequency zone 2 fields"""
+        errors = []
+        zone_data = {}
+
+        try:
+            if not hasattr(self, 'bnc845rf_frequency_zone_two_freq_from_entry'):
+                errors.append("Zone 2: Frequency fields not initialized")
+                return False, {}, errors
+
+            from_val = self.bnc845rf_frequency_zone_two_freq_from_entry.text().strip()
+            to_val = self.bnc845rf_frequency_zone_two_freq_to_entry.text().strip()
+            step_val = self.bnc845rf_frequency_zone_two_freq_step_entry.text().strip()
+            unit = self.bnc845rf_frequency_zone_two_freq_unit_combo.currentText()
+            step_unit = self.bnc845rf_frequency_zone_two_freq_step_unit_combo.currentText()
+
+            if not from_val:
+                errors.append("Zone 2: 'From' frequency is empty")
+            if not to_val:
+                errors.append("Zone 2: 'To' frequency is empty")
+            if not step_val:
+                errors.append("Zone 2: 'Step' size is empty")
+            if unit == "Select Unit":
+                errors.append("Zone 2: Please select frequency unit")
+            if step_unit == "Select Unit":
+                errors.append("Zone 2: Please select step frequency unit")
+
+            try:
+                from_num = float(from_val) if from_val else 0
+                to_num = float(to_val) if to_val else 0
+                step_num = float(step_val) if step_val else 0
+
+                if from_num < 0:
+                    errors.append("Zone 2: 'From' frequency must be positive")
+                if to_num < 0:
+                    errors.append("Zone 2: 'To' frequency must be positive")
+                if step_num <= 0:
+                    errors.append("Zone 2: 'Step' size must be greater than zero")
+                if from_num >= to_num:
+                    errors.append("Zone 2: 'From' frequency must be less than 'To' frequency")
+
+                if len(errors) == 0:
+                    zone_data = {
+                        'from': from_num,
+                        'to': to_num,
+                        'step': step_num,
+                        'unit': unit,
+                        'frequency_list': self._generate_frequency_list(from_val, to_val, step_val, unit, step_unit)
+                    }
+
+            except ValueError:
+                errors.append("Zone 2: Invalid numeric values")
+
+            is_valid = len(errors) == 0
+            return is_valid, zone_data, errors
+
+        except Exception as e:
+            errors.append(f"Zone 2 validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_frequency_zone_three(self):
+        """Validate frequency zone 3 fields"""
+        errors = []
+        zone_data = {}
+
+        try:
+            if not hasattr(self, 'bnc845rf_frequency_zone_three_freq_from_entry'):
+                errors.append("Zone 3: Frequency fields not initialized")
+                return False, {}, errors
+
+            from_val = self.bnc845rf_frequency_zone_three_freq_from_entry.text().strip()
+            to_val = self.bnc845rf_frequency_zone_three_freq_to_entry.text().strip()
+            step_val = self.bnc845rf_frequency_zone_three_freq_step_entry.text().strip()
+            unit = self.bnc845rf_frequency_zone_three_freq_unit_combo.currentText()
+            step_unit = self.bnc845rf_frequency_zone_three_freq_step_unit_combo.currentText()
+
+            if not from_val:
+                errors.append("Zone 3: 'From' frequency is empty")
+            if not to_val:
+                errors.append("Zone 3: 'To' frequency is empty")
+            if not step_val:
+                errors.append("Zone 3: 'Step' size is empty")
+            if unit == "Select Unit":
+                errors.append("Zone 3: Please select frequency unit")
+            if step_unit == "Select Unit":
+                errors.append("Zone 3: Please select step frequency unit")
+
+            try:
+                from_num = float(from_val) if from_val else 0
+                to_num = float(to_val) if to_val else 0
+                step_num = float(step_val) if step_val else 0
+
+                if from_num < 0:
+                    errors.append("Zone 3: 'From' frequency must be positive")
+                if to_num < 0:
+                    errors.append("Zone 3: 'To' frequency must be positive")
+                if step_num <= 0:
+                    errors.append("Zone 3: 'Step' size must be greater than zero")
+                if from_num >= to_num:
+                    errors.append("Zone 3: 'From' frequency must be less than 'To' frequency")
+
+                if len(errors) == 0:
+                    zone_data = {
+                        'from': from_num,
+                        'to': to_num,
+                        'step': step_num,
+                        'unit': unit,
+                        'frequency_list': self._generate_frequency_list(from_val, to_val, step_val, unit, step_unit)
+                    }
+
+            except ValueError:
+                errors.append("Zone 3: Invalid numeric values")
+
+            is_valid = len(errors) == 0
+            return is_valid, zone_data, errors
+
+        except Exception as e:
+            errors.append(f"Zone 3 validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_frequency_zone_customized(self):
+        """Validate customized frequency zone"""
+        errors = []
+        zone_data = {}
+
+        try:
+            if not hasattr(self, 'bnc845rf_frequency_zone_customized_entry'):
+                errors.append("Customized: Frequency field not initialized")
+                return False, {}, errors
+
+            freq_list_str = self.bnc845rf_frequency_zone_customized_entry.text().strip()
+            unit = self.bnc845rf_frequency_zone_customized_unit_combo.currentText()
+
+            if not freq_list_str:
+                errors.append("Customized: Frequency list is empty")
+            if unit == "Select Unit":
+                errors.append("Customized: Please select frequency unit")
+
+            freq_list = self._parse_custom_list(freq_list_str)
+            unit_multiplier = {
+                'Hz': 1,
+                'kHz': 1e3,
+                'MHz': 1e6,
+                'GHz': 1e9
+            }
+
+            multiplier = unit_multiplier.get(unit, 1)
+            freq_list = [freq * multiplier for freq in freq_list]
+
+            if len(freq_list) == 0:
+                errors.append("Customized: Invalid frequency list format (use comma-separated values)")
+            else:
+                # Check for negative values
+                if any(f < 0 for f in freq_list):
+                    errors.append("Customized: All frequencies must be positive")
+
+            if len(errors) == 0:
+                zone_data = {
+                    'raw_input': freq_list_str,
+                    'unit': unit,
+                    'frequency_list': freq_list
+                }
+
+            is_valid = len(errors) == 0
+            return is_valid, zone_data, errors
+
+        except Exception as e:
+            errors.append(f"Customized validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_power_settings(self):
+        """Validate power zone settings"""
+        errors = []
+        power_data = {}
+
+        try:
+            # Check if any power zone is selected
+            if not any([
+                getattr(self, 'bnc845rf_power_zone_1', False),
+                getattr(self, 'bnc845rf_power_zone_customized', False)
+            ]):
+                errors.append("Please select a power zone configuration")
+                return False, {}, errors
+
+            # Validate Zone 1
+            if self.bnc845rf_power_zone_1:
+                zone1_valid, zone1_data, zone1_errors = self._validate_power_zone_one()
+                if not zone1_valid:
+                    errors.extend(zone1_errors)
+                else:
+                    power_data['Final_list'] = zone1_data['power_list']
+                    power_data['zone_1'] = zone1_data
+
+            # Validate Customized
+            if self.bnc845rf_power_zone_customized:
+                custom_valid, custom_data, custom_errors = self._validate_power_zone_customized()
+                if not custom_valid:
+                    errors.extend(custom_errors)
+                else:
+                    power_data['Final_list'] = custom_data['power_list']
+                    power_data['customized'] = custom_data
+
+            is_valid = len(errors) == 0
+            return is_valid, power_data, errors
+
+        except Exception as e:
+            errors.append(f"Power validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_power_zone_one(self):
+        """Validate power zone 1 fields"""
+        errors = []
+        zone_data = {}
+
+        try:
+            if not hasattr(self, 'bnc845rf_power_zone_one_power_from_entry'):
+                errors.append("Power Zone 1: Fields not initialized")
+                return False, {}, errors
+
+            from_val = self.bnc845rf_power_zone_one_power_from_entry.text().strip()
+            to_val = self.bnc845rf_power_zone_one_power_to_entry.text().strip()
+            step_val = self.bnc845rf_power_zone_one_power_step_entry.text().strip()
+
+            if not from_val:
+                errors.append("Power Zone 1: 'From' power is empty")
+            if not to_val:
+                errors.append("Power Zone 1: 'To' power is empty")
+            if not step_val:
+                errors.append("Power Zone 1: 'Step' size is empty")
+
+            try:
+                from_num = float(from_val) if from_val else 0
+                to_num = float(to_val) if to_val else 0
+                step_num = float(step_val) if step_val else 0
+
+                if step_num <= 0:
+                    errors.append("Power Zone 1: 'Step' size must be greater than zero")
+                if from_num >= to_num:
+                    errors.append("Power Zone 1: 'From' power must be less than 'To' power")
+
+                if len(errors) == 0:
+                    zone_data = {
+                        'from': from_num,
+                        'to': to_num,
+                        'step': step_num,
+                        'unit': 'dBm',
+                        'power_list': self._generate_power_list(from_val, to_val, step_val)
+                    }
+
+            except ValueError:
+                errors.append("Power Zone 1: Invalid numeric values")
+
+            is_valid = len(errors) == 0
+            return is_valid, zone_data, errors
+
+        except Exception as e:
+            errors.append(f"Power Zone 1 validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_power_zone_customized(self):
+        """Validate customized power zone"""
+        errors = []
+        zone_data = {}
+
+        try:
+            if not hasattr(self, 'bnc845rf_power_zone_customized_entry'):
+                errors.append("Customized Power: Field not initialized")
+                return False, {}, errors
+
+            if not hasattr(self, 'bnc845rf_frequency_zone_customized_unit_combo'):
+                errors.append("Customized Power: Field not initialized")
+                return False, {}, errors
+
+            power_list_str = self.bnc845rf_power_zone_customized_entry.text().strip()
+
+            if not power_list_str:
+                errors.append("Customized Power: Power list is empty")
+
+            power_list = self._parse_custom_list(power_list_str)
+
+            if len(power_list) == 0:
+                errors.append("Customized Power: Invalid power list format (use comma-separated values)")
+
+            if len(errors) == 0:
+                zone_data = {
+                    'raw_input': power_list_str,
+                    'unit': 'dBm',
+                    'power_list': power_list
+                }
+
+            is_valid = len(errors) == 0
+            return is_valid, zone_data, errors
+
+        except Exception as e:
+            errors.append(f"Customized Power validation error: {str(e)}")
+            return False, {}, errors
+
+    def _validate_fixed_power(self):
+        """Validate fixed power field"""
+        try:
+            if not hasattr(self, 'bnc845rf_power_setting_entry'):
+                return False, None, "Fixed power field not initialized"
+
+            power_str = self.bnc845rf_power_setting_entry.text().strip()
+
+            if not power_str:
+                return False, None, "Fixed power value is empty"
+
+            try:
+                power_val = float(power_str)
+                return True, {'Final_list': [power_val], 'unit': 'dBm'}, ""
+            except ValueError:
+                return False, None, "Fixed power: Invalid numeric value"
+
+        except Exception as e:
+            return False, None, f"Fixed power validation error: {str(e)}"
+
+    def _validate_fixed_frequency(self):
+        """Validate fixed frequency field"""
+        try:
+            if not hasattr(self, 'bnc845rf_frequency_setting_entry'):
+                return False, None, "Fixed frequency field not initialized"
+            if not hasattr(self, 'bnc845rf_frequency_setting_unit_combo'):
+                return False, None, "Fixed frequency unit not initialized"
+
+            freq_str = self.bnc845rf_frequency_setting_entry.text().strip()
+            unit = self.bnc845rf_frequency_setting_unit_combo.currentText()
+
+            if unit == "Select Unit":
+                return False, None, "Zone 3: Please select step frequency unit"
+
+            if not freq_str:
+                return False, None, "Fixed frequency value is empty"
+
+            try:
+                freq_val = float(freq_str)
+                if freq_val < 0:
+                    return False, None, "Fixed frequency must be positive"
+                return True, {'Final_list': [freq_val], 'unit': 'Hz'}, ""
+            except ValueError:
+                return False, None, "Fixed frequency: Invalid numeric value"
+
+        except Exception as e:
+            return False, None, f"Fixed frequency validation error: {str(e)}"
+
+    def _validate_modulation_settings(self):
+        """Validate modulation settings"""
+        errors = []
+        mod_data = {}
+
+        try:
+            mod_index = self.bnc845rf_modulation_combo.currentIndex()
+
+            if mod_index == 0:  # "Select Modulation"
+                # Modulation is optional, so this is not an error
+                mod_data['type'] = 'None'
+                return True, mod_data, []
+
+            mod_data['type'] = self.bnc845rf_modulation_combo.currentText()
+
+            # Validate Pulse Modulation (index 1)
+            if mod_index == 1:
+                mod_data['pulse'] = {'enabled': True}
+
+            # Validate Amplitude Modulation (index 2)
+            elif mod_index == 2:
+                if hasattr(self, 'bnc845rf_am_freq_entry'):
+                    freq_str = self.bnc845rf_am_freq_entry.text().strip()
+                    if not freq_str:
+                        errors.append("AM: Modulation frequency is empty")
+                    else:
+                        try:
+                            freq_val = float(freq_str)
+                            if freq_val <= 0:
+                                errors.append("AM: Modulation frequency must be positive")
+                            else:
+                                mod_data['am_frequency'] = freq_val
+                                mod_data['am_frequency_unit'] = 'Hz'
+                        except ValueError:
+                            errors.append("AM: Invalid modulation frequency")
+
+                if hasattr(self, 'bnc845rf_am_depth_entry'):
+                    depth_str = self.bnc845rf_am_depth_entry.text().strip()
+                    if not depth_str:
+                        errors.append("AM: Modulation depth is empty")
+                    else:
+                        try:
+                            depth_val = float(depth_str)
+                            if depth_val < 0 or depth_val > 100:
+                                errors.append("AM: Modulation depth must be between 0 and 100%")
+                            else:
+                                mod_data['am_depth'] = depth_val
+                                mod_data['am_depth_unit'] = '%'
+                        except ValueError:
+                            errors.append("AM: Invalid modulation depth")
+
+                if hasattr(self, 'bnc845rf_am_source_combo'):
+                    source = self.bnc845rf_am_source_combo.currentText()
+                    mod_data['am_source'] = source
+
+            # Validate Frequency Modulation (index 3)
+            elif mod_index == 3:
+                mod_data['fm'] = {'enabled': True}
+                # Add FM-specific validation when UI is implemented
+
+            # Validate Phase Modulation (index 4)
+            elif mod_index == 4:
+                mod_data['pm'] = {'enabled': True}
+                # Add PM-specific validation when UI is implemented
+
+            is_valid = len(errors) == 0
+            return is_valid, mod_data, errors
+
+        except Exception as e:
+            errors.append(f"Modulation validation error: {str(e)}")
+            return False, {}, errors
+
+
+    def clear_layout(self, layout):
+        """Clear layout properly"""
+        if layout is None:
+            return
+
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
+            else:
+                child_layout = item.layout()
+                if child_layout:
+                    self.clear_layout(child_layout)
