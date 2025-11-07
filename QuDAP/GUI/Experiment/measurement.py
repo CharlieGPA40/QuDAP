@@ -2548,7 +2548,6 @@ class Measurement(QMainWindow):
                 self.rigol_dsa875.timeout = 10000
                 time.sleep(2)
                 rigol_dsa875_model = RIGOL_COMMAND().get_id(self.rigol_dsa875)
-                print('Enter', rigol_dsa875_model)
                 self.RIGOLDSA875_CONNECTED = True
                 QMessageBox.information(self, "Connected", F"Connected to {rigol_dsa875_model}")
                 self.instru_connect_btn.setText('Disconnect')
@@ -2683,6 +2682,24 @@ class Measurement(QMainWindow):
     #  BNC 845 Portion
     # ---------------------------------------------------------------------------------
     def start_st_fmr_measurement(self):
+        if self.client is None:
+            QMessageBox.warning(self, "Missing Connection ",
+                                f"Please connect to PPMS client before start")
+            return
+        temp_field_dict = self.get_combined_field_temp_lists()
+        print(temp_field_dict)
+        if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+            field_list = temp_field_dict['field_settings']['full_sweep_unidirectional']
+        if self.ppms_field_bidirectional_mode_radio_button.isChecked():
+            field_list = temp_field_dict['field_settings']['full_sweep_bidirectional']
+        temp_list = temp_field_dict['all_temps']
+        if hasattr(self, 'ppms_zone1_temp_rate_entry'):
+            rate = self.ppms_zone1_temp_rate_entry.text()
+        elif hasattr(self,'ppms_zone_cus_temp_rate_entry'):
+            rate = self.ppms_zone_cus_temp_rate_entry.text()
+        else:
+            rate = 5
+
         if self.BNC845RF_CONNECTED == False:
             QMessageBox.warning(self, "Missing Connection ",
                                 f"Please connect to Rf source before start")
@@ -2699,17 +2716,11 @@ class Measurement(QMainWindow):
             return
 
         # All settings are valid, proceed with measurement
-        print("All settings valid!")
         print(f"Settings: {settings}")
         self.fmr_widget.apply_modulation_settings_to_instrument(settings=settings, instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         # reading = self.fmr_widget._get_modulation_readings_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
-        if self.client is None:
-            QMessageBox.warning(self, "Missing Connection ",
-                                f"Please connect to PPMS client before start")
-            return
-        temp_field_dict = self.get_combined_field_temp_lists()
-        print(temp_field_dict)
+
         if self.DSP7265_Connected == False:
             QMessageBox.warning(self, "Missing Connection ",
                                 f"Please connect to lock-in amplifier client before start")
@@ -3840,8 +3851,36 @@ class Measurement(QMainWindow):
         return self.ppms_temp_setting_layout
 
     def ppms_field_setup_ui(self):
+        try:
+            self.ppms_field_setting_init_layout = QVBoxLayout()
+            self.ppms_field_direction_button_layout = QHBoxLayout()
+            self.ppms_field_bidirectional_mode_radio_button = QRadioButton("Bidirectional")
+            self.ppms_field_bidirectional_mode_radio_button.setFont(self.font)
+            # self.ppms_field_bidirectional_mode_radio_button.setChecked(True)
+            self.ppms_field_bidirectional_mode_radio_button.toggled.connect(self.ppms_field_mode_setup_ui)
+
+            self.ppms_field_unidirectional_mode_radio_button = QRadioButton("Unidirectional")
+            self.ppms_field_unidirectional_mode_radio_button.setFont(self.font)
+            self.ppms_field_unidirectional_mode_radio_button.toggled.connect(self.ppms_field_mode_setup_ui)
+
+            self.ppms_field_direction_button_layout.addWidget(self.ppms_field_bidirectional_mode_radio_button)
+            self.ppms_field_direction_button_layout.addWidget(self.ppms_field_unidirectional_mode_radio_button)
+            self.ppms_field_direction_button_group = QButtonGroup()
+            self.ppms_field_direction_button_group.addButton(self.ppms_field_bidirectional_mode_radio_button)
+            self.ppms_field_direction_button_group.addButton(self.ppms_field_unidirectional_mode_radio_button)
+            self.ppms_field_setting_init_layout.addLayout(self.ppms_field_direction_button_layout)
+
+            self.ppms_field_setting_layout = QVBoxLayout()
+            self.ppms_field_setting_init_layout.addLayout(self.ppms_field_setting_layout)
+            return self.ppms_field_setting_init_layout
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+    def ppms_field_mode_setup_ui(self):
         # if self.ETO_FIELD_DEP:
-        self.ppms_field_setting_layout = QVBoxLayout()
+        # self.ppms_field_setting_layout = QVBoxLayout()
+        self.clear_layout(self.ppms_field_setting_layout)
         self.ppms_field_mode_buttom_layout = QHBoxLayout()
         self.ppms_field_radio_buttom_layout = QHBoxLayout()
         self.ppms_zone_field_layout = QVBoxLayout()
@@ -3849,6 +3888,7 @@ class Measurement(QMainWindow):
         self.Field_setup_Zone_1 = False
         self.Field_setup_Zone_2 = False
         self.Field_setup_Zone_3 = False
+        self.Field_setup_customized = False
 
         self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
         self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
@@ -3864,6 +3904,13 @@ class Measurement(QMainWindow):
         self.ppms_field_mode_buttom_group = QButtonGroup()
         self.ppms_field_mode_buttom_group.addButton(self.ppms_field_cointinous_mode_radio_button)
         self.ppms_field_mode_buttom_group.addButton(self.ppms_field_fixed_mode_radio_button)
+
+        if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+            self.ppms_field_customized_mode_radio_button = QRadioButton("Customize")
+            self.ppms_field_customized_mode_radio_button.setFont(self.font)
+            self.ppms_field_customized_mode_radio_button.toggled.connect(self.disable_step_field)
+            self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_customized_mode_radio_button)
+            self.ppms_field_mode_buttom_group.addButton(self.ppms_field_customized_mode_radio_button)
 
         self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
         self.ppms_field_zone_number_label.setFont(self.font)
@@ -3883,22 +3930,27 @@ class Measurement(QMainWindow):
         self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
         self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
         self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
-        return self.ppms_field_setting_layout
 
     def disable_step_field(self):
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
             if self.ppms_field_One_zone_radio.isChecked():
                 self.ppms_zone1_field_step_entry.setEnabled(False)
             elif self.ppms_field_Two_zone_radio.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(False)
                 self.ppms_zone2_field_step_entry.setEnabled(False)
             elif self.ppms_field_Three_zone_radio.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(False)
+                self.ppms_zone2_field_step_entry.setEnabled(False)
                 self.ppms_zone3_field_step_entry.setEnabled(False)
-        else:
+        elif self.ppms_field_fixed_mode_radio_button.isChecked():
             if self.ppms_field_One_zone_radio.isChecked():
                 self.ppms_zone1_field_step_entry.setEnabled(True)
             elif self.ppms_field_Two_zone_radio.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(True)
                 self.ppms_zone2_field_step_entry.setEnabled(True)
             elif self.ppms_field_Three_zone_radio.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(True)
+                self.ppms_zone2_field_step_entry.setEnabled(True)
                 self.ppms_zone3_field_step_entry.setEnabled(True)
 
     def field_zone_selection(self):
@@ -3925,141 +3977,203 @@ class Measurement(QMainWindow):
             self.ppms_field_Three_zone_radio.setChecked(False)
 
     def field_one_zone(self):
-        self.ppms_zone1_field_layout = QVBoxLayout()
-        self.ppms_zone1_field_range_layout = QHBoxLayout()
-        self.ppms_zone1_from_label = QLabel('Range (Oe): Top')
-        self.ppms_zone1_from_label.setFont(self.font)
-        self.ppms_zone1_from_entry = QLineEdit()
-        self.ppms_zone1_from_entry.setFont(self.font)
-        self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
-        self.ppms_zone1_to_label = QLabel(' Bottom ')
-        self.ppms_zone1_to_label.setFont(self.font)
-        self.ppms_zone1_to_entry = QLineEdit()
-        self.ppms_zone1_to_entry.setFont(self.font)
-        self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
-        self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_from_label)
-        self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_from_entry)
-        self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_to_label)
-        self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_to_entry)
+        if self.ppms_field_bidirectional_mode_radio_button.isChecked() or self.ppms_field_unidirectional_mode_radio_button.isChecked():
+            self.ppms_zone1_field_layout = QVBoxLayout()
+            self.ppms_zone1_field_range_layout = QHBoxLayout()
+            if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_from_label = QLabel('Range (Oe): From')
+                self.ppms_zone1_from_label.setFont(self.font)
+                self.ppms_zone1_from_entry = QLineEdit()
+                self.ppms_zone1_from_entry.setFont(self.font)
+                self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
+                self.ppms_zone1_to_label = QLabel(' to ')
+                self.ppms_zone1_to_label.setFont(self.font)
+                self.ppms_zone1_to_entry = QLineEdit()
+                self.ppms_zone1_to_entry.setFont(self.font)
+                self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
+                self.ppms_zone1_to_entry.setEnabled(True)
+            elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_from_label = QLabel('Range (Oe): Top')
+                self.ppms_zone1_from_label.setFont(self.font)
+                self.ppms_zone1_from_entry = QLineEdit()
+                self.ppms_zone1_from_entry.setFont(self.font)
+                self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
+                self.ppms_zone1_to_label = QLabel(' Bottom ')
+                self.ppms_zone1_to_label.setFont(self.font)
+                self.ppms_zone1_to_entry = QLineEdit()
+                self.ppms_zone1_to_entry.setFont(self.font)
+                self.ppms_zone1_to_entry.setPlaceholderText("0 Oe")
+                self.ppms_zone1_to_entry.setText("0")
+                self.ppms_zone1_to_entry.setEnabled(False)
+            self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_from_label)
+            self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_from_entry)
+            self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_to_label)
+            self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_to_entry)
 
-        self.ppms_zone1_field_step_layout = QHBoxLayout()
-        self.ppms_zone1_field_step_label = QLabel('Step Size (Oe): ')
-        self.ppms_zone1_field_step_label.setFont(self.font)
-        self.ppms_zone1_field_step_entry = QLineEdit()
-        self.ppms_zone1_field_step_entry.setFont(self.font)
-        if self.ppms_field_cointinous_mode_radio_button.isChecked():
-            self.ppms_zone1_field_step_entry.setEnabled(False)
+            self.ppms_zone1_field_step_layout = QHBoxLayout()
+            self.ppms_zone1_field_step_label = QLabel('Step Size (Oe): ')
+            self.ppms_zone1_field_step_label.setFont(self.font)
+            self.ppms_zone1_field_step_entry = QLineEdit()
+            self.ppms_zone1_field_step_entry.setFont(self.font)
+            if self.ppms_field_cointinous_mode_radio_button.isChecked():
+                self.ppms_zone1_field_step_entry.setEnabled(False)
+            else:
+                self.ppms_zone1_field_step_entry.setEnabled(True)
+            self.ppms_zone1_field_rate_label = QLabel('Rate (Oe/sec): ')
+            self.ppms_zone1_field_rate_label.setFont(self.font)
+            self.ppms_zone1_field_rate_entry = QLineEdit()
+            self.ppms_zone1_field_rate_entry.setFont(self.font)
+            self.ppms_zone1_field_rate_entry.setText('220')
+            self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_label)
+            self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_entry)
+            self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_label)
+            self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_entry)
+
+            self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_range_layout)
+            self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_step_layout)
+            self.clear_layout(self.ppms_zone_field_layout)
+            self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_layout)
         else:
-            self.ppms_zone1_field_step_entry.setEnabled(True)
-        self.ppms_zone1_field_rate_label = QLabel('Rate (Oe/sec): ')
-        self.ppms_zone1_field_rate_label.setFont(self.font)
-        self.ppms_zone1_field_rate_entry = QLineEdit()
-        self.ppms_zone1_field_rate_entry.setFont(self.font)
-        self.ppms_zone1_field_rate_entry.setText('220')
-        self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_label)
-        self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_entry)
-        self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_label)
-        self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_entry)
-
-        self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_range_layout)
-        self.ppms_zone1_field_layout.addLayout(self.ppms_zone1_field_step_layout)
-        self.clear_layout(self.ppms_zone_field_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone1_field_layout)
+            QMessageBox.warning(
+                self, "Error",
+                f"Please Select the field direction!\n"
+            )
 
     def field_two_zone(self):
-        self.field_one_zone()
-        self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
-        self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
-        self.ppms_zone2_field_layout = QVBoxLayout()
-        self.ppms_zone2_field_range_layout = QHBoxLayout()
-        self.ppms_zone2_from_label = QLabel('Range 2 (Oe): Top')
-        self.ppms_zone2_from_label.setFont(self.font)
-        self.ppms_zone2_from_entry = QLineEdit()
-        self.ppms_zone2_from_entry.setFont(self.font)
-        self.ppms_zone2_to_label = QLabel(' Bottom ')
-        self.ppms_zone2_to_label.setFont(self.font)
-        self.ppms_zone2_to_entry = QLineEdit()
-        self.ppms_zone2_to_entry.setFont(self.font)
-        self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
-        self.ppms_zone2_to_entry.setText("0")
-        self.ppms_zone2_to_entry.setEnabled(False)
-        self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_from_label)
-        self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_from_entry)
-        self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_to_label)
-        self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_to_entry)
+        if self.ppms_field_bidirectional_mode_radio_button.isChecked() or self.ppms_field_unidirectional_mode_radio_button.isChecked():
+            self.field_one_zone()
+            self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
+            self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+            self.ppms_zone2_field_layout = QVBoxLayout()
+            self.ppms_zone2_field_range_layout = QHBoxLayout()
 
-        self.ppms_zone2_field_step_layout = QHBoxLayout()
-        self.ppms_zone2_field_step_label = QLabel('Step Size 2 (Oe): ')
-        self.ppms_zone2_field_step_label.setFont(self.font)
-        self.ppms_zone2_field_step_entry = QLineEdit()
-        self.ppms_zone2_field_step_entry.setFont(self.font)
-        if self.ppms_field_cointinous_mode_radio_button.isChecked():
-            self.ppms_zone2_field_step_entry.setEnabled(False)
+            if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+                self.ppms_zone2_from_label = QLabel('Range 2 (Oe): From')
+                self.ppms_zone2_from_label.setFont(self.font)
+                self.ppms_zone2_from_entry = QLineEdit()
+                self.ppms_zone2_from_entry.setFont(self.font)
+                self.ppms_zone2_to_label = QLabel(' to ')
+                self.ppms_zone2_to_label.setFont(self.font)
+                self.ppms_zone2_to_entry = QLineEdit()
+                self.ppms_zone2_to_entry.setFont(self.font)
+                self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
+                self.ppms_zone2_to_entry.setEnabled(True)
+            elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_to_entry.setText("")
+                self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+                self.ppms_zone1_to_entry.setEnabled(True)
+                self.ppms_zone2_from_label = QLabel('Range 2 (Oe): Top')
+                self.ppms_zone2_from_label.setFont(self.font)
+                self.ppms_zone2_from_entry = QLineEdit()
+                self.ppms_zone2_from_entry.setFont(self.font)
+                self.ppms_zone2_to_label = QLabel(' Bottom ')
+                self.ppms_zone2_to_label.setFont(self.font)
+                self.ppms_zone2_to_entry = QLineEdit()
+                self.ppms_zone2_to_entry.setFont(self.font)
+                self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
+                self.ppms_zone2_to_entry.setText("0")
+                self.ppms_zone2_to_entry.setEnabled(False)
+            self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_from_label)
+            self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_from_entry)
+            self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_to_label)
+            self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_to_entry)
+
+            self.ppms_zone2_field_step_layout = QHBoxLayout()
+            self.ppms_zone2_field_step_label = QLabel('Step Size 2 (Oe): ')
+            self.ppms_zone2_field_step_label.setFont(self.font)
+            self.ppms_zone2_field_step_entry = QLineEdit()
+            self.ppms_zone2_field_step_entry.setFont(self.font)
+            if self.ppms_field_cointinous_mode_radio_button.isChecked():
+                self.ppms_zone2_field_step_entry.setEnabled(False)
+            else:
+                self.ppms_zone2_field_step_entry.setEnabled(True)
+            self.ppms_zone2_field_rate_label = QLabel('Rate (Oe/sec): ')
+            self.ppms_zone2_field_rate_label.setFont(self.font)
+            self.ppms_zone2_field_rate_entry = QLineEdit()
+            self.ppms_zone2_field_rate_entry.setFont(self.font)
+            self.ppms_zone2_field_rate_entry.setText('220')
+            self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_label)
+            self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_entry)
+            self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_label)
+            self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_entry)
+
+            self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_range_layout)
+            self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_step_layout)
+            self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_layout)
         else:
-            self.ppms_zone2_field_step_entry.setEnabled(True)
-        self.ppms_zone2_field_rate_label = QLabel('Rate (Oe/sec): ')
-        self.ppms_zone2_field_rate_label.setFont(self.font)
-        self.ppms_zone2_field_rate_entry = QLineEdit()
-        self.ppms_zone2_field_rate_entry.setFont(self.font)
-        self.ppms_zone2_field_rate_entry.setText('220')
-        self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_label)
-        self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_entry)
-        self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_label)
-        self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_entry)
-
-        self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_range_layout)
-        self.ppms_zone2_field_layout.addLayout(self.ppms_zone2_field_step_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone2_field_layout)
+            QMessageBox.warning(
+                self, "Error",
+                f"Please Select the field direction!\n"
+            )
 
     def field_three_zone(self):
-        self.field_two_zone()
-        self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
-        self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
-        self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
-        self.ppms_zone2_to_entry.setPlaceholderText("1000 Oe")
-        self.ppms_zone2_to_entry.clear()
-        self.ppms_zone2_to_entry.setEnabled(True)
-        self.ppms_zone3_field_layout = QVBoxLayout()
-        self.ppms_zone3_field_range_layout = QHBoxLayout()
-        self.ppms_zone3_from_label = QLabel('Range 3 (Oe): Top')
-        self.ppms_zone3_from_label.setFont(self.font)
-        self.ppms_zone3_from_entry = QLineEdit()
-        self.ppms_zone3_from_entry.setFont(self.font)
-        self.ppms_zone3_to_label = QLabel(' Bottom ')
-        self.ppms_zone3_to_label.setFont(self.font)
-        self.ppms_zone3_to_entry = QLineEdit()
-        self.ppms_zone3_to_entry.setFont(self.font)
-        self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
-        self.ppms_zone3_to_entry.setText("0")
-        self.ppms_zone3_to_entry.setEnabled(False)
-        self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_label)
-        self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_entry)
-        self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_to_label)
-        self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_to_entry)
+        if self.ppms_field_bidirectional_mode_radio_button.isChecked() or self.ppms_field_unidirectional_mode_radio_button.isChecked():
+            self.field_two_zone()
+            self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
+            self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+            self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
+            self.ppms_zone2_to_entry.setPlaceholderText("1000 Oe")
+            self.ppms_zone2_to_entry.clear()
+            self.ppms_zone2_to_entry.setEnabled(True)
+            self.ppms_zone3_field_layout = QVBoxLayout()
+            self.ppms_zone3_field_range_layout = QHBoxLayout()
+            if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+                self.ppms_zone3_from_label = QLabel('Range 3 (Oe): From')
+                self.ppms_zone3_from_label.setFont(self.font)
+                self.ppms_zone3_from_entry = QLineEdit()
+                self.ppms_zone3_from_entry.setFont(self.font)
+                self.ppms_zone3_to_label = QLabel(' to ')
+                self.ppms_zone3_to_label.setFont(self.font)
+                self.ppms_zone3_to_entry = QLineEdit()
+                self.ppms_zone3_to_entry.setFont(self.font)
+                self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
+                self.ppms_zone3_to_entry.setEnabled(True)
+            elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
+                self.ppms_zone3_from_label = QLabel('Range 3 (Oe): Top')
+                self.ppms_zone3_from_label.setFont(self.font)
+                self.ppms_zone3_from_entry = QLineEdit()
+                self.ppms_zone3_from_entry.setFont(self.font)
+                self.ppms_zone3_to_label = QLabel(' Bottom ')
+                self.ppms_zone3_to_label.setFont(self.font)
+                self.ppms_zone3_to_entry = QLineEdit()
+                self.ppms_zone3_to_entry.setFont(self.font)
+                self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
+                self.ppms_zone3_to_entry.setText("0")
+                self.ppms_zone3_to_entry.setEnabled(False)
+            self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_label)
+            self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_entry)
+            self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_to_label)
+            self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_to_entry)
 
-        self.ppms_zone3_field_step_layout = QHBoxLayout()
-        self.ppms_zone3_field_step_label = QLabel('Step Size 3 (Oe): ')
-        self.ppms_zone3_field_step_label.setFont(self.font)
-        self.ppms_zone3_field_step_entry = QLineEdit()
-        self.ppms_zone3_field_step_entry.setFont(self.font)
-        if self.ppms_field_cointinous_mode_radio_button.isChecked():
-            self.ppms_zone3_field_step_entry.setEnabled(False)
+            self.ppms_zone3_field_step_layout = QHBoxLayout()
+            self.ppms_zone3_field_step_label = QLabel('Step Size 3 (Oe): ')
+            self.ppms_zone3_field_step_label.setFont(self.font)
+            self.ppms_zone3_field_step_entry = QLineEdit()
+            self.ppms_zone3_field_step_entry.setFont(self.font)
+            if self.ppms_field_cointinous_mode_radio_button.isChecked():
+                self.ppms_zone3_field_step_entry.setEnabled(False)
+            else:
+                self.ppms_zone3_field_step_entry.setEnabled(True)
+
+            self.ppms_zone3_field_rate_label = QLabel('Rate (Oe/sec): ')
+            self.ppms_zone3_field_rate_label.setFont(self.font)
+            self.ppms_zone3_field_rate_entry = QLineEdit()
+            self.ppms_zone3_field_rate_entry.setFont(self.font)
+            self.ppms_zone3_field_rate_entry.setText('220')
+
+            self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_label)
+            self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_entry)
+            self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_rate_label)
+            self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_rate_entry)
+
+            self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_range_layout)
+            self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_step_layout)
+            self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_layout)
         else:
-            self.ppms_zone3_field_step_entry.setEnabled(True)
-        self.ppms_zone3_field_rate_label = QLabel('Rate (Oe/sec): ')
-        self.ppms_zone3_field_rate_label.setFont(self.font)
-        self.ppms_zone3_field_rate_entry = QLineEdit()
-        self.ppms_zone3_field_rate_entry.setFont(self.font)
-        self.ppms_zone3_field_rate_entry.setText('220')
-
-        self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_label)
-        self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_entry)
-        self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_rate_label)
-        self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_rate_entry)
-
-        self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_range_layout)
-        self.ppms_zone3_field_layout.addLayout(self.ppms_zone3_field_step_layout)
-        self.ppms_zone_field_layout.addLayout(self.ppms_zone3_field_layout)
+            QMessageBox.warning(
+                self, "Error",
+                f"Please Select the field direction!\n"
+            )
 
     def temp_zone_selection(self):
         if self.ppms_temp_One_zone_radio.isChecked() and self.Temp_setup_Zone_1 == False:
@@ -4256,7 +4370,7 @@ class Measurement(QMainWindow):
                     'zone_1': zone_1
                 }
                 # Create full sweep: from → to → from
-                settings['field_list'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
+                settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
 
             elif hasattr(self, 'Field_setup_Zone_2') and self.Field_setup_Zone_2:
                 settings['field_zone_count'] = 2
@@ -4267,7 +4381,7 @@ class Measurement(QMainWindow):
                     'zone_2': zone_2
                 }
                 # Create full sweep: zone1(from→to) → zone2(from→to) → zone2(to→from) → zone1(to→from)
-                settings['field_list'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
+                settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
 
             elif hasattr(self, 'Field_setup_Zone_3') and self.Field_setup_Zone_3:
                 settings['field_zone_count'] = 3
@@ -4280,7 +4394,7 @@ class Measurement(QMainWindow):
                     'zone_3': zone_3
                 }
                 # Create full sweep: z1 → z2 → z3 → z3(reverse) → z2(reverse) → z1(reverse)
-                settings['field_list'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2, zone_3])
+                settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2, zone_3])
 
             # Get field mode (continuous or stepped)
             if hasattr(self, 'ppms_field_cointinous_mode_radio_button'):
@@ -4331,9 +4445,14 @@ class Measurement(QMainWindow):
 
             # Combine: forward + duplicate turning point + reverse
             # This creates: [0, 100, 200, 300, 400] + [400] + [300, 200, 100, 0]
-            full_sweep = forward_sweep + [forward_sweep[-1]] + reverse_sweep
+            # full_sweep_unidirectional = forward_sweep + [forward_sweep[-1]] + reverse_sweep
+            full_sweep_unidirectional = forward_sweep
+            bidirectional_forward_sweep_negative = [x * -1 for x in forward_sweep[:-1][::-1]]
+            bidirectional_forward_sweep = forward_sweep + bidirectional_forward_sweep_negative
+            bidirectional_reverse_sweep = bidirectional_forward_sweep[:-1][::-1]
+            full_sweep_bidirectional = bidirectional_forward_sweep + [bidirectional_forward_sweep[-1]] + bidirectional_reverse_sweep
 
-            return full_sweep
+            return full_sweep_unidirectional,full_sweep_bidirectional
 
         except Exception as e:
             print(f"Error creating bidirectional sweep: {str(e)}")
@@ -4633,9 +4752,9 @@ class Measurement(QMainWindow):
         combined['all_temps'] = all_temps
 
         # Calculate total measurement points
-        combined['total_field_points'] = len(all_fields)
-        combined['total_temp_points'] = len(all_temps)
-        combined['total_measurements'] = len(all_fields) * len(all_temps) if all_temps else len(all_fields)
+        # combined['total_field_points'] = len(all_fields)
+        # combined['total_temp_points'] = len(all_temps)
+        # combined['total_measurements'] = len(all_fields) * len(all_temps) if all_temps else len(all_fields)
 
         return combined
 
