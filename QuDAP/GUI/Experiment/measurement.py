@@ -43,6 +43,7 @@ try:
     # from GUI.Experiment.BNC845RF import COMMAND
     from QuDAP.GUI.Experiment.rigol_experiment import RIGOL_Measurement
     from QuDAP.GUI.Experiment.fmr_measurement import FMR_Measurement
+    from QuDAP.GUI.Experiment.fmr_measurement import ST_FMR_Worker
     from QuDAP.instrument.BK_precision_9129B import BK_9129_COMMAND
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from QuDAP.instrument.BNC845 import BNC_845M_COMMAND
@@ -50,6 +51,7 @@ except ImportError:
     # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from GUI.Experiment.rigol_experiment import RIGOL_Measurement
     from GUI.Experiment.fmr_measurement import FMR_Measurement
+    from GUI.Experiment.fmr_measurement import ST_FMR_Worker
     from instrument.BK_precision_9129B import BK_9129_COMMAND
     from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from instrument.BNC845 import BNC_845M_COMMAND
@@ -1830,10 +1832,11 @@ class Measurement(QMainWindow):
                         self.Instruments_Content_Layout.addLayout(self.Instruments_measurement_setup_layout)
 
                         self.main_layout.addLayout(self.Instruments_Content_Layout)
+
                         # self.rigol_measurement = RIGOL_Measurement(True, True)
                         # self.customize_layout_class = self.rigol_measurement.init_ui()
                         # self.main_layout.addLayout(self.customize_layout_class)
-                        # self.setCentralWidget(self.scroll_area)
+
                         self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
                         self.refresh_btn.setStyleSheet(self.Button_stylesheet)
                         self.setCentralWidget(self.scroll_area)
@@ -1841,9 +1844,6 @@ class Measurement(QMainWindow):
         except Exception as e:
             tb_str = traceback.format_exc()
             QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-
-
-
 
     def eto_setup_ui(self):
         eto_reading_setting_layout = QHBoxLayout()
@@ -2717,55 +2717,8 @@ class Measurement(QMainWindow):
         dialog = LogWindow()
         if dialog.exec():
             try:
-                if self.fmr_worker is not None:
-                    self.stop_measurement()
-                try:
-                    self.main_layout.removeWidget(self.log_box)
-                    self.log_box.deleteLater()
-                    self.main_layout.removeWidget(self.progress_bar)
-                    self.progress_bar.deleteLater()
-                except Exception:
-                    pass
-
-                self.set_all_inputs_enabled(False)
-                self.measurement_active = True
-
-                # Update buttons
-                if hasattr(self, 'start_measurement_btn'):
-                    self.start_measurement_btn.setEnabled(False)
-                if hasattr(self, 'stop_btn'):
-                    self.stop_btn.setEnabled(True)
-                self.running = True
-                self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user = dialog.get_text()
-                self.log_box = QTextEdit(self)
-                self.log_box.setReadOnly(True)  # Make the log box read-only
-                self.progress_bar = QProgressBar(self)
-                self.progress_bar.setMinimum(0)
-                self.progress_bar.setMaximum(100)
-                self.progress_bar.setFixedWidth(1140)
-                self.progress_value = 0
-                self.progress_bar.setValue(self.progress_value)
-                self.progress_bar.setStyleSheet("""
-                                    QProgressBar {
-                                        border: 1px solid #8f8f91;
-                                        border-radius: 5px;
-                                        background-color: #e0e0e0;
-                                        text-align: center;
-                                    }
-
-                                    QProgressBar::chunk {
-                                        background-color:  #3498db;
-                                        width: 5px;
-                                    }
-                                """)
-                self.log_box.setFixedSize(1140, 150)
-                self.main_layout.addWidget(self.progress_bar)
-                self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
-                self.log_box.clear()
-
-                self.folder_path = self.folder_path + f'Run_{self.run}/'
-                os.makedirs(self.folder_path, exist_ok=True)
-                self.random_number = random.randint(100000, 999999)
+                self._prepare_measurement_ui()
+                self._get_log_window_data()
 
                 f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
                 today = datetime.datetime.today()
@@ -2776,9 +2729,10 @@ class Measurement(QMainWindow):
                 f.write(f"Measurement Type: {self.measurement}\n")
                 f.write(f"Run: {self.run}\n")
                 f.write(f"Comment: {self.comment}\n")
-
-                eto_number_of_avg = self.update_eto_average_label()
-                f.write(f"Number of Average: {eto_number_of_avg}\n")
+                if self.ETO_FIELD_DEP or self.demo_mode:
+                    eto_number_of_avg = self.update_eto_average_label()
+                    f.write(f"Number of Average: {eto_number_of_avg}\n")
+                elif
 
                 init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
                 demag_field = float(self.eto_setting_demag_field_line_edit.text())
@@ -3071,12 +3025,13 @@ class Measurement(QMainWindow):
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
                 self.canvas.axes.cla()
+
                 self.canvas.axes_2.cla()
                 self.canvas.draw()
 
                 self._prepare_measurement_ui()
 
-                self.fmr_worker = BK9205_RIGOL_Worker(
+                self.fmr_worker = ST_FMR_Worker(
                     parent=self,
                     bk9205_instrument=self.BK_9205_CONNECTED,
                     rigol_instrument=self.RIGOL_CONNECTED,
@@ -5445,6 +5400,12 @@ class Measurement(QMainWindow):
 
             self.set_all_inputs_enabled(False)
             self.measurement_active = True
+            self.running = True
+
+            if hasattr(self, 'start_measurement_btn'):
+                self.start_measurement_btn.setEnabled(False)
+            if hasattr(self, 'stop_btn'):
+                self.stop_btn.setEnabled(True)
 
             # Clear existing plots
             if hasattr(self, 'canvas'):
@@ -5512,13 +5473,19 @@ class Measurement(QMainWindow):
             """)
 
             # Add to layout
-            self.customize_layout.addWidget(self.progress_bar)
-            self.customize_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.main_layout.addWidget(self.progress_bar)
+            self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
 
             self.log_box.clear()
 
         except Exception as e:
             print(f"Error preparing UI: {str(e)}")
+
+    def _get_log_window_data(self):
+        self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user = dialog.get_text()
+        self.folder_path = self.folder_path + f'Run_{self.run}/'
+        os.makedirs(self.folder_path, exist_ok=True)
+        self.random_number = random.randint(100000, 999999)
 
     def start_measurement(self):
         dialog = LogWindow()
