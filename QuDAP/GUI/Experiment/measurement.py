@@ -3070,26 +3070,27 @@ class Measurement(QMainWindow):
                     f.write(f"Instrument: DSP 7265 Lock-in\n")
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
-
                 self.canvas.axes.cla()
                 self.canvas.axes_2.cla()
                 self.canvas.draw()
-                self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, self.DSP7265, current, TempList,
-                                     topField,
-                                     botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
-                                     self.file_name, self.run, number_of_field, self.field_mode_fixed,
-                                     self.nv_channel_1_enabled, self.nv_channel_2_enabled, self.nv_NPLC,
-                                     self.ppms_field_One_zone_radio_enabled, self.ppms_field_Two_zone_radio_enabled,
-                                     self.ppms_field_Three_zone_radio_enabled, self.zone1_step_field,
-                                     self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
-                                     self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
-                                     self.zone2_field_rate, self.zone3_field_rate, self.Keithley_2182_Connected,
-                                     self.Ketihley_6221_Connected, dsp7265_current_time_constant,
-                                     self.DSP7265_Connected, self.demo_mode,
-                                     self.keithley_6221_dc_config, self.keithley_6221_ac_config,
-                                     self.ac_current_waveform,
-                                     self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
-                                     demag_field, record_zero_field)  # Create a worker instance
+
+                self._prepare_measurement_ui()
+
+                self.fmr_worker = BK9205_RIGOL_Worker(
+                    parent=self,
+                    bk9205_instrument=self.BK_9205_CONNECTED,
+                    rigol_instrument=self.RIGOL_CONNECTED,
+                    measurement_data=data,
+                    folder_path=self.folder_path,
+                    file_name=self.file_name,
+                    run_number=self.run,
+                    demo_mode=getattr(self, 'demo_mode', False),
+                    settling_time=1.0,
+                    spectrum_averaging=1,
+                    save_individual_spectra=False
+                )
+                self._connect_fmr_worker_signals()
+
                 self.worker.progress_update.connect(self.update_progress)
                 self.worker.append_text.connect(self.append_text)
                 self.worker.stop_measurment.connect(self.stop_measurement)
@@ -3108,8 +3109,10 @@ class Measurement(QMainWindow):
                 self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
                 self.worker.update_keithley_6221_update_label.connect(self.update_keithley_6221_update_label)
                 self.worker.start()  # Start the worker thread
-                # self.worker.wait()
-                # self.stop_measurement()
+
+                if hasattr(self, 'start_measurement_btn'):
+                    self.start_measurement_btn.setEnabled(False)
+
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
                 self.stop_measurement()
@@ -5431,6 +5434,91 @@ class Measurement(QMainWindow):
                 disabled_widgets.append(widget)
 
         return disabled_widgets
+
+    def _prepare_measurement_ui(self):
+        """Prepare UI for measurement (clear plots, create log box, etc.)."""
+        try:
+            if self.worker is not None:
+                self.stop_measurement()
+            if self.fmr_worker is not None:
+                self.stop_measurement()
+
+            self.set_all_inputs_enabled(False)
+            self.measurement_active = True
+
+            # Clear existing plots
+            if hasattr(self, 'canvas'):
+                try:
+                    self.canvas.axes.cla()
+                    self.canvas.axes_2.cla()
+                    self.canvas.draw()
+                except:
+                    pass
+
+            if hasattr(self, 'cumulative_canvas'):
+                try:
+                    self.cumulative_canvas.axes.cla()
+                    self.cumulative_canvas.draw()
+                except:
+                    pass
+
+            if hasattr(self, 'single_canvas'):
+                try:
+                    self.single_canvas.axes.cla()
+                    self.single_canvas.draw()
+                except:
+                    pass
+
+            # Remove old log box and progress bar if they exist
+            if hasattr(self, 'log_box'):
+                try:
+                    self.main_layout.removeWidget(self.log_box)
+                    self.log_box.deleteLater()
+                except:
+                    pass
+
+            if hasattr(self, 'progress_bar'):
+                try:
+                    self.customize_layout.removeWidget(self.progress_bar)
+                    self.progress_bar.deleteLater()
+                except:
+                    pass
+
+            # Create new log box
+            from PyQt6.QtWidgets import QTextEdit, QProgressBar
+            from PyQt6.QtCore import Qt
+
+            self.log_box = QTextEdit(self)
+            self.log_box.setReadOnly(True)
+            self.log_box.setFixedSize(1140, 150)
+
+            # Create progress bar
+            self.progress_bar = QProgressBar(self)
+            self.progress_bar.setMinimum(0)
+            self.progress_bar.setMaximum(100)
+            self.progress_bar.setFixedWidth(1140)
+            self.progress_bar.setValue(0)
+            self.progress_bar.setStyleSheet("""
+                QProgressBar {
+                    border: 1px solid #8f8f91;
+                    border-radius: 5px;
+                    background-color: #e0e0e0;
+                    text-align: center;
+                }
+                QProgressBar::chunk {
+                    background-color: #3498db;
+                    width: 5px;
+                }
+            """)
+
+            # Add to layout
+            self.customize_layout.addWidget(self.progress_bar)
+            self.customize_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
+
+            self.log_box.clear()
+
+        except Exception as e:
+            print(f"Error preparing UI: {str(e)}")
 
     def start_measurement(self):
         dialog = LogWindow()

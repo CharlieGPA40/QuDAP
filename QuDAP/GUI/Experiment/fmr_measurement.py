@@ -28,6 +28,1116 @@ except ImportError:
     from instrument.BK_precision_9129B import BK_9129_COMMAND
     # from GUI.Experiment.rigol_experiment import RIGOL_Measurement
 
+
+class ST_FMR_Worker(QThread):
+    """
+    Worker thread for automated BK9205 + RIGOL measurements.
+    Loops through voltage/current values and captures spectrum at each point.
+    """
+
+    # PyQt Signals for UI updates
+    progress_update = pyqtSignal(int)  # Progress percentage (0-100)
+    append_text = pyqtSignal(str)  # Log messages
+    stop_measurement = pyqtSignal()  # Signal to stop
+    measurement_finished = pyqtSignal()  # Measurement complete
+    error_message = pyqtSignal(str)  # Error popup
+
+    # Instrument reading updates
+    update_bk9205_ch1_voltage_label = pyqtSignal(str)
+    update_bk9205_ch1_current_label = pyqtSignal(str)
+    update_bk9205_ch2_voltage_label = pyqtSignal(str)
+    update_bk9205_ch2_current_label = pyqtSignal(str)
+    update_bk9205_ch3_voltage_label = pyqtSignal(str)
+    update_bk9205_ch3_current_label = pyqtSignal(str)
+
+    update_bk9205_ch1_status_label = pyqtSignal(str)
+    update_bk9205_ch2_status_label = pyqtSignal(str)
+    update_bk9205_ch3_status_label = pyqtSignal(str)
+
+    update_rigol_freq_label = pyqtSignal(str)
+    update_rigol_power_label = pyqtSignal(str)
+    save_individual_plot = pyqtSignal(str)
+
+    # Plotting signals
+    update_2d_plot = pyqtSignal(list, list, list)  # x_data (indices), y_data (voltages), z_data (peak powers)
+    update_spectrum_plot = pyqtSignal(list, list)  # freq_data, power_data
+    save_plot = pyqtSignal(str)  # filename
+    clear_plot = pyqtSignal()
+
+    # Measurement progress
+    update_measurement_progress = pyqtSignal(str)  # Current measurement status
+
+    def __init__(self, parent, bk9205_instrument, rigol_instrument, measurement_data,
+                 folder_path, file_name, run_number, demo_mode=False,
+                 settling_time=1.0, spectrum_averaging=1,
+                 save_individual_spectra=True, **kwargs):
+        """
+        Initialize worker thread.
+        """
+        super().__init__(parent)
+
+        self.parent = parent
+        self.bk9205 = bk9205_instrument
+        self.rigol = rigol_instrument
+        self.measurement_data = measurement_data
+        self.folder_path = folder_path
+        self.file_name = file_name
+        self.run_number = run_number
+
+        # Connection flags
+        self.demo_mode = demo_mode
+
+        # Measurement parameters
+        self.settling_time = settling_time
+        self.spectrum_averaging = spectrum_averaging
+        self.save_individual_spectra = save_individual_spectra
+
+        # Control flags
+        self.running = True
+        self.paused = False
+        self.stopped_by_user = False
+
+        # Data storage
+        self.measurement_results = []
+        self.all_spectra = []
+
+        # Additional parameters
+        self.extra_params = kwargs
+
+    def run(self):
+        """Main execution method - runs in separate thread."""
+        try:
+            self.append_text.emit("=" * 60)
+            self.append_text.emit("Starting BK9205 + RIGOL Measurement")
+            self.append_text.emit(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            self.append_text.emit("=" * 60)
+
+            # Validate measurement data
+            if not self._validate_measurement_data():
+                return
+
+            # Initialize instruments
+            if not self._initialize_instruments():
+                return
+
+            # Clear plots
+            self.clear_plot.emit()
+
+            # Execute measurement
+            self._execute_measurement()
+
+            if self.stopped_by_user:
+                self.append_text.emit("\n" + "=" * 60)
+                self.append_text.emit("Measurement stopped by user")
+                self.append_text.emit("=" * 60)
+                return  # Exit without emitting measurement_finished
+
+            # Save consolidated data
+            self._save_consolidated_data()
+
+            # Cleanup
+            self._cleanup_instruments()
+
+            self.append_text.emit("=" * 60)
+            self.append_text.emit("Measurement Complete!")
+            self.append_text.emit("=" * 60)
+            self.measurement_finished.emit()
+
+        except Exception as e:
+            error_msg = f"Error in measurement: {str(e)}\n{traceback.format_exc()}"
+            self.append_text.emit(error_msg)
+            self.error_message.emit(error_msg)
+            self.stop_measurement.emit()
+
+    def _validate_measurement_data(self):
+        """Validate measurement configuration."""
+        self.append_text.emit("\nValidating measurement configuration...")
+
+        if self.measurement_data['channel_mode'] == 'none':
+            self.error_message.emit("No channels selected for measurement")
+            return False
+
+        # Check that at least one channel is enabled
+        has_enabled = any(ch['enabled'] for ch in self.measurement_data['channels'].values())
+        if not has_enabled:
+            self.error_message.emit("No enabled channels found")
+            return False
+
+        # Check that enabled channels have values
+        for ch_name, ch_data in self.measurement_data['channels'].items():
+            if ch_data['enabled'] and not ch_data['values']:
+                self.error_message.emit(f"No values specified for {ch_name}")
+                return False
+
+        self.append_text.emit("✓ Measurement configuration valid")
+        self._log_measurement_summary()
+        return True
+
+    def _log_measurement_summary(self):
+        """Log measurement configuration summary."""
+        self.append_text.emit("\nMeasurement Configuration:")
+        self.append_text.emit(f"  Channel Mode: {self.measurement_data['channel_mode']}")
+        self.append_text.emit(f"  Source Type: {self.measurement_data['source_type']}")
+
+        for ch_name, ch_data in self.measurement_data['channels'].items():
+            if ch_data['enabled']:
+                ch_label = ch_name.upper().replace('MERGED', 'CH1+CH2')
+                self.append_text.emit(f"\n  {ch_label}:")
+                self.append_text.emit(f"    Mode: {ch_data['mode']}")
+                self.append_text.emit(f"    Number of points: {len(ch_data['values'])}")
+                self.append_text.emit(
+                    f"    Range: {min(ch_data['values']):.6f} to {max(ch_data['values']):.6f} {ch_data['unit']}")
+
+    def _initialize_instruments(self):
+        """Initialize BK9205 and RIGOL instruments."""
+        self.append_text.emit("\nInitializing instruments...")
+
+        try:
+            # Initialize BK9205
+            if self.bk9205 and not self.demo_mode:
+                self.append_text.emit("  Initializing BK9205...")
+                self.bk9205_cmd = BK_9129_COMMAND()
+
+                # Turn off all outputs initially
+                self.bk9205_cmd.set_output_state(self.bk9205, 'OFF')
+                self.append_text.emit("  ✓ BK9205 initialized")
+            else:
+                self.append_text.emit("  ⚠ BK9205 not connected (demo mode)")
+                self.bk9205_cmd = None
+
+            # Initialize RIGOL
+            if self.rigol and not self.demo_mode:
+                self.append_text.emit("  Initializing RIGOL...")
+                self.rigol_cmd = RIGOL_COMMAND()
+
+                # Reset and configure RIGOL for measurement
+                # Add your specific RIGOL configuration here
+                self.append_text.emit("  ✓ RIGOL initialized")
+            else:
+                self.append_text.emit("  ⚠ RIGOL not connected (demo mode)")
+                self.rigol_cmd = None
+
+            return True
+
+        except Exception as e:
+            error_msg = f"Instrument initialization failed: {str(e)}"
+            self.append_text.emit(f"  ✗ {error_msg}")
+            self.error_message.emit(error_msg)
+            return False
+
+    def _execute_measurement(self):
+        """Execute the main measurement loop."""
+        channel_mode = self.measurement_data['channel_mode']
+
+        if channel_mode == 'single':
+            self._measure_single_channel()
+        elif channel_mode == 'series':
+            self._measure_series_channels()
+        elif channel_mode == 'parallel':
+            self._measure_parallel_channels()
+        elif channel_mode == 'all':
+            self._measure_all_channels()
+
+    def _measure_single_channel(self):
+        """Measure single channel configuration."""
+        self.append_text.emit("\n" + "=" * 60)
+        self.append_text.emit("Starting Single Channel Measurement")
+        self.append_text.emit("=" * 60)
+
+        # Find the enabled channel
+        enabled_channel = None
+        for ch_name, ch_data in self.measurement_data['channels'].items():
+            if ch_data['enabled']:
+                enabled_channel = (ch_name, ch_data)
+                break
+
+        if not enabled_channel:
+            return
+
+        ch_name, ch_data = enabled_channel
+        channel_num = self._get_channel_number(ch_name)
+        values = ch_data['values']
+        total_points = len(values)
+        source_type = self.measurement_data['source_type']
+
+        self.append_text.emit(f"\nMeasuring {ch_name.upper()} with {total_points} points")
+
+        for idx, value in enumerate(values):
+            if not self.running:
+                self.append_text.emit("\n✗ Measurement stopped by user")
+                return
+
+            # Update progress
+            progress = int((idx / total_points) * 100)
+            self.progress_update.emit(progress)
+            self.update_measurement_progress.emit(
+                f"Point {idx + 1}/{total_points}: {value:.6f} {ch_data['unit']}"
+            )
+
+            # Step 1: Set voltage/current using set_all_voltages/currents command
+            self.bk9205_cmd.set_remote_mode(self.bk9205)
+            self._set_channel_voltage_all_command(channel_num, value, source_type)
+            # Step 2: Turn on the channel
+            self._turn_on_channel(channel_num)
+            # Step 3: Wait for settling
+            self._wait_settling(f"Settling... ({self.settling_time}s)")
+
+            # Step 4: Read back voltages/currents and update labels
+            self._read_and_update_labels()
+            # Step 5: Capture spectrum
+            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
+
+            # Step 6: Store results
+            result = {
+                'point': idx + 1,
+                'channel': ch_name,
+                'channel_num': channel_num,
+                'value': value,
+                'unit': ch_data['unit'],
+                'source_type': source_type,
+                'spectrum': spectrum_data,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            self.measurement_results.append(result)
+
+            # Step 7: Save individual spectrum file
+            if self.save_individual_spectra:
+                self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
+
+            # Step 8: Update plots
+            self._update_plots()
+            time.sleep(1)
+            self._save_consolidated_data()
+
+        self.save_plot.emit(self.file_name)
+        self.progress_update.emit(100)
+
+    def _measure_series_channels(self):
+        """Measure series channel configuration (Ch1 + Ch2)."""
+        self.append_text.emit("\n" + "=" * 60)
+        self.append_text.emit("Starting Series Channel Measurement")
+        self.append_text.emit("=" * 60)
+
+        merged_data = self.measurement_data['channels']['merged']
+        values = merged_data['values']
+        total_points = len(values)
+        source_type = self.measurement_data['source_type']
+
+        self.append_text.emit(f"\nMeasuring CH1 & CH2 in Series with {total_points} points")
+
+        for idx, total_value in enumerate(values):
+            if not self.running:
+                return
+
+            progress = int((idx / total_points) * 100)
+            self.progress_update.emit(progress)
+            self.update_measurement_progress.emit(
+                f"Point {idx + 1}/{total_points}: Total={total_value:.6f} {merged_data['unit']}"
+            )
+
+            # Split voltage between channels (50/50 split)
+            ch1_value = total_value / 2
+            ch2_value = total_value / 2
+
+            # Set both channels using APP:VOLT command
+            self._set_series_channels(ch1_value, ch2_value, source_type)
+
+            # Enable series mode and turn on outputs
+            self._enable_series_mode()
+
+            # Wait for settling
+            self._wait_settling(f"Settling... ({self.settling_time}s)")
+
+            # Read back and update labels
+            self._read_and_update_labels()
+
+            # Capture spectrum
+            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
+
+            # Store results
+            result = {
+                'point': idx + 1,
+                'channel': 'merged_series',
+                'total_value': total_value,
+                'ch1_value': ch1_value,
+                'ch2_value': ch2_value,
+                'unit': merged_data['unit'],
+                'source_type': source_type,
+                'spectrum': spectrum_data,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            self.measurement_results.append(result)
+
+            # Save individual spectrum
+            if self.save_individual_spectra:
+                self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
+
+            # Update plots
+            self._update_plots()
+
+            time.sleep(1)
+            self._save_consolidated_data()
+        self.save_plot.emit(self.file_name)
+        self.progress_update.emit(100)
+
+    def _measure_parallel_channels(self):
+        """Measure parallel channel configuration (Ch1 || Ch2)."""
+        self.append_text.emit("\n" + "=" * 60)
+        self.append_text.emit("Starting Parallel Channel Measurement")
+        self.append_text.emit("=" * 60)
+
+        merged_data = self.measurement_data['channels']['merged']
+        values = merged_data['values']
+        total_points = len(values)
+        source_type = self.measurement_data['source_type']
+
+        self.append_text.emit(f"\nMeasuring CH1 & CH2 in Parallel with {total_points} points")
+
+        for idx, value in enumerate(values):
+            if not self.running:
+                return
+
+            progress = int((idx / total_points) * 100)
+            self.progress_update.emit(progress)
+            self.update_measurement_progress.emit(
+                f"Point {idx + 1}/{total_points}: {value:.6f} {merged_data['unit']}"
+            )
+
+            # Set both channels to same value
+            self._set_parallel_channels(value, value, source_type)
+
+            # Enable parallel mode and turn on outputs
+            self._enable_parallel_mode()
+
+            # Wait for settling
+            self._wait_settling(f"Settling... ({self.settling_time}s)")
+
+            # Read back and update labels
+            self._read_and_update_labels()
+
+            # Capture spectrum
+            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
+
+            # Store results
+            result = {
+                'point': idx + 1,
+                'channel': 'merged_parallel',
+                'value': value,
+                'unit': merged_data['unit'],
+                'source_type': source_type,
+                'spectrum': spectrum_data,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            self.measurement_results.append(result)
+
+            # Save individual spectrum
+            if self.save_individual_spectra:
+                self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
+
+            # Update plots
+            self._update_plots()
+
+            time.sleep(1)
+            self._save_consolidated_data()
+        self.save_plot.emit(self.file_name)
+        self.progress_update.emit(100)
+
+    def _measure_all_channels(self):
+        """Measure all channels configuration."""
+        self.append_text.emit("\n" + "=" * 60)
+        self.append_text.emit("Starting All Channels Measurement")
+        self.append_text.emit("=" * 60)
+
+        # Get enabled channels
+        enabled_channels = [
+            (ch_name, ch_data)
+            for ch_name, ch_data in self.measurement_data['channels'].items()
+            if ch_data['enabled']
+        ]
+
+        # Find varying channel (one with multiple values)
+        varying_channels = [(name, data) for name, data in enabled_channels if len(data['values']) > 1]
+
+        if len(varying_channels) == 0:
+            # All fixed values
+            self._measure_all_channels_fixed(enabled_channels)
+        else:
+            # Use first varying channel
+            self._measure_all_channels_one_varying(enabled_channels, varying_channels[0])
+
+    def _measure_all_channels_fixed(self, enabled_channels):
+        """All channels with fixed values - single measurement."""
+        self.append_text.emit("\nAll channels set to fixed values - single measurement")
+
+        # Prepare voltage list for all 3 channels
+        ch_values = [0.0, 0.0, 0.0]  # Ch1, Ch2, Ch3
+        source_type = self.measurement_data['source_type']
+
+        for ch_name, ch_data in enabled_channels:
+            ch_num = self._get_channel_number(ch_name)
+            ch_values[ch_num - 1] = ch_data['values'][0]
+
+        # Set all channels at once
+        self._set_all_channels(ch_values[0], ch_values[1], ch_values[2], source_type)
+
+        # Turn on all channels
+        self._turn_on_all_channels()
+
+        # Wait for settling
+        self._wait_settling(f"Settling... ({self.settling_time}s)")
+
+        # Read and update
+        self._read_and_update_labels()
+
+        # Capture spectrum
+        spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
+
+        # Store result
+        result = {
+            'point': 1,
+            'channel': 'all_fixed',
+            'ch1_value': ch_values[0],
+            'ch2_value': ch_values[1],
+            'ch3_value': ch_values[2],
+            'spectrum': spectrum_data,
+            'timestamp': datetime.datetime.now().isoformat()
+        }
+        self.measurement_results.append(result)
+
+        if self.save_individual_spectra:
+            self._save_individual_spectrum(result, 0)
+            plot_filename = f"{self.file_name}_point_spectrum.png"
+            self.save_individual_plot.emit(plot_filename)
+
+        self._update_plots()
+
+        self.save_plot.emit(self.file_name)
+        time.sleep(1)
+        self._save_consolidated_data()
+        self.progress_update.emit(100)
+
+    def _measure_all_channels_one_varying(self, enabled_channels, varying_channel):
+        """All channels with one varying."""
+        vary_name, vary_data = varying_channel
+        values = vary_data['values']
+        total_points = len(values)
+        source_type = self.measurement_data['source_type']
+
+        self.append_text.emit(f"\nVarying {vary_name.upper()} through {total_points} points")
+
+        for idx, vary_value in enumerate(values):
+            if not self.running:
+                return
+
+            progress = int((idx / total_points) * 100)
+            self.progress_update.emit(progress)
+            self.update_measurement_progress.emit(
+                f"Point {idx + 1}/{total_points}: {vary_name.upper()}={vary_value:.6f}"
+            )
+
+            # Prepare voltage list
+            ch_values = [0.0, 0.0, 0.0]
+            for ch_name, ch_data in enabled_channels:
+                ch_num = self._get_channel_number(ch_name)
+                if ch_name == vary_name:
+                    ch_values[ch_num - 1] = vary_value
+                else:
+                    ch_values[ch_num - 1] = ch_data['values'][0]
+
+            # Set all channels
+            self._set_all_channels(ch_values[0], ch_values[1], ch_values[2], source_type)
+
+            # Turn on all channels
+            self._turn_on_all_channels()
+
+            # Wait for settling
+            self._wait_settling(f"Settling... ({self.settling_time}s)")
+
+            # Read and update
+            self._read_and_update_labels()
+
+            # Capture spectrum
+            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
+
+            # Store result
+            result = {
+                'point': idx + 1,
+                'channel': 'all_varying',
+                'varying_channel': vary_name,
+                'varying_value': vary_value,
+                'ch1_value': ch_values[0],
+                'ch2_value': ch_values[1],
+                'ch3_value': ch_values[2],
+                'spectrum': spectrum_data,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            self.measurement_results.append(result)
+
+            if self.save_individual_spectra:
+                self._save_individual_spectrum(result, idx)
+                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
+                self.save_individual_plot.emit(plot_filename)
+
+            self._update_plots()
+
+            time.sleep(1)
+            self._save_consolidated_data()
+        self.save_plot.emit(self.file_name)
+        self.progress_update.emit(100)
+
+    # ==================================================================================
+    # BK9205 CONTROL METHODS
+    # ==================================================================================
+
+    def _set_channel_voltage_all_command(self, channel_num, value, source_type):
+        """Set voltage for single channel using APP:VOLT command."""
+        if self.demo_mode or not self.bk9205:
+            self.append_text.emit(f"    [DEMO] Setting Ch{channel_num} {source_type} to {value:.6f}")
+            return
+
+        try:
+            # Use APP:VOLT command to set only the specified channel
+            if source_type == 'voltage':
+                if channel_num == 1:
+                    print(value)
+                    self.bk9205_cmd.set_all_voltages(self.bk9205, value, 0, 0, 'V')
+                elif channel_num == 2:
+                    self.bk9205_cmd.set_all_voltages(self.bk9205, 0, value, 0, 'V')
+                elif channel_num == 3:
+                    self.bk9205_cmd.set_all_voltages(self.bk9205, 0, 0, value, 'V')
+                self.append_text.emit(f"    Set Ch{channel_num} voltage to {value:.6f} V")
+            else:  # current
+                if channel_num == 1:
+                    self.bk9205_cmd.set_all_currents(self.bk9205, value, 0, 0, 'A')
+                elif channel_num == 2:
+                    self.bk9205_cmd.set_all_currents(self.bk9205, 0, value, 0, 'A')
+                elif channel_num == 3:
+                    self.bk9205_cmd.set_all_currents(self.bk9205, 0, 0, value, 'A')
+                self.append_text.emit(f"    Set Ch{channel_num} current to {value:.6f} A")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error setting Ch{channel_num}: {str(e)}")
+
+    def _set_all_channels(self, ch1_value, ch2_value, ch3_value, source_type):
+        """Set all three channels at once using APP:VOLT or APP:CURR command."""
+        if self.demo_mode or not self.bk9205:
+            self.append_text.emit(f"    [DEMO] Setting Ch1={ch1_value:.6f}, Ch2={ch2_value:.6f}, Ch3={ch3_value:.6f}")
+            return
+
+        try:
+            if source_type == 'voltage':
+                self.bk9205_cmd.set_all_voltages(self.bk9205, ch1_value, ch2_value, ch3_value, 'V')
+                self.append_text.emit(
+                    f"    Set voltages: Ch1={ch1_value:.6f}V, Ch2={ch2_value:.6f}V, Ch3={ch3_value:.6f}V")
+            else:
+                self.bk9205_cmd.set_all_currents(self.bk9205, ch1_value, ch2_value, ch3_value, 'A')
+                self.append_text.emit(
+                    f"    Set currents: Ch1={ch1_value:.6f}A, Ch2={ch2_value:.6f}A, Ch3={ch3_value:.6f}A")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error setting all channels: {str(e)}")
+
+    def _set_series_channels(self, ch1_value, ch2_value, source_type):
+        """Set Ch1 and Ch2 for series mode."""
+        if self.demo_mode or not self.bk9205:
+            self.append_text.emit(f"    [DEMO] Setting series: Ch1={ch1_value:.6f}, Ch2={ch2_value:.6f}")
+            return
+
+        try:
+            if source_type == 'voltage':
+                self.bk9205_cmd.set_all_voltages(self.bk9205, ch1_value, ch2_value, 0, 'V')
+            else:
+                self.bk9205_cmd.set_all_currents(self.bk9205, ch1_value, ch2_value, 0, 'A')
+
+            self.append_text.emit(f"    Set series mode: Ch1={ch1_value:.6f}, Ch2={ch2_value:.6f}")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error setting series channels: {str(e)}")
+
+    def _set_parallel_channels(self, ch1_value, ch2_value, source_type):
+        """Set Ch1 and Ch2 for parallel mode."""
+        if self.demo_mode or not self.bk9205:
+            self.append_text.emit(f"    [DEMO] Setting parallel: Ch1={ch1_value:.6f}, Ch2={ch2_value:.6f}")
+            return
+
+        try:
+            if source_type == 'voltage':
+                self.bk9205_cmd.set_all_voltages(self.bk9205, ch1_value, ch2_value, 0, 'V')
+            else:
+                self.bk9205_cmd.set_all_currents(self.bk9205, ch1_value, ch2_value, 0, 'A')
+
+            self.append_text.emit(f"    Set parallel mode: Ch1={ch1_value:.6f}, Ch2={ch2_value:.6f}")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error setting parallel channels: {str(e)}")
+
+    def _turn_on_channel(self, channel_num):
+        """Turn on a specific channel."""
+        if self.demo_mode or not self.bk9205:
+            return
+
+        try:
+            # Select and turn on the channel
+            ch_name = f'CH{channel_num}'
+            self.bk9205_cmd.select_channel(self.bk9205, ch_name)
+            self.bk9205_cmd.set_channel_output_state(self.bk9205, 'ON')
+            self.append_text.emit(f"    Turned ON Ch{channel_num}")
+            if channel_num == 1:
+                self.update_bk9205_ch1_status_label.emit(f"On")
+            if channel_num == 2:
+                self.update_bk9205_ch2_status_label.emit(f"On")
+            if channel_num == 3:
+                self.update_bk9205_ch3_status_label.emit(f"On")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error turning on Ch{channel_num}: {str(e)}")
+
+    def _turn_on_all_channels(self):
+        """Turn on all three channels."""
+        if self.demo_mode or not self.bk9205:
+            return
+
+        try:
+            self.bk9205_cmd.set_output_state(self.bk9205, 'ON')
+            self.append_text.emit("    Turned ON all channels")
+            self.update_bk9205_ch1_status_label.emit(f"On")
+            self.update_bk9205_ch2_status_label.emit(f"On")
+            self.update_bk9205_ch3_status_label.emit(f"On")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error turning on all channels: {str(e)}")
+
+    def _enable_series_mode(self):
+        """Enable series mode for Ch1+Ch2."""
+        if self.demo_mode or not self.bk9205:
+            return
+
+        try:
+            self.bk9205_cmd.set_series_mode(self.bk9205)
+            self.bk9205_cmd.set_output_series_state(self.bk9205, 'ON')
+            self.append_text.emit("    Enabled series mode")
+            self.update_bk9205_ch1_status_label.emit(f"On")
+            self.update_bk9205_ch2_status_label.emit(f"On")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error enabling series mode: {str(e)}")
+
+    def _enable_parallel_mode(self):
+        """Enable parallel mode for Ch1||Ch2."""
+        if self.demo_mode or not self.bk9205:
+            return
+
+        try:
+            self.bk9205_cmd.set_parallel_mode(self.bk9205)
+            self.bk9205_cmd.set_output_parallel_state(self.bk9205, 'ON')
+            self.append_text.emit("    Enabled parallel mode")
+            self.update_bk9205_ch1_status_label.emit(f"On")
+            self.update_bk9205_ch2_status_label.emit(f"On")
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error enabling parallel mode: {str(e)}")
+
+    def _read_and_update_labels(self):
+        """Read actual voltages/currents from BK9205 and update UI labels."""
+        if self.demo_mode or not self.bk9205:
+            return
+
+        try:
+            # Read all voltages
+            voltages_str = self.bk9205_cmd.measure_all_voltages(self.bk9205)
+            voltages = voltages_str.split(',')
+
+            if len(voltages) >= 2:
+                self.update_bk9205_ch1_voltage_label.emit(f"{float(voltages[0]):.6f}")
+                self.update_bk9205_ch2_voltage_label.emit(f"{float(voltages[1]):.6f}")
+                self.update_bk9205_ch3_voltage_label.emit(f"{float(voltages[2]):.6f}")
+
+            # Read all currents
+            currents_str = self.bk9205_cmd.measure_all_currents(self.bk9205)
+            currents = currents_str.split(',')
+
+            if len(currents) >= 2:
+                self.update_bk9205_ch1_current_label.emit(f"{float(currents[0]):.6f}")
+                self.update_bk9205_ch2_current_label.emit(f"{float(currents[1]):.6f}")
+                self.update_bk9205_ch3_current_label.emit(f"{float(currents[2]):.6f}")
+
+        except Exception as e:
+            self.append_text.emit(f"    ⚠ Warning reading measurements: {str(e)}")
+
+    # ==================================================================================
+    # RIGOL SPECTRUM ANALYZER METHODS
+    # ==================================================================================
+
+    def _capture_spectrum(self, averaging=1):
+        """Capture spectrum from RIGOL with averaging."""
+        if self.demo_mode or not self.rigol:
+            return self._generate_demo_spectrum()
+
+        try:
+            self.append_text.emit(f"    Capturing spectrum (averaging {averaging})...")
+
+            spectra = []
+            for i in range(averaging):
+                if not self.running:
+                    return
+
+                # Trigger single sweep
+                self.rigol_cmd.single_sweep(self.rigol)
+
+                # Wait for sweep to complete
+                time.sleep(2)  # Adjust based on sweep time
+
+                # Get trace data
+                self.rigol_cmd.set_data_format(self.rigol, 'REAL')
+                trace_data = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
+                trace_data_chopped = trace_data[1:]
+
+                # Get frequency data
+                start_freq = float(self.rigol_cmd.get_start_frequency(self.rigol))
+                stop_freq = float(self.rigol_cmd.get_stop_frequency(self.rigol))
+                num_points = len(trace_data)
+                frequencies = np.linspace(start_freq, stop_freq, num_points).tolist()
+                spectrum = {
+                    'frequencies': frequencies[1:],
+                    'powers': trace_data_chopped
+                }
+                spectra.append(spectrum)
+
+                if averaging > 1:
+                    self.append_text.emit(f"      Trace {i + 1}/{averaging}")
+
+            # Average spectra
+            if len(spectra) > 1:
+                avg_spectrum = self._average_spectra(spectra)
+            else:
+                avg_spectrum = spectra[0]
+
+            # Update RIGOL labels
+            if avg_spectrum['frequencies']:
+                center_freq = (avg_spectrum['frequencies'][0] + avg_spectrum['frequencies'][-1]) / 2
+                peak_power = max(avg_spectrum['powers'])
+                self.update_rigol_freq_label.emit(f"{center_freq / 1e9:.3f} GHz")
+                self.update_rigol_power_label.emit(f"{peak_power:.2f} dBm")
+
+            self.append_text.emit("    ✓ Spectrum captured")
+            return avg_spectrum
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error capturing spectrum: {str(e)}")
+            # return self._generate_demo_spectrum()
+
+    def _generate_demo_spectrum(self):
+        """Generate demo spectrum data."""
+        time.sleep(3)
+        frequencies = np.linspace(1e9, 2e9, 1001)
+        powers = -80 + 10 * np.random.randn(len(frequencies))
+
+        # Add peaks
+        for peak_idx in [200, 500, 800]:
+            powers[peak_idx - 10:peak_idx + 10] += 30 * np.exp(-((np.arange(-10, 10)) ** 2) / 20)
+
+        return {
+            'frequencies': frequencies.tolist(),
+            'powers': powers.tolist(),
+            'metadata': {
+                'center_freq': 1.5e9,
+                'span': 1e9,
+                'rbw': 1e6,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+        }
+
+    def _average_spectra(self, spectra):
+        """Average multiple spectra."""
+        frequencies = spectra[0]['frequencies']
+        powers_array = np.array([s['powers'] for s in spectra])
+        avg_powers = np.mean(powers_array, axis=0)
+
+        return {
+            'frequencies': frequencies,
+            'powers': avg_powers.tolist(),
+            'metadata': spectra[0].get('metadata', {})
+        }
+
+    # ==================================================================================
+    # DATA SAVING METHODS
+    # ==================================================================================
+
+    def _save_individual_spectrum(self, result, index):
+        """Save individual spectrum to text file."""
+        try:
+            filename = f"{self.file_name}_point_{index + 1:04d}_spectrum.txt"
+            filepath = f"{self.folder_path}/{filename}"
+
+            with open(filepath, 'w') as f:
+                f.write("# BK9205 + RIGOL Spectrum Measurement\n")
+                f.write(f"# Timestamp: {result['timestamp']}\n")
+                f.write(f"# Point: {result['point']}\n")
+
+                # Write channel-specific info
+                if 'value' in result:
+                    f.write(f"# Channel: {result['channel']}\n")
+                    f.write(f"# {result['source_type'].capitalize()}: {result['value']:.6f} {result['unit']}\n")
+                elif 'total_value' in result:
+                    f.write(
+                        f"# Total {result['source_type'].capitalize()}: {result['total_value']:.6f} {result['unit']}\n")
+                    f.write(f"# Ch1 {result['source_type'].capitalize()}: {result['ch1_value']:.6f} {result['unit']}\n")
+                    f.write(f"# Ch2 {result['source_type'].capitalize()}: {result['ch2_value']:.6f} {result['unit']}\n")
+                elif 'ch1_value' in result:
+                    f.write(f"# Ch1: {result['ch1_value']:.6f}\n")
+                    f.write(f"# Ch2: {result['ch2_value']:.6f}\n")
+                    f.write(f"# Ch3: {result['ch3_value']:.6f}\n")
+
+                f.write("#\n")
+                f.write("# Frequency (Hz)\tPower (dBm)\n")
+
+                spectrum = result['spectrum']
+                for freq, power in zip(spectrum['frequencies'], spectrum['powers']):
+                    f.write(f"{freq:.6e}\t{power:.6f}\n")
+
+            self.append_text.emit(f"    Saved: {filename}")
+
+        except Exception as e:
+            self.append_text.emit(f"    ✗ Error saving spectrum: {str(e)}")
+
+    def _save_consolidated_data(self):
+        """Save consolidated data file with all measurements and complete spectra."""
+        try:
+            self.append_text.emit("\nSaving consolidated measurement data...")
+
+            data_file = f"{self.folder_path}/{self.file_name}_all_data.txt"
+
+            with open(data_file, 'w') as f:
+                # Write header information
+                f.write("# BK9205 + RIGOL Consolidated Measurement Data\n")
+                f.write("=" * 80 + "\n")
+                f.write(f"# Measurement Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"# Run Number: {self.run_number}\n")
+                f.write(f"# Channel Mode: {self.measurement_data['channel_mode']}\n")
+                f.write(f"# Source Type: {self.measurement_data['source_type']}\n")
+                f.write(f"# Total Points: {len(self.measurement_results)}\n")
+                f.write(f"# Settling Time: {self.settling_time} s\n")
+                f.write(f"# Spectrum Averaging: {self.spectrum_averaging}\n")
+                f.write("=" * 80 + "\n\n")
+
+                # # Write summary table
+                # f.write("# SUMMARY TABLE\n")
+                # f.write("# Point\tTimestamp\tSource_Value\tUnit\tPeak_Power(dBm)\tPeak_Freq(Hz)\tCenter_Freq(Hz)\n")
+                #
+                # for result in self.measurement_results:
+                #     point = result['point']
+                #     timestamp = result['timestamp']
+                #
+                #     # Determine source value
+                #     if 'value' in result:
+                #         value = result['value']
+                #         unit = result['unit']
+                #     elif 'total_value' in result:
+                #         value = result['total_value']
+                #         unit = result['unit']
+                #     elif 'varying_value' in result:
+                #         value = result['varying_value']
+                #         unit = result.get('unit', 'V')
+                #     else:
+                #         value = 0
+                #         unit = 'V'
+                #
+                #     spectrum = result['spectrum']
+                #     peak_power = max(spectrum['powers'])
+                #     peak_idx = spectrum['powers'].index(peak_power)
+                #     peak_freq = spectrum['frequencies'][peak_idx]
+                #     center_freq = (spectrum['frequencies'][0] + spectrum['frequencies'][-1]) / 2
+                #
+                #     f.write(
+                #         f"{point}\t{timestamp}\t{value:.6f}\t{unit}\t{peak_power:.6f}\t{peak_freq:.6e}\t{center_freq:.6e}\n")
+
+                # Write complete spectrum data with side-by-side power columns
+                f.write("\n\n# COMPLETE SPECTRUM DATA\n")
+                f.write("# All power values are in dBm\n")
+                f.write("# Frequency data is the same for all measurements\n")
+                f.write("=" * 80 + "\n")
+
+                # Get frequency data (same for all measurements)
+                freq_data = self.measurement_results[0]['spectrum']['frequencies']
+
+                # Build header for spectrum data
+                header = "Frequency(Hz)"
+                for result in self.measurement_results:
+                    point = result['point']
+
+                    # Get source value for column label
+                    if 'value' in result:
+                        value = result['value']
+                        unit = result['unit']
+                    elif 'total_value' in result:
+                        value = result['total_value']
+                        unit = result['unit']
+                    elif 'varying_value' in result:
+                        value = result['varying_value']
+                        unit = result.get('unit', 'V')
+                    else:
+                        value = 0
+                        unit = 'V'
+
+                    header += f"\t{value:.3f}{unit}"
+
+                f.write(header + "\n")
+
+                # Write data rows
+                num_freq_points = len(freq_data)
+                for i in range(num_freq_points):
+                    row = f"{freq_data[i]:.6e}"
+
+                    # Append power value from each measurement
+                    for result in self.measurement_results:
+                        power = result['spectrum']['powers'][i]
+                        row += f"\t{power:.6f}"
+
+                    f.write(row + "\n")
+
+            self.append_text.emit(f"✓ Saved consolidated data: {data_file}")
+
+            # Also save summary statistics
+            self._save_summary_statistics()
+
+        except Exception as e:
+            self.append_text(f"✗ Error saving consolidated data: {str(e)}")
+            import traceback
+            self.append_text(traceback.format_exc())
+
+        except Exception as e:
+            self.append_text.emit(f"✗ Error saving consolidated data: {str(e)}")
+
+    def _save_summary_statistics(self):
+        """Save summary statistics file."""
+        try:
+            summary_file = f"{self.folder_path}/{self.file_name}_summary.txt"
+
+            with open(summary_file, 'w') as f:
+                f.write("BK9205 + RIGOL Measurement Summary\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(f"Measurement Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Run Number: {self.run_number}\n")
+                f.write(f"Total Points: {len(self.measurement_results)}\n\n")
+
+                # Calculate statistics
+                all_peak_powers = [max(r['spectrum']['powers']) for r in self.measurement_results]
+
+                f.write("Peak Power Statistics:\n")
+                f.write(f"  Maximum: {max(all_peak_powers):.2f} dBm\n")
+                f.write(f"  Minimum: {min(all_peak_powers):.2f} dBm\n")
+                f.write(f"  Mean: {np.mean(all_peak_powers):.2f} dBm\n")
+                f.write(f"  Std Dev: {np.std(all_peak_powers):.2f} dBm\n\n")
+
+                # Measurement configuration
+                f.write("Configuration:\n")
+                f.write(f"  Channel Mode: {self.measurement_data['channel_mode']}\n")
+                f.write(f"  Source Type: {self.measurement_data['source_type']}\n")
+                f.write(f"  Settling Time: {self.settling_time} s\n")
+                f.write(f"  Spectrum Averaging: {self.spectrum_averaging}\n")
+
+            self.append_text.emit(f"✓ Saved summary: {summary_file}")
+
+        except Exception as e:
+            self.append_text.emit(f"✗ Error saving summary: {str(e)}")
+
+    # ==================================================================================
+    # PLOTTING METHODS
+    # ==================================================================================
+
+    def _update_plots(self):
+        """Update both the 2D cumulative plot and the current spectrum plot."""
+
+        # Extract frequency data (use first spectrum's frequencies)
+        if len(self.measurement_results) > 0:
+            freq_data = self.measurement_results[0]['spectrum']['frequencies']
+        else:
+            return
+
+        # Extract voltage/current values and spectra
+        y_data = []  # Voltages/currents
+        z_data = []  # All spectra (2D array)
+
+        for result in self.measurement_results:
+            # Get source value
+            if 'value' in result:
+                y_data.append(result['value'])
+            elif 'total_value' in result:
+                y_data.append(result['total_value'])
+            elif 'varying_value' in result:
+                y_data.append(result['varying_value'])
+            else:
+                y_data.append(0)
+
+            # Get spectrum power data
+            spectrum = result['spectrum']
+            z_data.append(spectrum['powers'])
+
+        # Update 2D cumulative plot (left) - now showing freq vs voltage
+        self.update_2d_plot.emit(freq_data, y_data, z_data)
+
+        # Update current spectrum plot (right)
+        latest_result = self.measurement_results[-1]
+        spectrum = latest_result['spectrum']
+        self.update_spectrum_plot.emit(spectrum['frequencies'], spectrum['powers'])
+
+    # ==================================================================================
+    # HELPER METHODS
+    # ==================================================================================
+
+    def _get_channel_number(self, ch_name):
+        """Convert channel name to number."""
+        mapping = {
+            'ch1': 1,
+            'ch2': 2,
+            'ch3': 3,
+            'merged': 4
+        }
+        return mapping.get(ch_name, 1)
+
+    def _wait_settling(self, message):
+        """Wait for settling time."""
+        self.append_text.emit(f"    {message}")
+        if self.demo_mode:
+            time.sleep(0.1)
+        else:
+            time.sleep(self.settling_time)
+
+    def _cleanup_instruments(self):
+        """Turn off outputs and cleanup."""
+        self.append_text.emit("\nCleaning up...")
+
+        if self.bk9205 and not self.demo_mode:
+            try:
+                self.bk9205_cmd.set_output_state(self.bk9205, 'OFF')
+                self.append_text.emit("  ✓ BK9205 outputs disabled")
+                self.update_bk9205_ch1_status_label.emit(f"OFF")
+                self.update_bk9205_ch2_status_label.emit(f"OFF")
+                self.update_bk9205_ch2_status_label.emit(f"OFF")
+            except Exception as e:
+                self.append_text.emit(f"  ⚠ BK9205 cleanup warning: {str(e)}")
+
+    def stop(self):
+        """Stop the measurement."""
+        self.running = False
+        self.stopped_by_user = True
+        self.append_text.emit("\nStopping measurement...")
+
+    def pause(self):
+        """Pause the measurement."""
+        self.paused = True
+        self.append_text.emit("\nMeasurement paused")
+
+    def resume(self):
+        """Resume the measurement."""
+        self.paused = False
+        self.append_text.emit("\nMeasurement resumed")
+
 class FMR_Measurement(QWidget):
     def __init__(self, ppms_client = None, bnc845 = None, dsp7265 = None):
         super().__init__()
@@ -1214,6 +2324,91 @@ class FMR_Measurement(QWidget):
                 except:
                     pass
 
+        except Exception as e:
+            print(f"Error updating UI from instrument: {str(e)}")
+
+    def update_frequency_from_instrument(self, instrument, bnc_cmd):
+        """
+        Update all UI labels with current readings from the BNC845RF instrument.
+
+        Args:
+            instrument: VISA instrument object
+            bnc_cmd: BNC_845M_COMMAND instance
+        """
+        try:
+            # Update current frequency reading
+            def format_frequency_with_unit(freq_hz):
+                """
+                Convert frequency in Hz to the most appropriate unit and format for display.
+
+                Args:
+                    freq_hz: Frequency value in Hz (can be string or float)
+
+                Returns:
+                    Formatted string with value and unit (e.g., "2.5 GHz")
+                """
+                try:
+                    # Convert to float if it's a string
+                    freq_value = float(freq_hz)
+
+                    # Determine the best unit based on magnitude
+                    if freq_value >= 1e9:
+                        converted = freq_value / 1e9
+                        unit = 'GHz'
+                    elif freq_value >= 1e6:
+                        converted = freq_value / 1e6
+                        unit = 'MHz'
+                    elif freq_value >= 1e3:
+                        converted = freq_value / 1e3
+                        unit = 'kHz'
+                    else:
+                        converted = freq_value
+                        unit = 'Hz'
+
+                    # Format the number (remove unnecessary decimal places)
+                    if converted >= 100:
+                        formatted = f"{converted:.2f}"
+                    elif converted >= 10:
+                        formatted = f"{converted:.3f}"
+                    else:
+                        formatted = f"{converted:.4f}"
+
+                    return f"{formatted} {unit}"
+
+                except (ValueError, TypeError):
+                    return "N/A"
+
+            if hasattr(self, 'bnc845rf_current_frequency_reading_label'):
+                try:
+                    freq = bnc_cmd.get_frequency_cw(instrument).strip()
+                    freq = format_frequency_with_unit(freq)
+                    self.bnc845rf_current_frequency_reading_label.setText(freq)
+                except:
+                    pass
+        except Exception as e:
+            print(f"Error updating UI from instrument: {str(e)}")
+
+    def update_power_from_instrument(self, instrument, bnc_cmd):
+        try:
+            # Update current power reading
+            if hasattr(self, 'bnc845rf_current_power_reading_label'):
+                try:
+                    power = bnc_cmd.get_power_level(instrument).strip()
+                    self.bnc845rf_current_power_reading_label.setText(f"{float(power):.2f} dBm")
+                except:
+                    pass
+        except Exception as e:
+            print(f"Error updating UI from instrument: {str(e)}")
+
+    def update_state_from_instrument(self, instrument, bnc_cmd):
+        try:
+            # Update RF state
+            if hasattr(self, 'bnc845rf_state_reading_label'):
+                try:
+                    state = bnc_cmd.get_output_state(instrument).strip()
+                    self.bnc845rf_state_reading_label.setText(state)
+                except:
+                    pass
         except Exception as e:
             print(f"Error updating UI from instrument: {str(e)}")
 
