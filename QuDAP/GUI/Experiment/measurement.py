@@ -1111,6 +1111,7 @@ class Measurement(QMainWindow):
             self.bk9129 = None
             self.client = None
             self.worker = None  # Initialize the worker to None
+            self.fmr_worker = None  # Initialize the worker to None
             self.notification = NotificationManager()
             self.disable_combobox_scrolling()
             self.init_ui()
@@ -2687,18 +2688,6 @@ class Measurement(QMainWindow):
                                 f"Please connect to PPMS client before start")
             return
         temp_field_dict = self.get_combined_field_temp_lists()
-        print(temp_field_dict)
-        if self.ppms_field_unidirectional_mode_radio_button.isChecked():
-            field_list = temp_field_dict['field_settings']['full_sweep_unidirectional']
-        if self.ppms_field_bidirectional_mode_radio_button.isChecked():
-            field_list = temp_field_dict['field_settings']['full_sweep_bidirectional']
-        temp_list = temp_field_dict['all_temps']
-        if hasattr(self, 'ppms_zone1_temp_rate_entry'):
-            rate = self.ppms_zone1_temp_rate_entry.text()
-        elif hasattr(self,'ppms_zone_cus_temp_rate_entry'):
-            rate = self.ppms_zone_cus_temp_rate_entry.text()
-        else:
-            rate = 5
 
         if self.BNC845RF_CONNECTED == False:
             QMessageBox.warning(self, "Missing Connection ",
@@ -2716,7 +2705,6 @@ class Measurement(QMainWindow):
             return
 
         # All settings are valid, proceed with measurement
-        print(f"Settings: {settings}")
         self.fmr_widget.apply_modulation_settings_to_instrument(settings=settings, instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         # reading = self.fmr_widget._get_modulation_readings_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
@@ -2725,6 +2713,419 @@ class Measurement(QMainWindow):
             QMessageBox.warning(self, "Missing Connection ",
                                 f"Please connect to lock-in amplifier client before start")
             return
+
+        dialog = LogWindow()
+        if dialog.exec():
+            try:
+                if self.fmr_worker is not None:
+                    self.stop_measurement()
+                try:
+                    self.main_layout.removeWidget(self.log_box)
+                    self.log_box.deleteLater()
+                    self.main_layout.removeWidget(self.progress_bar)
+                    self.progress_bar.deleteLater()
+                except Exception:
+                    pass
+
+                self.set_all_inputs_enabled(False)
+                self.measurement_active = True
+
+                # Update buttons
+                if hasattr(self, 'start_measurement_btn'):
+                    self.start_measurement_btn.setEnabled(False)
+                if hasattr(self, 'stop_btn'):
+                    self.stop_btn.setEnabled(True)
+                self.running = True
+                self.folder_path, self.file_name, self.formatted_date, self.sample_id, self.measurement, self.run, self.comment, self.user = dialog.get_text()
+                self.log_box = QTextEdit(self)
+                self.log_box.setReadOnly(True)  # Make the log box read-only
+                self.progress_bar = QProgressBar(self)
+                self.progress_bar.setMinimum(0)
+                self.progress_bar.setMaximum(100)
+                self.progress_bar.setFixedWidth(1140)
+                self.progress_value = 0
+                self.progress_bar.setValue(self.progress_value)
+                self.progress_bar.setStyleSheet("""
+                                    QProgressBar {
+                                        border: 1px solid #8f8f91;
+                                        border-radius: 5px;
+                                        background-color: #e0e0e0;
+                                        text-align: center;
+                                    }
+
+                                    QProgressBar::chunk {
+                                        background-color:  #3498db;
+                                        width: 5px;
+                                    }
+                                """)
+                self.log_box.setFixedSize(1140, 150)
+                self.main_layout.addWidget(self.progress_bar)
+                self.main_layout.addWidget(self.log_box, alignment=Qt.AlignmentFlag.AlignCenter)
+                self.log_box.clear()
+
+                self.folder_path = self.folder_path + f'Run_{self.run}/'
+                os.makedirs(self.folder_path, exist_ok=True)
+                self.random_number = random.randint(100000, 999999)
+
+                f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
+                today = datetime.datetime.today()
+                self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
+                f.write(f"User: {self.user}\n")
+                f.write(f"Today's Date: {self.formatted_date_csv}\n")
+                f.write(f"Sample ID: {self.sample_id}\n")
+                f.write(f"Measurement Type: {self.measurement}\n")
+                f.write(f"Run: {self.run}\n")
+                f.write(f"Comment: {self.comment}\n")
+
+                eto_number_of_avg = self.update_eto_average_label()
+                f.write(f"Number of Average: {eto_number_of_avg}\n")
+
+                init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
+                demag_field = float(self.eto_setting_demag_field_line_edit.text())
+                f.write(f"Demagnetization Field: {demag_field}\n")
+                # self.notification.send_notification(message="Measurement Start")
+                if self.eto_setting_zero_field_record_check_box.isChecked():
+                    record_zero_field = True
+                    f.write(f"Record Zero Field: Yes\n")
+                else:
+                    record_zero_field = False
+                    f.write(f"Record Zero Field: No\n")
+                if self.Ketihley_6221_Connected:
+                    self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
+                    if self.demo_mode:
+                        self.append_text("Model 6221 Demo", 'green')
+                    else:
+                        try:
+                            model_6221 = self.keithley_6221.query('*IDN?')
+                            self.append_text(str(model_6221), 'green')
+
+                        except visa.errors.VisaIOError as e:
+                            QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
+                            self.stop_measurement()
+                            return
+                    self.append_text('Keithley 6221 connected!\n', 'green')
+                if self.Keithley_2182_Connected:
+                    self.append_text('Check Connection of Keithley 2182....\n', 'yellow')
+                    if self.demo_mode:
+                        self.append_text("Model 2182 Demo", 'green')
+                    else:
+                        try:
+                            model_2182 = self.keithley_2182nv.query('*IDN?')
+                            self.keithley_2182nv.write(':SYST:BEEP:STAT 0')
+                            self.log_box.append(str(model_2182))
+                            # Initialize and configure the instrument
+                            # self.keithley_2182nv.write("*RST")
+                            self.keithley_2182nv.write("*CLS")
+                            f.write(f"Instrument: Keithley 2182nv enabled\n")
+                            self.nv_NPLC = self.NPLC_entry.text()
+                            f.write(f"\tNPLC (time constant): {self.nv_NPLC} \n")
+                            if self.keithley_2182_lsync_checkbox.isChecked():
+                                self.keithley_2182nv.write(":SYST:LSYNC ON")
+                                f.write(f"\tLine Synchronization: Enabled \n")
+                            else:
+                                self.keithley_2182nv.write(":SYST:LSYNC OFF")
+                                f.write(f"\tLine Synchronization: Disabled \n")
+                            keithley_2182_filter_index = self.keithley_2182_filter_button_group.checkedId()
+                            if keithley_2182_filter_index == 0:
+                                f.write(f"\tFilter: Digital Filter On \n")
+                                if self.keithley_2182_channel_1_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT ON")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
+                                elif self.keithley_2182_channel_2_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT ON")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
+                            elif keithley_2182_filter_index == 1:
+                                f.write(f"\tFilter: Analog Filter On \n")
+                                if self.keithley_2182_channel_1_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT ON")
+                                elif self.keithley_2182_channel_2_checkbox.isChecked():
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
+                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT ON")
+                            elif keithley_2182_filter_index == 2:
+                                f.write(f"\tFilter: All Filters Off \n")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
+                                self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
+                            if self.keithley_2182_channel_1_checkbox.isChecked():
+                                self.nv_channel_1_enabled = True
+                                f.write(f"\tChannel 1: enabled \n")
+                            else:
+                                self.nv_channel_1_enabled = False
+                                f.write(f"\tChannel 1: disabled \n")
+
+                            if self.keithley_2182_channel_2_checkbox.isChecked():
+                                self.nv_channel_2_enabled = True
+                                f.write(f"\tChannel 2: enabled \n")
+                            else:
+                                self.nv_channel_2_enabled = False
+                                f.write(f"\tChannel 2: disabled \n")
+                            time.sleep(2)  # Wait for the reset to complete.
+                        except visa.errors.VisaIOError as e:
+                            QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
+                            self.stop_measurement()
+                            return
+                    self.append_text('Keithley 2182 connected!\n', 'green')
+                dsp7265_current_time_constant = None
+                if self.DSP7265_Connected:
+                    self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
+                    if self.demo_mode:
+                        self.append_text("Model DSP 7265 Demo", 'green')
+                    else:
+                        try:
+                            model_7265 = self.DSP7265.query('ID')
+                            self.log_box.append(str(model_7265))
+                            f.write(f"Instrument: DSP 7265 enabled\n")
+                            time.sleep(2)  # Wait for the reset to complete
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
+                                self.DSP7265)
+                            f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
+                            f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
+                            f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
+                            f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
+                            f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
+                        except visa.errors.VisaIOError as e:
+                            QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
+                            self.stop_measurement()
+                            return
+                    self.append_text('DSP Lock-in 7265 connected!\n', 'green')
+
+                self.append_text('Start initializing parameters...!\n', 'orange')
+                self.append_text('Start initializing Temperatures...!\n', 'blue')
+
+                # =============================== Set the current ==================================== #
+                f.write(f"Instrument: Keithley 6221 enabled\n")
+                if self.keithley_6221_DC_radio.isChecked():
+                    f.write(f"\tKeithley 6221 DC current: enabled\n")
+                    self.keithley_6221_dc_config = True
+                    if self.keithley_6221_DC_range_checkbox.isChecked():
+                        init_current = float(self.keithley_6221_DC_range_init_entry.text())
+                        final_current = float(self.keithley_6221_DC_range_final_entry.text())
+                        step_current = float(self.keithley_6221_DC_range_step_entry.text())
+                        self.DC_Range_unit = self.keithley_6221_DC_range_combobox.currentIndex()
+                        if self.DC_Range_unit != 0:
+                            if self.DC_Range_unit == 1:  # mA
+                                DC_range_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.DC_Range_unit == 2:  # uA
+                                DC_range_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.DC_Range_unit == 3:  # nA
+                                DC_range_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.DC_Range_unit == 4:  # pA
+                                DC_range_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{i}{DC_range_selected_unit}" for i in
+                                   float_range(init_current, final_current + step_current, step_current)]
+                        current_mag = [f"{i}" for i in
+                                       float_range(init_current, final_current + step_current, step_current)]
+                    elif self.keithley_6221_DC_single_checkbox.isChecked():
+
+                        self.single_DC_current = self.keithley_6221_DC_single_entry.text()
+                        self.single_DC_current = self.single_DC_current.replace(" ", "")
+                        self.single_DC_current = [float(item) for item in self.single_DC_current.split(',')]
+                        self.DC_Single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
+                        if self.DC_Single_unit != 0:
+                            if self.DC_Single_unit == 1:  # mA
+                                DC_single_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.DC_Single_unit == 2:  # uA
+                                DC_single_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.DC_Single_unit == 3:  # nA
+                                DC_single_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.DC_Single_unit == 4:  # pA
+                                DC_single_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{self.single_DC_current[i]}{DC_single_selected_unit}" for i in
+                                   range(len(self.single_DC_current))]
+                        current_mag = [f"{self.single_DC_current[i]}" for i in range(len(self.single_DC_current))]
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                        self.stop_measurement()
+                        return
+                elif self.keithley_6221_ac_radio.isChecked():
+                    self.select_keithley6221_phase_maker()
+                    f.write(f"\tKeithley 6221 AC current: enabled\n")
+                    self.keithley_6221_ac_config = True
+                    if self.keithley_6221_ac_range_checkbox.isChecked():
+                        init_current = float(self.keithley_6221_ac_range_init_entry.text())
+                        final_current = float(self.keithley_6221_ac_range_final_entry.text())
+                        step_current = float(self.keithley_6221_ac_range_step_entry.text())
+                        self.ac_range_unit = self.keithley_6221_ac_range_combobox.currentIndex()
+                        if self.ac_range_unit != 0:
+                            if self.ac_range_unit == 1:  # mA
+                                ac_range_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.ac_range_unit == 2:  # uA
+                                ac_range_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.ac_range_unit == 3:  # nA
+                                ac_range_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.ac_range_unit == 4:  # pA
+                                ac_range_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{i}{ac_range_selected_unit}" for i in
+                                   float_range(init_current, final_current + step_current, step_current)]
+                        current_mag = [f"{i}" for i in
+                                       float_range(init_current, final_current + step_current, step_current)]
+                    elif self.keithley_6221_ac_single_checkbox.isChecked():
+                        self.single_ac_current = self.keithley_6221_ac_single_entry.text()
+                        self.single_ac_current = self.single_ac_current.replace(" ", "")
+                        self.single_ac_current = [float(item) for item in self.single_ac_current.split(',')]
+                        self.ac_single_unit = self.keithley_6221_ac_single_combobox.currentIndex()
+                        if self.ac_single_unit != 0:
+                            if self.ac_single_unit == 1:  # mA
+                                ac_range_selected_unit = 'e-3'
+                                self.current_unit = 'mA'
+                            elif self.ac_single_unit == 2:  # uA
+                                ac_range_selected_unit = 'e-6'
+                                self.current_unit = 'uA'
+                            elif self.ac_single_unit == 3:  # nA
+                                ac_range_selected_unit = 'e-9'
+                                self.current_unit = 'nA'
+                            elif self.ac_single_unit == 4:  # pA
+                                ac_range_selected_unit = 'e-12'
+                                self.current_unit = 'pA'
+                        else:
+                            QMessageBox.warning(self, "Missing Items",
+                                                "Please select all the required parameter - missing current unit")
+                            self.stop_measurement()
+                            return
+                        current = [f"{self.single_ac_current[i]}{ac_range_selected_unit}" for i in
+                                   range(len(self.single_ac_current))]
+                        current_mag = [f"{self.single_ac_current[i]}" for i in range(len(self.single_ac_current))]
+
+                    else:
+                        QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
+                        self.stop_measurement()
+                        return
+
+                    ac_current_waveform_index = self.keithley_6221_ac_waveform_combo_box.currentIndex()
+                    if ac_current_waveform_index != 0:
+                        if ac_current_waveform_index == 1:  # sine
+                            self.ac_current_waveform = "SIN"
+                            f.write("\tKeithley 6221 AC waveform: SIN\n")
+                        elif ac_current_waveform_index == 2:  # square
+                            self.ac_current_waveform = "SQU"
+                            f.write("\tKeithley 6221 AC waveform: SQU\n")
+                        elif ac_current_waveform_index == 3:  # ramp
+                            self.ac_current_waveform = "RAMP"
+                            f.write("\tKeithley 6221 AC waveform: RAMP\n")
+                        elif ac_current_waveform_index == 4:  # arbx
+                            self.ac_current_waveform = "ARB0"
+                            f.write("\tKeithley 6221 AC waveform: ARB0\n")
+
+                    self.ac_current_freq = self.keithley_6221_ac_freq_entry_box.text()
+                    f.write(f"\tKeithley 6221 AC frequency: {self.ac_current_freq}\n")
+                    self.ac_current_offset = self.keithley_6221_ac_offset_entry_box.text()
+                    self.ac_offset_unit = self.keithley_6221_ac_offset_units_combo.currentIndex()
+                    if self.ac_offset_unit == 0:
+                        ac_offset_unit = ''
+                    elif self.ac_offset_unit == 1:  # mA
+                        ac_offset_unit = 'e-3'
+                    elif self.ac_offset_unit == 2:  # uA
+                        ac_offset_unit = 'e-6'
+                    elif self.ac_offset_unit == 3:  # nA
+                        ac_offset_unit = 'e-9'
+                    elif self.ac_offset_unit == 4:  # pA
+                        ac_offset_unit = 'e-12'
+                    self.ac_current_offset = self.ac_current_offset + ac_offset_unit
+                    f.write(f"\tKeithley 6221 AC offset: {self.ac_current_offset}\n")
+
+                self.append_text('Create Log...!\n', 'green')
+
+                f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
+                f.write(f"Experiment Temperature (K): {temp_log}\n")
+                if self.ppms_field_fixed_mode_radio_button.isChecked():
+                    self.field_mode_fixed = True
+                    f.write(f"Experiment Field Mode: Fixed field mode\n")
+                else:
+                    self.field_mode_fixed = False
+                    f.write(f"Experiment Field Mode: Continuous sweep\n")
+
+                    f.write(f"Experiment Current: {listToString(current)}\n")
+                if self.BNC845RF_CONNECTED:
+                    f.write(f"Instrument: BNC845RF\n")
+                if self.DSP7265_Connected:
+                    f.write(f"Instrument: DSP 7265 Lock-in\n")
+                f.close()
+                NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
+
+                self.canvas.axes.cla()
+                self.canvas.axes_2.cla()
+                self.canvas.draw()
+                self.worker = Worker(self, self.keithley_6221, self.keithley_2182nv, self.DSP7265, current, TempList,
+                                     topField,
+                                     botField, self.folder_path, self.client, tempRate, current_mag, self.current_unit,
+                                     self.file_name, self.run, number_of_field, self.field_mode_fixed,
+                                     self.nv_channel_1_enabled, self.nv_channel_2_enabled, self.nv_NPLC,
+                                     self.ppms_field_One_zone_radio_enabled, self.ppms_field_Two_zone_radio_enabled,
+                                     self.ppms_field_Three_zone_radio_enabled, self.zone1_step_field,
+                                     self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
+                                     self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
+                                     self.zone2_field_rate, self.zone3_field_rate, self.Keithley_2182_Connected,
+                                     self.Ketihley_6221_Connected, dsp7265_current_time_constant,
+                                     self.DSP7265_Connected, self.demo_mode,
+                                     self.keithley_6221_dc_config, self.keithley_6221_ac_config,
+                                     self.ac_current_waveform,
+                                     self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
+                                     demag_field, record_zero_field)  # Create a worker instance
+                self.worker.progress_update.connect(self.update_progress)
+                self.worker.append_text.connect(self.append_text)
+                self.worker.stop_measurment.connect(self.stop_measurement)
+                self.worker.update_ppms_temp_reading_label.connect(self.update_ppms_temp_reading_label)
+                self.worker.update_ppms_field_reading_label.connect(self.update_ppms_field_reading_label)
+                self.worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
+                self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
+                self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
+                self.worker.update_lockin_label.connect(self.update_lockin_label)
+                self.worker.update_plot.connect(self.update_plot)
+                self.worker.save_plot.connect(self.save_plot)
+                self.worker.clear_plot.connect(self.clear_plot)
+                self.worker.measurement_finished.connect(self.measurement_finished)
+                self.worker.error_message.connect(self.error_popup)
+                self.worker.update_measurement_progress.connect(self.update_measurement_progress)
+                self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
+                self.worker.update_keithley_6221_update_label.connect(self.update_keithley_6221_update_label)
+                self.worker.start()  # Start the worker thread
+                # self.worker.wait()
+                # self.stop_measurement()
+            except SystemExit as e:
+                QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
+                self.stop_measurement()
+                self.notification.send_notification(
+                    message="Your measurement went wrong, possible PPMS client lost connection")
+                self.client_keep_going = False
+                self.connect_btn.setText('Start Client')
+                self.connect_btn_clicked = False
+                self.server_btn.setEnabled(True)
+
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                self.stop_measurement()
+                QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
+
+                self.notification.send_notification(message=f"Error-{tb_str} {str(e)}")
 
     def bnc845rf_window_ui(self):
         self.fmr_widget = FMR_Measurement(bnc845=self.bnc845rf)
@@ -4362,6 +4763,11 @@ class Measurement(QMainWindow):
         settings = {}
 
         try:
+            if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+                settings['field_direction'] = 'unidirectional'
+            elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
+                settings['field_direction'] = 'bidirectional'
+
             # Determine which field zone is selected
             if hasattr(self, 'Field_setup_Zone_1') and self.Field_setup_Zone_1:
                 settings['field_zone_count'] = 1
@@ -4370,7 +4776,8 @@ class Measurement(QMainWindow):
                     'zone_1': zone_1
                 }
                 # Create full sweep: from → to → from
-                settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
+                if self.ppms_field_fixed_mode_radio_button.isChecked():
+                    settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
 
             elif hasattr(self, 'Field_setup_Zone_2') and self.Field_setup_Zone_2:
                 settings['field_zone_count'] = 2
@@ -4381,7 +4788,8 @@ class Measurement(QMainWindow):
                     'zone_2': zone_2
                 }
                 # Create full sweep: zone1(from→to) → zone2(from→to) → zone2(to→from) → zone1(to→from)
-                settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
+                if self.ppms_field_fixed_mode_radio_button.isChecked():
+                    settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
 
             elif hasattr(self, 'Field_setup_Zone_3') and self.Field_setup_Zone_3:
                 settings['field_zone_count'] = 3
@@ -4394,7 +4802,8 @@ class Measurement(QMainWindow):
                     'zone_3': zone_3
                 }
                 # Create full sweep: z1 → z2 → z3 → z3(reverse) → z2(reverse) → z1(reverse)
-                settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2, zone_3])
+                if self.ppms_field_fixed_mode_radio_button.isChecked():
+                    settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2, zone_3])
 
             # Get field mode (continuous or stepped)
             if hasattr(self, 'ppms_field_cointinous_mode_radio_button'):
@@ -4464,7 +4873,8 @@ class Measurement(QMainWindow):
             zone_data = {
                 'from': float(self.ppms_zone1_from_entry.text()),
                 'to': float(self.ppms_zone1_to_entry.text()),
-                'step': float(self.ppms_zone1_field_step_entry.text()),
+                'step': float(self.ppms_zone1_field_step_entry.text()) if self.ppms_zone1_field_step_entry.text() != '' else [],
+                'rate': float(self.ppms_zone1_field_rate_entry.text()),
                 'unit': 'Oe'  # Assuming Oersteds
             }
 
@@ -4473,7 +4883,7 @@ class Measurement(QMainWindow):
                 zone_data['from'],
                 zone_data['to'],
                 zone_data['step']
-            )
+            ) if zone_data['step'] != [] else []
 
             return zone_data
 
@@ -4487,7 +4897,8 @@ class Measurement(QMainWindow):
             zone_data = {
                 'from': float(self.ppms_zone2_from_entry.text()),
                 'to': float(self.ppms_zone2_to_entry.text()),
-                'step': float(self.ppms_zone2_field_step_entry.text()),
+                'step': float(self.ppms_zone2_field_step_entry.text()) if self.ppms_zone2_field_step_entry.text() != '' else [],
+                'rate': float(self.ppms_zone2_field_rate_entry.text()),
                 'unit': 'Oe'
             }
 
@@ -4495,7 +4906,7 @@ class Measurement(QMainWindow):
                 zone_data['from'],
                 zone_data['to'],
                 zone_data['step']
-            )
+            ) if zone_data['step'] != [] else []
 
             return zone_data
 
@@ -4509,7 +4920,8 @@ class Measurement(QMainWindow):
             zone_data = {
                 'from': float(self.ppms_zone3_from_entry.text()),
                 'to': float(self.ppms_zone3_to_entry.text()),
-                'step': float(self.ppms_zone3_field_step_entry.text()),
+                'step': float(self.ppms_zone3_field_step_entry.text()) if self.ppms_zone3_field_step_entry.text() != '' else [],
+                'rate': float(self.ppms_zone3_field_rate_entry.text()),
                 'unit': 'Oe'
             }
 
@@ -4517,7 +4929,7 @@ class Measurement(QMainWindow):
                 zone_data['from'],
                 zone_data['to'],
                 zone_data['step']
-            )
+            ) if zone_data['step'] != [] else []
 
             return zone_data
 
