@@ -14,6 +14,9 @@ import threading
 import pyvisa as visa
 import matplotlib
 import numpy as np
+
+# from QuDAP.GUI.Experiment.MeasurementMain.PPMS import botField
+
 if platform.system() == 'Windows':
     import MultiPyVu as mpv  # Uncommented it on the server computer
     from MultiPyVu import MultiVuClient as mvc, MultiPyVuError
@@ -801,7 +804,7 @@ class Worker(QThread):
         self.zone2_field_rate = zone2_field_rate
         self.zone3_field_rate = zone3_field_rate
         self.Keithley_2182_Connected = Keithley_2182_Connected
-        self.Ketihley_6221_Connected = Ketihley_6221_Connected
+        self.ketihley_6221_connected = Ketihley_6221_Connected
         self.dsp7265_current_time_constant = dsp7265_current_time_constant
         self.DSP7265_Connected = DSP7265_Connected
         self.demo = demo
@@ -857,7 +860,7 @@ class Worker(QThread):
                                               zone2_field_rate=self.zone2_field_rate,
                                               zone3_field_rate=self.zone3_field_rate,
                                               Keithley_2182_Connected=self.Keithley_2182_Connected,
-                                              Ketihley_6221_Connected=self.Ketihley_6221_Connected,
+                                              Ketihley_6221_Connected=self.ketihley_6221_connected,
                                               dsp7265_current_time_constant=self.dsp7265_current_time_constant,
                                               DSP7265_Connected=self.DSP7265_Connected,
                                               running=lambda: self.running,
@@ -1100,7 +1103,7 @@ class Measurement(QMainWindow):
             self.CUSTOMIZED_1 = False
             self.demo_mode = False
             self.Keithley_2182_Connected = False
-            self.Ketihley_6221_Connected = False
+            self.ketihley_6221_connected = False
             self.BNC845RF_CONNECTED = False
             self.DSP7265_Connected = False
             self.BK9129B_CONNECTED = False
@@ -2149,7 +2152,7 @@ class Measurement(QMainWindow):
                     try:
                         self.connect_keithley_6221()
                     except Exception as e:
-                        self.Ketihley_6221_Connected = False
+                        self.ketihley_6221_connected = False
                         tb_str = traceback.format_exc()
                         QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                         self.instru_connect_btn.setText('Connect')
@@ -2201,7 +2204,7 @@ class Measurement(QMainWindow):
                 try:
                     self.connect_keithley_6221()
                 except Exception as e:
-                    self.Ketihley_6221_Connected = False
+                    self.ketihley_6221_connected = False
                     tb_str = traceback.format_exc()
                     QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
                     self.instru_connect_btn.setText('Connect')
@@ -2336,7 +2339,7 @@ class Measurement(QMainWindow):
         instruments = rm.list_resources()
         self.connection_ports = [instr for instr in instruments]
         self.Keithley_2182_Connected = False
-        self.Ketihley_6221_Connected = False
+        self.ketihley_6221_connected = False
         self.BNC845RF_CONNECTED = False
         self.DSP7265_Connected = False
         self.instru_connect_btn.setText('Connect')
@@ -2434,7 +2437,7 @@ class Measurement(QMainWindow):
             self.Keithley_2182_Connected = False
 
     def connect_keithley_6221(self):
-        if self.Ketihley_6221_Connected == False:
+        if self.ketihley_6221_connected == False:
             try:
                 if not self.demo_mode:
                     self.keithley_6221 = self.rm.open_resource(self.current_connection)
@@ -2451,16 +2454,16 @@ class Measurement(QMainWindow):
                 #                                              read_termination='\n')
                 # ---------------------------------------------------------
                 time.sleep(2)
-                self.Ketihley_6221_Connected = True
+                self.ketihley_6221_connected = True
                 self.instru_connect_btn.setText('Disconnect')
                 self.keithley6221_window_ui()
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
-                self.Ketihley_6221_Connected = False
+                self.ketihley_6221_connected = False
         else:
             self.instru_connect_btn.setText('Connect')
             self.close_keithley_6221()
-            self.Ketihley_6221_Connected = False
+            self.ketihley_6221_connected = False
 
     def connect_dsp7265(self):
         if self.DSP7265_Connected == False:
@@ -2591,7 +2594,7 @@ class Measurement(QMainWindow):
             if not self.demo_mode:
                 self.keithley_6221.close()
                 self.update_keithley_6221_update_label('N/A', 'OFF')
-            self.Ketihley_6221_Connected = False
+            self.ketihley_6221_connected = False
             self.clear_layout(self.keithley6221_main_layout)
         except Exception as e:
             tb_str = traceback.format_exc()
@@ -2634,7 +2637,7 @@ class Measurement(QMainWindow):
                 else:
                     self.instru_connect_btn.setText('Connect')
             elif self.current_connection_index == 2:
-                if self.Ketihley_6221_Connected:
+                if self.ketihley_6221_connected:
                     self.instru_connect_btn.setText('Disconnect')
                 else:
                     self.instru_connect_btn.setText('Connect')
@@ -2695,7 +2698,7 @@ class Measurement(QMainWindow):
             return
 
             # Validate all settings
-        is_valid, settings, errors = self.fmr_widget.validate_and_get_all_settings()
+        is_valid, bnc_845_settings, errors = self.fmr_widget.validate_and_get_all_settings()
 
         if not is_valid:
             # Show error messages to user
@@ -2709,17 +2712,16 @@ class Measurement(QMainWindow):
         # reading = self.fmr_widget._get_modulation_readings_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
 
-        if self.DSP7265_Connected == False:
-            QMessageBox.warning(self, "Missing Connection ",
-                                f"Please connect to lock-in amplifier client before start")
-            return
-
+        # if self.DSP7265_Connected == False:
+        #     QMessageBox.warning(self, "Missing Connection ",
+        #                         f"Please connect to lock-in amplifier client before start")
+        #     return
+        measurement_setting = {}
         dialog = LogWindow()
         if dialog.exec():
+            self._get_log_window_data(dialog)
             try:
                 self._prepare_measurement_ui()
-                self._get_log_window_data(dialog)
-
                 f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
                 today = datetime.datetime.today()
                 self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
@@ -2732,331 +2734,127 @@ class Measurement(QMainWindow):
                 if self.ETO_FIELD_DEP or self.demo_mode:
                     eto_number_of_avg = self.update_eto_average_label()
                     f.write(f"Number of Average: {eto_number_of_avg}\n")
-                else:
-                    None
-                init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
-                demag_field = float(self.eto_setting_demag_field_line_edit.text())
-                f.write(f"Demagnetization Field: {demag_field}\n")
-                # self.notification.send_notification(message="Measurement Start")
-                if self.eto_setting_zero_field_record_check_box.isChecked():
-                    record_zero_field = True
-                    f.write(f"Record Zero Field: Yes\n")
-                else:
-                    record_zero_field = False
-                    f.write(f"Record Zero Field: No\n")
-                if self.Ketihley_6221_Connected:
-                    self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
+                    init_temp_rate = float(self.eto_setting_init_temp_rate_line_edit.text())
+                    f.write(f"Initial Temperature Rate: {init_temp_rate}\n")
+                    demag_field = float(self.eto_setting_demag_field_line_edit.text())
+                    f.write(f"Demagnetization Field: {demag_field}\n")
+                    if self.eto_setting_zero_field_record_check_box.isChecked():
+                        record_zero_field = True
+                        f.write(f"Record Zero Field: Yes\n")
+                    else:
+                        record_zero_field = False
+                        f.write(f"Record Zero Field: No\n")
+                elif self.FMR_ST_FMR:
+                    st_fmr_repetition_number = self.update_st_fmr_repetition_label()
+                    f.write(f"Number of Repetition: {st_fmr_repetition_number}\n")
+                    init_temp_rate = float(self.fmr_setting_init_temp_rate_line_edit.text())
+                    f.write(f"Initial Temperature Rate: {init_temp_rate}\n")
+                    measurement_setting['init_temp_rate'] = init_temp_rate
+                    measurement_setting['number_repetition'] = st_fmr_repetition_number
+
+                if self.DSP7265_Connected:
+                    dsp7265_current_time_constant = None
+                    self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
                     if self.demo_mode:
-                        self.append_text("Model 6221 Demo", 'green')
+                        self.append_text("Model DSP 7265 Demo", 'green')
                     else:
                         try:
-                            model_6221 = self.keithley_6221.query('*IDN?')
-                            self.append_text(str(model_6221), 'green')
-
+                            model_7265 = self.DSP7265.query('ID')
+                            self.log_box.append(str(model_7265))
+                            f.write(f"Instrument: DSP 7265 enabled\n")
+                            time.sleep(2)  # Wait for the reset to complete
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
+                                self.DSP7265)
+                            f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
+                            f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
+                            f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
+                            f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
+                            f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
+                            slope_number = 1
+                            dsp7265_delay_config = dsp7265_current_time_constant * slope_number
                         except visa.errors.VisaIOError as e:
-                            QMessageBox.warning(self, 'Fail to connect Keithley 6221', str(e))
+                            QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
                             self.stop_measurement()
                             return
-                    self.append_text('Keithley 6221 connected!\n', 'green')
-                if self.Keithley_2182_Connected:
-                    self.append_text('Check Connection of Keithley 2182....\n', 'yellow')
-                    if self.demo_mode:
-                        self.append_text("Model 2182 Demo", 'green')
+                    self.append_text('DSP Lock-in 7265 connected!\n', 'green')
+                if self.BNC845RF_CONNECTED:
+                    self.append_text('Check Connection of BNC 845 RF....\n', 'yellow')
+                    try:
+                        model_bnc845rf = self.bnc845rf_command.get_id(self.bnc845rf)
+                        self.append_text(str(model_bnc845rf), 'green')
+                        f.write(f"Instrument: BNC 845 RF enabled\n")
+                    except visa.errors.VisaIOError as e:
+                        QMessageBox.warning(self, 'Fail to connect BNC 845 RF', str(e))
+                        self.stop_measurement()
+                        return
+                    self.append_text('BNC 845 RF connected!\n', 'green')
+                    frequency_list = bnc_845_settings['frequency_settings']['Final_list']
+                    start_frequency = frequency_list[0]
+                    start_frequency = self.fmr_widget.format_frequency_with_unit(start_frequency)
+                    end_frequency = frequency_list[-1]
+                    end_frequency = self.fmr_widget.format_frequency_with_unit(
+                        end_frequency)
+                    if len(frequency_list) > 1:
+                        step_frequency = frequency_list[1] - frequency_list[0]
+                        step_frequency = self.fmr_widget.format_frequency_with_unit(
+                            step_frequency)
                     else:
-                        try:
-                            model_2182 = self.keithley_2182nv.query('*IDN?')
-                            self.keithley_2182nv.write(':SYST:BEEP:STAT 0')
-                            self.log_box.append(str(model_2182))
-                            # Initialize and configure the instrument
-                            # self.keithley_2182nv.write("*RST")
-                            self.keithley_2182nv.write("*CLS")
-                            f.write(f"Instrument: Keithley 2182nv enabled\n")
-                            self.nv_NPLC = self.NPLC_entry.text()
-                            f.write(f"\tNPLC (time constant): {self.nv_NPLC} \n")
-                            if self.keithley_2182_lsync_checkbox.isChecked():
-                                self.keithley_2182nv.write(":SYST:LSYNC ON")
-                                f.write(f"\tLine Synchronization: Enabled \n")
-                            else:
-                                self.keithley_2182nv.write(":SYST:LSYNC OFF")
-                                f.write(f"\tLine Synchronization: Disabled \n")
-                            keithley_2182_filter_index = self.keithley_2182_filter_button_group.checkedId()
-                            if keithley_2182_filter_index == 0:
-                                f.write(f"\tFilter: Digital Filter On \n")
-                                if self.keithley_2182_channel_1_checkbox.isChecked():
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT ON")
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
-                                elif self.keithley_2182_channel_2_checkbox.isChecked():
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT ON")
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
-                            elif keithley_2182_filter_index == 1:
-                                f.write(f"\tFilter: Analog Filter On \n")
-                                if self.keithley_2182_channel_1_checkbox.isChecked():
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT ON")
-                                elif self.keithley_2182_channel_2_checkbox.isChecked():
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
-                                    self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT ON")
-                            elif keithley_2182_filter_index == 2:
-                                f.write(f"\tFilter: All Filters Off \n")
-                                self.keithley_2182nv.write(":SENS:VOLT:CHAN1:DFIL:STAT OFF")
-                                self.keithley_2182nv.write(":SENS:VOLT:CHAN2:DFIL:STAT OFF")
-                                self.keithley_2182nv.write(":SENS:VOLT:CHAN1:LPAS:STAT OFF")
-                                self.keithley_2182nv.write(":SENS:VOLT:CHAN2:LPAS:STAT OFF")
-                            if self.keithley_2182_channel_1_checkbox.isChecked():
-                                self.nv_channel_1_enabled = True
-                                f.write(f"\tChannel 1: enabled \n")
-                            else:
-                                self.nv_channel_1_enabled = False
-                                f.write(f"\tChannel 1: disabled \n")
+                        step_frequency = 'N/A'
 
-                            if self.keithley_2182_channel_2_checkbox.isChecked():
-                                self.nv_channel_2_enabled = True
-                                f.write(f"\tChannel 2: enabled \n")
-                            else:
-                                self.nv_channel_2_enabled = False
-                                f.write(f"\tChannel 2: disabled \n")
-                            time.sleep(2)  # Wait for the reset to complete.
-                        except visa.errors.VisaIOError as e:
-                            QMessageBox.warning(self, 'Fail to connect Keithley 2182', str(e))
-                            self.stop_measurement()
-                            return
-                    self.append_text('Keithley 2182 connected!\n', 'green')
-                dsp7265_current_time_constant = None
-                # if self.DSP7265_Connected:
-                #     self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
-                #     if self.demo_mode:
-                #         self.append_text("Model DSP 7265 Demo", 'green')
-                #     else:
-                #         try:
-                #             model_7265 = self.DSP7265.query('ID')
-                #             self.log_box.append(str(model_7265))
-                #             f.write(f"Instrument: DSP 7265 enabled\n")
-                #             time.sleep(2)  # Wait for the reset to complete
-                #             dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
-                #                 self.DSP7265)
-                #             f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
-                #             f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
-                #             f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
-                #             f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
-                #             f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
-                #         except visa.errors.VisaIOError as e:
-                #             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
-                #             self.stop_measurement()
-                #             return
-                #     self.append_text('DSP Lock-in 7265 connected!\n', 'green')
+                    power_list = bnc_845_settings['power_settings']['Final_list']
+                    start_power = power_list[0]
+                    end_power = power_list[-1]
+                    if len(power_list) > 1:
+                        step_power = power_list[1] - power_list[0]
+                    else:
+                        step_power = 'N/A'
+
+                    f.write(f"\tBNC 845 RF Loop Type: {bnc_845_settings['loop_type']}\n")
+                    f.write(f"\tBNC 845 RF Frequency Start: {start_frequency}\n")
+                    f.write(f"\tBNC 845 RF Frequency End: {end_frequency}\n")
+                    # f.write(f"\tBNC 845 RF Frequency Step: {step_frequency}\n")
+                    f.write(f"\tBNC 845 RF Power Start: {start_power} dBm\n")
+                    f.write(f"\tBNC 845 RF Power End: {end_power} dBm\n")
+                    # f.write(f"\tBNC 845 RF Power Step: {step_power} dBm\n")
+                    f.write(f"\tBNC 845 RF Modulation: {bnc_845_settings['modulation_settings']}\n")
 
                 self.append_text('Start initializing parameters...!\n', 'orange')
                 self.append_text('Start initializing Temperatures...!\n', 'blue')
 
                 # =============================== Set the current ==================================== #
-                f.write(f"Instrument: Keithley 6221 enabled\n")
-                # if self.keithley_6221_DC_radio.isChecked():
-                #     f.write(f"\tKeithley 6221 DC current: enabled\n")
-                #     self.keithley_6221_dc_config = True
-                #     if self.keithley_6221_DC_range_checkbox.isChecked():
-                #         init_current = float(self.keithley_6221_DC_range_init_entry.text())
-                #         final_current = float(self.keithley_6221_DC_range_final_entry.text())
-                #         step_current = float(self.keithley_6221_DC_range_step_entry.text())
-                #         self.DC_Range_unit = self.keithley_6221_DC_range_combobox.currentIndex()
-                #         if self.DC_Range_unit != 0:
-                #             if self.DC_Range_unit == 1:  # mA
-                #                 DC_range_selected_unit = 'e-3'
-                #                 self.current_unit = 'mA'
-                #             elif self.DC_Range_unit == 2:  # uA
-                #                 DC_range_selected_unit = 'e-6'
-                #                 self.current_unit = 'uA'
-                #             elif self.DC_Range_unit == 3:  # nA
-                #                 DC_range_selected_unit = 'e-9'
-                #                 self.current_unit = 'nA'
-                #             elif self.DC_Range_unit == 4:  # pA
-                #                 DC_range_selected_unit = 'e-12'
-                #                 self.current_unit = 'pA'
-                #         else:
-                #             QMessageBox.warning(self, "Missing Items",
-                #                                 "Please select all the required parameter - missing current unit")
-                #             self.stop_measurement()
-                #             return
-                #         current = [f"{i}{DC_range_selected_unit}" for i in
-                #                    float_range(init_current, final_current + step_current, step_current)]
-                #         current_mag = [f"{i}" for i in
-                #                        float_range(init_current, final_current + step_current, step_current)]
-                #     elif self.keithley_6221_DC_single_checkbox.isChecked():
-                #
-                #         self.single_DC_current = self.keithley_6221_DC_single_entry.text()
-                #         self.single_DC_current = self.single_DC_current.replace(" ", "")
-                #         self.single_DC_current = [float(item) for item in self.single_DC_current.split(',')]
-                #         self.DC_Single_unit = self.keithley_6221_DC_single_combobox.currentIndex()
-                #         if self.DC_Single_unit != 0:
-                #             if self.DC_Single_unit == 1:  # mA
-                #                 DC_single_selected_unit = 'e-3'
-                #                 self.current_unit = 'mA'
-                #             elif self.DC_Single_unit == 2:  # uA
-                #                 DC_single_selected_unit = 'e-6'
-                #                 self.current_unit = 'uA'
-                #             elif self.DC_Single_unit == 3:  # nA
-                #                 DC_single_selected_unit = 'e-9'
-                #                 self.current_unit = 'nA'
-                #             elif self.DC_Single_unit == 4:  # pA
-                #                 DC_single_selected_unit = 'e-12'
-                #                 self.current_unit = 'pA'
-                #         else:
-                #             QMessageBox.warning(self, "Missing Items",
-                #                                 "Please select all the required parameter - missing current unit")
-                #             self.stop_measurement()
-                #             return
-                #         current = [f"{self.single_DC_current[i]}{DC_single_selected_unit}" for i in
-                #                    range(len(self.single_DC_current))]
-                #         current_mag = [f"{self.single_DC_current[i]}" for i in range(len(self.single_DC_current))]
-                #     else:
-                #         QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
-                #         self.stop_measurement()
-                #         return
-                # elif self.keithley_6221_ac_radio.isChecked():
-                #     self.select_keithley6221_phase_maker()
-                #     f.write(f"\tKeithley 6221 AC current: enabled\n")
-                #     self.keithley_6221_ac_config = True
-                #     if self.keithley_6221_ac_range_checkbox.isChecked():
-                #         init_current = float(self.keithley_6221_ac_range_init_entry.text())
-                #         final_current = float(self.keithley_6221_ac_range_final_entry.text())
-                #         step_current = float(self.keithley_6221_ac_range_step_entry.text())
-                #         self.ac_range_unit = self.keithley_6221_ac_range_combobox.currentIndex()
-                #         if self.ac_range_unit != 0:
-                #             if self.ac_range_unit == 1:  # mA
-                #                 ac_range_selected_unit = 'e-3'
-                #                 self.current_unit = 'mA'
-                #             elif self.ac_range_unit == 2:  # uA
-                #                 ac_range_selected_unit = 'e-6'
-                #                 self.current_unit = 'uA'
-                #             elif self.ac_range_unit == 3:  # nA
-                #                 ac_range_selected_unit = 'e-9'
-                #                 self.current_unit = 'nA'
-                #             elif self.ac_range_unit == 4:  # pA
-                #                 ac_range_selected_unit = 'e-12'
-                #                 self.current_unit = 'pA'
-                #         else:
-                #             QMessageBox.warning(self, "Missing Items",
-                #                                 "Please select all the required parameter - missing current unit")
-                #             self.stop_measurement()
-                #             return
-                #         current = [f"{i}{ac_range_selected_unit}" for i in
-                #                    float_range(init_current, final_current + step_current, step_current)]
-                #         current_mag = [f"{i}" for i in
-                #                        float_range(init_current, final_current + step_current, step_current)]
-                #     elif self.keithley_6221_ac_single_checkbox.isChecked():
-                #         self.single_ac_current = self.keithley_6221_ac_single_entry.text()
-                #         self.single_ac_current = self.single_ac_current.replace(" ", "")
-                #         self.single_ac_current = [float(item) for item in self.single_ac_current.split(',')]
-                #         self.ac_single_unit = self.keithley_6221_ac_single_combobox.currentIndex()
-                #         if self.ac_single_unit != 0:
-                #             if self.ac_single_unit == 1:  # mA
-                #                 ac_range_selected_unit = 'e-3'
-                #                 self.current_unit = 'mA'
-                #             elif self.ac_single_unit == 2:  # uA
-                #                 ac_range_selected_unit = 'e-6'
-                #                 self.current_unit = 'uA'
-                #             elif self.ac_single_unit == 3:  # nA
-                #                 ac_range_selected_unit = 'e-9'
-                #                 self.current_unit = 'nA'
-                #             elif self.ac_single_unit == 4:  # pA
-                #                 ac_range_selected_unit = 'e-12'
-                #                 self.current_unit = 'pA'
-                #         else:
-                #             QMessageBox.warning(self, "Missing Items",
-                #                                 "Please select all the required parameter - missing current unit")
-                #             self.stop_measurement()
-                #             return
-                #         current = [f"{self.single_ac_current[i]}{ac_range_selected_unit}" for i in
-                #                    range(len(self.single_ac_current))]
-                #         current_mag = [f"{self.single_ac_current[i]}" for i in range(len(self.single_ac_current))]
-                #
-                #     else:
-                #         QMessageBox.warning(self, 'Warning', 'Please choose one of the options')
-                #         self.stop_measurement()
-                #         return
-                #
-                #     ac_current_waveform_index = self.keithley_6221_ac_waveform_combo_box.currentIndex()
-                #     if ac_current_waveform_index != 0:
-                #         if ac_current_waveform_index == 1:  # sine
-                #             self.ac_current_waveform = "SIN"
-                #             f.write("\tKeithley 6221 AC waveform: SIN\n")
-                #         elif ac_current_waveform_index == 2:  # square
-                #             self.ac_current_waveform = "SQU"
-                #             f.write("\tKeithley 6221 AC waveform: SQU\n")
-                #         elif ac_current_waveform_index == 3:  # ramp
-                #             self.ac_current_waveform = "RAMP"
-                #             f.write("\tKeithley 6221 AC waveform: RAMP\n")
-                #         elif ac_current_waveform_index == 4:  # arbx
-                #             self.ac_current_waveform = "ARB0"
-                #             f.write("\tKeithley 6221 AC waveform: ARB0\n")
-                #
-                #     self.ac_current_freq = self.keithley_6221_ac_freq_entry_box.text()
-                #     f.write(f"\tKeithley 6221 AC frequency: {self.ac_current_freq}\n")
-                #     self.ac_current_offset = self.keithley_6221_ac_offset_entry_box.text()
-                #     self.ac_offset_unit = self.keithley_6221_ac_offset_units_combo.currentIndex()
-                #     if self.ac_offset_unit == 0:
-                #         ac_offset_unit = ''
-                #     elif self.ac_offset_unit == 1:  # mA
-                #         ac_offset_unit = 'e-3'
-                #     elif self.ac_offset_unit == 2:  # uA
-                #         ac_offset_unit = 'e-6'
-                #     elif self.ac_offset_unit == 3:  # nA
-                #         ac_offset_unit = 'e-9'
-                #     elif self.ac_offset_unit == 4:  # pA
-                #         ac_offset_unit = 'e-12'
-                #     self.ac_current_offset = self.ac_current_offset + ac_offset_unit
-                #     f.write(f"\tKeithley 6221 AC offset: {self.ac_current_offset}\n")
+
 
                 self.append_text('Create Log...!\n', 'green')
-
-                # f.write(f"Experiment Field (Oe): {topField} to {botField}\n")
-                # f.write(f"Experiment Temperature (K): {temp_log}\n")
-                # if self.ppms_field_fixed_mode_radio_button.isChecked():
-                #     self.field_mode_fixed = True
-                #     f.write(f"Experiment Field Mode: Fixed field mode\n")
-                # else:
-                #     self.field_mode_fixed = False
-                #     f.write(f"Experiment Field Mode: Continuous sweep\n")
-                #
-                #     f.write(f"Experiment Current: {listToString(current)}\n")
-                if self.BNC845RF_CONNECTED:
-                    f.write(f"Instrument: BNC845RF\n")
-                if self.DSP7265_Connected:
-                    f.write(f"Instrument: DSP 7265 Lock-in\n")
+                f.write(f"Experiment Field Direction: {temp_field_dict['field_settings']['field_direction']}\n")
+                f.write(f"Experiment Field Sweeping Mode: {temp_field_dict['field_settings']['field_mode']}\n")
+                if temp_field_dict['field_settings']['field_direction'] == 'bidirectional':
+                    topField = temp_field_dict['all_fields'][0]
+                    botField = -1 * topField
+                else:
+                    topField = temp_field_dict['field_settings']['all_fields'][0]
+                    botField = -temp_field_dict['field_settings']['all_fields'][-1]
+                f.write(f"Experiment Field Range (Oe): {topField} to {botField}\n")
+                f.write(f"Experiment Temperature (K): {temp_field_dict['all_temps']}\n")
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
 
                 self.fmr_worker = ST_FMR_Worker(
                     parent=self,
-                    bk9205_instrument=self.BK_9205_CONNECTED,
-                    rigol_instrument=self.RIGOL_CONNECTED,
-                    measurement_data=settings,
+                    ppms_instrument=self.client,
+                    dsp7265_instrument=self.DSP7265,
+                    bnc845_instrument=self.bnc845rf,
+                    ppms_setting=temp_field_dict,
+                    bnc845_setting=bnc_845_settings,
+                    measurment_setting=measurement_setting,
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
+                    settling_time=dsp7265_delay_config,
                     demo_mode=getattr(self, 'demo_mode', False),
-                    settling_time=1.0,
                     spectrum_averaging=1,
                     save_individual_spectra=False
                 )
                 self._connect_fmr_worker_signals()
-
-                self.worker.progress_update.connect(self.update_progress)
-                self.worker.append_text.connect(self.append_text)
-                self.worker.stop_measurment.connect(self.stop_measurement)
-                self.worker.update_ppms_temp_reading_label.connect(self.update_ppms_temp_reading_label)
-                self.worker.update_ppms_field_reading_label.connect(self.update_ppms_field_reading_label)
-                self.worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
-                self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
-                self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
-                self.worker.update_lockin_label.connect(self.update_lockin_label)
-                self.worker.update_plot.connect(self.update_plot)
-                self.worker.save_plot.connect(self.save_plot)
-                self.worker.clear_plot.connect(self.clear_plot)
-                self.worker.measurement_finished.connect(self.measurement_finished)
-                self.worker.error_message.connect(self.error_popup)
-                self.worker.update_measurement_progress.connect(self.update_measurement_progress)
-                self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
-                self.worker.update_keithley_6221_update_label.connect(self.update_keithley_6221_update_label)
                 self.worker.start()  # Start the worker thread
 
                 if hasattr(self, 'start_measurement_btn'):
@@ -3078,6 +2876,25 @@ class Measurement(QMainWindow):
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
 
                 self.notification.send_notification(message=f"Error-{tb_str} {str(e)}")
+
+    def _connect_fmr_worker_signals(self):
+        self.worker.progress_update.connect(self.update_progress)
+        self.worker.append_text.connect(self.append_text)
+        self.worker.stop_measurment.connect(self.stop_measurement)
+        self.worker.update_ppms_temp_reading_label.connect(self.update_ppms_temp_reading_label)
+        self.worker.update_ppms_field_reading_label.connect(self.update_ppms_field_reading_label)
+        self.worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
+        self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
+        self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
+        self.worker.update_lockin_label.connect(self.update_lockin_label)
+        self.worker.update_plot.connect(self.update_plot)
+        self.worker.save_plot.connect(self.save_plot)
+        self.worker.clear_plot.connect(self.clear_plot)
+        self.worker.measurement_finished.connect(self.measurement_finished)
+        self.worker.error_message.connect(self.error_popup)
+        self.worker.update_measurement_progress.connect(self.update_measurement_progress)
+        self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
+        self.worker.update_keithley_6221_update_label.connect(self.update_keithley_6221_update_label)
 
     def bnc845rf_window_ui(self):
         self.fmr_widget = FMR_Measurement(bnc845=self.bnc845rf)
@@ -3263,21 +3080,21 @@ class Measurement(QMainWindow):
 
     def dsp7265_auto_sensitivity_ui(self):
         self.dsp7265_auto_button_layout = QHBoxLayout()
-        self.dsp7265_auto_sense = QPushButton('Auto Sens.')
-        self.dsp7265_auto_sense.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_sense.clicked.connect(self.dsp725_auto_sens)
+        self.dsp7265_auto_sense_button = QPushButton('Auto Sens.')
+        self.dsp7265_auto_sense_button.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_auto_sense_button.clicked.connect(self.dsp725_auto_sens)
 
-        self.dsp7265_auto_phase = QPushButton('Auto Phase')
-        self.dsp7265_auto_phase.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_phase.clicked.connect(self.dsp7265_auto_phase)
+        self.dsp7265_auto_phase_button = QPushButton('Auto Phase')
+        self.dsp7265_auto_phase_button.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_auto_phase_button.clicked.connect(self.dsp7265_auto_phase)
 
-        self.dsp7265_auto_Measurement = QPushButton('Auto Meas.')
-        self.dsp7265_auto_Measurement.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_auto_Measurement.clicked.connect(self.dsp7265_auto_meas)
+        self.dsp7265_auto_Measurement_button = QPushButton('Auto Meas.')
+        self.dsp7265_auto_Measurement_button.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_auto_Measurement_button.clicked.connect(self.dsp7265_auto_meas)
 
-        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_sense)
-        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_phase)
-        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_Measurement)
+        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_sense_button)
+        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_phase_button)
+        self.dsp7265_auto_button_layout.addWidget(self.dsp7265_auto_Measurement_button)
         self.dsp7265_button_container = QWidget()
         self.dsp7265_button_container.setLayout(self.dsp7265_auto_button_layout)
         self.dsp7265_button_container.setFixedHeight(50)
@@ -4207,7 +4024,7 @@ class Measurement(QMainWindow):
         try:
             self.ppms_field_setting_init_layout = QVBoxLayout()
             self.ppms_field_direction_button_layout = QHBoxLayout()
-            self.ppms_field_bidirectional_mode_radio_button = QRadioButton("Bidirectional")
+            self.ppms_field_bidirectional_mode_radio_button = QRadioButton("Hysteresis")
             self.ppms_field_bidirectional_mode_radio_button.setFont(self.font)
             # self.ppms_field_bidirectional_mode_radio_button.setChecked(True)
             self.ppms_field_bidirectional_mode_radio_button.toggled.connect(self.ppms_field_mode_setup_ui)
@@ -4343,7 +4160,7 @@ class Measurement(QMainWindow):
                 self.ppms_zone1_to_label.setFont(self.font)
                 self.ppms_zone1_to_entry = QLineEdit()
                 self.ppms_zone1_to_entry.setFont(self.font)
-                self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
+                self.ppms_zone1_to_entry.setPlaceholderText("0 Oe")
                 self.ppms_zone1_to_entry.setEnabled(True)
             elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
                 self.ppms_zone1_from_label = QLabel('Range (Oe): Top')
@@ -4355,9 +4172,10 @@ class Measurement(QMainWindow):
                 self.ppms_zone1_to_label.setFont(self.font)
                 self.ppms_zone1_to_entry = QLineEdit()
                 self.ppms_zone1_to_entry.setFont(self.font)
-                self.ppms_zone1_to_entry.setPlaceholderText("0 Oe")
-                self.ppms_zone1_to_entry.setText("0")
-                self.ppms_zone1_to_entry.setEnabled(False)
+                self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
+                # self.ppms_zone1_to_entry.setText("0")
+                self.ppms_zone1_to_entry.setReadOnly(True)
+                self.ppms_zone1_from_entry.textChanged.connect(self.sync_zone1_range)
             self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_from_label)
             self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_from_entry)
             self.ppms_zone1_field_range_layout.addWidget(self.ppms_zone1_to_label)
@@ -4369,9 +4187,9 @@ class Measurement(QMainWindow):
             self.ppms_zone1_field_step_entry = QLineEdit()
             self.ppms_zone1_field_step_entry.setFont(self.font)
             if self.ppms_field_cointinous_mode_radio_button.isChecked():
-                self.ppms_zone1_field_step_entry.setEnabled(False)
+                self.ppms_zone1_field_step_entry.setReadOnly(True)
             else:
-                self.ppms_zone1_field_step_entry.setEnabled(True)
+                self.ppms_zone1_field_step_entry.setReadOnly(False)
             self.ppms_zone1_field_rate_label = QLabel('Rate (Oe/sec): ')
             self.ppms_zone1_field_rate_label.setFont(self.font)
             self.ppms_zone1_field_rate_entry = QLineEdit()
@@ -4392,15 +4210,38 @@ class Measurement(QMainWindow):
                 f"Please Select the field direction!\n"
             )
 
+    def sync_zone1_range(self, text):
+        """
+        Automatically set bottom range to negative of top range and lock it
+
+        Args:
+            text: Text from the top entry field
+        """
+
+        if text.strip():  # Only process if there's text
+            try:
+                # Try to convert to float
+                top_value = float(text)
+                self.ppms_zone1_to_entry.setText(str(-top_value))
+                self.ppms_zone1_to_entry.setReadOnly(True)
+            except ValueError:
+                # If invalid number, unlock and clear bottom entry
+                self.ppms_zone1_to_entry.clear()
+        else:
+            # If top entry is empty, unlock and clear bottom entry
+            self.ppms_zone1_to_entry.clear()
+
     def field_two_zone(self):
         if self.ppms_field_bidirectional_mode_radio_button.isChecked() or self.ppms_field_unidirectional_mode_radio_button.isChecked():
             self.field_one_zone()
             self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
-            self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+
+
             self.ppms_zone2_field_layout = QVBoxLayout()
             self.ppms_zone2_field_range_layout = QHBoxLayout()
 
             if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
                 self.ppms_zone2_from_label = QLabel('Range 2 (Oe): From')
                 self.ppms_zone2_from_label.setFont(self.font)
                 self.ppms_zone2_from_entry = QLineEdit()
@@ -4410,22 +4251,28 @@ class Measurement(QMainWindow):
                 self.ppms_zone2_to_entry = QLineEdit()
                 self.ppms_zone2_to_entry.setFont(self.font)
                 self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
+                self.ppms_zone2_to_entry.setPlaceholderText("0 Oe")
+                self.ppms_zone2_from_entry.setEnabled(True)
                 self.ppms_zone2_to_entry.setEnabled(True)
             elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
                 self.ppms_zone1_to_entry.setText("")
-                self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
-                self.ppms_zone1_to_entry.setEnabled(True)
+                # self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+                self.ppms_zone1_to_entry.setReadOnly(True)
                 self.ppms_zone2_from_label = QLabel('Range 2 (Oe): Top')
                 self.ppms_zone2_from_label.setFont(self.font)
                 self.ppms_zone2_from_entry = QLineEdit()
                 self.ppms_zone2_from_entry.setFont(self.font)
+                self.ppms_zone2_from_entry.textChanged.connect(self.sync_zone2_range)
                 self.ppms_zone2_to_label = QLabel(' Bottom ')
                 self.ppms_zone2_to_label.setFont(self.font)
                 self.ppms_zone2_to_entry = QLineEdit()
                 self.ppms_zone2_to_entry.setFont(self.font)
                 self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
-                self.ppms_zone2_to_entry.setText("0")
-                self.ppms_zone2_to_entry.setEnabled(False)
+                self.ppms_zone2_to_entry.setPlaceholderText("-2000 Oe")
+                # self.ppms_zone2_to_entry.setText("0")
+                self.ppms_zone2_from_entry.setReadOnly(False)
+                self.ppms_zone2_to_entry.setReadOnly(True)
             self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_from_label)
             self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_from_entry)
             self.ppms_zone2_field_range_layout.addWidget(self.ppms_zone2_to_label)
@@ -4459,18 +4306,40 @@ class Measurement(QMainWindow):
                 f"Please Select the field direction!\n"
             )
 
+    def sync_zone2_range(self, text):
+        """
+        Automatically set bottom range to negative of top range and lock it
+
+        Args:
+            text: Text from the top entry field
+        """
+
+        if text.strip():  # Only process if there's text
+            try:
+                # Try to convert to float
+                top_value = float(text)
+                self.ppms_zone2_to_entry.setText(str(-top_value))
+                self.ppms_zone2_to_entry.setReadOnly(True)
+            except ValueError:
+                # If invalid number, unlock and clear bottom entry
+                self.ppms_zone2_to_entry.clear()
+        else:
+            self.ppms_zone2_to_entry.clear()
+
     def field_three_zone(self):
         if self.ppms_field_bidirectional_mode_radio_button.isChecked() or self.ppms_field_unidirectional_mode_radio_button.isChecked():
             self.field_two_zone()
             self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
-            self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+
             self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
-            self.ppms_zone2_to_entry.setPlaceholderText("1000 Oe")
+
             self.ppms_zone2_to_entry.clear()
             self.ppms_zone2_to_entry.setEnabled(True)
             self.ppms_zone3_field_layout = QVBoxLayout()
             self.ppms_zone3_field_range_layout = QHBoxLayout()
             if self.ppms_field_unidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
+                self.ppms_zone2_to_entry.setPlaceholderText("1000 Oe")
                 self.ppms_zone3_from_label = QLabel('Range 3 (Oe): From')
                 self.ppms_zone3_from_label.setFont(self.font)
                 self.ppms_zone3_from_entry = QLineEdit()
@@ -4480,19 +4349,25 @@ class Measurement(QMainWindow):
                 self.ppms_zone3_to_entry = QLineEdit()
                 self.ppms_zone3_to_entry.setFont(self.font)
                 self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
+                self.ppms_zone3_to_entry.setPlaceholderText("0 Oe")
                 self.ppms_zone3_to_entry.setEnabled(True)
             elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
+                self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
+                self.ppms_zone2_to_entry.setPlaceholderText("-2000 Oe")
+                # self.ppms_zone2_from_entry.setReadOnly(False)
+                # self.ppms_zone2_to_entry.setReadOnly(False)
                 self.ppms_zone3_from_label = QLabel('Range 3 (Oe): Top')
                 self.ppms_zone3_from_label.setFont(self.font)
                 self.ppms_zone3_from_entry = QLineEdit()
                 self.ppms_zone3_from_entry.setFont(self.font)
+                self.ppms_zone3_from_entry.textChanged.connect(self.sync_zone3_range)
                 self.ppms_zone3_to_label = QLabel(' Bottom ')
                 self.ppms_zone3_to_label.setFont(self.font)
                 self.ppms_zone3_to_entry = QLineEdit()
                 self.ppms_zone3_to_entry.setFont(self.font)
                 self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
-                self.ppms_zone3_to_entry.setText("0")
-                self.ppms_zone3_to_entry.setEnabled(False)
+                self.ppms_zone3_to_entry.setPlaceholderText("-1000 Oe")
+                self.ppms_zone2_to_entry.setReadOnly(True)
             self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_label)
             self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_entry)
             self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_to_label)
@@ -4527,6 +4402,26 @@ class Measurement(QMainWindow):
                 self, "Error",
                 f"Please Select the field direction!\n"
             )
+
+    def sync_zone3_range(self, text):
+        """
+        Automatically set bottom range to negative of top range and lock it
+
+        Args:
+            text: Text from the top entry field
+        """
+
+        if text.strip():  # Only process if there's text
+            try:
+                # Try to convert to float
+                top_value = float(text)
+                self.ppms_zone3_to_entry.setText(str(-top_value))
+                self.ppms_zone3_to_entry.setReadOnly(True)
+            except ValueError:
+                # If invalid number, unlock and clear bottom entry
+                self.ppms_zone3_to_entry.clear()
+        else:
+            self.ppms_zone3_to_entry.clear()
 
     def temp_zone_selection(self):
         if self.ppms_temp_One_zone_radio.isChecked() and self.Temp_setup_Zone_1 == False:
@@ -4704,6 +4599,226 @@ class Measurement(QMainWindow):
         self.clear_layout(self.ppms_zone_temp_layout)
         self.ppms_zone_temp_layout.addLayout(self.ppms_zone_cus_temp_layout)
 
+    def _generate_field_list(self, from_val, to_val, step_val):
+        """
+        Generate a list of field values from start to end with given step.
+        Handles symmetric bidirectional sweeps automatically.
+
+        Args:
+            from_val: Starting field value (e.g., 3000)
+            to_val: Ending field value (e.g., -3000)
+            step_val: Step size (always positive, e.g., 1000)
+
+        Returns:
+            List of field values
+        """
+        try:
+            # Ensure step is positive
+            step = abs(step_val)
+
+            # Check if this is a symmetric zone (from > 0, to < 0, from ≈ -to)
+            is_symmetric = (from_val > 0 and to_val < 0 and abs(from_val + to_val) < 1e-6)
+
+            if is_symmetric:
+                # Symmetric sweep: positive → zero → negative
+                # Example: 3000 to -3000, step 1000 → [3000, 2000, 1000, 0, -1000, -2000, -3000]
+                field_list = np.arange(from_val, to_val - step / 2, -step).tolist()
+            else:
+                # Regular sweep
+                if from_val <= to_val:
+                    # Positive sweep
+                    field_list = np.arange(from_val, to_val + step / 2, step).tolist()
+                else:
+                    # Negative sweep
+                    field_list = np.arange(from_val, to_val - step / 2, -step).tolist()
+
+            return field_list
+
+        except Exception as e:
+            print(f"Error generating field list: {str(e)}")
+            return []
+
+    def _interleave_symmetric_zones(self, zones):
+        """
+        Interleave multiple symmetric zones to create combined sweep.
+
+        Example:
+            Zone 1: [3000, 2000, 1000, 0, -1000, -2000, -3000]
+            Zone 2: [2000, 1500, 1000, 500, 0, -500, -1000, -1500, -2000]
+            Result: [3000, 2000, 1500, 1000, 500, 0, -500, -1000, -1500, -2000, -3000]
+
+        Args:
+            zones: List of zone dictionaries with 'field_list' key
+
+        Returns:
+            Interleaved field list
+        """
+        try:
+            # Collect all unique points from all zones
+            all_points = set()
+            for zone in zones:
+                if 'field_list' in zone and zone['field_list']:
+                    all_points.update(zone['field_list'])
+
+            if not all_points:
+                return []
+
+            # Split into positive, zero, and negative
+            positive_points = sorted([x for x in all_points if x > 0], reverse=True)
+            zero_point = [0.0] if 0 in all_points or any(abs(x) < 1e-6 for x in all_points) else []
+            negative_points = sorted([x for x in all_points if x < 0], reverse=True)
+
+            # Combine: positive descending + zero + negative descending
+            # Result: [3000, 2000, 1500, 1000, 500, 0, -500, -1000, -1500, -2000, -3000]
+            return positive_points + zero_point + negative_points
+
+        except Exception as e:
+            print(f"Error interleaving zones: {str(e)}")
+            return []
+
+    def _create_bidirectional_sweep_no_duplicates(self, zones):
+        """
+        Create bidirectional sweep with symmetric zone support.
+
+        Returns two sweeps:
+        1. Unidirectional (forward only): [3000, ..., 0, ..., -3000]
+        2. Bidirectional (forward + reverse): [3000, ..., -3000, -3000, ..., 3000]
+
+        Args:
+            zones: List of zone dictionaries
+
+        Returns:
+            Tuple of (unidirectional_sweep, bidirectional_sweep)
+        """
+        try:
+            # Check if any zone is symmetric (has both positive and negative values)
+            has_symmetric = False
+            for zone in zones:
+                if 'field_list' in zone and zone['field_list']:
+                    has_positive = any(x > 0 for x in zone['field_list'])
+                    has_negative = any(x < 0 for x in zone['field_list'])
+                    if has_positive and has_negative:
+                        has_symmetric = True
+                        break
+
+            if has_symmetric:
+                # Use new interleaving logic for symmetric zones
+                forward_sweep = self._interleave_symmetric_zones(zones)
+            else:
+                # Use original logic for non-symmetric zones
+                forward_sweep = []
+                for i, zone in enumerate(zones):
+                    if 'field_list' in zone and zone['field_list']:
+                        if i == 0:
+                            forward_sweep.extend(zone['field_list'])
+                        else:
+                            # Skip first point if it duplicates last point
+                            if forward_sweep and abs(zone['field_list'][0] - forward_sweep[-1]) < 1e-6:
+                                forward_sweep.extend(zone['field_list'][1:])
+                            else:
+                                forward_sweep.extend(zone['field_list'])
+
+            if not forward_sweep:
+                return [], []
+
+            # Create unidirectional sweep (just forward)
+            full_sweep_unidirectional = forward_sweep
+
+            # Create bidirectional sweep
+            # Reverse sweep excludes last point to avoid triple duplication
+            reverse_sweep = forward_sweep[:-1][::-1]
+
+            # Full bidirectional: forward + duplicate turning point + reverse
+            full_sweep_bidirectional = forward_sweep + [forward_sweep[-1]] + reverse_sweep
+
+            return full_sweep_unidirectional, full_sweep_bidirectional
+
+        except Exception as e:
+            print(f"Error creating bidirectional sweep: {str(e)}")
+            return [], []
+
+    def _get_field_zone_one(self):
+        """Get field zone 1 settings and return as dictionary with field list"""
+        try:
+            zone_data = {
+                'from': float(self.ppms_zone1_from_entry.text()),
+                'to': float(self.ppms_zone1_to_entry.text()),
+                'step': float(
+                    self.ppms_zone1_field_step_entry.text()) if self.ppms_zone1_field_step_entry.text() != '' else None,
+                'rate': float(self.ppms_zone1_field_rate_entry.text()),
+                'unit': 'Oe'
+            }
+
+            # Generate field list
+            if zone_data['step'] is not None:
+                zone_data['field_list'] = self._generate_field_list(
+                    zone_data['from'],
+                    zone_data['to'],
+                    zone_data['step']
+                )
+            else:
+                zone_data['field_list'] = []
+
+            return zone_data
+
+        except Exception as e:
+            print(f"Error getting field zone 1: {str(e)}")
+            return {}
+
+    def _get_field_zone_two(self):
+        """Get field zone 2 settings and return as dictionary with field list"""
+        try:
+            zone_data = {
+                'from': float(self.ppms_zone2_from_entry.text()),
+                'to': float(self.ppms_zone2_to_entry.text()),
+                'step': float(
+                    self.ppms_zone2_field_step_entry.text()) if self.ppms_zone2_field_step_entry.text() != '' else None,
+                'rate': float(self.ppms_zone2_field_rate_entry.text()),
+                'unit': 'Oe'
+            }
+
+            if zone_data['step'] is not None:
+                zone_data['field_list'] = self._generate_field_list(
+                    zone_data['from'],
+                    zone_data['to'],
+                    zone_data['step']
+                )
+            else:
+                zone_data['field_list'] = []
+
+            return zone_data
+
+        except Exception as e:
+            print(f"Error getting field zone 2: {str(e)}")
+            return {}
+
+    def _get_field_zone_three(self):
+        """Get field zone 3 settings and return as dictionary with field list"""
+        try:
+            zone_data = {
+                'from': float(self.ppms_zone3_from_entry.text()),
+                'to': float(self.ppms_zone3_to_entry.text()),
+                'step': float(
+                    self.ppms_zone3_field_step_entry.text()) if self.ppms_zone3_field_step_entry.text() != '' else None,
+                'rate': float(self.ppms_zone3_field_rate_entry.text()),
+                'unit': 'Oe'
+            }
+
+            if zone_data['step'] is not None:
+                zone_data['field_list'] = self._generate_field_list(
+                    zone_data['from'],
+                    zone_data['to'],
+                    zone_data['step']
+                )
+            else:
+                zone_data['field_list'] = []
+
+            return zone_data
+
+        except Exception as e:
+            print(f"Error getting field zone 3: {str(e)}")
+            return {}
+
     def get_ppms_field_settings(self):
         """
         Get all PPMS field settings and return them as a dictionary.
@@ -4727,9 +4842,10 @@ class Measurement(QMainWindow):
                 settings['field_zones'] = {
                     'zone_1': zone_1
                 }
-                # Create full sweep: from → to → from
+                # Create full sweep
                 if self.ppms_field_fixed_mode_radio_button.isChecked():
-                    settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
+                    settings['full_sweep_unidirectional'], settings[
+                        'full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1])
 
             elif hasattr(self, 'Field_setup_Zone_2') and self.Field_setup_Zone_2:
                 settings['field_zone_count'] = 2
@@ -4739,9 +4855,10 @@ class Measurement(QMainWindow):
                     'zone_1': zone_1,
                     'zone_2': zone_2
                 }
-                # Create full sweep: zone1(from→to) → zone2(from→to) → zone2(to→from) → zone1(to→from)
+                # Create full sweep
                 if self.ppms_field_fixed_mode_radio_button.isChecked():
-                    settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
+                    settings['full_sweep_unidirectional'], settings[
+                        'full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2])
 
             elif hasattr(self, 'Field_setup_Zone_3') and self.Field_setup_Zone_3:
                 settings['field_zone_count'] = 3
@@ -4753,9 +4870,11 @@ class Measurement(QMainWindow):
                     'zone_2': zone_2,
                     'zone_3': zone_3
                 }
-                # Create full sweep: z1 → z2 → z3 → z3(reverse) → z2(reverse) → z1(reverse)
+                # Create full sweep
                 if self.ppms_field_fixed_mode_radio_button.isChecked():
-                    settings['full_sweep_unidirectional'], settings['full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates([zone_1, zone_2, zone_3])
+                    settings['full_sweep_unidirectional'], settings[
+                        'full_sweep_bidirectional'] = self._create_bidirectional_sweep_no_duplicates(
+                        [zone_1, zone_2, zone_3])
 
             # Get field mode (continuous or stepped)
             if hasattr(self, 'ppms_field_cointinous_mode_radio_button'):
@@ -4769,159 +4888,6 @@ class Measurement(QMainWindow):
             tb_str = traceback.format_exc()
             print(f"Error getting PPMS field settings: {tb_str} {str(e)}")
             return {}
-
-    def _create_bidirectional_sweep_no_duplicates(self, zones):
-        """
-        Create bidirectional sweep with no duplicate points at zone boundaries,
-        but keeps the turning point (maximum field) duplicated.
-
-        Example:
-            Zone 1: [0, 100, 200]
-            Zone 2: [200, 300, 400]
-            Forward: [0, 100, 200, 300, 400]  (200 only once at boundary)
-            Add duplicate at turning point: [0, 100, 200, 300, 400, 400]
-            Reverse: [300, 200, 100, 0]
-            Full: [0, 100, 200, 300, 400, 400, 300, 200, 100, 0]
-        """
-        try:
-            # Build forward sweep, removing duplicates at boundaries
-            forward_sweep = []
-            for i, zone in enumerate(zones):
-                if 'field_list' in zone and zone['field_list']:
-                    if i == 0:
-                        # First zone: add all points
-                        forward_sweep.extend(zone['field_list'])
-                    else:
-                        # Subsequent zones: skip first point if it matches last point
-                        if forward_sweep and zone['field_list'][0] == forward_sweep[-1]:
-                            forward_sweep.extend(zone['field_list'][1:])
-                        else:
-                            forward_sweep.extend(zone['field_list'])
-
-            if not forward_sweep:
-                return []
-
-            # Build reverse sweep (excluding the last point to avoid it being there 3 times)
-            reverse_sweep = forward_sweep[:-1][::-1]
-
-            # Combine: forward + duplicate turning point + reverse
-            # This creates: [0, 100, 200, 300, 400] + [400] + [300, 200, 100, 0]
-            # full_sweep_unidirectional = forward_sweep + [forward_sweep[-1]] + reverse_sweep
-            full_sweep_unidirectional = forward_sweep
-            bidirectional_forward_sweep_negative = [x * -1 for x in forward_sweep[:-1][::-1]]
-            bidirectional_forward_sweep = forward_sweep + bidirectional_forward_sweep_negative
-            bidirectional_reverse_sweep = bidirectional_forward_sweep[:-1][::-1]
-            full_sweep_bidirectional = bidirectional_forward_sweep + [bidirectional_forward_sweep[-1]] + bidirectional_reverse_sweep
-
-            return full_sweep_unidirectional,full_sweep_bidirectional
-
-        except Exception as e:
-            print(f"Error creating bidirectional sweep: {str(e)}")
-            return []
-
-    def _get_field_zone_one(self):
-        """Get field zone 1 settings and return as dictionary with field list"""
-        try:
-            zone_data = {
-                'from': float(self.ppms_zone1_from_entry.text()),
-                'to': float(self.ppms_zone1_to_entry.text()),
-                'step': float(self.ppms_zone1_field_step_entry.text()) if self.ppms_zone1_field_step_entry.text() != '' else [],
-                'rate': float(self.ppms_zone1_field_rate_entry.text()),
-                'unit': 'Oe'  # Assuming Oersteds
-            }
-
-            # Generate field list
-            zone_data['field_list'] = self._generate_field_list(
-                zone_data['from'],
-                zone_data['to'],
-                zone_data['step']
-            ) if zone_data['step'] != [] else []
-
-            return zone_data
-
-        except Exception as e:
-            print(f"Error getting field zone 1: {str(e)}")
-            return {}
-
-    def _get_field_zone_two(self):
-        """Get field zone 2 settings and return as dictionary with field list"""
-        try:
-            zone_data = {
-                'from': float(self.ppms_zone2_from_entry.text()),
-                'to': float(self.ppms_zone2_to_entry.text()),
-                'step': float(self.ppms_zone2_field_step_entry.text()) if self.ppms_zone2_field_step_entry.text() != '' else [],
-                'rate': float(self.ppms_zone2_field_rate_entry.text()),
-                'unit': 'Oe'
-            }
-
-            zone_data['field_list'] = self._generate_field_list(
-                zone_data['from'],
-                zone_data['to'],
-                zone_data['step']
-            ) if zone_data['step'] != [] else []
-
-            return zone_data
-
-        except Exception as e:
-            print(f"Error getting field zone 2: {str(e)}")
-            return {}
-
-    def _get_field_zone_three(self):
-        """Get field zone 3 settings and return as dictionary with field list"""
-        try:
-            zone_data = {
-                'from': float(self.ppms_zone3_from_entry.text()),
-                'to': float(self.ppms_zone3_to_entry.text()),
-                'step': float(self.ppms_zone3_field_step_entry.text()) if self.ppms_zone3_field_step_entry.text() != '' else [],
-                'rate': float(self.ppms_zone3_field_rate_entry.text()),
-                'unit': 'Oe'
-            }
-
-            zone_data['field_list'] = self._generate_field_list(
-                zone_data['from'],
-                zone_data['to'],
-                zone_data['step']
-            ) if zone_data['step'] != [] else []
-
-            return zone_data
-
-        except Exception as e:
-            print(f"Error getting field zone 3: {str(e)}")
-            return {}
-
-    def _generate_field_list(self, from_val, to_val, step_val):
-        """
-        Generate a list of field values from start to end with given step.
-        Handles both positive and negative sweeps.
-
-        Args:
-            from_val: Starting field value
-            to_val: Ending field value
-            step_val: Step size (always positive)
-
-        Returns:
-            List of field values
-        """
-        try:
-            import numpy as np
-
-            # Ensure step is positive
-            step = abs(step_val)
-
-            # Determine direction
-            if from_val <= to_val:
-                # Positive sweep
-                # Add small epsilon to include endpoint
-                field_list = np.arange(from_val, to_val + step / 2, step).tolist()
-            else:
-                # Negative sweep
-                field_list = np.arange(from_val, to_val - step / 2, -step).tolist()
-
-            return field_list
-
-        except Exception as e:
-            print(f"Error generating field list: {str(e)}")
-            return []
 
     def get_ppms_temperature_settings(self):
         """
@@ -5440,9 +5406,6 @@ class Measurement(QMainWindow):
                     pass
 
             # Create new log box
-            from PyQt6.QtWidgets import QTextEdit, QProgressBar
-            from PyQt6.QtCore import Qt
-
             self.log_box = QTextEdit(self)
             self.log_box.setReadOnly(True)
             self.log_box.setFixedSize(1140, 150)
@@ -5558,7 +5521,7 @@ class Measurement(QMainWindow):
                 else:
                     record_zero_field = False
                     f.write(f"Record Zero Field: No\n")
-                if self.Ketihley_6221_Connected:
+                if self.ketihley_6221_connected:
                     self.append_text('Check Connection of Keithley 6221....\n', 'yellow')
                     if self.demo_mode:
                         self.append_text("Model 6221 Demo", 'green')
@@ -6016,7 +5979,7 @@ class Measurement(QMainWindow):
                                      self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
                                      self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
                                      self.zone2_field_rate,self.zone3_field_rate, self.Keithley_2182_Connected,
-                                     self.Ketihley_6221_Connected,dsp7265_current_time_constant,self.DSP7265_Connected, self.demo_mode,
+                                     self.ketihley_6221_connected,dsp7265_current_time_constant,self.DSP7265_Connected, self.demo_mode,
                                      self.keithley_6221_dc_config, self.keithley_6221_ac_config, self.ac_current_waveform,
                                      self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
                                      demag_field, record_zero_field)  # Create a worker instance
@@ -6100,8 +6063,28 @@ class Measurement(QMainWindow):
         QMessageBox.warning(self, str(e), f'{tb_str}')
 
     def clear_plot(self):
-        self.canvas.axes.cla()
-        self.canvas.axes_2.cla()
+        try:
+            if hasattr(self, 'canvas'):
+                self.canvas.axes.cla()
+                self.canvas.axes_2.cla()
+                self.canvas.figure.clear()
+                self.canvas.axes = self.canvas.figure.add_subplot(111)
+                self.canvas.axes.set_title('Waiting for measurement...')
+                self.canvas.draw()
+
+            if hasattr(self, 'cumulative_canvas'):
+                self.cumulative_canvas.figure.clear()
+                self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
+                self.cumulative_canvas.axes.set_title('Waiting for measurement...')
+                self.cumulative_canvas.draw()
+                self.cumulative_colorbar = None
+
+            if hasattr(self, 'single_canvas'):
+                self.single_canvas.axes.clear()
+                self.single_canvas.axes.set_title('Waiting for spectrum...')
+                self.single_canvas.draw()
+        except Exception as e:
+            print(f"Error clearing plots: {e}")
 
     def update_nv_channel_1_label(self, chanel1):
         self.keithley_2182_channel_1_reading_label.setText(chanel1)
@@ -6183,6 +6166,11 @@ class Measurement(QMainWindow):
         avg = self.eto_setting_average_line_edit.text()
         self.eto_measurement_status_average_reading_label.setText(f'{str(avg)}')
         return int(avg)
+
+    def update_st_fmr_repetition_label(self):
+        repetition = self.fmr_setting_average_line_edit.text()
+        self.fmr_measurement_status_repetition_reading_label.setText(f'{str(repetition)}')
+        return int(repetition)
 
     def update_dsp7265_freq_label(self, cur_freq):
         self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
