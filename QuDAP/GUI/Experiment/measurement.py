@@ -15,7 +15,6 @@ import pyvisa as visa
 import matplotlib
 import numpy as np
 
-# from QuDAP.GUI.Experiment.MeasurementMain.PPMS import botField
 
 if platform.system() == 'Windows':
     import MultiPyVu as mpv  # Uncommented it on the server computer
@@ -2708,7 +2707,7 @@ class Measurement(QMainWindow):
             return
 
         # All settings are valid, proceed with measurement
-        self.fmr_widget.apply_modulation_settings_to_instrument(settings=settings, instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
+        self.fmr_widget.apply_modulation_settings_to_instrument(settings=bnc_845_settings, instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         # reading = self.fmr_widget._get_modulation_readings_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
 
@@ -2722,6 +2721,7 @@ class Measurement(QMainWindow):
             self._get_log_window_data(dialog)
             try:
                 self._prepare_measurement_ui()
+                self.append_text('Create Log...!\n', 'green')
                 f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
                 today = datetime.datetime.today()
                 self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
@@ -2820,20 +2820,180 @@ class Measurement(QMainWindow):
 
                 self.append_text('Start initializing parameters...!\n', 'orange')
                 self.append_text('Start initializing Temperatures...!\n', 'blue')
+                # =============================== Set the Temperature and Field ==================================== #
+                def create_field_dict(field_mode, temp_field_dict, field_direction):
+                    field_zone_count = temp_field_dict['field_settings']['field_zone_count']
+                    if field_mode == 'stepped':
+                        field_list = temp_field_dict['field_settings']['full_sweep_bidirectional']
+                        field_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
+                        self.temp_field_setting['field_setting']['final_step_list'] = field_list
+                        self.temp_field_setting['field_setting']['final_rate'] = field_rate
+                        self.temp_field_setting['field_setting']['final_continuous_list'] = []
+                        valid = True
+                    else:
+                        self.temp_field_setting['field_setting']['final_step_list'] = []
+                        field_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
+                        # self.temp_field_setting['field_setting']['final_rate'] = field_rate
+                        if field_zone_count == 1:
+                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 1}
+                            zone_one_region_from = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
+                            zone_one_region_to = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
+                            zone_one_region_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
 
-                # =============================== Set the current ==================================== #
+                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'region1':{'from': zone_one_region_from,
+                                                                                                            'to': zone_one_region_to,
+                                                                                                            'rate': zone_one_region_rate}}
+                            valid = True
+                        elif field_zone_count == 2:
+                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 2}
 
+                            zone_one_region_from = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
+                            zone_one_region_to = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
+                            zone_one_region_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
 
-                self.append_text('Create Log...!\n', 'green')
-                f.write(f"Experiment Field Direction: {temp_field_dict['field_settings']['field_direction']}\n")
-                f.write(f"Experiment Field Sweeping Mode: {temp_field_dict['field_settings']['field_mode']}\n")
-                if temp_field_dict['field_settings']['field_direction'] == 'bidirectional':
-                    topField = temp_field_dict['all_fields'][0]
+                            zone_two_region_from = temp_field_dict['field_settings']['field_zones']['zone_2']['from']
+                            zone_two_region_to = temp_field_dict['field_settings']['field_zones']['zone_2']['to']
+                            zone_two_region_rate = temp_field_dict['field_settings']['field_zones']['zone_2']['rate']
+
+                            if zone_one_region_from > zone_two_region_from:
+                                valid = True
+                            else:
+                                valid = False
+
+                            if field_direction == 'bidirectional':
+                                self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'region1': {'from_start': zone_one_region_from,
+                                                'to_start': zone_two_region_from,
+                                                'from_end': zone_two_region_to,
+                                                'to_end': zone_one_region_to,
+                                                'rate': zone_one_region_rate},
+                                    'region2': {'from': zone_two_region_from,
+                                                'to': zone_two_region_to,
+                                                'rate': zone_two_region_rate}
+                                }
+                            else:
+                                self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'region1': {'from': zone_one_region_from,
+                                                'to': zone_one_region_to,
+                                                'rate': zone_one_region_rate},
+                                    'region2': {'from': zone_two_region_from,
+                                                'to': zone_two_region_to,
+                                                'rate': zone_two_region_rate}
+                                }
+
+                        elif field_zone_count == 3:
+                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 3}
+
+                            zone_one_region_from = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
+                            zone_one_region_to = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
+                            zone_one_region_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
+
+                            zone_two_region_from = temp_field_dict['field_settings']['field_zones']['zone_2']['from']
+                            zone_two_region_to = temp_field_dict['field_settings']['field_zones']['zone_2']['to']
+                            zone_two_region_rate = temp_field_dict['field_settings']['field_zones']['zone_2']['rate']
+
+                            zone_three_region_from = temp_field_dict['field_settings']['field_zones']['zone_3']['from']
+                            zone_three_region_to = temp_field_dict['field_settings']['field_zones']['zone_3']['to']
+                            zone_three_region_rate = temp_field_dict['field_settings']['field_zones']['zone_3']['rate']
+
+                            if zone_one_region_from > zone_two_region_from:
+                                if zone_two_region_from > zone_three_region_from:
+                                    valid = True
+                                else:
+                                    valid = False
+                            else:
+                                valid = False
+                            if field_direction == 'bidirectional':
+                                self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'region1': {'from_start': zone_one_region_from,
+                                                'to_start': zone_two_region_from,
+                                                'from_end': zone_two_region_to,
+                                                'to_end': zone_one_region_to,
+                                                'rate': zone_one_region_rate},
+                                    'region2': {'from_start': zone_two_region_from,
+                                                'to_start': zone_three_region_from,
+                                                'from_end': zone_three_region_to,
+                                                'to_end': zone_two_region_to,
+                                                'rate': zone_two_region_rate},
+                                    'region3': {'from': zone_three_region_from,
+                                                'to': zone_three_region_to,
+                                                'rate': zone_three_region_rate}}
+                            else:
+                                self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'region1': {'from': zone_one_region_from,
+                                                'to': zone_one_region_to,
+                                                'rate': zone_one_region_rate},
+                                    'region2': {'from': zone_two_region_from,
+                                                'to': zone_two_region_to,
+                                                'rate': zone_two_region_rate},
+                                    'region3': {'from': zone_three_region_from,
+                                                'to': zone_three_region_to,
+                                                'rate': zone_three_region_rate}}
+
+                    return valid
+
+                self.temp_field_setting = {}
+                temperature_list = temp_field_dict['all_temps']
+                try:
+                    if "zone_1" in temp_field_dict['temp_settings']['temp_zones'].keys():
+                        temperature_rate = temp_field_dict['temp_settings']['temp_zones']['zone_1']['rate']
+                    else:
+                        temperature_rate = temp_field_dict['temp_settings']['temp_zones']['customized']['rate']
+                    self.temp_field_setting['temperature_setting'] = {'temperature_list': temperature_list,
+                                                                      'temperature_rate': temperature_rate}
+                except KeyError:
+                    QMessageBox.warning(self, "Potential Missing Temperature Entry",
+                                        f'Check All the Entries!')
+
+                field_direction = temp_field_dict['field_settings']['field_direction']
+                field_mode = temp_field_dict['field_settings']['field_mode']
+
+                f.write(f"Experiment Field Direction: {field_direction}\n")
+                f.write(f"Experiment Field Sweeping Mode: {field_mode}\n")
+                self.temp_field_setting['field_setting'] = {'field_direction': field_direction,
+                                                            'field_mode': field_mode}
+                if field_direction == 'bidirectional':
+                    all_field_list = temp_field_dict['all_fields']
+                    if len(all_field_list) > 0:
+                        topField = all_field_list[0]
+                    else:
+                        topField = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
                     botField = -1 * topField
+                    valid = create_field_dict(field_mode, temp_field_dict, field_direction)
+                    if not valid:
+                        if field_mode == 'stepped':
+                            QMessageBox.warning(self, "The value entered does not follow the required formate",
+                                                f'zone 1 entry > zone 2 entry > zone 3 entry. Please try again!')
+                        else:
+                            QMessageBox.warning(self, "Error",
+                                            f'Check the input!')
                 else:
-                    topField = temp_field_dict['field_settings']['all_fields'][0]
-                    botField = -temp_field_dict['field_settings']['all_fields'][-1]
+                    all_field_list = temp_field_dict['all_fields']
+                    if len(all_field_list) > 0:
+                        topField = all_field_list[0]
+                        botField = -1 * all_field_list[-1]
+                    else:
+                        topField = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
+                        try:
+                            botField = temp_field_dict['field_settings']['field_zones']['zone_3']['to']
+                        except KeyError:
+                            print("Zone 3 Does not exist.")
+                            try:
+                                botField = temp_field_dict['field_settings']['field_zones']['zone_2']['to']
+                            except KeyError:
+                                print("Zone 2 Does not exist.")
+                                botField = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
+
+                    valid = create_field_dict(field_mode, temp_field_dict, field_direction)
+                    if not valid:
+                        if field_mode == 'stepped':
+                            QMessageBox.warning(self, "The value entered does not follow the required formate",
+                                                f'zone 1 entry > zone 2 entry > zone 3 entry. Please try again!')
+                        else:
+                            QMessageBox.warning(self, "Error",
+                                                f'Check the input!')
                 f.write(f"Experiment Field Range (Oe): {topField} to {botField}\n")
+                f.write(f"Experiment Temperature (K): {temp_field_dict['all_temps']}\n")
                 f.write(f"Experiment Temperature (K): {temp_field_dict['all_temps']}\n")
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
@@ -2843,19 +3003,20 @@ class Measurement(QMainWindow):
                     ppms_instrument=self.client,
                     dsp7265_instrument=self.DSP7265,
                     bnc845_instrument=self.bnc845rf,
-                    ppms_setting=temp_field_dict,
+                    ppms_setting=self.temp_field_setting,
                     bnc845_setting=bnc_845_settings,
                     measurment_setting=measurement_setting,
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
                     settling_time=dsp7265_delay_config,
+                    notification_manager= NotificationManager(),
                     demo_mode=getattr(self, 'demo_mode', False),
                     spectrum_averaging=1,
                     save_individual_spectra=False
                 )
                 self._connect_fmr_worker_signals()
-                self.worker.start()  # Start the worker thread
+                self.fmr_worker.start()  # Start the worker thread
 
                 if hasattr(self, 'start_measurement_btn'):
                     self.start_measurement_btn.setEnabled(False)
@@ -4062,7 +4223,7 @@ class Measurement(QMainWindow):
 
         self.ppms_field_cointinous_mode_radio_button = QRadioButton("Continuous Sweep")
         self.ppms_field_cointinous_mode_radio_button.setFont(self.font)
-        self.ppms_field_cointinous_mode_radio_button.setChecked(True)
+        self.ppms_field_cointinous_mode_radio_button.setChecked(False)
         self.ppms_field_cointinous_mode_radio_button.toggled.connect(self.disable_step_field)
 
         self.ppms_field_fixed_mode_radio_button = QRadioButton("Fixed Field")
@@ -4081,11 +4242,20 @@ class Measurement(QMainWindow):
             self.ppms_field_customized_mode_radio_button.toggled.connect(self.disable_step_field)
             self.ppms_field_mode_buttom_layout.addWidget(self.ppms_field_customized_mode_radio_button)
             self.ppms_field_mode_buttom_group.addButton(self.ppms_field_customized_mode_radio_button)
+        self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
+        self.ppms_field_zone_selection_laypout = QVBoxLayout()
+        self.ppms_field_setting_layout.addLayout(self.ppms_field_zone_selection_laypout)
 
+    def ppms_field_zone_selection_ui(self):
+        self.clear_layout(self.ppms_field_zone_selection_laypout)
+        self.Field_setup_Zone_1 = False
+        self.Field_setup_Zone_2 = False
+        self.Field_setup_Zone_3 = False
         self.ppms_field_zone_number_label = QLabel('Number of Independent Step Regions:')
         self.ppms_field_zone_number_label.setFont(self.font)
         self.ppms_field_One_zone_radio = QRadioButton("1")
         self.ppms_field_One_zone_radio.setFont(self.font)
+        self.ppms_field_One_zone_radio.setChecked(False)
         self.ppms_field_One_zone_radio.toggled.connect(self.field_zone_selection)
         self.ppms_field_Two_zone_radio = QRadioButton("2")
         self.ppms_field_Two_zone_radio.setFont(self.font)
@@ -4096,12 +4266,13 @@ class Measurement(QMainWindow):
         self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_One_zone_radio)
         self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Two_zone_radio)
         self.ppms_field_radio_buttom_layout.addWidget(self.ppms_field_Three_zone_radio)
-        self.ppms_field_setting_layout.addLayout(self.ppms_field_mode_buttom_layout)
-        self.ppms_field_setting_layout.addWidget(self.ppms_field_zone_number_label)
-        self.ppms_field_setting_layout.addLayout(self.ppms_field_radio_buttom_layout)
-        self.ppms_field_setting_layout.addLayout(self.ppms_zone_field_layout)
+
+        self.ppms_field_zone_selection_laypout.addWidget(self.ppms_field_zone_number_label)
+        self.ppms_field_zone_selection_laypout.addLayout(self.ppms_field_radio_buttom_layout)
+        self.ppms_field_zone_selection_laypout.addLayout(self.ppms_zone_field_layout)
 
     def disable_step_field(self):
+        self.ppms_field_zone_selection_ui()
         if self.ppms_field_cointinous_mode_radio_button.isChecked():
             if self.ppms_field_One_zone_radio.isChecked():
                 self.ppms_zone1_field_step_entry.setEnabled(False)
@@ -4161,7 +4332,7 @@ class Measurement(QMainWindow):
                 self.ppms_zone1_to_entry = QLineEdit()
                 self.ppms_zone1_to_entry.setFont(self.font)
                 self.ppms_zone1_to_entry.setPlaceholderText("0 Oe")
-                self.ppms_zone1_to_entry.setEnabled(True)
+                self.ppms_zone1_to_entry.setReadOnly(False)
             elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
                 self.ppms_zone1_from_label = QLabel('Range (Oe): Top')
                 self.ppms_zone1_from_label.setFont(self.font)
@@ -4194,7 +4365,7 @@ class Measurement(QMainWindow):
             self.ppms_zone1_field_rate_label.setFont(self.font)
             self.ppms_zone1_field_rate_entry = QLineEdit()
             self.ppms_zone1_field_rate_entry.setFont(self.font)
-            self.ppms_zone1_field_rate_entry.setText('220')
+            self.ppms_zone1_field_rate_entry.setText('80')
             self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_label)
             self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_step_entry)
             self.ppms_zone1_field_step_layout.addWidget(self.ppms_zone1_field_rate_label)
@@ -4235,8 +4406,6 @@ class Measurement(QMainWindow):
         if self.ppms_field_bidirectional_mode_radio_button.isChecked() or self.ppms_field_unidirectional_mode_radio_button.isChecked():
             self.field_one_zone()
             self.ppms_zone1_from_entry.setPlaceholderText("3000 Oe")
-
-
             self.ppms_zone2_field_layout = QVBoxLayout()
             self.ppms_zone2_field_range_layout = QHBoxLayout()
 
@@ -4252,12 +4421,11 @@ class Measurement(QMainWindow):
                 self.ppms_zone2_to_entry.setFont(self.font)
                 self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
                 self.ppms_zone2_to_entry.setPlaceholderText("0 Oe")
-                self.ppms_zone2_from_entry.setEnabled(True)
-                self.ppms_zone2_to_entry.setEnabled(True)
+                self.ppms_zone1_to_entry.setReadOnly(False)
+                self.ppms_zone1_to_entry.setReadOnly(False)
             elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
                 self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
                 self.ppms_zone1_to_entry.setText("")
-                # self.ppms_zone1_to_entry.setPlaceholderText("2000 Oe")
                 self.ppms_zone1_to_entry.setReadOnly(True)
                 self.ppms_zone2_from_label = QLabel('Range 2 (Oe): Top')
                 self.ppms_zone2_from_label.setFont(self.font)
@@ -4284,14 +4452,15 @@ class Measurement(QMainWindow):
             self.ppms_zone2_field_step_entry = QLineEdit()
             self.ppms_zone2_field_step_entry.setFont(self.font)
             if self.ppms_field_cointinous_mode_radio_button.isChecked():
-                self.ppms_zone2_field_step_entry.setEnabled(False)
+                self.ppms_zone2_field_step_entry.setReadOnly(True)
             else:
-                self.ppms_zone2_field_step_entry.setEnabled(True)
+                self.ppms_zone1_field_step_entry.setReadOnly(False)
+                self.ppms_zone2_field_step_entry.setReadOnly(False)
             self.ppms_zone2_field_rate_label = QLabel('Rate (Oe/sec): ')
             self.ppms_zone2_field_rate_label.setFont(self.font)
             self.ppms_zone2_field_rate_entry = QLineEdit()
             self.ppms_zone2_field_rate_entry.setFont(self.font)
-            self.ppms_zone2_field_rate_entry.setText('220')
+            self.ppms_zone2_field_rate_entry.setText('80')
             self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_label)
             self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_step_entry)
             self.ppms_zone2_field_step_layout.addWidget(self.ppms_zone2_field_rate_label)
@@ -4334,7 +4503,7 @@ class Measurement(QMainWindow):
             self.ppms_zone2_from_entry.setPlaceholderText("2000 Oe")
 
             self.ppms_zone2_to_entry.clear()
-            self.ppms_zone2_to_entry.setEnabled(True)
+            self.ppms_zone2_to_entry.setReadOnly(False)
             self.ppms_zone3_field_layout = QVBoxLayout()
             self.ppms_zone3_field_range_layout = QHBoxLayout()
             if self.ppms_field_unidirectional_mode_radio_button.isChecked():
@@ -4350,7 +4519,7 @@ class Measurement(QMainWindow):
                 self.ppms_zone3_to_entry.setFont(self.font)
                 self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
                 self.ppms_zone3_to_entry.setPlaceholderText("0 Oe")
-                self.ppms_zone3_to_entry.setEnabled(True)
+                self.ppms_zone3_to_entry.setReadOnly(False)
             elif self.ppms_field_bidirectional_mode_radio_button.isChecked():
                 self.ppms_zone1_to_entry.setPlaceholderText("-3000 Oe")
                 self.ppms_zone2_to_entry.setPlaceholderText("-2000 Oe")
@@ -4367,7 +4536,7 @@ class Measurement(QMainWindow):
                 self.ppms_zone3_to_entry.setFont(self.font)
                 self.ppms_zone3_from_entry.setPlaceholderText("1000 Oe")
                 self.ppms_zone3_to_entry.setPlaceholderText("-1000 Oe")
-                self.ppms_zone2_to_entry.setReadOnly(True)
+                self.ppms_zone3_to_entry.setReadOnly(False)
             self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_label)
             self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_from_entry)
             self.ppms_zone3_field_range_layout.addWidget(self.ppms_zone3_to_label)
@@ -4379,15 +4548,15 @@ class Measurement(QMainWindow):
             self.ppms_zone3_field_step_entry = QLineEdit()
             self.ppms_zone3_field_step_entry.setFont(self.font)
             if self.ppms_field_cointinous_mode_radio_button.isChecked():
-                self.ppms_zone3_field_step_entry.setEnabled(False)
+                self.ppms_zone3_field_step_entry.setReadOnly(True)
             else:
-                self.ppms_zone3_field_step_entry.setEnabled(True)
-
+                self.ppms_zone1_field_step_entry.setReadOnly(False)
+                self.ppms_zone3_field_step_entry.setReadOnly(False)
             self.ppms_zone3_field_rate_label = QLabel('Rate (Oe/sec): ')
             self.ppms_zone3_field_rate_label.setFont(self.font)
             self.ppms_zone3_field_rate_entry = QLineEdit()
             self.ppms_zone3_field_rate_entry.setFont(self.font)
-            self.ppms_zone3_field_rate_entry.setText('220')
+            self.ppms_zone3_field_rate_entry.setText('80')
 
             self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_label)
             self.ppms_zone3_field_step_layout.addWidget(self.ppms_zone3_field_step_entry)
@@ -5009,14 +5178,6 @@ class Measurement(QMainWindow):
         """
         Generate a list of temperature values from start to end with given step.
         Returns list in Kelvin (K).
-
-        Args:
-            from_val: Starting temperature (string)
-            to_val: Ending temperature (string)
-            step_val: Step size (string)
-
-        Returns:
-            List of temperature values in K
         """
         try:
             start = float(from_val) if from_val else 0
@@ -5026,25 +5187,49 @@ class Measurement(QMainWindow):
             if step == 0:
                 return []
 
-            # Generate list
-            temp_list = []
-            current = start
+            # Ensure step is positive
+            step = abs(step)
 
-            # Determine direction
-            if start < end:
-                # Going up
-                while current <= end:
-                    temp_list.append(current)
-                    current += step
+            # Use numpy for proper floating point handling
+            if start <= end:
+                # Increasing temperature
+                temp_list = np.arange(start, end + step / 2, step).tolist()
             else:
-                # Going down
-                while current >= end:
-                    temp_list.append(current)
-                    current -= step
+                # Decreasing temperature
+                temp_list = np.arange(start, end - step / 2, -step).tolist()
 
             return temp_list
 
         except (ValueError, TypeError):
+            return []
+
+    def _combine_temperature_zones_no_duplicates(self, zones):
+        """
+        Combine multiple temperature zones, removing duplicates at boundaries.
+        """
+        try:
+            combined = []
+
+            for i, zone in enumerate(zones):
+                if 'temp_list' not in zone or not zone['temp_list']:
+                    continue
+
+                if i == 0:
+                    # First zone: add all points
+                    combined.extend(zone['temp_list'])
+                else:
+                    # Subsequent zones: check if first point duplicates last point
+                    if combined and abs(zone['temp_list'][0] - combined[-1]) < 1e-6:
+                        # Skip the duplicate first point
+                        combined.extend(zone['temp_list'][1:])
+                    else:
+                        # No duplicate, add all points
+                        combined.extend(zone['temp_list'])
+
+            return combined
+
+        except Exception as e:
+            print(f"Error combining temperature zones: {str(e)}")
             return []
 
     def get_combined_field_temp_lists(self):
@@ -5074,10 +5259,22 @@ class Measurement(QMainWindow):
         all_temps = []
         temp_settings = combined['temp_settings']
         if 'temp_zones' in temp_settings:
+            # Collect all zones
+            temp_zones = []
             for zone_name in sorted(temp_settings['temp_zones'].keys()):
                 zone = temp_settings['temp_zones'][zone_name]
-                temp_list = zone.get('temp_list', [])
-                all_temps.extend(temp_list)
+                if zone.get('temp_list'):
+                    temp_zones.append(zone)
+
+            # Combine zones, removing duplicates at boundaries
+            if temp_zones:
+                all_temps = self._combine_temperature_zones_no_duplicates(temp_zones)
+            else:
+                # Fallback to old method if no zones
+                for zone_name in sorted(temp_settings['temp_zones'].keys()):
+                    zone = temp_settings['temp_zones'][zone_name]
+                    temp_list = zone.get('temp_list', [])
+                    all_temps.extend(temp_list)
 
         combined['all_temps'] = all_temps
 

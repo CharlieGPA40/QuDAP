@@ -67,9 +67,8 @@ class ST_FMR_Worker(QThread):
     # Measurement progress
     update_measurement_progress = pyqtSignal(str)  # Current measurement status
 
-    def __init__(self, parent, bk9205_instrument, rigol_instrument, measurement_data,
-                 folder_path, file_name, run_number, demo_mode=False,
-                 settling_time=1.0, spectrum_averaging=1,
+    def __init__(self, parent, ppms_instrument, dsp7265_instrument, bnc845_instrument, ppms_setting, bnc845_setting,
+                 measurment_setting, folder_path, file_name, run_number, settling_time, notification_manager, demo_mode=False, spectrum_averaging=1,
                  save_individual_spectra=True, **kwargs):
         """
         Initialize worker thread.
@@ -77,18 +76,22 @@ class ST_FMR_Worker(QThread):
         super().__init__(parent)
 
         self.parent = parent
-        self.bk9205 = bk9205_instrument
-        self.rigol = rigol_instrument
-        self.measurement_data = measurement_data
+        self.client = ppms_instrument
+        self.dsp7265 = dsp7265_instrument
+        self.bnc845 = bnc845_instrument
+        self.ppms_setting = ppms_setting
+        self.bnc845_setting = bnc845_setting
+        self.measurment_setting = measurment_setting
         self.folder_path = folder_path
         self.file_name = file_name
         self.run_number = run_number
+        self.settling_time = settling_time
+        self.notification_manager = notification_manager
 
         # Connection flags
         self.demo_mode = demo_mode
 
         # Measurement parameters
-        self.settling_time = settling_time
         self.spectrum_averaging = spectrum_averaging
         self.save_individual_spectra = save_individual_spectra
 
@@ -101,6 +104,14 @@ class ST_FMR_Worker(QThread):
         self.measurement_results = []
         self.all_spectra = []
 
+        # initialize ppms safe command
+        try:
+            from QuDAP.GUI.Experiment.measurement import ThreadSafePPMSCommands
+        except ImportError:
+            from GUI.Experiment.measurement import ThreadSafePPMSCommands
+
+        self.ppms = ThreadSafePPMSCommands(self.client, self.notification_manager)
+
         # Additional parameters
         self.extra_params = kwargs
 
@@ -108,20 +119,23 @@ class ST_FMR_Worker(QThread):
         """Main execution method - runs in separate thread."""
         try:
             self.append_text.emit("=" * 60)
-            self.append_text.emit("Starting BK9205 + RIGOL Measurement")
+            self.append_text.emit("Starting ST_FMR Measurement")
             self.append_text.emit(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             self.append_text.emit("=" * 60)
 
-            # Validate measurement data
-            if not self._validate_measurement_data():
-                return
-
-            # Initialize instruments
-            if not self._initialize_instruments():
-                return
-
             # Clear plots
             self.clear_plot.emit()
+
+            # Read Experiment Settings
+            number_of_repetition = self.measurment_setting['number_repetition']
+            init_temp_rate = self.measurment_setting['init_temp_rate']
+
+            # Read RF Settings
+            frequency_list = self.bnc845_setting['frequency_settings']['Final_list']
+            power_list = self.bnc845_setting['power_settings']['Final_list']
+
+            # Read PPMS Setting
+            print(self.ppms_setting)
 
             # Execute measurement
             self._execute_measurement()
@@ -149,29 +163,6 @@ class ST_FMR_Worker(QThread):
             self.error_message.emit(error_msg)
             self.stop_measurement.emit()
 
-    def _validate_measurement_data(self):
-        """Validate measurement configuration."""
-        self.append_text.emit("\nValidating measurement configuration...")
-
-        if self.measurement_data['channel_mode'] == 'none':
-            self.error_message.emit("No channels selected for measurement")
-            return False
-
-        # Check that at least one channel is enabled
-        has_enabled = any(ch['enabled'] for ch in self.measurement_data['channels'].values())
-        if not has_enabled:
-            self.error_message.emit("No enabled channels found")
-            return False
-
-        # Check that enabled channels have values
-        for ch_name, ch_data in self.measurement_data['channels'].items():
-            if ch_data['enabled'] and not ch_data['values']:
-                self.error_message.emit(f"No values specified for {ch_name}")
-                return False
-
-        self.append_text.emit("✓ Measurement configuration valid")
-        self._log_measurement_summary()
-        return True
 
     def _log_measurement_summary(self):
         """Log measurement configuration summary."""
@@ -188,55 +179,176 @@ class ST_FMR_Worker(QThread):
                 self.append_text.emit(
                     f"    Range: {min(ch_data['values']):.6f} to {max(ch_data['values']):.6f} {ch_data['unit']}")
 
-    def _initialize_instruments(self):
-        """Initialize BK9205 and RIGOL instruments."""
-        self.append_text.emit("\nInitializing instruments...")
-
-        try:
-            # Initialize BK9205
-            if self.bk9205 and not self.demo_mode:
-                self.append_text.emit("  Initializing BK9205...")
-                self.bk9205_cmd = BK_9129_COMMAND()
-
-                # Turn off all outputs initially
-                self.bk9205_cmd.set_output_state(self.bk9205, 'OFF')
-                self.append_text.emit("  ✓ BK9205 initialized")
-            else:
-                self.append_text.emit("  ⚠ BK9205 not connected (demo mode)")
-                self.bk9205_cmd = None
-
-            # Initialize RIGOL
-            if self.rigol and not self.demo_mode:
-                self.append_text.emit("  Initializing RIGOL...")
-                self.rigol_cmd = RIGOL_COMMAND()
-
-                # Reset and configure RIGOL for measurement
-                # Add your specific RIGOL configuration here
-                self.append_text.emit("  ✓ RIGOL initialized")
-            else:
-                self.append_text.emit("  ⚠ RIGOL not connected (demo mode)")
-                self.rigol_cmd = None
-
-            return True
-
-        except Exception as e:
-            error_msg = f"Instrument initialization failed: {str(e)}"
-            self.append_text.emit(f"  ✗ {error_msg}")
-            self.error_message.emit(error_msg)
-            return False
 
     def _execute_measurement(self):
         """Execute the main measurement loop."""
-        channel_mode = self.measurement_data['channel_mode']
 
-        if channel_mode == 'single':
-            self._measure_single_channel()
-        elif channel_mode == 'series':
-            self._measure_series_channels()
-        elif channel_mode == 'parallel':
-            self._measure_parallel_channels()
-        elif channel_mode == 'all':
-            self._measure_all_channels()
+        def get_chamber_status():
+            try:
+                success, cT = self.ppms.get_chamber_status(timeout=10)
+                # cT = client.get_chamber()
+                if not success:
+                    self.stop_measurement.emit()
+                return cT
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                self.notification_manager.send_message(
+                    f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
+        def set_temperature(set_point, temp_rate):
+            try:
+                success = self.ppms.set_temperature(
+                    set_point=set_point,
+                    temp_rate=temp_rate,
+                    timeout=10  # 30 second timeout
+                )
+                if not success:
+                    self.stop_measurement.emit()
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                self.notification_manager.send_message(
+                    f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
+        def set_field(set_point, field_rate):
+            try:
+                success = self.ppms.set_field(
+                    set_point=set_point,
+                    field_rate=field_rate,
+                    timeout=10
+                )
+                if not success:
+                    self.stop_measurement.emit()
+                self.append_text.emit(f'Setting Field to {str(set_point)} Oe... \n', 'orange')
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                self.notification_manager.send_message(
+                    f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
+        def read_temperature():
+            try:
+                success, temp, status, unit = self.ppms.read_temperature(timeout=10)
+                if not success:
+                    self.stop_measurement.emit()
+                return temp, status, unit
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                self.notification_manager.send_message(
+                    f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
+        def read_field():
+            try:
+                success, field, status, unit = self.ppms.read_field(timeout=10)
+                if not success:
+                    self.stop_measurement.emit()
+                return field, status, unit
+            except SystemExit as e:
+                tb_str = traceback.format_exc()
+                self.notification_manager.send_message(
+                    f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
+        self.notification_manager.send_message(message="The measurement has been started successfully.")
+
+        # let topField = 5000;
+        #     let botField = -5000;
+        #     let topFreq = 26e9;
+        #     let botFreq = 2e8;
+        #     let stepFreq = 2e8;
+        #     instruments[2].turnOn();
+        #     instruments[2].setdBm(5);
+        #     logging=true;
+        #     logs = [];
+        #     // let temps = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,105,110,120,130,140,150,160,170,180,190,200,250,300];
+        #     let temps = [5];
+        #     let x;
+        #     let folderName = "data/Chunli/LSMO_40nm_STO_DS165B/";
+        #     instruments[5].setField(0,220,0);
+        #     // instruments[3].port.write("OUTPut OFF \n");
+        #     for (let i = 1; i < 2; i++) {
+        #         for (temp of temps) {
+        #             instruments[2].turnOn();
+        #             instruments[5].setTemp(temp,50,0);
+        #             do{
+        #                 await instruments[0].delay(600);
+        #                 console.log("Waiting on Temp1");
+        #             } while(instruments[5].readout["tempCode"]!=6);
+        #             do{
+        #                 await instruments[0].delay(600);
+        #                 console.log("Waiting on Temp2");
+        #             } while(instruments[5].readout["tempCode"]!=1);
+        #             await instruments[0].delay(700);
+        #
+        #                 let curFreq = topFreq;
+        #
+        #                 while(curFreq >= botFreq){
+        #
+        #                     instruments[2].setFreq(curFreq);
+        #                     await instruments[0].delay(2000);
+        #                     instruments[3].setSens(1,"AUTO");
+        #                     await instruments[0].delay(2000);
+        #                     instruments[5].setField(topField,220,0);
+        #                     do{
+        #                         await instruments[0].delay(500);
+        #                         console.log("Waiting on Field1");
+        #                     } while(instruments[5].readout["fieldCode"]!=6);
+        #                     do{
+        #                         await instruments[0].delay(500);
+        #                         console.log("Waiting on Field2");
+        #                     } while(instruments[5].readout["fieldCode"]!=4);
+        #                     instruments[5].setField(botField,7,0);
+        #                     logs = [];
+        #                     logging = true;
+        #                     do{
+        #                         await instruments[0].delay(500);
+        #                         console.log("Waiting on Field1");
+        #                     } while(instruments[5].readout["fieldCode"]!=6);
+        #                     do{
+        #                         await instruments[0].delay(500);
+        #                         console.log("Waiting on Field2");
+        #                     } while(instruments[5].readout["fieldCode"]!=4);
+        #                     logging = false;
+        #
+        #                 // createFolder(folder_name);
+        #                 SaveLogs("data/Chunli/CrSBr_Feb_10_25/" + i+ "Amplitude_Mod_FMR-"+ temp + "K-" + curFreq +"Hz-IP_CrSBr.csv");
+        #
+        #                 curFreq -= stepFreq;
+        #             }
+        #             }
+        #     }
+        #
+        #     instruments[2].turnOff();
+        #     instruments[5].setField(0,220,0);
+        #     instruments[5].setTemp(5,50,0);
+        #
+        #     function createFolder(folderName) {
+        #         if (!fs.existsSync(folderName)){
+        #             console.log("Folder created!");
+        #             fs.mkdirSync(folderName);
+        #         }
+        #     }
+        # }
+
+    # def continus_field_setting(self, currentField):
+    #     if ppms_field_One_zone_radio_enabled:
+    #         deltaH = zone1_step_field
+    #         user_field_rate = zone1_field_rate
+    #     elif ppms_field_Two_zone_radio_enabled:
+    #         if (currentField <= zone1_top_field + 1 or currentField >= -1 * zone1_top_field - 1):
+    #             deltaH = zone1_step_field
+    #             user_field_rate = zone1_field_rate
+    #         elif (currentField > -1 * zone2_top_field and currentField <= zone2_top_field):
+    #             deltaH = zone2_step_field
+    #             user_field_rate = zone2_field_rate
+    #     elif ppms_field_Three_zone_radio_enabled:
+    #         if (currentField <= zone1_top_field + 1 or currentField >= -1 * zone1_top_field - 1):
+    #             deltaH = zone1_step_field
+    #             user_field_rate = zone1_field_rate
+    #         elif (currentField < zone2_top_field and currentField >= -1 * zone2_top_field):
+    #             deltaH = zone2_step_field
+    #             user_field_rate = zone2_field_rate
+    #         elif (currentField > -1 * zone3_top_field and currentField < zone3_top_field):
+    #             deltaH = zone3_step_field
+    #             user_field_rate = zone3_field_rate
+    #     return deltaH, user_field_rate
 
     def _measure_single_channel(self):
         """Measure single channel configuration."""
@@ -314,285 +426,8 @@ class ST_FMR_Worker(QThread):
         self.save_plot.emit(self.file_name)
         self.progress_update.emit(100)
 
-    def _measure_series_channels(self):
-        """Measure series channel configuration (Ch1 + Ch2)."""
-        self.append_text.emit("\n" + "=" * 60)
-        self.append_text.emit("Starting Series Channel Measurement")
-        self.append_text.emit("=" * 60)
-
-        merged_data = self.measurement_data['channels']['merged']
-        values = merged_data['values']
-        total_points = len(values)
-        source_type = self.measurement_data['source_type']
-
-        self.append_text.emit(f"\nMeasuring CH1 & CH2 in Series with {total_points} points")
-
-        for idx, total_value in enumerate(values):
-            if not self.running:
-                return
-
-            progress = int((idx / total_points) * 100)
-            self.progress_update.emit(progress)
-            self.update_measurement_progress.emit(
-                f"Point {idx + 1}/{total_points}: Total={total_value:.6f} {merged_data['unit']}"
-            )
-
-            # Split voltage between channels (50/50 split)
-            ch1_value = total_value / 2
-            ch2_value = total_value / 2
-
-            # Set both channels using APP:VOLT command
-            self._set_series_channels(ch1_value, ch2_value, source_type)
-
-            # Enable series mode and turn on outputs
-            self._enable_series_mode()
-
-            # Wait for settling
-            self._wait_settling(f"Settling... ({self.settling_time}s)")
-
-            # Read back and update labels
-            self._read_and_update_labels()
-
-            # Capture spectrum
-            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
-
-            # Store results
-            result = {
-                'point': idx + 1,
-                'channel': 'merged_series',
-                'total_value': total_value,
-                'ch1_value': ch1_value,
-                'ch2_value': ch2_value,
-                'unit': merged_data['unit'],
-                'source_type': source_type,
-                'spectrum': spectrum_data,
-                'timestamp': datetime.datetime.now().isoformat()
-            }
-            self.measurement_results.append(result)
-
-            # Save individual spectrum
-            if self.save_individual_spectra:
-                self._save_individual_spectrum(result, idx)
-                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-                self.save_individual_plot.emit(plot_filename)
-
-            # Update plots
-            self._update_plots()
-
-            time.sleep(1)
-            self._save_consolidated_data()
-        self.save_plot.emit(self.file_name)
-        self.progress_update.emit(100)
-
-    def _measure_parallel_channels(self):
-        """Measure parallel channel configuration (Ch1 || Ch2)."""
-        self.append_text.emit("\n" + "=" * 60)
-        self.append_text.emit("Starting Parallel Channel Measurement")
-        self.append_text.emit("=" * 60)
-
-        merged_data = self.measurement_data['channels']['merged']
-        values = merged_data['values']
-        total_points = len(values)
-        source_type = self.measurement_data['source_type']
-
-        self.append_text.emit(f"\nMeasuring CH1 & CH2 in Parallel with {total_points} points")
-
-        for idx, value in enumerate(values):
-            if not self.running:
-                return
-
-            progress = int((idx / total_points) * 100)
-            self.progress_update.emit(progress)
-            self.update_measurement_progress.emit(
-                f"Point {idx + 1}/{total_points}: {value:.6f} {merged_data['unit']}"
-            )
-
-            # Set both channels to same value
-            self._set_parallel_channels(value, value, source_type)
-
-            # Enable parallel mode and turn on outputs
-            self._enable_parallel_mode()
-
-            # Wait for settling
-            self._wait_settling(f"Settling... ({self.settling_time}s)")
-
-            # Read back and update labels
-            self._read_and_update_labels()
-
-            # Capture spectrum
-            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
-
-            # Store results
-            result = {
-                'point': idx + 1,
-                'channel': 'merged_parallel',
-                'value': value,
-                'unit': merged_data['unit'],
-                'source_type': source_type,
-                'spectrum': spectrum_data,
-                'timestamp': datetime.datetime.now().isoformat()
-            }
-            self.measurement_results.append(result)
-
-            # Save individual spectrum
-            if self.save_individual_spectra:
-                self._save_individual_spectrum(result, idx)
-                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-                self.save_individual_plot.emit(plot_filename)
-
-            # Update plots
-            self._update_plots()
-
-            time.sleep(1)
-            self._save_consolidated_data()
-        self.save_plot.emit(self.file_name)
-        self.progress_update.emit(100)
-
-    def _measure_all_channels(self):
-        """Measure all channels configuration."""
-        self.append_text.emit("\n" + "=" * 60)
-        self.append_text.emit("Starting All Channels Measurement")
-        self.append_text.emit("=" * 60)
-
-        # Get enabled channels
-        enabled_channels = [
-            (ch_name, ch_data)
-            for ch_name, ch_data in self.measurement_data['channels'].items()
-            if ch_data['enabled']
-        ]
-
-        # Find varying channel (one with multiple values)
-        varying_channels = [(name, data) for name, data in enabled_channels if len(data['values']) > 1]
-
-        if len(varying_channels) == 0:
-            # All fixed values
-            self._measure_all_channels_fixed(enabled_channels)
-        else:
-            # Use first varying channel
-            self._measure_all_channels_one_varying(enabled_channels, varying_channels[0])
-
-    def _measure_all_channels_fixed(self, enabled_channels):
-        """All channels with fixed values - single measurement."""
-        self.append_text.emit("\nAll channels set to fixed values - single measurement")
-
-        # Prepare voltage list for all 3 channels
-        ch_values = [0.0, 0.0, 0.0]  # Ch1, Ch2, Ch3
-        source_type = self.measurement_data['source_type']
-
-        for ch_name, ch_data in enabled_channels:
-            ch_num = self._get_channel_number(ch_name)
-            ch_values[ch_num - 1] = ch_data['values'][0]
-
-        # Set all channels at once
-        self._set_all_channels(ch_values[0], ch_values[1], ch_values[2], source_type)
-
-        # Turn on all channels
-        self._turn_on_all_channels()
-
-        # Wait for settling
-        self._wait_settling(f"Settling... ({self.settling_time}s)")
-
-        # Read and update
-        self._read_and_update_labels()
-
-        # Capture spectrum
-        spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
-
-        # Store result
-        result = {
-            'point': 1,
-            'channel': 'all_fixed',
-            'ch1_value': ch_values[0],
-            'ch2_value': ch_values[1],
-            'ch3_value': ch_values[2],
-            'spectrum': spectrum_data,
-            'timestamp': datetime.datetime.now().isoformat()
-        }
-        self.measurement_results.append(result)
-
-        if self.save_individual_spectra:
-            self._save_individual_spectrum(result, 0)
-            plot_filename = f"{self.file_name}_point_spectrum.png"
-            self.save_individual_plot.emit(plot_filename)
-
-        self._update_plots()
-
-        self.save_plot.emit(self.file_name)
-        time.sleep(1)
-        self._save_consolidated_data()
-        self.progress_update.emit(100)
-
-    def _measure_all_channels_one_varying(self, enabled_channels, varying_channel):
-        """All channels with one varying."""
-        vary_name, vary_data = varying_channel
-        values = vary_data['values']
-        total_points = len(values)
-        source_type = self.measurement_data['source_type']
-
-        self.append_text.emit(f"\nVarying {vary_name.upper()} through {total_points} points")
-
-        for idx, vary_value in enumerate(values):
-            if not self.running:
-                return
-
-            progress = int((idx / total_points) * 100)
-            self.progress_update.emit(progress)
-            self.update_measurement_progress.emit(
-                f"Point {idx + 1}/{total_points}: {vary_name.upper()}={vary_value:.6f}"
-            )
-
-            # Prepare voltage list
-            ch_values = [0.0, 0.0, 0.0]
-            for ch_name, ch_data in enabled_channels:
-                ch_num = self._get_channel_number(ch_name)
-                if ch_name == vary_name:
-                    ch_values[ch_num - 1] = vary_value
-                else:
-                    ch_values[ch_num - 1] = ch_data['values'][0]
-
-            # Set all channels
-            self._set_all_channels(ch_values[0], ch_values[1], ch_values[2], source_type)
-
-            # Turn on all channels
-            self._turn_on_all_channels()
-
-            # Wait for settling
-            self._wait_settling(f"Settling... ({self.settling_time}s)")
-
-            # Read and update
-            self._read_and_update_labels()
-
-            # Capture spectrum
-            spectrum_data = self._capture_spectrum(averaging=self.spectrum_averaging)
-
-            # Store result
-            result = {
-                'point': idx + 1,
-                'channel': 'all_varying',
-                'varying_channel': vary_name,
-                'varying_value': vary_value,
-                'ch1_value': ch_values[0],
-                'ch2_value': ch_values[1],
-                'ch3_value': ch_values[2],
-                'spectrum': spectrum_data,
-                'timestamp': datetime.datetime.now().isoformat()
-            }
-            self.measurement_results.append(result)
-
-            if self.save_individual_spectra:
-                self._save_individual_spectrum(result, idx)
-                plot_filename = f"{self.file_name}_point_{idx + 1:04d}_spectrum.png"
-                self.save_individual_plot.emit(plot_filename)
-
-            self._update_plots()
-
-            time.sleep(1)
-            self._save_consolidated_data()
-        self.save_plot.emit(self.file_name)
-        self.progress_update.emit(100)
-
     # ==================================================================================
-    # BK9205 CONTROL METHODS
+    # BNC845 CONTROL METHODS
     # ==================================================================================
 
     def _set_channel_voltage_all_command(self, channel_num, value, source_type):
@@ -605,7 +440,6 @@ class ST_FMR_Worker(QThread):
             # Use APP:VOLT command to set only the specified channel
             if source_type == 'voltage':
                 if channel_num == 1:
-                    print(value)
                     self.bk9205_cmd.set_all_voltages(self.bk9205, value, 0, 0, 'V')
                 elif channel_num == 2:
                     self.bk9205_cmd.set_all_voltages(self.bk9205, 0, value, 0, 'V')
@@ -1175,7 +1009,6 @@ class FMR_Measurement(QWidget):
         # self.main_layout.addLayout(self.bnc845rf_main_layout)
 
     def bnc845rf_window_reading_ui(self):
-        print('enter')
         self.bnc845rf_window_reading_layout = QVBoxLayout()
 
         self.bnc845rf_current_frequency_layout = QHBoxLayout()
@@ -1245,7 +1078,6 @@ class FMR_Measurement(QWidget):
         return self.bnc845rf_window_reading_layout
 
     def bnc845rf_window_setting_ui(self):
-        print('Enter Settings')
         self.bnc845rf_setting_layout = QVBoxLayout()
 
         self.bnc845rf_loop_setting_content_layout = QVBoxLayout()
@@ -1291,7 +1123,6 @@ class FMR_Measurement(QWidget):
 
     def bnc845rf_loop_selection_ui(self):
         self.clear_layout(self.bnc845rf_loop_setting_content_layout)
-        print(self.bnc845rf_loop_setting_combo.currentIndex())
         if self.bnc845rf_loop_setting_combo.currentIndex() == 1:
             self.bnc845rf_frequency_radio_buttom_layout = QHBoxLayout()
             self.bnc845rf_frequency_zone_layout = QVBoxLayout()
@@ -2327,7 +2158,49 @@ class FMR_Measurement(QWidget):
         except Exception as e:
             print(f"Error updating UI from instrument: {str(e)}")
 
-    def update_frequency_from_instrument(self, instrument, bnc_cmd):
+    # Update current frequency reading
+    def format_frequency_with_unit(self, freq_hz):
+        """
+        Convert frequency in Hz to the most appropriate unit and format for display.
+
+        Args:
+            freq_hz: Frequency value in Hz (can be string or float)
+
+        Returns:
+            Formatted string with value and unit (e.g., "2.5 GHz")
+        """
+        try:
+            # Convert to float if it's a string
+            freq_value = float(freq_hz)
+
+            # Determine the best unit based on magnitude
+            if freq_value >= 1e9:
+                converted = freq_value / 1e9
+                unit = 'GHz'
+            elif freq_value >= 1e6:
+                converted = freq_value / 1e6
+                unit = 'MHz'
+            elif freq_value >= 1e3:
+                converted = freq_value / 1e3
+                unit = 'kHz'
+            else:
+                converted = freq_value
+                unit = 'Hz'
+
+            # Format the number (remove unnecessary decimal places)
+            if converted >= 100:
+                formatted = f"{converted:.2f}"
+            elif converted >= 10:
+                formatted = f"{converted:.3f}"
+            else:
+                formatted = f"{converted:.4f}"
+
+            return f"{formatted} {unit}"
+
+        except (ValueError, TypeError):
+            return "N/A"
+
+    def _update_frequency_from_instrument(self, instrument, bnc_cmd):
         """
         Update all UI labels with current readings from the BNC845RF instrument.
 
@@ -2336,52 +2209,12 @@ class FMR_Measurement(QWidget):
             bnc_cmd: BNC_845M_COMMAND instance
         """
         try:
-            # Update current frequency reading
-            def format_frequency_with_unit(freq_hz):
-                """
-                Convert frequency in Hz to the most appropriate unit and format for display.
 
-                Args:
-                    freq_hz: Frequency value in Hz (can be string or float)
-
-                Returns:
-                    Formatted string with value and unit (e.g., "2.5 GHz")
-                """
-                try:
-                    # Convert to float if it's a string
-                    freq_value = float(freq_hz)
-
-                    # Determine the best unit based on magnitude
-                    if freq_value >= 1e9:
-                        converted = freq_value / 1e9
-                        unit = 'GHz'
-                    elif freq_value >= 1e6:
-                        converted = freq_value / 1e6
-                        unit = 'MHz'
-                    elif freq_value >= 1e3:
-                        converted = freq_value / 1e3
-                        unit = 'kHz'
-                    else:
-                        converted = freq_value
-                        unit = 'Hz'
-
-                    # Format the number (remove unnecessary decimal places)
-                    if converted >= 100:
-                        formatted = f"{converted:.2f}"
-                    elif converted >= 10:
-                        formatted = f"{converted:.3f}"
-                    else:
-                        formatted = f"{converted:.4f}"
-
-                    return f"{formatted} {unit}"
-
-                except (ValueError, TypeError):
-                    return "N/A"
 
             if hasattr(self, 'bnc845rf_current_frequency_reading_label'):
                 try:
                     freq = bnc_cmd.get_frequency_cw(instrument).strip()
-                    freq = format_frequency_with_unit(freq)
+                    freq = self.format_frequency_with_unit(freq)
                     self.bnc845rf_current_frequency_reading_label.setText(freq)
                 except:
                     pass
