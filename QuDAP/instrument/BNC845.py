@@ -162,6 +162,14 @@ class BNC_845M_COMMAND:
     # ========================================================================================
     # :OUTPut Subsystem
     # ========================================================================================
+    def set_output(self, instrument, state: str):
+        """Turn RF output on/off (ON|OFF|1|0)"""
+        if state in ['ON', 'OFF', '1', '0']:
+            instrument.write(f':OUTP {state}')
+
+    def get_output(self, instrument) -> str:
+        """Query RF output state"""
+        return instrument.query(':OUTP?')
 
     def set_output_state(self, instrument, state: str):
         """Turn RF output on/off (ON|OFF|1|0)"""
@@ -184,6 +192,14 @@ class BNC_845M_COMMAND:
     # ========================================================================================
     # [SOURce]:FREQuency Subsystem
     # ========================================================================================
+
+    def set_frequency(self, instrument, frequency: float):
+        """Set frequency"""
+        instrument.write(f':SOURce:FREQuency {frequency}')
+
+    def get_frequency(self, instrument) -> str:
+        """Query frequency"""
+        return instrument.query(':SOURce:FREQuency?')
 
     def set_frequency_cw(self, instrument, frequency: float, unit: str = 'Hz'):
         """Set CW frequency"""
@@ -253,6 +269,13 @@ class BNC_845M_COMMAND:
     # ========================================================================================
     # [SOURce]:POWer Subsystem
     # ========================================================================================
+    def set_power(self, instrument, power: float):
+        """Set sweep start power"""
+        instrument.write(f':SOURce:POWer {power}')
+
+    def get_power(self, instrument) -> str:
+        """Query sweep start power"""
+        return instrument.query(':SOURce:POWer?')
 
     def set_power_level(self, instrument, power: float, unit: str = 'dBm'):
         """Set RF output power level"""

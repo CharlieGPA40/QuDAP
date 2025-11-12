@@ -2835,18 +2835,17 @@ class Measurement(QMainWindow):
                         field_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
                         # self.temp_field_setting['field_setting']['final_rate'] = field_rate
                         if field_zone_count == 1:
-                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 1}
                             zone_one_region_from = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
                             zone_one_region_to = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
                             zone_one_region_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
 
-                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'region1':{'from': zone_one_region_from,
-                                                                                                            'to': zone_one_region_to,
-                                                                                                            'rate': zone_one_region_rate}}
+                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 1,
+                                                                                                 'region1': {
+                                                                                                     'from': zone_one_region_from,
+                                                                                                     'to': zone_one_region_to,
+                                                                                                     'rate': zone_one_region_rate}}
                             valid = True
                         elif field_zone_count == 2:
-                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 2}
-
                             zone_one_region_from = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
                             zone_one_region_to = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
                             zone_one_region_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
@@ -2862,6 +2861,7 @@ class Measurement(QMainWindow):
 
                             if field_direction == 'bidirectional':
                                 self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'zone_count': 2,
                                     'region1': {'from_start': zone_one_region_from,
                                                 'to_start': zone_two_region_from,
                                                 'from_end': zone_two_region_to,
@@ -2873,6 +2873,7 @@ class Measurement(QMainWindow):
                                 }
                             else:
                                 self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'zone_count': 2,
                                     'region1': {'from': zone_one_region_from,
                                                 'to': zone_one_region_to,
                                                 'rate': zone_one_region_rate},
@@ -2882,8 +2883,6 @@ class Measurement(QMainWindow):
                                 }
 
                         elif field_zone_count == 3:
-                            self.temp_field_setting['field_setting']['final_continuous_list'] = {'zone_count': 3}
-
                             zone_one_region_from = temp_field_dict['field_settings']['field_zones']['zone_1']['from']
                             zone_one_region_to = temp_field_dict['field_settings']['field_zones']['zone_1']['to']
                             zone_one_region_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
@@ -2905,6 +2904,7 @@ class Measurement(QMainWindow):
                                 valid = False
                             if field_direction == 'bidirectional':
                                 self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'zone_count': 3,
                                     'region1': {'from_start': zone_one_region_from,
                                                 'to_start': zone_two_region_from,
                                                 'from_end': zone_two_region_to,
@@ -2920,6 +2920,7 @@ class Measurement(QMainWindow):
                                                 'rate': zone_three_region_rate}}
                             else:
                                 self.temp_field_setting['field_setting']['final_continuous_list'] = {
+                                    'zone_count': 3,
                                     'region1': {'from': zone_one_region_from,
                                                 'to': zone_one_region_to,
                                                 'rate': zone_one_region_rate},
@@ -2997,7 +2998,9 @@ class Measurement(QMainWindow):
                 f.write(f"Experiment Temperature (K): {temp_field_dict['all_temps']}\n")
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
-
+                print(self.temp_field_setting)
+                print(bnc_845_settings)
+                print(measurement_setting)
                 self.fmr_worker = ST_FMR_Worker(
                     parent=self,
                     ppms_instrument=self.client,
@@ -5597,7 +5600,7 @@ class Measurement(QMainWindow):
 
             if hasattr(self, 'progress_bar'):
                 try:
-                    self.customize_layout.removeWidget(self.progress_bar)
+                    self.main_layout.removeWidget(self.progress_bar)
                     self.progress_bar.deleteLater()
                 except:
                     pass
