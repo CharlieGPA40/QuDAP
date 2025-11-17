@@ -41,7 +41,11 @@ class ST_FMR_Worker(QThread):
     append_text = pyqtSignal(str)  # Log messages
     stop_measurement = pyqtSignal()  # Signal to stop
     measurement_finished = pyqtSignal()  # Measurement complete
+    update_fmr_ui = pyqtSignal()
     error_message = pyqtSignal(str)  # Error popup
+    show_warning = pyqtSignal(str, str)
+    show_error = pyqtSignal(str, str)
+    show_info = pyqtSignal(str, str)
 
     # Instrument reading updates
     update_ppms_temp_reading_label = pyqtSignal(str, str, str)
@@ -155,28 +159,12 @@ class ST_FMR_Worker(QThread):
             self.stop_measurement.emit()
 
 
-    def _log_measurement_summary(self):
-        """Log measurement configuration summary."""
-        self.append_text.emit("\nMeasurement Configuration:")
-        self.append_text.emit(f"  Channel Mode: {self.measurement_data['channel_mode']}")
-        self.append_text.emit(f"  Source Type: {self.measurement_data['source_type']}")
-
-        for ch_name, ch_data in self.measurement_data['channels'].items():
-            if ch_data['enabled']:
-                ch_label = ch_name.upper().replace('MERGED', 'CH1+CH2')
-                self.append_text.emit(f"\n  {ch_label}:")
-                self.append_text.emit(f"    Mode: {ch_data['mode']}")
-                self.append_text.emit(f"    Number of points: {len(ch_data['values'])}")
-                self.append_text.emit(
-                    f"    Range: {min(ch_data['values']):.6f} to {max(ch_data['values']):.6f} {ch_data['unit']}")
-
-
     def _execute_measurement(self):
         """Execute the main measurement loop."""
         # Read Experiment Settings
         number_of_repetition = self.measurment_setting['number_repetition']
         temperature_ramping_rate = self.measurment_setting['init_temp_rate']
-
+        number_of_repetition = list(range(1, number_of_repetition + 1))
         # Read RF Settings
         frequency_list = self.bnc845_setting['frequency_settings']['Final_list']
         power_list = self.bnc845_setting['power_settings']['Final_list']
@@ -213,6 +201,7 @@ class ST_FMR_Worker(QThread):
             return  # Exit without emitting measurement_finished
 
         for i in range(number_of_temperature):
+            self.temperature_array = []
             self._set_field(zero_field, fast_field_rate)
             time.sleep(10)
 
@@ -252,6 +241,7 @@ class ST_FMR_Worker(QThread):
 
             self.append_text.emit(f'Stabilizing the Temperature for 5 minutes.....', 'orange')
             time.sleep(300)
+            self.temperature_array.append(curTemp)
             if self.stopped_by_user:
                 self.append_text.emit("\n" + "=" * 60)
                 self.append_text.emit("Measurement stopped by user")
@@ -259,19 +249,34 @@ class ST_FMR_Worker(QThread):
                 return  # Exit without emitting measurement_finished
 
             for j in range(number_of_frequency):
+                self.frequency_array = []
                 for k in range(number_of_power):
-                    for l in range(number_of_repetition):
+                    current_frequency = frequency_list[j]
+                    current_power = power_list[k]
+                    self.power_array = []
+                    if self.bnc845:
+                        try:
+                            self._set_enable_bnc845(frequency=current_frequency, power=current_power)
+                            self._turn_on_output_bnc845()
+                            time.sleep(1)
+                            self.update_fmr_ui.emit()
+                            curFreq = self._get_current_frequency_bnc845()
+                            self.frequency_array.append(curFreq)
+                            curPower = self._get_current_power_bnc845()
+                            self.power_array.append(curPower)
+                        except Exception as e:
+                            self.show_error.emit("BNC Setting Error", f'{e}')
+                            self.stop_measurement().emit()
+                    for l in range(len(number_of_repetition)):
+                        self.repetition_array = []
+                        self.repetition_array.append(number_of_repetition[l])
                         self.notification_manager.send_message(
                             f"Starting measurement at temperature: {str(temperature_list[i])} K, frequency: {frequency_list[j]} Hz,"
                             f"power: {power_list[k]} dBm, repetition: {number_of_repetition[l]}")
 
-                        current_frequency = frequency_list[j]
-                        current_power = power_list[k]
-
                         self.clear_plot.emit()
 
                         csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}_K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run}_repeat_{number_of_repetition[l]}.csv"
-                        csv_filename_avg = f"{self.folder_path}{self.file_name}_{temperature_list[i]}_K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run}_repeat_{number_of_repetition[l]}_avg.csv"
 
                         time.sleep(5)
 
@@ -281,21 +286,24 @@ class ST_FMR_Worker(QThread):
                             self.append_text.emit("=" * 60)
                             return  # Exit without emitting measurement_finished
 
-                        if dsp7265:
-                            time.sleep(10)
-                            delay = convert_to_seconds(dsp7265_current_time_constant)
-                            cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
-                            self.update_dsp7265_freq_label.emit(cur_freq)
-                            DSP7265.write('AQN')
-                            time.sleep(5)
+                        if self.dsp7265:
+                            try:
+                                time.sleep(5)
+                                cur_freq = str(float(self.dsp7265.query('FRQ[.]')) / 1000)
+                                self.update_dsp7265_freq_label.emit(cur_freq)
+                                self.dsp7265.write('AQN')
+                                time.sleep(5)
+                            except Exception as e:
+                                self.show_error.emit("DSP Setting Error", f'{e}')
+                                self.stop_measurement().emit()
 
                         self.pts = 0
                         self.field_array = []
-                        self.field_avg_array = []
                         self.lockin_x = []
                         self.lockin_y = []
                         self.lockin_mag = []
                         self.lockin_pahse = []
+                        self.clear_fmr_plot.emit()
 
                         # ----------------- Loop Down ----------------------#
                         if field_mode == 'continuous':
@@ -667,6 +675,11 @@ class ST_FMR_Worker(QThread):
                                 time.sleep(4)
 
                                 while True:
+                                    if self.stopped_by_user:
+                                        self.append_text.emit("\n" + "=" * 60)
+                                        self.append_text.emit("Measurement stopped by user")
+                                        self.append_text.emit("=" * 60)
+                                        return  # Exit without emitting measurement_finished
                                     time.sleep(1)
                                     MyField, field_status = self._update_field_reading_label()
                                     if field_status == 'Holding (driven)':
@@ -680,18 +693,15 @@ class ST_FMR_Worker(QThread):
                                 self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
 
                                 # This method turn on the BNC
-                                if self.bnc845:
-                                    self._set_enable_bnc845(frequency=current_frequency, power=current_power)
-                                    self._turn_on_output_bnc845()
-
-                                self.channel1_avg_array_temp = []
-                                self.channel2_avg_array_temp = []
-                                self.channel1_field_avg_array_temp = []
-                                self.channel2_field_avg_array_temp = []
                                 curTemp, temperature_status = self._update_temperature_reading_label()
                                 if self.dsp7265:
                                     try:
-                                        time.sleep(self.settling_time)
+                                        if self.stopped_by_user:
+                                            self.append_text.emit("\n" + "=" * 60)
+                                            self.append_text.emit("Measurement stopped by user")
+                                            self.append_text.emit("=" * 60)
+                                            return  # Exit without emitting measurement_finished
+                                        self._wait_settling("Wait for settling time.")
                                         X = float(self.dsp7265.query("X."))  # Read the measurement result
                                         Y = float(self.dsp7265.query("Y."))  # Read the measurement result
                                         Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
@@ -704,9 +714,16 @@ class ST_FMR_Worker(QThread):
                                         self.field_array.append(MyField)
                                         # # Drop off the first y element, append a new one.
                                         self._update_plots(self.field_array, self.lockin_x, 'black', True, False)
+                                        # Update 2D cumulative plot (left) - now showing freq vs voltage
+
+                                        # Update current spectrum plot (right)
+                                        self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+
                                         # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                     except Exception as e:
-                                        QMessageBox.warning(self, "Reading Error", f'{e}')
+                                        self.show_error.emit("Reading Error", f'{e}')
+                                        self.stop_measurement().emit()
+                                        return
 
                                     # Append the data to the CSV file
                                     with open(csv_filename, "a", newline="") as csvfile:
@@ -718,7 +735,7 @@ class ST_FMR_Worker(QThread):
 
                                         csv_writer.writerow(
                                             [curTemp, currentField, X, Y, Mag, Phase])
-                                        self.append_text.emit(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+                                        self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n')
 
                                 self._update_field_reading_label()
                                 self._update_temperature_reading_label()
@@ -754,7 +771,11 @@ class ST_FMR_Worker(QThread):
                                 self.append_text.emit(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                         remaining_time_in_days), 'purple')
-
+                                if self.stopped_by_user:
+                                    self.append_text.emit("\n" + "=" * 60)
+                                    self.append_text.emit("Measurement stopped by user")
+                                    self.append_text.emit("=" * 60)
+                                    return  # Exit without emitting measurement_finished
                                 current_progress = (total_time_in_seconds - remaining_time_in_seconds) / total_time_in_seconds
                                 self.progress_update.emit(int(current_progress * 100))
                                 self.update_measurement_progress.emit(remaining_time_in_days, remaining_time_in_hours,
@@ -775,6 +796,13 @@ class ST_FMR_Worker(QThread):
                             if field_status == 'Holding (driven)':
                                 break
 
+                    if len(self.repetition_array) > 1:
+                        self.update_2d_plot.emit(self.field_array, self.repetition_array, self.lockin_x)
+                if len(self.power_array) > 1:
+                    self.update_2d_plot.emit(self.field_array, self.power_array, self.lockin_x)
+            if len(self.frequency_array) > 1:
+                self.update_2d_plot.emit(self.field_array, self.frequency_array, self.lockin_x)
+
         time.sleep(2)
         self.client.set_field(zero_field,
                               fast_field_rate,
@@ -790,9 +818,8 @@ class ST_FMR_Worker(QThread):
         self._update_field_reading_label()
         time.sleep(2)
         self._update_temperature_reading_label()
-
-        # keithley_6221_Curr_Src.close()
         self.progress_update.emit(100)
+        self.save_plot.emit(self.file_name)
         self.update_measurement_progress.emit(0, 0, 0, 100)
         end_time = time.time()
         total_runtime = (end_time - start_time) / 3600
@@ -801,90 +828,8 @@ class ST_FMR_Worker(QThread):
         self.notification_manager.send_message("The measurement has been completed successfully.")
         self.append_text.emit("You measurement is finished!", 'green')
         # stop_measurement()
-        self.measurement_finished()
+        self.measurement_finished.emit()
         return
-        # let topField = 5000;
-        #     let botField = -5000;
-        #     let topFreq = 26e9;
-        #     let botFreq = 2e8;
-        #     let stepFreq = 2e8;
-        #     instruments[2].turnOn();
-        #     instruments[2].setdBm(5);
-        #     logging=true;
-        #     logs = [];
-        #     // let temps = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,105,110,120,130,140,150,160,170,180,190,200,250,300];
-        #     let temps = [5];
-        #     let x;
-        #     let folderName = "data/Chunli/LSMO_40nm_STO_DS165B/";
-        #     instruments[5].setField(0,220,0);
-        #     // instruments[3].port.write("OUTPut OFF \n");
-        #     for (let i = 1; i < 2; i++) {
-        #         for (temp of temps) {
-        #             instruments[2].turnOn();
-        #             instruments[5].setTemp(temp,50,0);
-        #             do{
-        #                 await instruments[0].delay(600);
-        #                 console.log("Waiting on Temp1");
-        #             } while(instruments[5].readout["tempCode"]!=6);
-        #             do{
-        #                 await instruments[0].delay(600);
-        #                 console.log("Waiting on Temp2");
-        #             } while(instruments[5].readout["tempCode"]!=1);
-        #             await instruments[0].delay(700);
-        #
-        #                 let curFreq = topFreq;
-        #
-        #                 while(curFreq >= botFreq){
-        #
-        #                     instruments[2].setFreq(curFreq);
-        #                     await instruments[0].delay(2000);
-        #                     instruments[3].setSens(1,"AUTO");
-        #                     await instruments[0].delay(2000);
-        #                     instruments[5].setField(topField,220,0);
-        #                     do{
-        #                         await instruments[0].delay(500);
-        #                         console.log("Waiting on Field1");
-        #                     } while(instruments[5].readout["fieldCode"]!=6);
-        #                     do{
-        #                         await instruments[0].delay(500);
-        #                         console.log("Waiting on Field2");
-        #                     } while(instruments[5].readout["fieldCode"]!=4);
-        #                     instruments[5].setField(botField,7,0);
-        #                     logs = [];
-        #                     logging = true;
-        #                     do{
-        #                         await instruments[0].delay(500);
-        #                         console.log("Waiting on Field1");
-        #                     } while(instruments[5].readout["fieldCode"]!=6);
-        #                     do{
-        #                         await instruments[0].delay(500);
-        #                         console.log("Waiting on Field2");
-        #                     } while(instruments[5].readout["fieldCode"]!=4);
-        #                     logging = false;
-        #
-        #                 // createFolder(folder_name);
-        #                 SaveLogs("data/Chunli/CrSBr_Feb_10_25/" + i+ "Amplitude_Mod_FMR-"+ temp + "K-" + curFreq +"Hz-IP_CrSBr.csv");
-        #
-        #                 curFreq -= stepFreq;
-        #             }
-        #             }
-        #     }
-        #
-        #     instruments[2].turnOff();
-        #     instruments[5].setField(0,220,0);
-        #     instruments[5].setTemp(5,50,0);
-        #
-        #     function createFolder(folderName) {
-        #         if (!fs.existsSync(folderName)){
-        #             console.log("Folder created!");
-        #             fs.mkdirSync(folderName);
-        #         }
-        #     }
-        # }
-
-
-        self.save_plot.emit(self.file_name)
-        self.progress_update.emit(100)
 
     def _continous_field_setting(self, currentField, field_zone_count):
         if field_zone_count == 1:
@@ -908,8 +853,6 @@ class ST_FMR_Worker(QThread):
                 deltaH = zone3_step_field
                 user_field_rate = zone3_field_rate
         return deltaH, user_field_rate
-
-
 
 
     # ==================================================================================
@@ -996,6 +939,7 @@ class ST_FMR_Worker(QThread):
             tb_str = traceback.format_exc()
             self.notification_manager.send_message(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+
     # ==================================================================================
     # BNC CONTROL METHODS
     # ==================================================================================
@@ -1011,68 +955,17 @@ class ST_FMR_Worker(QThread):
     def _turn_off_output_bnc845(self):
         BNC_845M_COMMAND().set_output(self.bnc845,'OFF')
 
+    def _get_current_frequency_bnc845(self):
+        freq = BNC_845M_COMMAND().get_frequency(self.bnc845).strip()
+        return freq
+
+    def _get_current_power_bnc845(self):
+        power = BNC_845M_COMMAND().get_power(self.bnc845).strip()
+        return freq
+
     # ==================================================================================
-    # RIGOL SPECTRUM ANALYZER METHODS
+    # FMR Method Testing
     # ==================================================================================
-
-    def _capture_spectrum(self, averaging=1):
-        """Capture spectrum from RIGOL with averaging."""
-        if self.demo_mode or not self.rigol:
-            return self._generate_demo_spectrum()
-
-        try:
-            self.append_text.emit(f"    Capturing spectrum (averaging {averaging})...")
-
-            spectra = []
-            for i in range(averaging):
-                if not self.running:
-                    return
-
-                # Trigger single sweep
-                self.rigol_cmd.single_sweep(self.rigol)
-
-                # Wait for sweep to complete
-                time.sleep(2)  # Adjust based on sweep time
-
-                # Get trace data
-                self.rigol_cmd.set_data_format(self.rigol, 'REAL')
-                trace_data = self.rigol_cmd.get_trace_data(self.rigol, 'TRACE1')
-                trace_data_chopped = trace_data[1:]
-
-                # Get frequency data
-                start_freq = float(self.rigol_cmd.get_start_frequency(self.rigol))
-                stop_freq = float(self.rigol_cmd.get_stop_frequency(self.rigol))
-                num_points = len(trace_data)
-                frequencies = np.linspace(start_freq, stop_freq, num_points).tolist()
-                spectrum = {
-                    'frequencies': frequencies[1:],
-                    'powers': trace_data_chopped
-                }
-                spectra.append(spectrum)
-
-                if averaging > 1:
-                    self.append_text.emit(f"      Trace {i + 1}/{averaging}")
-
-            # Average spectra
-            if len(spectra) > 1:
-                avg_spectrum = self._average_spectra(spectra)
-            else:
-                avg_spectrum = spectra[0]
-
-            # Update RIGOL labels
-            if avg_spectrum['frequencies']:
-                center_freq = (avg_spectrum['frequencies'][0] + avg_spectrum['frequencies'][-1]) / 2
-                peak_power = max(avg_spectrum['powers'])
-                self.update_rigol_freq_label.emit(f"{center_freq / 1e9:.3f} GHz")
-                self.update_rigol_power_label.emit(f"{peak_power:.2f} dBm")
-
-            self.append_text.emit("    ✓ Spectrum captured")
-            return avg_spectrum
-
-        except Exception as e:
-            self.append_text.emit(f"    ✗ Error capturing spectrum: {str(e)}")
-            # return self._generate_demo_spectrum()
-
     def _generate_demo_spectrum(self):
         """Generate demo spectrum data."""
         time.sleep(3)
@@ -1094,59 +987,9 @@ class ST_FMR_Worker(QThread):
             }
         }
 
-    def _average_spectra(self, spectra):
-        """Average multiple spectra."""
-        frequencies = spectra[0]['frequencies']
-        powers_array = np.array([s['powers'] for s in spectra])
-        avg_powers = np.mean(powers_array, axis=0)
-
-        return {
-            'frequencies': frequencies,
-            'powers': avg_powers.tolist(),
-            'metadata': spectra[0].get('metadata', {})
-        }
-
     # ==================================================================================
     # DATA SAVING METHODS
     # ==================================================================================
-
-    def _save_individual_spectrum(self, result, index):
-        """Save individual spectrum to text file."""
-        try:
-            filename = f"{self.file_name}_point_{index + 1:04d}_spectrum.txt"
-            filepath = f"{self.folder_path}/{filename}"
-
-            with open(filepath, 'w') as f:
-                f.write("# BK9205 + RIGOL Spectrum Measurement\n")
-                f.write(f"# Timestamp: {result['timestamp']}\n")
-                f.write(f"# Point: {result['point']}\n")
-
-                # Write channel-specific info
-                if 'value' in result:
-                    f.write(f"# Channel: {result['channel']}\n")
-                    f.write(f"# {result['source_type'].capitalize()}: {result['value']:.6f} {result['unit']}\n")
-                elif 'total_value' in result:
-                    f.write(
-                        f"# Total {result['source_type'].capitalize()}: {result['total_value']:.6f} {result['unit']}\n")
-                    f.write(f"# Ch1 {result['source_type'].capitalize()}: {result['ch1_value']:.6f} {result['unit']}\n")
-                    f.write(f"# Ch2 {result['source_type'].capitalize()}: {result['ch2_value']:.6f} {result['unit']}\n")
-                elif 'ch1_value' in result:
-                    f.write(f"# Ch1: {result['ch1_value']:.6f}\n")
-                    f.write(f"# Ch2: {result['ch2_value']:.6f}\n")
-                    f.write(f"# Ch3: {result['ch3_value']:.6f}\n")
-
-                f.write("#\n")
-                f.write("# Frequency (Hz)\tPower (dBm)\n")
-
-                spectrum = result['spectrum']
-                for freq, power in zip(spectrum['frequencies'], spectrum['powers']):
-                    f.write(f"{freq:.6e}\t{power:.6f}\n")
-
-            self.append_text.emit(f"    Saved: {filename}")
-
-        except Exception as e:
-            self.append_text.emit(f"    ✗ Error saving spectrum: {str(e)}")
-
     def _save_consolidated_data(self):
         """Save consolidated data file with all measurements and complete spectra."""
         try:
@@ -1291,7 +1134,6 @@ class ST_FMR_Worker(QThread):
     # ==================================================================================
     # PLOTTING METHODS
     # ==================================================================================
-
     def _update_plots(self):
         """Update both the 2D cumulative plot and the current spectrum plot."""
 
@@ -1331,17 +1173,6 @@ class ST_FMR_Worker(QThread):
     # ==================================================================================
     # HELPER METHODS
     # ==================================================================================
-
-    def _get_channel_number(self, ch_name):
-        """Convert channel name to number."""
-        mapping = {
-            'ch1': 1,
-            'ch2': 2,
-            'ch3': 3,
-            'merged': 4
-        }
-        return mapping.get(ch_name, 1)
-
     def _wait_settling(self, message):
         """Wait for settling time."""
         self.append_text.emit(f"    {message}")

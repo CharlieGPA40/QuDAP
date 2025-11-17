@@ -3058,7 +3058,14 @@ class Measurement(QMainWindow):
         self.worker.error_message.connect(self.error_popup)
         self.worker.update_measurement_progress.connect(self.update_measurement_progress)
         self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
-        self.worker.update_keithley_6221_update_label.connect(self.update_keithley_6221_update_label)
+        self.worker.show_warning.connect(self.show_warning)
+        self.worker.show_error.connect(self.show_error)
+        self.worker.show_info.connect(self.show_info)
+        self.update_fmr_ui.connect(self.update_fmr_ui)
+
+    def update_fmr_ui(self):
+        if self.fmr_widget:
+            self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
 
     def bnc845rf_window_ui(self):
         self.fmr_widget = FMR_Measurement(bnc845=self.bnc845rf)
@@ -6219,6 +6226,18 @@ class Measurement(QMainWindow):
 
                 self.notification.send_notification(message=f"Error-{tb_str} {str(e)}")
 
+    def show_warning(self, title, message):
+        """Show warning dialog (runs in main thread)"""
+        QMessageBox.warning(self, title, message)
+
+    def show_error(self, title, message):
+        """Show error dialog (runs in main thread)"""
+        QMessageBox.critical(self, title, message)
+
+    def show_info(self, title, message):
+        """Show info dialog (runs in main thread)"""
+        QMessageBox.information(self, title, message)
+
     def save_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled, save, temp, current):
 
         if channel_1_enabled:
@@ -6294,9 +6313,6 @@ class Measurement(QMainWindow):
 
     def update_progress(self, value):
         self.progress_bar.setValue(int(value))
-
-    def show_error_message(self, tb_str, error_str):
-        QMessageBox.warning(self, "Error", f'{tb_str} {str(error_str)}')
 
     def measurement_finished(self):
         try:
