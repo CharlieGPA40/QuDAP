@@ -51,17 +51,6 @@ class ST_FMR_Worker(QThread):
     update_dsp7265_freq_label = pyqtSignal(str)
     update_lockin_label = pyqtSignal(str, str, str, str)
 
-    update_bk9205_ch2_voltage_label = pyqtSignal(str)
-    update_bk9205_ch2_current_label = pyqtSignal(str)
-    update_bk9205_ch3_voltage_label = pyqtSignal(str)
-    update_bk9205_ch3_current_label = pyqtSignal(str)
-
-    update_bk9205_ch1_status_label = pyqtSignal(str)
-    update_bk9205_ch2_status_label = pyqtSignal(str)
-    update_bk9205_ch3_status_label = pyqtSignal(str)
-
-    update_rigol_freq_label = pyqtSignal(str)
-    update_rigol_power_label = pyqtSignal(str)
     save_individual_plot = pyqtSignal(str)
 
     # Plotting signals
@@ -71,7 +60,7 @@ class ST_FMR_Worker(QThread):
     clear_plot = pyqtSignal()
 
     # Measurement progress
-    update_measurement_progress = pyqtSignal(str)  # Current measurement status
+    update_measurement_progress = pyqtSignal(float, float, float, float)
 
     def __init__(self, parent, ppms_instrument, dsp7265_instrument, bnc845_instrument, ppms_setting, bnc845_setting,
                  measurment_setting, folder_path, file_name, run_number, settling_time, notification_manager, demo_mode=False, spectrum_averaging=1,
@@ -257,7 +246,7 @@ class ST_FMR_Worker(QThread):
                     self.append_text.emit("=" * 60)
                     return  # Exit without emitting measurement_finished
                 time.sleep(1.5)
-                temperature_status = self._update_temperature_reading_label()
+                curTemp, temperature_status = self._update_temperature_reading_label()
                 if temperature_status == 'Stable':
                     break
 
@@ -292,7 +281,7 @@ class ST_FMR_Worker(QThread):
                             self.append_text.emit("=" * 60)
                             return  # Exit without emitting measurement_finished
 
-                        if DSP7265_Connected:
+                        if dsp7265:
                             time.sleep(10)
                             delay = convert_to_seconds(dsp7265_current_time_constant)
                             cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
@@ -699,7 +688,7 @@ class ST_FMR_Worker(QThread):
                                 self.channel2_avg_array_temp = []
                                 self.channel1_field_avg_array_temp = []
                                 self.channel2_field_avg_array_temp = []
-
+                                curTemp, temperature_status = self._update_temperature_reading_label()
                                 if self.dsp7265:
                                     try:
                                         time.sleep(self.settling_time)
@@ -728,89 +717,92 @@ class ST_FMR_Worker(QThread):
                                                 ["Temperature (K)", "Field (Oe)", "Voltage X (V)", "Voltage Y (V)", "Voltage Mag (V)", "Phase (deg)"])
 
                                         csv_writer.writerow(
-                                            [currentField, resistance_chan_1, Mag, X, Y,
-                                             Phase, MyTemp, current[j]])
-                                        self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+                                            [curTemp, currentField, X, Y, Mag, Phase])
+                                        self.append_text.emit(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
 
-                                MyField, sF, field_unit = read_field()
-                                update_ppms_field_reading_label(str(MyField), field_unit, sF)
-                                MyTemp, sT, temp_unit = read_temperature()
-                                update_ppms_temp_reading_label(str(MyTemp), str(temp_unit), sT)
+                                self._update_field_reading_label()
+                                self._update_temperature_reading_label()
                                 # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
-
-                                append_text(f'deltaH = {deltaH}\n', 'orange')
-                                # Update currentField for the next iteration
-                                currentField -= deltaH
                                 self.pts += 1  # Number of self.pts count
                                 single_measurement_end = time.time()
                                 Single_loop = single_measurement_end - single_measurement_start
                                 number_of_field_update = number_of_field_update - 1
-                                append_text('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
+
+                                self.append_text.emit('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                             'purple')
-                                append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                                self.append_text.emit('Estimated Single measurement (in hrs):  {} hrs \n'.format(
                                     Single_loop * number_of_field / 60 / 60), 'purple')
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (number_of_current - j) * (
-                                        number_of_temp - i)
+                                total_time_in_seconds = Single_loop * total_progress
                                 totoal_time_in_minutes = total_time_in_seconds / 60
                                 total_time_in_hours = totoal_time_in_minutes / 60
                                 total_time_in_days = total_time_in_hours / 24
-                                append_text(
+
+                                remaining_time_in_seconds = Single_loop * (number_of_repetition-l) * (number_of_power-k) * (number_of_frequency-j) * (number_of_temperature-i) * (number_of_field-m)
+                                remaining_time_in_minutes = remaining_time_in_seconds / 60
+                                remaining_time_in_hours = remaining_time_in_minutes / 60
+                                remaining_time_in_days = remaining_time_in_hours / 24
+
+                                self.append_text.emit(
                                     'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                        total_time_in_seconds), 'purple')
-                                append_text(
+                                        remaining_time_in_seconds), 'purple')
+                                self.append_text.emit(
                                     'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text(
+                                        remaining_time_in_minutes), 'purple')
+                                self.append_text.emit(
                                     'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        total_time_in_hours), 'purple')
-                                append_text(
+                                        remaining_time_in_hours), 'purple')
+                                self.append_text.emit(
                                     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
-                                    number_of_current) * (number_of_temp)
-                                current_progress = (
-                                                               total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
-                                progress_update(int(current_progress * 100))
-                                update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes, current_progress * 100)
+                                        remaining_time_in_days), 'purple')
 
-                                try:
-                                    progress_update(int(current_progress * 100))
-                                except Exception:
-                                    None
-                                update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes, current_progress * 100)
-
+                                current_progress = (total_time_in_seconds - remaining_time_in_seconds) / total_time_in_seconds
+                                self.progress_update.emit(int(current_progress * 100))
+                                self.update_measurement_progress.emit(remaining_time_in_days, remaining_time_in_hours,
+                                                            remaining_time_in_minutes, current_progress * 100)
+                                if self.bnc845:
+                                    self._turn_off_output_bnc845()
 
                         time.sleep(2)
                         self.client.set_field(zero_field,
                                          fast_field_rate,
-                                         client.field.approach_mode.oscillate,  # linear/oscillate
-                                         client.field.driven_mode.driven)
-                        append_text('Waiting for Zero Field', 'red')
+                                         self.client.field.approach_mode.oscillate,  # linear/oscillate
+                                         self.client.field.driven_mode.driven)
+                        self.append_text.emit('Waiting for Zero Field', 'red')
                         time.sleep(2)
-                        temperature, status, temp_unit = read_temperature()
-                        append_text(f'Finished Temperature = {temperature} {temp_unit}', 'green')
-                        update_ppms_temp_reading_label(str(temperature), str(temp_unit), status)
-                        time.sleep(2)
-                        field, status, field_unit = read_field()
-                        append_text(f'Finisehd Field = {field} {field_unit}\n', 'red')
-                        update_ppms_field_reading_label(str(field), field_unit, status)
+                        while True:
+                            time.sleep(1)
+                            MyField, field_status = self._update_field_reading_label()
+                            if field_status == 'Holding (driven)':
+                                break
 
-                        # keithley_6221_Curr_Src.close()
+        time.sleep(2)
+        self.client.set_field(zero_field,
+                              fast_field_rate,
+                              self.client.field.approach_mode.oscillate,  # linear/oscillate
+                              self.client.field.driven_mode.driven)
+        self.append_text.emit('Waiting for Zero Field', 'red')
+        time.sleep(2)
+        while True:
+            time.sleep(1)
+            MyField, field_status = self._update_field_reading_label()
+            if field_status == 'Holding (driven)':
+                break
+        self._update_field_reading_label()
+        time.sleep(2)
+        self._update_temperature_reading_label()
 
-                        # Calculate the total runtime
-                        end_time = time.time()
-                        total_runtime = (end_time - start_time) / 3600
-                        self.log_box.append(f"Total runtime: {total_runtime} hours\n")
-                        self.log_box.append(f'Total data points: {str(self.pts)} pts\n')
-                        NotificationManager().send_message("The measurement has been completed successfully.")
-                        progress_update(int(100))
-                        append_text("You measurement is finished!", 'green')
-                        # stop_measurement()
-                        measurement_finished()
-                        return
+        # keithley_6221_Curr_Src.close()
+        self.progress_update.emit(100)
+        self.update_measurement_progress.emit(0, 0, 0, 100)
+        end_time = time.time()
+        total_runtime = (end_time - start_time) / 3600
+        self.append_text.emit(f"Total runtime: {total_runtime} hours\n")
+        self.append_text.emit(f'Total data points: {str(self.pts)} pts\n')
+        self.notification_manager.send_message("The measurement has been completed successfully.")
+        self.append_text.emit("You measurement is finished!", 'green')
+        # stop_measurement()
+        self.measurement_finished()
+        return
         # let topField = 5000;
         #     let botField = -5000;
         #     let topFreq = 26e9;
@@ -927,7 +919,7 @@ class ST_FMR_Worker(QThread):
         temperature, status, temp_unit = self._read_temperature()
         self.append_text.emit(f'Current temperature is {temperature} {temp_unit}; Status: {status}\n', 'purple')
         self.update_ppms_temp_reading_label.emit(str(temperature), str(temp_unit), status)
-        return status
+        return temperature, status
 
     def _update_field_reading_label(self):
         field, status, field_unit = self._read_field()
