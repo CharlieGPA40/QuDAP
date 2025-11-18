@@ -330,7 +330,7 @@ class ST_FMR_Worker(QThread):
                                     end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
                                         'to_end']
 
-                            totoal_progress = number_of_repetition * number_of_power * number_of_frequency * number_of_temperature
+                            totoal_progress = len(number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature
 
                             self._set_field(start_field, fast_field_rate)
                             time.sleep(4)
@@ -433,40 +433,46 @@ class ST_FMR_Worker(QThread):
 
                                 self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
                                 # Update currentField for the next iteration
-                                # currentField -= deltaH
+                                total_estimate_field_step = (start_field - end_field) / user_field_rate
+                                estimate_field_step = (currentField - end_field) / user_field_rate
+                                if field_direction == 'bidirectional':
+                                    total_estimate_field_step = total_estimate_field_step * 2
+                                    estimate_field_step = total_estimate_field_step + estimate_field_step
+
                                 self.pts += 1  # Number of self.pts count
                                 single_measurement_end = time.time()
                                 Single_loop = single_measurement_end - single_measurement_start
                                 self.append_text.emit(
                                     'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                     'purple')
-                                # append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
-                                #     Single_loop * number_of_field / 60 / 60), 'purple')
-                                # total_time_in_seconds = Single_loop * (number_of_field_update) * (
-                                #             number_of_current - j) * (
-                                #                                 number_of_temp - i)
-                                # totoal_time_in_minutes = total_time_in_seconds / 60
-                                # total_time_in_hours = totoal_time_in_minutes / 60
-                                # total_time_in_days = total_time_in_hours / 24
-                                # append_text(
-                                #     'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                #         total_time_in_seconds), 'purple')
-                                # append_text(
-                                #     'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                #         totoal_time_in_minutes), 'purple')
-                                # append_text(
-                                #     'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                #         total_time_in_hours), 'purple')
-                                # append_text(
-                                #     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                #         total_time_in_days), 'purple')
-                                # total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
-                                #     number_of_current) * (number_of_temp)
-                                # current_progress = (
-                                #                            total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
-                                # progress_update(int(current_progress * 100))
-                                # update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                #                             totoal_time_in_minutes, current_progress * 100)
+
+                                total_time_in_seconds = Single_loop * totoal_progress * total_estimate_field_step
+                                totoal_time_in_minutes = total_time_in_seconds / 60
+                                total_time_in_hours = totoal_time_in_minutes / 60
+                                total_time_in_days = total_time_in_hours / 24
+
+                                estimate_time_in_seconds = Single_loop * totoal_progress * estimate_field_step
+                                estimate_time_in_minutes = total_time_in_seconds / 60
+                                estimate_time_in_hours = totoal_time_in_minutes / 60
+                                estimate_time_in_days = total_time_in_hours / 24
+
+                                self.append_text.emit(
+                                    'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                        estimate_time_in_seconds), 'purple')
+                                self.append_text.emit(
+                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                        estimate_time_in_minutes), 'purple')
+                                self.append_text.emit(
+                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                        estimate_time_in_hours), 'purple')
+                                self.append_text.emit(
+                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                        estimate_time_in_days), 'purple')
+
+                                current_progress = (total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
+                                self.progress_update.emit(int(current_progress * 100))
+                                self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
+                                                            totoal_time_in_minutes, current_progress * 100)
 
                             # ----------------- Loop Up ----------------------#
                             if field_direction == 'bidirectional':
@@ -575,49 +581,49 @@ class ST_FMR_Worker(QThread):
                                     self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
 
                                     # Update currentField for the next iteration
-                                    # Update currentField for the next iteration
+
+                                    total_estimate_field_step = (start_field - end_field) / user_field_rate
+                                    estimate_field_step = (currentField - end_field) / user_field_rate
+                                    if field_direction == 'bidirectional':
+                                        total_estimate_field_step = total_estimate_field_step * 2
+                                        estimate_field_step = estimate_field_step
+
                                     self.pts += 1  # Number of self.pts count
                                     single_measurement_end = time.time()
                                     Single_loop = single_measurement_end - single_measurement_start
                                     self.append_text.emit(
                                         'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                         'purple')
-                                    # number_of_field_update = number_of_field_update - 1
 
-                                    # total_time_in_seconds = Single_loop * (number_of_field_update) * (
-                                    #             number_of_current - j) * (
-                                    #                                 number_of_temp - i)
-                                    # totoal_time_in_minutes = total_time_in_seconds / 60
-                                    # total_time_in_hours = totoal_time_in_minutes / 60
-                                    # total_time_in_days = total_time_in_hours / 24
-                                    # append_text(
-                                    #     'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                    #         total_time_in_seconds), 'purple')
-                                    # append_text(
-                                    #     'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                    #         totoal_time_in_minutes), 'purple')
-                                    # append_text(
-                                    #     'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                    #         total_time_in_hours), 'purple')
-                                    # append_text(
-                                    #     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                    #         total_time_in_days), 'purple')
-                                    # total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
-                                    #     number_of_current) * (number_of_temp)
-                                    # current_progress = (
-                                    #                            total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
-                                    # progress_update(int(current_progress * 100))
-                                    # update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                    #                             totoal_time_in_minutes, current_progress * 100)
+                                    total_time_in_seconds = Single_loop * totoal_progress * total_estimate_field_step
+                                    totoal_time_in_minutes = total_time_in_seconds / 60
+                                    total_time_in_hours = totoal_time_in_minutes / 60
+                                    total_time_in_days = total_time_in_hours / 24
 
-                                    # elif DSP7265_Connected:
-                                    #     save_plot(self.field_array, self.lockin_x, 'black', True, False, True, str(TempList[i]),
-                                    #               str(current[j]))
-                                    #     # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
-                                    #
-                                    #     # NotificationManager().send_message()
-                                    # current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
-                                    # progress_update(int(current_progress))
+                                    estimate_time_in_seconds = Single_loop * totoal_progress * estimate_field_step
+                                    estimate_time_in_minutes = total_time_in_seconds / 60
+                                    estimate_time_in_hours = totoal_time_in_minutes / 60
+                                    estimate_time_in_days = total_time_in_hours / 24
+
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                            estimate_time_in_seconds), 'purple')
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                            estimate_time_in_minutes), 'purple')
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                            estimate_time_in_hours), 'purple')
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                            estimate_time_in_days), 'purple')
+
+                                    current_progress = (
+                                                                   total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
+                                    self.progress_update.emit(int(current_progress * 100))
+                                    self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
+                                                                          totoal_time_in_minutes,
+                                                                          current_progress * 100)
 
                         else:
                             field_list = self.ppms_setting['field_setting']['final_step_list']
