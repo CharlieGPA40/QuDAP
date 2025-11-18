@@ -2475,7 +2475,7 @@ class Measurement(QMainWindow):
                     time.sleep(2)
                     DSPModel = self.DSP7265.query('ID')
                     QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
-                    self.dsp7265_ref_source, self.dsp7265_ref_freq, self.dsp7265_current_time_constant, self.dsp7265_current_sensitvity, self.dsp7265_measurement_type = self.read_sr7265_settings(self.DSP7265)
+                    self.dsp7265_ref_source, self.dsp7265_ref_freq, self.dsp7265_current_time_constant, self.dsp7265_current_sensitvity, self.dsp7265_measurement_type, self.dsp7265_oa = self.read_sr7265_settings(self.DSP7265)
 
                     # cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
                     # self.dsp7265_ref_freq = str(cur_freq)
@@ -2485,7 +2485,8 @@ class Measurement(QMainWindow):
                     # self.dsp7265_cur_tc = str(cur_tc)
                 else:
                     QMessageBox.information(self, "Connected", F"Connected to Model DSP 7265")
-                    self.dsp7265_ref_freq = '1000'
+                    self.dsp7265_ref_freq = '1000 Hz'
+                    self.dsp7265_oa = '0.5 Vrms'
                     self.dsp7265_current_sensitvity = '1 V'
                     self.dsp7265_current_time_constant = '20 ms'
                     self.dsp7265_ref_source = 'internal'
@@ -2763,13 +2764,13 @@ class Measurement(QMainWindow):
                             self.log_box.append(str(model_7265))
                             f.write(f"Instrument: DSP 7265 enabled\n")
                             time.sleep(2)  # Wait for the reset to complete
-                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
-                                self.DSP7265)
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type, dsp7265_oa = self.read_sr7265_settings(self.DSP7265)
                             f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
                             f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
                             f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
                             f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
                             f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
+                            f.write(f"\tDSP 7264 osillator amplitude: {dsp7265_oa}\n")
                             slope_number = 1
                             dsp7265_delay_config = dsp7265_current_time_constant * slope_number
                         except visa.errors.VisaIOError as e:
@@ -3091,6 +3092,8 @@ class Measurement(QMainWindow):
         self.dsp7265_setting_layout.addLayout(self.dsp7265_time_constant_ui())
         # frequency
         self.dsp7265_setting_layout.addLayout(self.dsp7265_frequency_ui())
+        # Osillator amplitude
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_oscillator_amplitude_ui())
         # Float
         self.dsp7265_setting_layout.addLayout(self.dsp7265_float_control_ui())
         # device
@@ -3218,6 +3221,25 @@ class Measurement(QMainWindow):
 
         return self.dsp7265_freq_layout
 
+    def dsp7265_oscillator_amplitude_ui(self):
+        self.dsp7265_oa_layout = QHBoxLayout()
+        self.dsp7265_oa_text = QLabel('Oscillator Amplitude:')
+        self.dsp7265_oa_text.setFont(self.font)
+        self.dsp7265_oa_entry_box = QLineEdit()
+        self.dsp7265_oa_entry_box.setFont(self.font)
+        self.dsp7265_oa_unit_text = QLabel('Vrms')
+        self.dsp7265_oa_unit_text.setFont(self.font)
+        self.dsp7265_oa_submit_button = QPushButton('Set')
+        self.dsp7265_oa_submit_button.setStyleSheet(self.Button_stylesheet)
+        self.dsp7265_oa_submit_button.clicked.connect(self.dsp7265_freq_setting)
+
+        self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_text)
+        self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_entry_box)
+        self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_unit_text)
+        self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_submit_button)
+
+        return self.dsp7265_freq_layout
+
     def dsp7265_float_control_ui(self):
         self.dsp7265_float_layout = QHBoxLayout()
         self.dsp7265_float_text = QLabel('Float/Ground Control:')
@@ -3318,6 +3340,17 @@ class Measurement(QMainWindow):
         # self.dsp7265_freq_reading_layout.addWidget(self.dsp7265_freq_reading_unit_label)
         self.dsp7265_freq_reading_value_label.setText(self.dsp7265_ref_freq + ' Hz')
 
+        self.dsp7265_oa_reading_layout = QHBoxLayout()
+        self.dsp7265_oa_reading_label = QLabel('Amplitude: ')
+        self.dsp7265_oa_reading_value_label = QLabel('N/A')
+        # self.dsp7265_freq_reading_unit_label = QLabel('Hz')
+        self.dsp7265_oa_reading_label.setFont(self.font)
+        self.dsp7265_oa_reading_value_label.setFont(self.font)
+        # self.dsp7265_freq_reading_unit_label.setFont(self.font)
+        self.dsp7265_oa_reading_layout.addWidget(self.dsp7265_oa_reading_label)
+        self.dsp7265_oa_reading_layout.addWidget(self.dsp7265_oa_reading_value_label)
+        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_oa + ' Vrms')
+
         self.dsp7265_sensitivity_reading_layout = QHBoxLayout()
         self.dsp7265_sensitivity_reading_label = QLabel('Sensitivity: ')
         self.dsp7265_sensitivity_reading_value_label = QLabel('N/A')
@@ -3350,6 +3383,7 @@ class Measurement(QMainWindow):
         self.dsp7265_reading_layout.addLayout(self.dsp7265_mag_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_phase_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_freq_reading_layout)
+        self.dsp7265_reading_layout.addLayout(self.dsp7265_oa_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_sensitivity_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_time_constant_reading_layout)
         self.dsp7265_reading_layout.addLayout(self.dsp7265_reference_layout)
@@ -3391,7 +3425,9 @@ class Measurement(QMainWindow):
 
         sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
 
-        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage"
+        ampiltude = float(self.DSP7265.query('OA[.]'))
+
+        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage", ampiltude
 
     def dsp7265_imode_selection(self):
         try:
@@ -3538,6 +3574,15 @@ class Measurement(QMainWindow):
             self.DSP7265.write(f'OF. {freq}')
             cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
             self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
+
+    def dsp7265_oa_setting(self):
+        ampiltude = self.dsp7265_oa_entry_box.text()
+        if ampiltude is None:
+            QMessageBox.warning(self, 'Warning', 'Frequency not set')
+        else:
+            self.DSP7265.write(f'OA. {ampiltude}')
+            ampiltude = float(self.DSP7265.query('OA[.]'))
+            self.dsp7265_oa_reading_value_label.setText(str(ampiltude) + ' Vrms')
 
     # ---------------------------------------------------------------------------------
     #  Keithley 2182 Portion
@@ -5816,13 +5861,14 @@ class Measurement(QMainWindow):
                             self.log_box.append(str(model_7265))
                             f.write(f"Instrument: DSP 7265 enabled\n")
                             time.sleep(2)  # Wait for the reset to complete
-                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type = self.read_sr7265_settings(
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type, dsp7265_oa = self.read_sr7265_settings(
                                 self.DSP7265)
-                            f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
-                            f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
-                            f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
-                            f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
-                            f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
+                            f.write(f"\tDSP 7265 reference source: {dsp7265_ref_source}\n")
+                            f.write(f"\tDSP 7265 reference frequency: {dsp7265_ref_freq} Hz\n")
+                            f.write(f"\tDSP 7265 time constant: {dsp7265_current_time_constant}\n")
+                            f.write(f"\tDSP 7265 sensitivity: {dsp7265_current_sensitvity}\n")
+                            f.write(f"\tDSP 7265 measurement type: {dsp7265_measurement_type}\n")
+                            f.write(f"\tDSP 7265 osillator amplitude: {dsp7265_oa}\n")
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
                             self.stop_measurement()
