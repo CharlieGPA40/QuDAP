@@ -2930,7 +2930,6 @@ class Measurement(QMainWindow):
                                     'region3': {'from': zone_three_region_from,
                                                 'to': zone_three_region_to,
                                                 'rate': zone_three_region_rate}}
-
                     return valid
 
                 self.temp_field_setting = {}
@@ -3051,7 +3050,7 @@ class Measurement(QMainWindow):
         self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
         self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
         self.worker.update_lockin_label.connect(self.update_lockin_label)
-        self.worker.update_plot.connect(self.update_plot)
+        self.worker.update_fmr_spectrum_plot.connect(self.update_fmr_spectrum_plot)
         self.worker.save_plot.connect(self.save_plot)
         self.worker.clear_plot.connect(self.clear_plot)
         self.worker.measurement_finished.connect(self.measurement_finished)
@@ -3061,7 +3060,8 @@ class Measurement(QMainWindow):
         self.worker.show_warning.connect(self.show_warning)
         self.worker.show_error.connect(self.show_error)
         self.worker.show_info.connect(self.show_info)
-        self.update_fmr_ui.connect(self.update_fmr_ui)
+        self.worker.update_fmr_ui.connect(self.update_fmr_ui)
+        self.worker.clear_fmr_plot.connect(self.clear_fmr_plot)
 
     def update_fmr_ui(self):
         if self.fmr_widget:
@@ -6277,9 +6277,97 @@ class Measurement(QMainWindow):
         self.canvas.figure.tight_layout()
         self.canvas.draw()
 
+    def update_fmr_spectrum_plot(self, x_data, y_data):
+        self.single_canvas.axes.plot(x_data, y_data, 'black', marker='s')
+        self.single_canvas.axes.set_ylabel('FMR Intensity (a.u.)', color='black')
+        self.single_canvas.axes.set_xlabel('Field (Oe)')
+        self.single_canvas.figure.tight_layout()
+        self.single_canvas.draw()
+
     def error_popup(self, e, tb_str):
         self.stop_measurement()
         QMessageBox.warning(self, str(e), f'{tb_str}')
+
+    def update_2d_plot(self, x_data, y_data, z_data):
+        """
+        Update 2D cumulative plot (left plot).
+        Creates a 2D colormap showing frequency vs voltage with spectrum power as color.
+
+        Args:
+            x_data: List of frequencies (Hz) - can be from first spectrum
+            y_data: List of voltage/current values for each measurement
+            z_data: List of spectra (each spectrum is a list of power values)
+        """
+        if not hasattr(self, 'cumulative_canvas'):
+            return
+
+        try:
+            import numpy as np
+
+            # Clear the figure completely to avoid colorbar issues
+            self.cumulative_canvas.figure.clear()
+
+            # Create new axes
+            self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
+
+            # Reset colorbar reference
+            self.cumulative_colorbar = None
+
+            # Convert frequencies to GHz for better readability
+            freq_ghz = np.array(x_data) / 1e9
+
+            # Create 2D array: rows = different voltages, columns = frequency points
+            # z_data should be a 2D array where each row is a spectrum
+            Z = np.array(z_data)  # Shape: (num_voltages, num_freq_points)
+
+            # Create meshgrid for plotting
+            Y, X = np.meshgrid(y_data, freq_ghz)
+
+            # Create 2D heatmap
+            im = self.cumulative_canvas.axes.pcolormesh(
+                X, Y, Z.T,  # Transpose Z to match meshgrid dimensions
+                cmap='viridis',
+                shading='auto'
+            )
+
+            # Add colorbar
+            try:
+                self.cumulative_colorbar = self.cumulative_canvas.figure.colorbar(
+                    im,
+                    ax=self.cumulative_canvas.axes,
+                    label='Power (dBm)',
+                    pad=0.02
+                )
+            except Exception as e:
+                print(f"Warning: Could not create colorbar: {e}")
+
+            # Labels and styling
+            self.cumulative_canvas.axes.set_xlabel('Frequency (GHz)', fontsize=11, fontweight='bold')
+
+            # Determine ylabel based on worker's measurement_data
+            if hasattr(self, 'worker') and self.worker is not None and hasattr(self.worker, 'measurement_data'):
+                source_type = self.worker.measurement_data.get('source_type', 'voltage').capitalize()
+                unit = 'V' if source_type.lower() == 'voltage' else 'A'
+            else:
+                source_type = 'Value'
+                unit = 'V/A'
+
+            self.cumulative_canvas.axes.set_ylabel(f'{source_type} ({unit})', fontsize=11, fontweight='bold')
+            self.cumulative_canvas.axes.set_title('Frequency vs Voltage Spectrum Map', fontsize=13, fontweight='bold')
+
+            # Adjust layout
+            try:
+                self.cumulative_canvas.figure.tight_layout()
+            except Exception as e:
+                print(f"Warning: tight_layout failed: {e}")
+
+            # Draw the canvas
+            self.cumulative_canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating 2D plot: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
 
     def clear_plot(self):
         try:
@@ -6298,6 +6386,15 @@ class Measurement(QMainWindow):
                 self.cumulative_canvas.draw()
                 self.cumulative_colorbar = None
 
+            if hasattr(self, 'single_canvas'):
+                self.single_canvas.axes.clear()
+                self.single_canvas.axes.set_title('Waiting for spectrum...')
+                self.single_canvas.draw()
+        except Exception as e:
+            print(f"Error clearing plots: {e}")
+
+    def clear_fmr_plot(self):
+        try:
             if hasattr(self, 'single_canvas'):
                 self.single_canvas.axes.clear()
                 self.single_canvas.axes.set_title('Waiting for spectrum...')

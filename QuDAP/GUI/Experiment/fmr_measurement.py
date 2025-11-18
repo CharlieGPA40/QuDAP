@@ -59,9 +59,10 @@ class ST_FMR_Worker(QThread):
 
     # Plotting signals
     update_2d_plot = pyqtSignal(list, list, list)  # x_data (indices), y_data (voltages), z_data (peak powers)
-    update_spectrum_plot = pyqtSignal(list, list)  # freq_data, power_data
+    update_fmr_spectrum_plot = pyqtSignal(list, list)  # freq_data, power_data
     save_plot = pyqtSignal(str)  # filename
     clear_plot = pyqtSignal()
+    clear_fmr_plot = pyqtSignal()
 
     # Measurement progress
     update_measurement_progress = pyqtSignal(float, float, float, float)
@@ -308,351 +309,315 @@ class ST_FMR_Worker(QThread):
                         # ----------------- Loop Down ----------------------#
                         if field_mode == 'continuous':
                             field_zone_count = self.ppms_setting['field_setting']['final_continuous_list']['zone_count']
-                            totoal_progress = number_of_repetition * number_of_power * number_of_frequency * number_of_temperature
-                            set_field(topField, fast_field_rate)
+                            field_direction = self.ppms_setting['field_setting']['field_direction']
+                            if field_direction == 'unidirectional':
+                                start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                    'from']
+                                if field_zone_count == 1:
+                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['to']
+                                elif field_zone_count == 2:
+                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region2']['to']
+                                elif field_zone_count == 3:
+                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region2']['to']
+                            else:
+                                if field_zone_count == 1:
+                                    start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                        'from']
+                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['to']
+                                elif field_zone_count == 2 or field_zone_count == 3:
+                                    start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                        'from_start']
+                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                        'to_end']
 
+                            totoal_progress = number_of_repetition * number_of_power * number_of_frequency * number_of_temperature
+
+                            self._set_field(start_field, fast_field_rate)
                             time.sleep(4)
-                            MyField, sF, field_unit = read_field()
-                            update_ppms_field_reading_label(str(MyField), field_unit, sF)
+
+                            MyField, field_status = self._update_field_reading_label()
+                            self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
                             while True:
                                 try:
-                                    time.sleep(1.5)
-                                    MyField, sF, field_unit = read_field()
-                                    update_ppms_field_reading_label(str(MyField), field_unit, sF)
-                                    append_text(f'Status: {sF}\n', 'red')
-                                    if sF == 'Holding (driven)':
+                                    if self.stopped_by_user:
+                                        self.append_text.emit("\n" + "=" * 60)
+                                        self.append_text.emit("Measurement stopped by user")
+                                        self.append_text.emit("=" * 60)
+                                        return  # Exit without emitting measurement_finished
+                                    time.sleep(1)
+                                    MyField, field_status = self._update_field_reading_label()
+                                    if field_status == 'Holding (driven)':
                                         break
                                 except SystemExit as e:
-                                    error_message(e, e)
-                                    NotificationManager().send_message(
+                                    self.error_message.emit(e, e)
+                                    self.notification_manager.send_message(
                                         "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                             time.sleep(20)
-                            deltaH, user_field_rate = deltaH_chk(MyField)
+
                             currentField = MyField
-                            set_field(botField, user_field_rate)
-                            append_text(f'Start collecting data \n', 'purple')
+                            user_field_rate = \
+                                self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                    'rate']
+                            self._set_field(end_field, user_field_rate)
+
+                            self.append_text.emit(f'Start collecting data \n', 'purple')
                             counter = 0
-                            while currentField >= botField + 1:
-                                if not running():
-                                    stop_measurement()
-                                    return
+
+                            while currentField >= end_field + 1:
+                                user_field_rate = self._continous_field_setting(field_direction, currentField, field_zone_count)
+                                self._set_field(end_field, user_field_rate)
+
+
+                                if self.stopped_by_user:
+                                    self.append_text.emit("\n" + "=" * 60)
+                                    self.append_text.emit("Measurement stopped by user")
+                                    self.append_text.emit("=" * 60)
+                                    return  # Exit without emitting measurement_finished
                                 counter += 1
+
                                 single_measurement_start = time.time()
-                                if Keithley_2182_Connected:
-                                    NPLC = nv_NPLC
-                                    keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                                    keithley_2182nv.write(f"VOLT:DC:NPLC {NPLC}")
+
                                 time.sleep(1)
-                                currentField, sF, field_unit = read_field()
+                                currentField, field_status = self._update_field_reading_label()
 
-                                update_ppms_field_reading_label(str(currentField), field_unit, sF)
-                                append_text(f'Saving data for {currentField} Oe \n', 'green')
+                                self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
 
-                                Chan_1_voltage = 0
-                                Chan_2_voltage = 0
-                                self.field_array.append(currentField)
-                                if Keithley_2182_Connected:
-                                    if nv_channel_1_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 1")
-                                        volt = keithley_2182nv.query("READ?")
-                                        Chan_1_voltage = float(volt)
-                                        update_nv_channel_1_label(str(Chan_1_voltage))
-                                        append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                        self.channel1_array.append(Chan_1_voltage)
-                                        if counter % 20 == 0:
-                                            counter = 0
-                                            update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                    if nv_channel_2_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 2")
-                                        volt2 = keithley_2182nv.query("READ?")
-                                        Chan_2_voltage = float(volt2)
-                                        update_nv_channel_2_label(str(Chan_2_voltage))
-                                        append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                        self.channel2_array.append(Chan_2_voltage)
-                                        # # Drop off the first y element, append a new one.
-                                        if counter % 20 == 0:
-                                            counter = 0
-                                            update_plot(self.field_array, self.channel2_array, 'red', False, True)
-
-                                    # Calculate the average voltage
-                                    resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                    resistance_chan_2 = Chan_2_voltage / float(current[j])
-
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
-                                        csv_writer = csv.writer(csvfile)
-
-                                        if csvfile.tell() == 0:  # Check if file is empty
-                                            csv_writer.writerow(
-                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
-                                                 "Channel 2 "
-                                                 "Resistance ("
-                                                 "Ohm)",
-                                                 "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-
-                                        csv_writer.writerow(
-                                            [currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                             Chan_2_voltage, MyTemp, current[j]])
-                                        append_text(f'Data Saved for {currentField} Oe at {MyTemp} K', 'green')
-                                elif DSP7265_Connected:
+                                if self.dsp7265:
                                     try:
-                                        time.sleep(delay)
-                                        X = float(DSP7265.query("X."))  # Read the measurement result
-                                        Y = float(DSP7265.query("Y."))  # Read the measurement result
-                                        Mag = float(DSP7265.query("MAG."))  # Read the measurement result
-                                        Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
+                                        if self.stopped_by_user:
+                                            self.append_text.emit("\n" + "=" * 60)
+                                            self.append_text.emit("Measurement stopped by user")
+                                            self.append_text.emit("=" * 60)
+                                            return  # Exit without emitting measurement_finished
+                                        self._wait_settling("Wait for settling time.")
+                                        currentField, field_status = self._update_field_reading_label()
+                                        self.field_array.append(currentField)
+                                        X = float(self.dsp7265.query("X."))  # Read the measurement result
+                                        Y = float(self.dsp7265.query("Y."))  # Read the measurement result
+                                        Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
+                                        Phase = float(self.dsp7265.query("PHA."))  # Read the measurement result
+                                        self.update_lockin_label.emit(str(X), str(Y), str(Mag), str(Phase))
                                         self.lockin_x.append(X)
-                                        # self.lockin_y.append(Y)
+                                        self.lockin_y.append(Y)
                                         self.lockin_mag.append(Mag)
-                                        # self.lockin_pahse.append(Phase)
+                                        self.lockin_pahse.append(Phase)
+                                        self.field_array.append(MyField)
+                                        # Update current spectrum plot (right)
                                         if counter % 20 == 0:
                                             counter = 0
                                             # # Drop off the first y element, append a new one.
-                                            update_plot(self.field_array, self.lockin_x, 'black', True, False)
+                                            self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
                                             # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                     except Exception as e:
-                                        QMessageBox.warning(self, "Reading Error", f'{e}')
+                                        self.show_error.emit("Reading Error", f'{e}')
+                                        self.stop_measurement().emit()
+                                        return
 
-                                    resistance_chan_1 = Mag / float(current[j])
+
                                     # Append the data to the CSV file
                                     with open(csv_filename, "a", newline="") as csvfile:
                                         csv_writer = csv.writer(csvfile)
 
                                         if csvfile.tell() == 0:  # Check if file is empty
                                             csv_writer.writerow(
-                                                ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                                 "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
-                                                 "Temperature (K)", "Current (A)"])
+                                                ["Temperature (K)", "Field (Oe)", "Voltage X (V)", "Voltage Y (V)",
+                                                 "Voltage Mag (V)", "Phase (deg)"])
 
                                         csv_writer.writerow(
-                                            [currentField, resistance_chan_1, Mag, X, Y,
-                                             Phase, MyTemp, current[j]])
-                                        self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
+                                            [curTemp, currentField, X, Y, Mag, Phase])
+                                        self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n')
                                 # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
+                                user_field_rate = self._continous_field_setting(field_direction, currentField,
+                                                                                field_zone_count)
+                                self._set_field(end_field, user_field_rate)
 
-                                append_text(f'Field Rate = {user_field_rate}\n', 'orange')
+                                self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
                                 # Update currentField for the next iteration
                                 # currentField -= deltaH
                                 self.pts += 1  # Number of self.pts count
                                 single_measurement_end = time.time()
                                 Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
-                                append_text(
+                                self.append_text.emit(
                                     'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                     'purple')
-                                append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
-                                    Single_loop * number_of_field / 60 / 60), 'purple')
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (
-                                            number_of_current - j) * (
-                                                                number_of_temp - i)
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                        total_time_in_seconds), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        total_time_in_hours), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
-                                    number_of_current) * (number_of_temp)
-                                current_progress = (
-                                                           total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
-                                progress_update(int(current_progress * 100))
-                                update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes, current_progress * 100)
+                                # append_text('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                                #     Single_loop * number_of_field / 60 / 60), 'purple')
+                                # total_time_in_seconds = Single_loop * (number_of_field_update) * (
+                                #             number_of_current - j) * (
+                                #                                 number_of_temp - i)
+                                # totoal_time_in_minutes = total_time_in_seconds / 60
+                                # total_time_in_hours = totoal_time_in_minutes / 60
+                                # total_time_in_days = total_time_in_hours / 24
+                                # append_text(
+                                #     'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                #         total_time_in_seconds), 'purple')
+                                # append_text(
+                                #     'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                #         totoal_time_in_minutes), 'purple')
+                                # append_text(
+                                #     'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                #         total_time_in_hours), 'purple')
+                                # append_text(
+                                #     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                #         total_time_in_days), 'purple')
+                                # total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
+                                #     number_of_current) * (number_of_temp)
+                                # current_progress = (
+                                #                            total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
+                                # progress_update(int(current_progress * 100))
+                                # update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                #                             totoal_time_in_minutes, current_progress * 100)
 
                             # ----------------- Loop Up ----------------------#
-                            NotificationManager().send_message(
-                                f"Starting the second half of measurement - ramping field up")
-                            currentField = botField
-                            set_field(currentField, user_field_rate)
-                            append_text(f'Start collecting data \n', 'Purple')
-                            time.sleep(4)
-                            currentField, sF, field_unit = read_field()
-                            update_ppms_field_reading_label(str(currentField), field_unit, sF)
-
-                            while True:
-                                time.sleep(1)
-                                currentField, sF, field_unit = read_field()
-                                update_ppms_field_reading_label(str(currentField), field_unit, sF)
-                                append_text(f'Status: {sF}\n', 'blue')
-                                if sF == 'Holding (driven)':
-                                    break
-
-                            deltaH, user_field_rate = deltaH_chk(currentField)
-                            time.sleep(20)
-                            set_field(topField, user_field_rate)
-                            append_text(f'Start collecting data \n', 'purple')
-                            counter = 0
-                            current_progress = int((i + 1) * (j + 1) / totoal_progress * 100) / 2
-                            progress_update(int(current_progress))
-                            while currentField <= topField - 1:
-                                if not running():
-                                    print('Not Running')
-                                    stop_measurement()
-                                    return
-                                counter += 1
-                                single_measurement_start = time.time()
-                                if Keithley_2182_Connected:
-                                    keithley_2182nv.write("SENS:FUNC 'VOLT:DC'")
-                                    keithley_2182nv.write(f"VOLT:DC:NPLC {nv_NPLC}")
-                                time.sleep(1)
-                                currentField, sF, field_unit = read_field()
-                                update_ppms_field_reading_label(str(currentField), field_unit, sF)
-                                append_text(f'Saving data for {currentField} {field_unit} \n', 'green')
-
-                                Chan_1_voltage = 0
-                                Chan_2_voltage = 0
-                                self.field_array.append(currentField)
-                                if Keithley_2182_Connected:
-                                    if nv_channel_1_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 1")
-                                        volt = keithley_2182nv.query("READ?")
-                                        Chan_1_voltage = float(volt)
-                                        update_nv_channel_1_label(str(Chan_1_voltage))
-                                        append_text(f"Channel 1 Voltage: {str(Chan_1_voltage)} V\n", 'green')
-                                        self.channel1_array.append(Chan_1_voltage)
-                                        if counter % 20 == 0:
-                                            counter = 0
-                                            update_plot(self.field_array, self.channel1_array, 'black', True, False)
-                                    if nv_channel_2_enabled:
-                                        keithley_2182nv.write("SENS:CHAN 2")
-                                        volt2 = keithley_2182nv.query("READ?")
-                                        Chan_2_voltage = float(volt2)
-                                        update_nv_channel_2_label(str(Chan_2_voltage))
-                                        append_text(f"Channel 2 Voltage: {str(Chan_2_voltage)} V\n", 'green')
-                                        self.channel2_array.append(Chan_2_voltage)
-                                        if counter % 20 == 0:
-                                            counter = 0
-                                            # # Drop off the first y element, append a new one.
-                                            update_plot(self.field_array, self.channel2_array, 'red', False, True)
-
-                                    resistance_chan_1 = Chan_1_voltage / float(current[j])
-                                    resistance_chan_2 = Chan_2_voltage / float(current[j])
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
-                                        csv_writer = csv.writer(csvfile)
-
-                                        if csvfile.tell() == 0:  # Check if file is empty
-                                            csv_writer.writerow(
-                                                ["Field (Oe)", "Channel 1 Resistance (Ohm)", "Channel 1 Voltage (V)",
-                                                 "Channel 2 "
-                                                 "Resistance ("
-                                                 "Ohm)",
-                                                 "Channel 2 Voltage (V)", "Temperature (K)", "Current (A)"])
-
-                                        csv_writer.writerow(
-                                            [currentField, resistance_chan_1, Chan_1_voltage, resistance_chan_2,
-                                             Chan_2_voltage, MyTemp, current[j]])
-                                        self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
-                                elif DSP7265_Connected:
+                            if field_direction == 'bidirectional':
+                                self.notification_manager.send_message(
+                                    f"Starting the second half of measurement - ramping field up")
+                                currentField = end_field
+                                self._set_field(end_field, user_field_rate)
+                                self.append_text.emit(f'Start collecting data \n', 'Purple')
+                                time.sleep(4)
+                                MyField, field_status = self._update_field_reading_label()
+                                self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
+                                while True:
                                     try:
-                                        time.sleep(delay)
-                                        X = float(DSP7265.query("X."))  # Read the measurement result
-                                        Y = float(DSP7265.query("Y."))  # Read the measurement result
-                                        Mag = float(DSP7265.query("MAG."))  # Read the measurement result
-                                        Phase = float(DSP7265.query("PHA."))  # Read the measurement result
-                                        update_lockin_label(str(X), str(Y), str(Mag), str(Phase))
-                                        self.lockin_x.append(X)
-                                        # self.lockin_y.append(Y)
-                                        self.lockin_mag.append(Mag)
-                                        # self.lockin_pahse.append(Phase)
-                                        if counter % 20 == 0:
-                                            counter = 0
-                                            # # Drop off the first y element, append a new one.
-                                            update_plot(self.field_array, self.lockin_x, 'black', True, False)
-                                            # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
-                                    except Exception as e:
-                                        QMessageBox.warning(self, "Reading Error", f'{e}')
+                                        if self.stopped_by_user:
+                                            self.append_text.emit("\n" + "=" * 60)
+                                            self.append_text.emit("Measurement stopped by user")
+                                            self.append_text.emit("=" * 60)
+                                            return  # Exit without emitting measurement_finished
+                                        time.sleep(1)
+                                        MyField, field_status = self._update_field_reading_label()
+                                        if field_status == 'Holding (driven)':
+                                            break
+                                    except SystemExit as e:
+                                        self.error_message.emit(e, e)
+                                        self.notification_manager.send_message(
+                                            "Your measurement went wrong, possible PPMS client error",
+                                            'critical')
+                                time.sleep(20)
 
-                                    resistance_chan_1 = Mag / float(current[j])
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
-                                        csv_writer = csv.writer(csvfile)
+                                self._set_field(start_field, user_field_rate)
 
-                                        if csvfile.tell() == 0:  # Check if file is empty
+                                counter = 0
+
+                                self.progress_update.emit(int(50))
+                                while currentField <= start_field - 1:
+                                    user_field_rate = self._continous_field_setting(field_direction, currentField,
+                                                                                    field_zone_count)
+                                    self._set_field(start_field, user_field_rate)
+
+                                    if self.stopped_by_user:
+                                        self.append_text.emit("\n" + "=" * 60)
+                                        self.append_text.emit("Measurement stopped by user")
+                                        self.append_text.emit("=" * 60)
+                                        return  # Exit without emitting measurement_finished
+                                    counter += 1
+
+                                    single_measurement_start = time.time()
+
+                                    time.sleep(1)
+                                    currentField, field_status = self._update_field_reading_label()
+                                    self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
+
+                                    if self.dsp7265:
+                                        try:
+                                            if self.stopped_by_user:
+                                                self.append_text.emit("\n" + "=" * 60)
+                                                self.append_text.emit("Measurement stopped by user")
+                                                self.append_text.emit("=" * 60)
+                                                return  # Exit without emitting measurement_finished
+                                            self._wait_settling("Wait for settling time.")
+                                            currentField, field_status = self._update_field_reading_label()
+                                            self.field_array.append(currentField)
+                                            X = float(self.dsp7265.query("X."))  # Read the measurement result
+                                            Y = float(self.dsp7265.query("Y."))  # Read the measurement result
+                                            Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
+                                            Phase = float(self.dsp7265.query("PHA."))  # Read the measurement result
+                                            self.update_lockin_label.emit(str(X), str(Y), str(Mag), str(Phase))
+                                            self.lockin_x.append(X)
+                                            self.lockin_y.append(Y)
+                                            self.lockin_mag.append(Mag)
+                                            self.lockin_pahse.append(Phase)
+                                            self.field_array.append(MyField)
+                                            # Update current spectrum plot (right)
+                                            if counter % 20 == 0:
+                                                counter = 0
+                                                # # Drop off the first y element, append a new one.
+                                                self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+                                                # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                        except Exception as e:
+                                            self.show_error.emit("Reading Error", f'{e}')
+                                            self.stop_measurement().emit()
+                                            return
+
+                                        # Append the data to the CSV file
+                                        with open(csv_filename, "a", newline="") as csvfile:
+                                            csv_writer = csv.writer(csvfile)
+
+                                            if csvfile.tell() == 0:  # Check if file is empty
+                                                csv_writer.writerow(
+                                                    ["Temperature (K)", "Field (Oe)", "Voltage X (V)",
+                                                     "Voltage Y (V)",
+                                                     "Voltage Mag (V)", "Phase (deg)"])
+
                                             csv_writer.writerow(
-                                                ["Field (Oe)", "Resistance (Ohm)", "Voltage Mag (V)",
-                                                 "Voltage X (V)", "Voltage Y (V)", "Phase (deg)",
-                                                 "Temperature (K)", "Current (A)"])
+                                                [curTemp, currentField, X, Y, Mag, Phase])
+                                            self.append_text.emit(
+                                                f'Data Saved for {currentField} Oe at {curTemp} K\n')
 
-                                        csv_writer.writerow(
-                                            [currentField, resistance_chan_1, Mag, X, Y,
-                                             Phase, MyTemp, current[j]])
-                                        self.log_box.append(f'Data Saved for {currentField} Oe at {MyTemp} K\n')
 
-                                # ----------------------------- Measure NV voltage -------------------
-                                deltaH, user_field_rate = deltaH_chk(currentField)
+                                    # ----------------------------- Measure NV voltage -------------------
+                                    user_field_rate = self._continous_field_setting(field_direction, currentField,
+                                                                                    field_zone_count)
 
-                                append_text(f'Field Rate = {user_field_rate}\n', 'orange')
-                                # Update currentField for the next iteration
-                                # Update currentField for the next iteration
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
+                                    self._set_field(end_field, user_field_rate)
 
-                                total_time_in_seconds = Single_loop * (number_of_field_update) * (
-                                            number_of_current - j) * (
-                                                                number_of_temp - i)
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                        total_time_in_seconds), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        totoal_time_in_minutes), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        total_time_in_hours), 'purple')
-                                append_text(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        total_time_in_days), 'purple')
-                                total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
-                                    number_of_current) * (number_of_temp)
-                                current_progress = (
-                                                           total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
-                                progress_update(int(current_progress * 100))
-                                update_measurement_progress(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes, current_progress * 100)
-                                if Keithley_2182_Connected:
-                                    if field_mode_fixed:
-                                        if nv_channel_1_enabled:
-                                            save_plot(self.channel1_field_avg_array, self.channel1_avg_array, 'black', True,
-                                                      False,
-                                                      True,
-                                                      str(TempList[i]), str(current[j]))
-                                        if nv_channel_2_enabled:
-                                            save_plot(self.channel2_field_avg_array, self.channel2_avg_array, 'red', False,
-                                                      True,
-                                                      True,
-                                                      str(TempList[i]), str(current[j]))
-                                    else:
-                                        if nv_channel_1_enabled:
-                                            save_plot(self.field_array, self.channel1_array, 'black', True, False, True,
-                                                      str(TempList[i]), str(current[j]))
-                                        if nv_channel_2_enabled:
-                                            save_plot(self.field_array, self.channel2_array, 'red', False, True, True,
-                                                      str(TempList[i]), str(current[j]))
-                                elif DSP7265_Connected:
-                                    save_plot(self.field_array, self.lockin_x, 'black', True, False, True, str(TempList[i]),
-                                              str(current[j]))
-                                    # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                    self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
 
-                                    # NotificationManager().send_message()
-                                current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
-                                progress_update(int(current_progress))
+                                    # Update currentField for the next iteration
+                                    # Update currentField for the next iteration
+                                    self.pts += 1  # Number of self.pts count
+                                    single_measurement_end = time.time()
+                                    Single_loop = single_measurement_end - single_measurement_start
+                                    self.append_text.emit(
+                                        'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
+                                        'purple')
+                                    # number_of_field_update = number_of_field_update - 1
+
+                                    # total_time_in_seconds = Single_loop * (number_of_field_update) * (
+                                    #             number_of_current - j) * (
+                                    #                                 number_of_temp - i)
+                                    # totoal_time_in_minutes = total_time_in_seconds / 60
+                                    # total_time_in_hours = totoal_time_in_minutes / 60
+                                    # total_time_in_days = total_time_in_hours / 24
+                                    # append_text(
+                                    #     'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                    #         total_time_in_seconds), 'purple')
+                                    # append_text(
+                                    #     'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                    #         totoal_time_in_minutes), 'purple')
+                                    # append_text(
+                                    #     'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                    #         total_time_in_hours), 'purple')
+                                    # append_text(
+                                    #     'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                    #         total_time_in_days), 'purple')
+                                    # total_estimated_experiment_time_in_seconds = Single_loop * (number_of_field) * (
+                                    #     number_of_current) * (number_of_temp)
+                                    # current_progress = (
+                                    #                            total_estimated_experiment_time_in_seconds - total_time_in_seconds) / total_estimated_experiment_time_in_seconds
+                                    # progress_update(int(current_progress * 100))
+                                    # update_measurement_progress(total_time_in_days, total_time_in_hours,
+                                    #                             totoal_time_in_minutes, current_progress * 100)
+
+                                    # elif DSP7265_Connected:
+                                    #     save_plot(self.field_array, self.lockin_x, 'black', True, False, True, str(TempList[i]),
+                                    #               str(current[j]))
+                                    #     # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                    #
+                                    #     # NotificationManager().send_message()
+                                    # current_progress = int((i + 1) * (j + 1) / totoal_progress * 100)
+                                    # progress_update(int(current_progress))
 
                         else:
                             field_list = self.ppms_setting['field_setting']['final_step_list']
@@ -662,6 +627,9 @@ class ST_FMR_Worker(QThread):
                             total_progress = number_of_repetition * number_of_power * number_of_frequency * number_of_temperature * number_of_field
 
                             for m in range(number_of_field):
+                                if m == int(number_of_field /2) :
+                                    self.notification_manager.send_message(
+                                        f"Starting the second half of measurement - ramping field up")
                                 if self.stopped_by_user:
                                     self.append_text.emit("\n" + "=" * 60)
                                     self.append_text.emit("Measurement stopped by user")
@@ -675,20 +643,25 @@ class ST_FMR_Worker(QThread):
                                 time.sleep(4)
 
                                 while True:
-                                    if self.stopped_by_user:
-                                        self.append_text.emit("\n" + "=" * 60)
-                                        self.append_text.emit("Measurement stopped by user")
-                                        self.append_text.emit("=" * 60)
-                                        return  # Exit without emitting measurement_finished
-                                    time.sleep(1)
-                                    MyField, field_status = self._update_field_reading_label()
-                                    if field_status == 'Holding (driven)':
-                                        break
+                                    try:
+                                        if self.stopped_by_user:
+                                            self.append_text.emit("\n" + "=" * 60)
+                                            self.append_text.emit("Measurement stopped by user")
+                                            self.append_text.emit("=" * 60)
+                                            return  # Exit without emitting measurement_finished
+                                        time.sleep(1)
+                                        MyField, field_status = self._update_field_reading_label()
+                                        if field_status == 'Holding (driven)':
+                                            break
+                                    except SystemExit as e:
+                                        self.error_message.emit(e, e)
+                                        self.notification_manager.send_message(
+                                            "Your measurement went wrong, possible PPMS client lost connection",
+                                            'critical')
 
                                 # ----------------------------- Measure NV voltage -------------------
                                 self.append_text.emit(f'Saving data for {MyField} Oe \n', 'green')
 
-                                k = 0
                                 MyField, field_status = self._update_field_reading_label()
                                 self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
 
@@ -712,10 +685,6 @@ class ST_FMR_Worker(QThread):
                                         self.lockin_mag.append(Mag)
                                         self.lockin_pahse.append(Phase)
                                         self.field_array.append(MyField)
-                                        # # Drop off the first y element, append a new one.
-                                        self._update_plots(self.field_array, self.lockin_x, 'black', True, False)
-                                        # Update 2D cumulative plot (left) - now showing freq vs voltage
-
                                         # Update current spectrum plot (right)
                                         self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
 
@@ -780,8 +749,6 @@ class ST_FMR_Worker(QThread):
                                 self.progress_update.emit(int(current_progress * 100))
                                 self.update_measurement_progress.emit(remaining_time_in_days, remaining_time_in_hours,
                                                             remaining_time_in_minutes, current_progress * 100)
-                                if self.bnc845:
-                                    self._turn_off_output_bnc845()
 
                         time.sleep(2)
                         self.client.set_field(zero_field,
@@ -796,6 +763,8 @@ class ST_FMR_Worker(QThread):
                             if field_status == 'Holding (driven)':
                                 break
 
+                    if self.bnc845:
+                        self._turn_off_output_bnc845()
                     if len(self.repetition_array) > 1:
                         self.update_2d_plot.emit(self.field_array, self.repetition_array, self.lockin_x)
                 if len(self.power_array) > 1:
@@ -831,28 +800,136 @@ class ST_FMR_Worker(QThread):
         self.measurement_finished.emit()
         return
 
-    def _continous_field_setting(self, currentField, field_zone_count):
-        if field_zone_count == 1:
-            user_field_rate = self.ppms_setting['field_setting']['final_continuous_list']['region1']['rate']
-        elif field_zone_count == 2:
-            zone1_top_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['from']
-            if (currentField <= zone1_top_field + 1 or currentField >= -1 * zone1_top_field - 1):
-                deltaH = zone1_step_field
-                user_field_rate = zone1_field_rate
-            elif (currentField > -1 * zone2_top_field and currentField <= zone2_top_field):
-                deltaH = zone2_step_field
-                user_field_rate = zone2_field_rate
-        elif field_zone_count == 2:
-            if (currentField <= zone1_top_field + 1 or currentField >= -1 * zone1_top_field - 1):
-                deltaH = zone1_step_field
-                user_field_rate = zone1_field_rate
-            elif (currentField < zone2_top_field and currentField >= -1 * zone2_top_field):
-                deltaH = zone2_step_field
-                user_field_rate = zone2_field_rate
-            elif (currentField > -1 * zone3_top_field and currentField < zone3_top_field):
-                deltaH = zone3_step_field
-                user_field_rate = zone3_field_rate
-        return deltaH, user_field_rate
+    def _continous_field_setting(self, field_direction, currentField, field_zone_count):
+        if field_direction == 'unidirectional':
+            if field_zone_count == 1:
+                user_field_rate = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'rate']
+            elif field_zone_count == 2:
+                zone1_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'from']
+                zone1_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'to']
+
+                zone2_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'from']
+                zone2_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'to']
+
+                if zone1_end_field <= currentField <= zone1_start_field:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                            'rate']
+
+                elif zone2_end_field + 1 <= currentField <= zone2_start_field:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                            'rate']
+            elif field_zone_count == 3:
+                zone1_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'from']
+                zone1_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'to']
+
+                zone2_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'from']
+                zone2_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'to']
+
+                zone3_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region3'][
+                        'from']
+                zone3_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region3'][
+                        'to']
+
+                if zone1_end_field <= currentField <= zone1_start_field:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                            'rate']
+
+                elif zone2_end_field + 1 <= currentField <= zone2_start_field:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                            'rate']
+
+                elif zone3_end_field + 1 <= currentField <= zone3_start_field:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region3'][
+                            'rate']
+        else:
+            if field_zone_count == 1:
+                user_field_rate = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'rate']
+            elif field_zone_count == 2:
+                zone1_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'from_start']
+                zone1_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'to_end']
+
+                zone2_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'from']
+                zone2_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'to']
+
+                if zone2_start_field <= currentField <= zone1_start_field or zone2_end_field <= currentField <= zone1_end_field + 1:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                            'rate']
+
+                elif zone2_start_field <= currentField <= zone2_end_field:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                            'rate']
+            elif field_zone_count == 3:
+                zone1_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'from_start']
+                zone1_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                        'to_end']
+
+                zone2_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'from_start']
+                zone2_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                        'to_end']
+
+                zone3_start_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region3'][
+                        'from']
+                zone3_end_field = \
+                    self.ppms_setting['field_setting']['final_continuous_list']['region3'][
+                        'to']
+
+                if zone2_start_field <= currentField <= zone1_start_field or zone2_end_field <= currentField <= zone1_end_field + 1:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                            'rate']
+                elif zone3_start_field <= currentField <= zone2_start_field or zone3_end_field <= currentField <= zone2_end_field + 1:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region2'][
+                            'rate']
+                elif zone3_start_field <= currentField <= zone3_end_field + 1:
+                    user_field_rate = \
+                        self.ppms_setting['field_setting']['final_continuous_list']['region3'][
+                            'rate']
+        return user_field_rate
 
 
     # ==================================================================================
