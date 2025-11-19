@@ -211,10 +211,8 @@ class ST_FMR_Worker(QThread):
 
             for i in range(number_of_temperature):
                 self.temperature_array = []
-                print('start measurement')
                 self._set_field(zero_field, fast_field_rate)
                 time.sleep(10)
-                print('Start measurement')
                 # Waiting for field ready
                 while True:
                     if self.stopped_by_user:
