@@ -214,7 +214,8 @@ class PPMSCommandExecutor:
         except SystemExit as e:
             self.error = f"SystemExit: {e}"
         except Exception as e:
-            self.error = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+            # self.error = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+            self.error = f"{type(e).__name__}: {e}"
 
 class ThreadSafePPMSCommands:
     """
@@ -296,6 +297,7 @@ class ThreadSafePPMSCommands:
                     self.notification_manager.send_message(
                         f"Temperature status error: {e}", 'critical'
                     )
+
                 raise
 
         success, _ = self.executor.execute_with_timeout(
@@ -3049,27 +3051,27 @@ class Measurement(QMainWindow):
                 self.notification.send_notification(message=f"Error-{tb_str} {str(e)}")
 
     def _connect_fmr_worker_signals(self):
-        self.worker.progress_update.connect(self.update_progress)
-        self.worker.append_text.connect(self.append_text)
-        self.worker.stop_measurment.connect(self.stop_measurement)
-        self.worker.update_ppms_temp_reading_label.connect(self.update_ppms_temp_reading_label)
-        self.worker.update_ppms_field_reading_label.connect(self.update_ppms_field_reading_label)
-        self.worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
-        self.worker.update_nv_channel_1_label.connect(self.update_nv_channel_1_label)
-        self.worker.update_nv_channel_2_label.connect(self.update_nv_channel_2_label)
-        self.worker.update_lockin_label.connect(self.update_lockin_label)
-        self.worker.update_fmr_spectrum_plot.connect(self.update_fmr_spectrum_plot)
-        self.worker.save_plot.connect(self.save_plot)
-        self.worker.clear_plot.connect(self.clear_plot)
-        self.worker.measurement_finished.connect(self.measurement_finished)
-        self.worker.error_message.connect(self.error_popup)
-        self.worker.update_measurement_progress.connect(self.update_measurement_progress)
-        self.worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
-        self.worker.show_warning.connect(self.show_warning)
-        self.worker.show_error.connect(self.show_error)
-        self.worker.show_info.connect(self.show_info)
-        self.worker.update_fmr_ui.connect(self.update_fmr_ui)
-        self.worker.clear_fmr_plot.connect(self.clear_fmr_plot)
+        self.fmr_worker.progress_update.connect(self.update_progress)
+        self.fmr_worker.append_text.connect(self.append_text)
+        self.fmr_worker.stop_measurement.connect(self.stop_measurement)
+        self.fmr_worker.update_ppms_temp_reading_label.connect(self.update_ppms_temp_reading_label)
+        self.fmr_worker.update_ppms_field_reading_label.connect(self.update_ppms_field_reading_label)
+        self.fmr_worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
+        self.fmr_worker.update_lockin_label.connect(self.update_lockin_label)
+        self.fmr_worker.update_fmr_spectrum_plot.connect(self.update_fmr_spectrum_plot)
+        self.fmr_worker.save_plot.connect(self.save_plot)
+        self.fmr_worker.clear_plot.connect(self.clear_plot)
+        self.fmr_worker.measurement_finished.connect(self.measurement_finished)
+        self.fmr_worker.error_message.connect(self.error_popup)
+        self.fmr_worker.update_measurement_progress.connect(self.update_measurement_progress)
+        self.fmr_worker.update_dsp7265_freq_label.connect(self.update_dsp7265_freq_label)
+        self.fmr_worker.show_warning.connect(self.show_warning)
+        self.fmr_worker.show_error.connect(self.show_error)
+        self.fmr_worker.show_info.connect(self.show_info)
+        self.fmr_worker.update_fmr_ui.connect(self.update_fmr_ui)
+        self.fmr_worker.clear_fmr_plot.connect(self.clear_fmr_plot)
+        self.fmr_worker.send_notification.connect(self.send_notification)
+
 
     def update_fmr_ui(self):
         if self.fmr_widget:
@@ -5462,6 +5464,7 @@ class Measurement(QMainWindow):
                 self.update_keithley_6221_update_label('N/A', 'OFF')
             if hasattr(self, 'keithley_2182nv'):
                 self.keithley_2182nv.write("*CLS")
+
         except Exception:
             pass
 
@@ -5494,6 +5497,14 @@ class Measurement(QMainWindow):
             if self.worker is not None:
                 self.worker.stop()
                 self.worker = None
+                NotificationManager().send_message("Experiment Stop!", 'critical')
+        except Exception:
+            QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
+
+        try:
+            if self.fmr_worker is not None:
+                self.fmr_worker.stop()
+                self.fmr_worker = None
                 NotificationManager().send_message("Experiment Stop!", 'critical')
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
@@ -6352,6 +6363,9 @@ class Measurement(QMainWindow):
                 print("No Such File.")
             caption = f"Data preview"
             NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
+
+    def send_notification(self, message):
+        NotificationManager().send_message(message=message)
 
     def update_plot(self, x_data, y_data, color, channel_1_enabled, channel_2_enabled):
 

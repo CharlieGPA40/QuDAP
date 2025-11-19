@@ -38,7 +38,7 @@ class ST_FMR_Worker(QThread):
 
     # PyQt Signals for UI updates
     progress_update = pyqtSignal(int)  # Progress percentage (0-100)
-    append_text = pyqtSignal(str)  # Log messages
+    append_text = pyqtSignal(str, str)  # Log messages
     stop_measurement = pyqtSignal()  # Signal to stop
     measurement_finished = pyqtSignal()  # Measurement complete
     update_fmr_ui = pyqtSignal()
@@ -56,6 +56,7 @@ class ST_FMR_Worker(QThread):
     update_lockin_label = pyqtSignal(str, str, str, str)
 
     save_individual_plot = pyqtSignal(str)
+    send_notification = pyqtSignal(str)
 
     # Plotting signals
     update_2d_plot = pyqtSignal(list, list, list)  # x_data (indices), y_data (voltages), z_data (peak powers)
@@ -118,28 +119,35 @@ class ST_FMR_Worker(QThread):
     def run(self):
         """Main execution method - runs in separate thread."""
         try:
-            self.append_text.emit("=" * 60)
-            self.append_text.emit("Starting ST_FMR Measurement")
-            self.append_text.emit(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            self.append_text.emit("=" * 60)
+            self.append_text.emit("=" * 60, 'green')
+            self.append_text.emit("Starting ST_FMR Measurement", 'green')
+            self.append_text.emit(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 'green')
+            self.append_text.emit("=" * 60, 'green')
 
             # Clear plots
             self.clear_plot.emit()
-            self.notification_manager.send_message(message="The measurement has been started successfully.")
-
+            try:
+                self.send_notification.emit("The measurement has been started successfully.")
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                self.show_error.emit("Error", f'{tb_str}')
             if self.stopped_by_user:
-                self.append_text.emit("\n" + "=" * 60)
-                self.append_text.emit("Measurement stopped by user")
-                self.append_text.emit("=" * 60)
+                self.append_text.emit("\n" + "=" * 60, 'red')
+                self.append_text.emit("Measurement stopped by user", 'red')
+                self.append_text.emit("=" * 60, 'red')
                 return  # Exit without emitting measurement_finished
 
             # Execute measurement
-            self._execute_measurement()
+            try:
+                self._execute_measurement()
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                self.show_error.emit("Error", f'{tb_str}')
 
             if self.stopped_by_user:
-                self.append_text.emit("\n" + "=" * 60)
-                self.append_text.emit("Measurement stopped by user")
-                self.append_text.emit("=" * 60)
+                self.append_text.emit("\n" + "=" * 60, 'red')
+                self.append_text.emit("Measurement stopped by user", 'red')
+                self.append_text.emit("=" * 60, 'red')
                 return  # Exit without emitting measurement_finished
 
             # Save consolidated data
@@ -148,348 +156,202 @@ class ST_FMR_Worker(QThread):
             # Cleanup
             self._cleanup_instruments()
 
-            self.append_text.emit("=" * 60)
-            self.append_text.emit("Measurement Complete!")
-            self.append_text.emit("=" * 60)
+            self.append_text.emit("=" * 60, 'red')
+            self.append_text.emit("Measurement Complete!", 'red')
+            self.append_text.emit("=" * 60, 'red')
             self.measurement_finished.emit()
 
         except Exception as e:
+            tb_str = traceback.format_exc()
+            self.show_error.emit("Error", f'{tb_str}', 'black')
             error_msg = f"Error in measurement: {str(e)}\n{traceback.format_exc()}"
-            self.append_text.emit(error_msg)
-            self.error_message.emit(error_msg)
+            self.append_text.emit(error_msg, 'red')
             self.stop_measurement.emit()
 
 
     def _execute_measurement(self):
         """Execute the main measurement loop."""
         # Read Experiment Settings
-        number_of_repetition = self.measurment_setting['number_repetition']
-        temperature_ramping_rate = self.measurment_setting['init_temp_rate']
-        number_of_repetition = list(range(1, number_of_repetition + 1))
-        # Read RF Settings
-        frequency_list = self.bnc845_setting['frequency_settings']['Final_list']
-        power_list = self.bnc845_setting['power_settings']['Final_list']
+        try:
+            number_of_repetition = self.measurment_setting['number_repetition']
+            temperature_ramping_rate = self.measurment_setting['init_temp_rate']
+            number_of_repetition = list(range(1, number_of_repetition + 1))
+            # Read RF Settings
+            frequency_list = self.bnc845_setting['frequency_settings']['Final_list']
+            power_list = self.bnc845_setting['power_settings']['Final_list']
+            # Read PPMS Setting
+            temperature_list = self.ppms_setting['temperature_setting']['temperature_list']
+            temperature_rate = self.ppms_setting['temperature_setting']['temperature_rate']
+            field_direction = self.ppms_setting['field_setting']['field_direction']
+            field_mode = self.ppms_setting['field_setting']['field_mode']
 
-        # Read PPMS Setting
-        temperature_list = self.ppms_setting['temperature_setting']['temperature_list']
-        temperature_rate = self.ppms_setting['temperature_setting']['temperature_rate']
+            number_of_power = len(power_list)
+            number_of_frequency = len(frequency_list)
+            number_of_temperature = len(temperature_list)
 
-        field_direction = self.ppms_setting['field_setting']['field_direction']
-        field_mode = self.ppms_setting['field_setting']['field_mode']
+            fast_field_rate = 220
+            zero_field = 0
 
-        number_of_power = len(power_list)
-        number_of_frequency = len(frequency_list)
-        number_of_temperature = len(temperature_list)
+            start_time = time.time()
+            self.append_text.emit('Measurement Start....\n', 'red')
+            time.sleep(5)
 
-        fast_field_rate = 220
-        zero_field = 0
-
-        start_time = time.time()
-        self.append_text.emit('Measurement Start....\n', 'red')
-        time.sleep(5)
-
-        # -------------Temperature Status---------------------
-        self._update_temperature_reading_label()
-        # ------------Field Status----------------------
-        self._update_field_reading_label()
-        # ------------Chamber Status----------------------
-        self._update_chamber_reading_label()
-
-        if self.stopped_by_user:
-            self.append_text.emit("\n" + "=" * 60)
-            self.append_text.emit("Measurement stopped by user")
-            self.append_text.emit("=" * 60)
-            return  # Exit without emitting measurement_finished
-
-        for i in range(number_of_temperature):
-            self.temperature_array = []
-            self._set_field(zero_field, fast_field_rate)
-            time.sleep(10)
-
-            # Waiting for field ready
-            while True:
-                if self.stopped_by_user:
-                    self.append_text.emit("\n" + "=" * 60)
-                    self.append_text.emit("Measurement stopped by user")
-                    self.append_text.emit("=" * 60)
-                    return  # Exit without emitting measurement_finished
-                time.sleep(15)
-                _, field_status = self._update_field_reading_label()
-                if field_status == 'Holding (driven)':
-                    break
-
-            self.append_text.emit(f'Current loop sets at {str(temperature_list[i])} K\n', 'blue')
-            temperature_set_point = temperature_list[i]
-            # This part separates the initial temperature chasing rate and really measurement temperate rate
-            if i == 0:
-                self._set_temperature(temperature_set_point, temperature_ramping_rate)
-            else:
-                self._set_temperature(temperature_set_point, temperature_rate)
-            self.append_text.emit(f'Waiting for {temperature_set_point} K Temperature\n', 'red')
-            time.sleep(4)
-
+            # -------------Temperature Status---------------------
             self._update_temperature_reading_label()
-            while True:
-                if self.stopped_by_user:
-                    self.append_text.emit("\n" + "=" * 60)
-                    self.append_text.emit("Measurement stopped by user")
-                    self.append_text.emit("=" * 60)
-                    return  # Exit without emitting measurement_finished
-                time.sleep(1.5)
-                curTemp, temperature_status = self._update_temperature_reading_label()
-                if temperature_status == 'Stable':
-                    break
+            # ------------Field Status----------------------
+            self._update_field_reading_label()
+            # ------------Chamber Status----------------------
+            # self._update_chamber_reading_label()
 
-            self.append_text.emit(f'Stabilizing the Temperature for 5 minutes.....', 'orange')
-            time.sleep(300)
-            self.temperature_array.append(curTemp)
             if self.stopped_by_user:
-                self.append_text.emit("\n" + "=" * 60)
-                self.append_text.emit("Measurement stopped by user")
-                self.append_text.emit("=" * 60)
+                self.append_text.emit("\n" + "=" * 60, 'red')
+                self.append_text.emit("Measurement stopped by user", 'red')
+                self.append_text.emit("=" * 60, 'red')
                 return  # Exit without emitting measurement_finished
 
-            for j in range(number_of_frequency):
-                self.frequency_array = []
-                for k in range(number_of_power):
-                    current_frequency = frequency_list[j]
-                    current_power = power_list[k]
-                    self.power_array = []
-                    if self.bnc845:
-                        try:
-                            self._set_enable_bnc845(frequency=current_frequency, power=current_power)
-                            self._turn_on_output_bnc845()
-                            time.sleep(1)
-                            self.update_fmr_ui.emit()
-                            curFreq = self._get_current_frequency_bnc845()
-                            self.frequency_array.append(curFreq)
-                            curPower = self._get_current_power_bnc845()
-                            self.power_array.append(curPower)
-                        except Exception as e:
-                            self.show_error.emit("BNC Setting Error", f'{e}')
-                            self.stop_measurement().emit()
-                    for l in range(len(number_of_repetition)):
-                        self.repetition_array = []
-                        self.repetition_array.append(number_of_repetition[l])
-                        self.notification_manager.send_message(
-                            f"Starting measurement at temperature: {str(temperature_list[i])} K, frequency: {frequency_list[j]} Hz,"
-                            f"power: {power_list[k]} dBm, repetition: {number_of_repetition[l]}")
+            for i in range(number_of_temperature):
+                self.temperature_array = []
+                print('start measurement')
+                self._set_field(zero_field, fast_field_rate)
+                time.sleep(10)
+                print('Start measurement')
+                # Waiting for field ready
+                while True:
+                    if self.stopped_by_user:
+                        self.append_text.emit("\n" + "=" * 60, 'red')
+                        self.append_text.emit("Measurement stopped by user", 'red')
+                        self.append_text.emit("=" * 60, 'red')
+                        return  # Exit without emitting measurement_finished
+                    time.sleep(15)
+                    _, field_status = self._update_field_reading_label()
+                    if field_status == 'Holding (driven)':
+                        break
 
-                        self.clear_plot.emit()
+                self.append_text.emit(f'Current loop sets at {str(temperature_list[i])} K\n', 'blue')
+                temperature_set_point = temperature_list[i]
+                # This part separates the initial temperature chasing rate and really measurement temperate rate
+                if i == 0:
+                    self._set_temperature(temperature_set_point, temperature_ramping_rate)
+                else:
+                    self._set_temperature(temperature_set_point, temperature_rate)
+                self.append_text.emit(f'Waiting for {temperature_set_point} K Temperature\n', 'red')
+                time.sleep(4)
 
-                        csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}_K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run}_repeat_{number_of_repetition[l]}.csv"
+                self._update_temperature_reading_label()
+                while True:
+                    if self.stopped_by_user:
+                        self.append_text.emit("\n" + "=" * 60, 'red')
+                        self.append_text.emit("Measurement stopped by user", 'red')
+                        self.append_text.emit("=" * 60, 'red')
+                        return  # Exit without emitting measurement_finished
+                    time.sleep(1.5)
+                    curTemp, temperature_status = self._update_temperature_reading_label()
+                    if temperature_status == 'Stable':
+                        break
 
-                        time.sleep(5)
+                self.append_text.emit(f'Stabilizing the Temperature for 5 minutes.....', 'orange')
+                time.sleep(300)
+                self.temperature_array.append(curTemp)
+                if self.stopped_by_user:
+                    self.append_text.emit("\n" + "=" * 60, 'red')
+                    self.append_text.emit("Measurement stopped by user", 'red')
+                    self.append_text.emit("=" * 60, 'red')
+                    return  # Exit without emitting measurement_finished
 
-                        if self.stopped_by_user:
-                            self.append_text.emit("\n" + "=" * 60)
-                            self.append_text.emit("Measurement stopped by user")
-                            self.append_text.emit("=" * 60)
-                            return  # Exit without emitting measurement_finished
-
-                        if self.dsp7265:
+                for j in range(number_of_frequency):
+                    self.frequency_array = []
+                    for k in range(number_of_power):
+                        current_frequency = frequency_list[j]
+                        current_power = power_list[k]
+                        self.power_array = []
+                        if self.bnc845:
                             try:
-                                time.sleep(5)
-                                cur_freq = str(float(self.dsp7265.query('FRQ[.]')) / 1000)
-                                self.update_dsp7265_freq_label.emit(cur_freq)
-                                self.dsp7265.write('AQN')
-                                time.sleep(5)
+                                self._set_enable_bnc845(frequency=current_frequency, power=current_power)
+                                self._turn_on_output_bnc845()
+                                time.sleep(1)
+                                self.update_fmr_ui.emit()
+                                curFreq = self._get_current_frequency_bnc845()
+                                self.frequency_array.append(curFreq)
+                                curPower = self._get_current_power_bnc845()
+                                self.power_array.append(curPower)
                             except Exception as e:
-                                self.show_error.emit("DSP Setting Error", f'{e}')
+                                self.show_error.emit("BNC Setting Error", f'{e}')
                                 self.stop_measurement().emit()
+                        for l in range(len(number_of_repetition)):
+                            self.repetition_array = []
+                            self.repetition_array.append(number_of_repetition[l])
+                            self.send_notification.emit(
+                                f"Starting measurement at temperature: {str(temperature_list[i])} K, frequency: {frequency_list[j]} Hz,"
+                                f"power: {power_list[k]} dBm, repetition: {number_of_repetition[l]}")
 
-                        self.pts = 0
-                        self.field_array = []
-                        self.lockin_x = []
-                        self.lockin_y = []
-                        self.lockin_mag = []
-                        self.lockin_pahse = []
-                        self.clear_fmr_plot.emit()
+                            self.clear_plot.emit()
 
-                        # ----------------- Loop Down ----------------------#
-                        if field_mode == 'continuous':
-                            field_zone_count = self.ppms_setting['field_setting']['final_continuous_list']['zone_count']
-                            field_direction = self.ppms_setting['field_setting']['field_direction']
-                            if field_direction == 'unidirectional':
-                                start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
-                                    'from']
-                                if field_zone_count == 1:
-                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['to']
-                                elif field_zone_count == 2:
-                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region2']['to']
-                                elif field_zone_count == 3:
-                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region2']['to']
-                            else:
-                                if field_zone_count == 1:
+                            csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}_K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run}_repeat_{number_of_repetition[l]}.csv"
+
+                            time.sleep(5)
+
+                            if self.stopped_by_user:
+                                self.append_text.emit("\n" + "=" * 60, 'red')
+                                self.append_text.emit("Measurement stopped by user", 'red')
+                                self.append_text.emit("=" * 60, 'red')
+                                return  # Exit without emitting measurement_finished
+
+                            if self.dsp7265:
+                                try:
+                                    time.sleep(5)
+                                    cur_freq = str(float(self.dsp7265.query('FRQ[.]')) / 1000)
+                                    self.update_dsp7265_freq_label.emit(cur_freq)
+                                    self.dsp7265.write('AQN')
+                                    time.sleep(5)
+                                except Exception as e:
+                                    self.show_error.emit("DSP Setting Error", f'{e}')
+                                    self.stop_measurement().emit()
+
+                            self.pts = 0
+                            self.field_array = []
+                            self.lockin_x = []
+                            self.lockin_y = []
+                            self.lockin_mag = []
+                            self.lockin_pahse = []
+                            self.clear_fmr_plot.emit()
+
+                            # ----------------- Loop Down ----------------------#
+                            if field_mode == 'continuous':
+                                field_zone_count = self.ppms_setting['field_setting']['final_continuous_list']['zone_count']
+                                field_direction = self.ppms_setting['field_setting']['field_direction']
+                                if field_direction == 'unidirectional':
                                     start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
                                         'from']
-                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['to']
-                                elif field_zone_count == 2 or field_zone_count == 3:
-                                    start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
-                                        'from_start']
-                                    end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
-                                        'to_end']
+                                    if field_zone_count == 1:
+                                        end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['to']
+                                    elif field_zone_count == 2:
+                                        end_field = self.ppms_setting['field_setting']['final_continuous_list']['region2']['to']
+                                    elif field_zone_count == 3:
+                                        end_field = self.ppms_setting['field_setting']['final_continuous_list']['region2']['to']
+                                else:
+                                    if field_zone_count == 1:
+                                        start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                            'from']
+                                        end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1']['to']
+                                    elif field_zone_count == 2 or field_zone_count == 3:
+                                        start_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                            'from_start']
+                                        end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                            'to_end']
 
-                            totoal_progress = len(number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature
+                                totoal_progress = len(number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature
 
-                            self._set_field(start_field, fast_field_rate)
-                            time.sleep(4)
-
-                            MyField, field_status = self._update_field_reading_label()
-                            self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
-                            while True:
-                                try:
-                                    if self.stopped_by_user:
-                                        self.append_text.emit("\n" + "=" * 60)
-                                        self.append_text.emit("Measurement stopped by user")
-                                        self.append_text.emit("=" * 60)
-                                        return  # Exit without emitting measurement_finished
-                                    time.sleep(1)
-                                    MyField, field_status = self._update_field_reading_label()
-                                    if field_status == 'Holding (driven)':
-                                        break
-                                except SystemExit as e:
-                                    self.error_message.emit(e, e)
-                                    self.notification_manager.send_message(
-                                        "Your measurement went wrong, possible PPMS client lost connection", 'critical')
-                            time.sleep(20)
-
-                            currentField = MyField
-                            user_field_rate = \
-                                self.ppms_setting['field_setting']['final_continuous_list']['region1'][
-                                    'rate']
-                            self._set_field(end_field, user_field_rate)
-
-                            self.append_text.emit(f'Start collecting data \n', 'purple')
-                            counter = 0
-
-                            while currentField >= end_field + 1:
-                                user_field_rate = self._continous_field_setting(field_direction, currentField, field_zone_count)
-                                self._set_field(end_field, user_field_rate)
-
-
-                                if self.stopped_by_user:
-                                    self.append_text.emit("\n" + "=" * 60)
-                                    self.append_text.emit("Measurement stopped by user")
-                                    self.append_text.emit("=" * 60)
-                                    return  # Exit without emitting measurement_finished
-                                counter += 1
-
-                                single_measurement_start = time.time()
-
-                                time.sleep(1)
-                                currentField, field_status = self._update_field_reading_label()
-
-                                self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
-
-                                if self.dsp7265:
-                                    try:
-                                        if self.stopped_by_user:
-                                            self.append_text.emit("\n" + "=" * 60)
-                                            self.append_text.emit("Measurement stopped by user")
-                                            self.append_text.emit("=" * 60)
-                                            return  # Exit without emitting measurement_finished
-                                        self._wait_settling("Wait for settling time.")
-                                        currentField, field_status = self._update_field_reading_label()
-                                        self.field_array.append(currentField)
-                                        X = float(self.dsp7265.query("X."))  # Read the measurement result
-                                        Y = float(self.dsp7265.query("Y."))  # Read the measurement result
-                                        Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
-                                        Phase = float(self.dsp7265.query("PHA."))  # Read the measurement result
-                                        self.update_lockin_label.emit(str(X), str(Y), str(Mag), str(Phase))
-                                        self.lockin_x.append(X)
-                                        self.lockin_y.append(Y)
-                                        self.lockin_mag.append(Mag)
-                                        self.lockin_pahse.append(Phase)
-                                        self.field_array.append(MyField)
-                                        # Update current spectrum plot (right)
-                                        if counter % 20 == 0:
-                                            counter = 0
-                                            # # Drop off the first y element, append a new one.
-                                            self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
-                                            # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
-                                    except Exception as e:
-                                        self.show_error.emit("Reading Error", f'{e}')
-                                        self.stop_measurement().emit()
-                                        return
-
-
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
-                                        csv_writer = csv.writer(csvfile)
-
-                                        if csvfile.tell() == 0:  # Check if file is empty
-                                            csv_writer.writerow(
-                                                ["Temperature (K)", "Field (Oe)", "Voltage X (V)", "Voltage Y (V)",
-                                                 "Voltage Mag (V)", "Phase (deg)"])
-
-                                        csv_writer.writerow(
-                                            [curTemp, currentField, X, Y, Mag, Phase])
-                                        self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n')
-                                # ----------------------------- Measure NV voltage -------------------
-                                user_field_rate = self._continous_field_setting(field_direction, currentField,
-                                                                                field_zone_count)
-                                self._set_field(end_field, user_field_rate)
-
-                                self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
-                                # Update currentField for the next iteration
-                                total_estimate_field_step = (start_field - end_field) / user_field_rate
-                                estimate_field_step = (currentField - end_field) / user_field_rate
-                                if field_direction == 'bidirectional':
-                                    total_estimate_field_step = total_estimate_field_step * 2
-                                    estimate_field_step = total_estimate_field_step + estimate_field_step
-
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                self.append_text.emit(
-                                    'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
-                                    'purple')
-
-                                total_time_in_seconds = Single_loop * totoal_progress * total_estimate_field_step
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
-
-                                estimate_time_in_seconds = Single_loop * totoal_progress * estimate_field_step
-                                estimate_time_in_minutes = total_time_in_seconds / 60
-                                estimate_time_in_hours = totoal_time_in_minutes / 60
-                                estimate_time_in_days = total_time_in_hours / 24
-
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                        estimate_time_in_seconds), 'purple')
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        estimate_time_in_minutes), 'purple')
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        estimate_time_in_hours), 'purple')
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        estimate_time_in_days), 'purple')
-
-                                current_progress = (total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
-                                self.progress_update.emit(int(current_progress * 100))
-                                self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
-                                                            totoal_time_in_minutes, current_progress * 100)
-
-                            # ----------------- Loop Up ----------------------#
-                            if field_direction == 'bidirectional':
-                                self.notification_manager.send_message(
-                                    f"Starting the second half of measurement - ramping field up")
-                                currentField = end_field
-                                self._set_field(end_field, user_field_rate)
-                                self.append_text.emit(f'Start collecting data \n', 'Purple')
+                                self._set_field(start_field, fast_field_rate)
                                 time.sleep(4)
+
                                 MyField, field_status = self._update_field_reading_label()
                                 self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
                                 while True:
                                     try:
                                         if self.stopped_by_user:
-                                            self.append_text.emit("\n" + "=" * 60)
-                                            self.append_text.emit("Measurement stopped by user")
-                                            self.append_text.emit("=" * 60)
+                                            self.append_text.emit("\n" + "=" * 60, 'red')
+                                            self.append_text.emit("Measurement stopped by user", 'red')
+                                            self.append_text.emit("=" * 60, 'red')
                                             return  # Exit without emitting measurement_finished
                                         time.sleep(1)
                                         MyField, field_status = self._update_field_reading_label()
@@ -497,25 +359,28 @@ class ST_FMR_Worker(QThread):
                                             break
                                     except SystemExit as e:
                                         self.error_message.emit(e, e)
-                                        self.notification_manager.send_message(
-                                            "Your measurement went wrong, possible PPMS client error",
-                                            'critical')
+                                        self.send_notification.emit(
+                                            "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 time.sleep(20)
 
-                                self._set_field(start_field, user_field_rate)
+                                currentField = MyField
+                                user_field_rate = \
+                                    self.ppms_setting['field_setting']['final_continuous_list']['region1'][
+                                        'rate']
+                                self._set_field(end_field, user_field_rate)
 
+                                self.append_text.emit(f'Start collecting data \n', 'purple')
                                 counter = 0
 
-                                self.progress_update.emit(int(50))
-                                while currentField <= start_field - 1:
-                                    user_field_rate = self._continous_field_setting(field_direction, currentField,
-                                                                                    field_zone_count)
-                                    self._set_field(start_field, user_field_rate)
+                                while currentField >= end_field + 1:
+                                    user_field_rate = self._continous_field_setting(field_direction, currentField, field_zone_count)
+                                    self._set_field(end_field, user_field_rate)
+
 
                                     if self.stopped_by_user:
-                                        self.append_text.emit("\n" + "=" * 60)
-                                        self.append_text.emit("Measurement stopped by user")
-                                        self.append_text.emit("=" * 60)
+                                        self.append_text.emit("\n" + "=" * 60, 'red')
+                                        self.append_text.emit("Measurement stopped by user", 'red')
+                                        self.append_text.emit("=" * 60, 'red')
                                         return  # Exit without emitting measurement_finished
                                     counter += 1
 
@@ -523,14 +388,15 @@ class ST_FMR_Worker(QThread):
 
                                     time.sleep(1)
                                     currentField, field_status = self._update_field_reading_label()
+
                                     self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
 
                                     if self.dsp7265:
                                         try:
                                             if self.stopped_by_user:
-                                                self.append_text.emit("\n" + "=" * 60)
-                                                self.append_text.emit("Measurement stopped by user")
-                                                self.append_text.emit("=" * 60)
+                                                self.append_text.emit("\n" + "=" * 60, 'red')
+                                                self.append_text.emit("Measurement stopped by user", 'red')
+                                                self.append_text.emit("=" * 60, 'red')
                                                 return  # Exit without emitting measurement_finished
                                             self._wait_settling("Wait for settling time.")
                                             currentField, field_status = self._update_field_reading_label()
@@ -556,37 +422,31 @@ class ST_FMR_Worker(QThread):
                                             self.stop_measurement().emit()
                                             return
 
+
                                         # Append the data to the CSV file
                                         with open(csv_filename, "a", newline="") as csvfile:
                                             csv_writer = csv.writer(csvfile)
 
                                             if csvfile.tell() == 0:  # Check if file is empty
                                                 csv_writer.writerow(
-                                                    ["Temperature (K)", "Field (Oe)", "Voltage X (V)",
-                                                     "Voltage Y (V)",
+                                                    ["Temperature (K)", "Field (Oe)", "Voltage X (V)", "Voltage Y (V)",
                                                      "Voltage Mag (V)", "Phase (deg)"])
 
                                             csv_writer.writerow(
                                                 [curTemp, currentField, X, Y, Mag, Phase])
-                                            self.append_text.emit(
-                                                f'Data Saved for {currentField} Oe at {curTemp} K\n')
-
-
+                                            self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
                                     # ----------------------------- Measure NV voltage -------------------
                                     user_field_rate = self._continous_field_setting(field_direction, currentField,
                                                                                     field_zone_count)
-
                                     self._set_field(end_field, user_field_rate)
 
                                     self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
-
                                     # Update currentField for the next iteration
-
                                     total_estimate_field_step = (start_field - end_field) / user_field_rate
                                     estimate_field_step = (currentField - end_field) / user_field_rate
                                     if field_direction == 'bidirectional':
                                         total_estimate_field_step = total_estimate_field_step * 2
-                                        estimate_field_step = estimate_field_step
+                                        estimate_field_step = total_estimate_field_step + estimate_field_step
 
                                     self.pts += 1  # Number of self.pts count
                                     single_measurement_end = time.time()
@@ -618,193 +478,345 @@ class ST_FMR_Worker(QThread):
                                         'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                             estimate_time_in_days), 'purple')
 
-                                    current_progress = (
-                                                                   total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
+                                    current_progress = (total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
                                     self.progress_update.emit(int(current_progress * 100))
                                     self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
-                                                                          totoal_time_in_minutes,
-                                                                          current_progress * 100)
+                                                                totoal_time_in_minutes, current_progress * 100)
 
-                        else:
-                            field_list = self.ppms_setting['field_setting']['final_step_list']
-                            user_field_rate = self.ppms_setting['field_setting']['final_rate']
-                            number_of_field = len(field_list)
-                            number_of_field_update = number_of_field
-                            total_progress = number_of_repetition * number_of_power * number_of_frequency * number_of_temperature * number_of_field
-
-                            for m in range(number_of_field):
-                                if m == int(number_of_field /2) :
-                                    self.notification_manager.send_message(
+                                # ----------------- Loop Up ----------------------#
+                                if field_direction == 'bidirectional':
+                                    self.send_notification.emit(
                                         f"Starting the second half of measurement - ramping field up")
-                                if self.stopped_by_user:
-                                    self.append_text.emit("\n" + "=" * 60)
-                                    self.append_text.emit("Measurement stopped by user")
-                                    self.append_text.emit("=" * 60)
-                                    return  # Exit without emitting measurement_finished
-                                currentField = field_list[m]
-                                single_measurement_start = time.time()
-                                self.append_text.emit(f'Loop is at {currentField} Oe \n', 'blue')
-                                self.append_text.emit(f'Set the field to {currentField} Oe and then collect data \n', 'blue')
-                                self._set_field(currentField, user_field_rate)
-                                time.sleep(4)
+                                    currentField = end_field
+                                    self._set_field(end_field, user_field_rate)
+                                    self.append_text.emit(f'Start collecting data \n', 'Purple')
+                                    time.sleep(4)
+                                    MyField, field_status = self._update_field_reading_label()
+                                    self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
+                                    while True:
+                                        try:
+                                            if self.stopped_by_user:
+                                                self.append_text.emit("\n" + "=" * 60, 'red')
+                                                self.append_text.emit("Measurement stopped by user", 'red')
+                                                self.append_text.emit("=" * 60, 'red')
+                                                return  # Exit without emitting measurement_finished
+                                            time.sleep(1)
+                                            MyField, field_status = self._update_field_reading_label()
+                                            if field_status == 'Holding (driven)':
+                                                break
+                                        except SystemExit as e:
+                                            self.error_message.emit(e, e)
+                                            self.send_notification.emit(
+                                                "Your measurement went wrong, possible PPMS client error",
+                                                'critical')
+                                    time.sleep(20)
 
-                                while True:
-                                    try:
+                                    self._set_field(start_field, user_field_rate)
+
+                                    counter = 0
+
+                                    self.progress_update.emit(int(50))
+                                    while currentField <= start_field - 1:
+                                        user_field_rate = self._continous_field_setting(field_direction, currentField,
+                                                                                        field_zone_count)
+                                        self._set_field(start_field, user_field_rate)
+
                                         if self.stopped_by_user:
-                                            self.append_text.emit("\n" + "=" * 60)
-                                            self.append_text.emit("Measurement stopped by user")
-                                            self.append_text.emit("=" * 60)
+                                            self.append_text.emit("\n" + "=" * 60, 'red')
+                                            self.append_text.emit("Measurement stopped by user", 'red')
+                                            self.append_text.emit("=" * 60, 'red')
                                             return  # Exit without emitting measurement_finished
+                                        counter += 1
+
+                                        single_measurement_start = time.time()
+
                                         time.sleep(1)
-                                        MyField, field_status = self._update_field_reading_label()
-                                        if field_status == 'Holding (driven)':
-                                            break
-                                    except SystemExit as e:
-                                        self.error_message.emit(e, e)
-                                        self.notification_manager.send_message(
-                                            "Your measurement went wrong, possible PPMS client lost connection",
-                                            'critical')
+                                        currentField, field_status = self._update_field_reading_label()
+                                        self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
 
-                                # ----------------------------- Measure NV voltage -------------------
-                                self.append_text.emit(f'Saving data for {MyField} Oe \n', 'green')
+                                        if self.dsp7265:
+                                            try:
+                                                if self.stopped_by_user:
+                                                    self.append_text.emit("\n" + "=" * 60, 'red')
+                                                    self.append_text.emit("Measurement stopped by user", 'red')
+                                                    self.append_text.emit("=" * 60, 'red')
+                                                    return  # Exit without emitting measurement_finished
+                                                self._wait_settling("Wait for settling time.")
+                                                currentField, field_status = self._update_field_reading_label()
+                                                self.field_array.append(currentField)
+                                                X = float(self.dsp7265.query("X."))  # Read the measurement result
+                                                Y = float(self.dsp7265.query("Y."))  # Read the measurement result
+                                                Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
+                                                Phase = float(self.dsp7265.query("PHA."))  # Read the measurement result
+                                                self.update_lockin_label.emit(str(X), str(Y), str(Mag), str(Phase))
+                                                self.lockin_x.append(X)
+                                                self.lockin_y.append(Y)
+                                                self.lockin_mag.append(Mag)
+                                                self.lockin_pahse.append(Phase)
+                                                self.field_array.append(MyField)
+                                                # Update current spectrum plot (right)
+                                                if counter % 20 == 0:
+                                                    counter = 0
+                                                    # # Drop off the first y element, append a new one.
+                                                    self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+                                                    # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                            except Exception as e:
+                                                self.show_error.emit("Reading Error", f'{e}')
+                                                self.stop_measurement().emit()
+                                                return
 
-                                MyField, field_status = self._update_field_reading_label()
-                                self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
+                                            # Append the data to the CSV file
+                                            with open(csv_filename, "a", newline="") as csvfile:
+                                                csv_writer = csv.writer(csvfile)
 
-                                # This method turn on the BNC
-                                curTemp, temperature_status = self._update_temperature_reading_label()
-                                if self.dsp7265:
-                                    try:
-                                        if self.stopped_by_user:
-                                            self.append_text.emit("\n" + "=" * 60)
-                                            self.append_text.emit("Measurement stopped by user")
-                                            self.append_text.emit("=" * 60)
-                                            return  # Exit without emitting measurement_finished
-                                        self._wait_settling("Wait for settling time.")
-                                        X = float(self.dsp7265.query("X."))  # Read the measurement result
-                                        Y = float(self.dsp7265.query("Y."))  # Read the measurement result
-                                        Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
-                                        Phase = float(self.dsp7265.query("PHA."))  # Read the measurement result
-                                        self.update_lockin_label.emit(str(X), str(Y), str(Mag), str(Phase))
-                                        self.lockin_x.append(X)
-                                        self.lockin_y.append(Y)
-                                        self.lockin_mag.append(Mag)
-                                        self.lockin_pahse.append(Phase)
-                                        self.field_array.append(MyField)
-                                        # Update current spectrum plot (right)
-                                        self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+                                                if csvfile.tell() == 0:  # Check if file is empty
+                                                    csv_writer.writerow(
+                                                        ["Temperature (K)", "Field (Oe)", "Voltage X (V)",
+                                                         "Voltage Y (V)",
+                                                         "Voltage Mag (V)", "Phase (deg)"])
 
-                                        # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
-                                    except Exception as e:
-                                        self.show_error.emit("Reading Error", f'{e}')
-                                        self.stop_measurement().emit()
-                                        return
+                                                csv_writer.writerow(
+                                                    [curTemp, currentField, X, Y, Mag, Phase])
+                                                self.append_text.emit(
+                                                    f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
 
-                                    # Append the data to the CSV file
-                                    with open(csv_filename, "a", newline="") as csvfile:
-                                        csv_writer = csv.writer(csvfile)
 
-                                        if csvfile.tell() == 0:  # Check if file is empty
-                                            csv_writer.writerow(
-                                                ["Temperature (K)", "Field (Oe)", "Voltage X (V)", "Voltage Y (V)", "Voltage Mag (V)", "Phase (deg)"])
+                                        # ----------------------------- Measure NV voltage -------------------
+                                        user_field_rate = self._continous_field_setting(field_direction, currentField,
+                                                                                        field_zone_count)
 
-                                        csv_writer.writerow(
-                                            [curTemp, currentField, X, Y, Mag, Phase])
-                                        self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n')
+                                        self._set_field(end_field, user_field_rate)
 
-                                self._update_field_reading_label()
-                                self._update_temperature_reading_label()
-                                # ----------------------------- Measure NV voltage -------------------
-                                self.pts += 1  # Number of self.pts count
-                                single_measurement_end = time.time()
-                                Single_loop = single_measurement_end - single_measurement_start
-                                number_of_field_update = number_of_field_update - 1
+                                        self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
 
-                                self.append_text.emit('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
+                                        # Update currentField for the next iteration
+
+                                        total_estimate_field_step = (start_field - end_field) / user_field_rate
+                                        estimate_field_step = (currentField - end_field) / user_field_rate
+                                        if field_direction == 'bidirectional':
+                                            total_estimate_field_step = total_estimate_field_step * 2
+                                            estimate_field_step = estimate_field_step
+
+                                        self.pts += 1  # Number of self.pts count
+                                        single_measurement_end = time.time()
+                                        Single_loop = single_measurement_end - single_measurement_start
+                                        self.append_text.emit(
+                                            'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                             'purple')
-                                self.append_text.emit('Estimated Single measurement (in hrs):  {} hrs \n'.format(
-                                    Single_loop * number_of_field / 60 / 60), 'purple')
-                                total_time_in_seconds = Single_loop * total_progress
-                                totoal_time_in_minutes = total_time_in_seconds / 60
-                                total_time_in_hours = totoal_time_in_minutes / 60
-                                total_time_in_days = total_time_in_hours / 24
 
-                                remaining_time_in_seconds = Single_loop * (number_of_repetition-l) * (number_of_power-k) * (number_of_frequency-j) * (number_of_temperature-i) * (number_of_field-m)
-                                remaining_time_in_minutes = remaining_time_in_seconds / 60
-                                remaining_time_in_hours = remaining_time_in_minutes / 60
-                                remaining_time_in_days = remaining_time_in_hours / 24
+                                        total_time_in_seconds = Single_loop * totoal_progress * total_estimate_field_step
+                                        totoal_time_in_minutes = total_time_in_seconds / 60
+                                        total_time_in_hours = totoal_time_in_minutes / 60
+                                        total_time_in_days = total_time_in_hours / 24
 
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
-                                        remaining_time_in_seconds), 'purple')
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
-                                        remaining_time_in_minutes), 'purple')
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
-                                        remaining_time_in_hours), 'purple')
-                                self.append_text.emit(
-                                    'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
-                                        remaining_time_in_days), 'purple')
-                                if self.stopped_by_user:
-                                    self.append_text.emit("\n" + "=" * 60)
-                                    self.append_text.emit("Measurement stopped by user")
-                                    self.append_text.emit("=" * 60)
-                                    return  # Exit without emitting measurement_finished
-                                current_progress = (total_time_in_seconds - remaining_time_in_seconds) / total_time_in_seconds
-                                self.progress_update.emit(int(current_progress * 100))
-                                self.update_measurement_progress.emit(remaining_time_in_days, remaining_time_in_hours,
-                                                            remaining_time_in_minutes, current_progress * 100)
+                                        estimate_time_in_seconds = Single_loop * totoal_progress * estimate_field_step
+                                        estimate_time_in_minutes = total_time_in_seconds / 60
+                                        estimate_time_in_hours = totoal_time_in_minutes / 60
+                                        estimate_time_in_days = total_time_in_hours / 24
 
-                        time.sleep(2)
-                        self.client.set_field(zero_field,
-                                         fast_field_rate,
-                                         self.client.field.approach_mode.oscillate,  # linear/oscillate
-                                         self.client.field.driven_mode.driven)
-                        self.append_text.emit('Waiting for Zero Field', 'red')
-                        time.sleep(2)
-                        while True:
-                            time.sleep(1)
-                            MyField, field_status = self._update_field_reading_label()
-                            if field_status == 'Holding (driven)':
-                                break
+                                        self.append_text.emit(
+                                            'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                                estimate_time_in_seconds), 'purple')
+                                        self.append_text.emit(
+                                            'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                                estimate_time_in_minutes), 'purple')
+                                        self.append_text.emit(
+                                            'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                                estimate_time_in_hours), 'purple')
+                                        self.append_text.emit(
+                                            'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                                estimate_time_in_days), 'purple')
 
-                    if self.bnc845:
-                        self._turn_off_output_bnc845()
-                    if len(self.repetition_array) > 1:
-                        self.update_2d_plot.emit(self.field_array, self.repetition_array, self.lockin_x)
-                if len(self.power_array) > 1:
-                    self.update_2d_plot.emit(self.field_array, self.power_array, self.lockin_x)
-            if len(self.frequency_array) > 1:
-                self.update_2d_plot.emit(self.field_array, self.frequency_array, self.lockin_x)
+                                        current_progress = (
+                                                                       total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
+                                        self.progress_update.emit(int(current_progress * 100))
+                                        self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
+                                                                              totoal_time_in_minutes,
+                                                                              current_progress * 100)
 
-        time.sleep(2)
-        self.client.set_field(zero_field,
-                              fast_field_rate,
-                              self.client.field.approach_mode.oscillate,  # linear/oscillate
-                              self.client.field.driven_mode.driven)
-        self.append_text.emit('Waiting for Zero Field', 'red')
-        time.sleep(2)
-        while True:
-            time.sleep(1)
-            MyField, field_status = self._update_field_reading_label()
-            if field_status == 'Holding (driven)':
-                break
-        self._update_field_reading_label()
-        time.sleep(2)
-        self._update_temperature_reading_label()
-        self.progress_update.emit(100)
-        self.save_plot.emit(self.file_name)
-        self.update_measurement_progress.emit(0, 0, 0, 100)
-        end_time = time.time()
-        total_runtime = (end_time - start_time) / 3600
-        self.append_text.emit(f"Total runtime: {total_runtime} hours\n")
-        self.append_text.emit(f'Total data points: {str(self.pts)} pts\n')
-        self.notification_manager.send_message("The measurement has been completed successfully.")
-        self.append_text.emit("You measurement is finished!", 'green')
-        # stop_measurement()
-        self.measurement_finished.emit()
-        return
+                            else:
+                                field_list = self.ppms_setting['field_setting']['final_step_list']
+                                user_field_rate = self.ppms_setting['field_setting']['final_rate']
+                                number_of_field = len(field_list)
+                                number_of_field_update = number_of_field
+                                total_progress = len(number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature * number_of_field
+
+                                for m in range(number_of_field):
+                                    if m == int(number_of_field /2) :
+                                        self.send_notification.emit(
+                                            f"Starting the second half of measurement - ramping field up")
+                                    if self.stopped_by_user:
+                                        self.append_text.emit("\n" + "=" * 60, 'red')
+                                        self.append_text.emit("Measurement stopped by user", 'red')
+                                        self.append_text.emit("=" * 60, 'red')
+                                        return  # Exit without emitting measurement_finished
+                                    currentField = field_list[m]
+                                    single_measurement_start = time.time()
+                                    self.append_text.emit(f'Loop is at {currentField} Oe \n', 'blue')
+                                    self.append_text.emit(f'Set the field to {currentField} Oe and then collect data \n', 'blue')
+                                    self._set_field(currentField, user_field_rate)
+                                    time.sleep(4)
+
+                                    while True:
+                                        try:
+                                            if self.stopped_by_user:
+                                                self.append_text.emit("\n" + "=" * 60, 'red')
+                                                self.append_text.emit("Measurement stopped by user", 'red')
+                                                self.append_text.emit("=" * 60, 'red')
+                                                return  # Exit without emitting measurement_finished
+                                            time.sleep(1)
+                                            MyField, field_status = self._update_field_reading_label()
+                                            if field_status == 'Holding (driven)':
+                                                break
+                                        except SystemExit as e:
+                                            self.error_message.emit(e, e)
+                                            self.send_notification.emit(
+                                                "Your measurement went wrong, possible PPMS client lost connection",
+                                                'critical')
+
+                                    # ----------------------------- Measure NV voltage -------------------
+                                    self.append_text.emit(f'Saving data for {MyField} Oe \n', 'green')
+
+                                    MyField, field_status = self._update_field_reading_label()
+                                    self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
+
+                                    # This method turn on the BNC
+                                    curTemp, temperature_status = self._update_temperature_reading_label()
+                                    if self.dsp7265:
+                                        try:
+                                            if self.stopped_by_user:
+                                                self.append_text.emit("\n" + "=" * 60, 'red')
+                                                self.append_text.emit("Measurement stopped by user", 'red')
+                                                self.append_text.emit("=" * 60, 'red')
+                                                return  # Exit without emitting measurement_finished
+                                            self._wait_settling("Wait for settling time.")
+                                            X = float(self.dsp7265.query("X."))  # Read the measurement result
+                                            Y = float(self.dsp7265.query("Y."))  # Read the measurement result
+                                            Mag = float(self.dsp7265.query("MAG."))  # Read the measurement result
+                                            Phase = float(self.dsp7265.query("PHA."))  # Read the measurement result
+                                            self.update_lockin_label.emit(str(X), str(Y), str(Mag), str(Phase))
+                                            self.lockin_x.append(X)
+                                            self.lockin_y.append(Y)
+                                            self.lockin_mag.append(Mag)
+                                            self.lockin_pahse.append(Phase)
+                                            self.field_array.append(MyField)
+                                            # Update current spectrum plot (right)
+                                            self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+
+                                            # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
+                                        except Exception as e:
+                                            self.show_error.emit("Reading Error", f'{e}')
+                                            self.stop_measurement().emit()
+                                            return
+
+                                        # Append the data to the CSV file
+                                        with open(csv_filename, "a", newline="") as csvfile:
+                                            csv_writer = csv.writer(csvfile)
+
+                                            if csvfile.tell() == 0:  # Check if file is empty
+                                                csv_writer.writerow(
+                                                    ["Temperature (K)", "Field (Oe)", "Voltage X (V)", "Voltage Y (V)", "Voltage Mag (V)", "Phase (deg)"])
+
+                                            csv_writer.writerow(
+                                                [curTemp, currentField, X, Y, Mag, Phase])
+                                            self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
+
+                                    self._update_field_reading_label()
+                                    self._update_temperature_reading_label()
+                                    # ----------------------------- Measure NV voltage -------------------
+                                    self.pts += 1  # Number of self.pts count
+                                    single_measurement_end = time.time()
+                                    Single_loop = single_measurement_end - single_measurement_start
+                                    number_of_field_update = number_of_field_update - 1
+
+                                    self.append_text.emit('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
+                                                'purple')
+                                    self.append_text.emit('Estimated Single measurement (in hrs):  {} hrs \n'.format(
+                                        Single_loop * number_of_field / 60 / 60), 'purple')
+                                    total_time_in_seconds = Single_loop * total_progress
+                                    total_time_in_minutes = total_time_in_seconds / 60
+                                    total_time_in_hours = total_time_in_minutes / 60
+                                    total_time_in_days = total_time_in_hours / 24
+
+                                    remaining_time_in_seconds = Single_loop * (len(number_of_repetition)-l) * (number_of_power-k) * (number_of_frequency-j) * (number_of_temperature-i) * (number_of_field-m)
+                                    remaining_time_in_minutes = remaining_time_in_seconds / 60
+                                    remaining_time_in_hours = remaining_time_in_minutes / 60
+                                    remaining_time_in_days = remaining_time_in_hours / 24
+
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
+                                            remaining_time_in_seconds), 'purple')
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in mins):  {} mins \n'.format(
+                                            remaining_time_in_minutes), 'purple')
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in hrs):  {} hrs \n'.format(
+                                            remaining_time_in_hours), 'purple')
+                                    self.append_text.emit(
+                                        'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
+                                            remaining_time_in_days), 'purple')
+                                    if self.stopped_by_user:
+                                        self.append_text.emit("\n" + "=" * 60)
+                                        self.append_text.emit("Measurement stopped by user")
+                                        self.append_text.emit("=" * 60)
+                                        return  # Exit without emitting measurement_finished
+                                    current_progress = (total_time_in_seconds - remaining_time_in_seconds) / total_time_in_seconds
+                                    self.progress_update.emit(int(current_progress * 100))
+                                    self.update_measurement_progress.emit(remaining_time_in_days, remaining_time_in_hours,
+                                                                remaining_time_in_minutes, current_progress * 100)
+
+                            time.sleep(2)
+                            self.client.set_field(zero_field,
+                                             fast_field_rate,
+                                             self.client.field.approach_mode.oscillate,  # linear/oscillate
+                                             self.client.field.driven_mode.driven)
+                            self.append_text.emit('Waiting for Zero Field', 'red')
+                            time.sleep(2)
+                            while True:
+                                time.sleep(1)
+                                MyField, field_status = self._update_field_reading_label()
+                                if field_status == 'Holding (driven)':
+                                    break
+
+                        if self.bnc845:
+                            self._turn_off_output_bnc845()
+                #         if len(self.repetition_array) > 1:
+                #             self.update_2d_plot.emit(self.field_array, self.repetition_array, self.lockin_x)
+                #     if len(self.power_array) > 1:
+                #         self.update_2d_plot.emit(self.field_array, self.power_array, self.lockin_x)
+                # if len(self.frequency_array) > 1:
+                #     self.update_2d_plot.emit(self.field_array, self.frequency_array, self.lockin_x)
+
+            time.sleep(2)
+            self.client.set_field(zero_field,
+                                  fast_field_rate,
+                                  self.client.field.approach_mode.oscillate,  # linear/oscillate
+                                  self.client.field.driven_mode.driven)
+            self.append_text.emit('Waiting for Zero Field', 'red')
+            time.sleep(2)
+            while True:
+                time.sleep(1)
+                MyField, field_status = self._update_field_reading_label()
+                if field_status == 'Holding (driven)':
+                    break
+            self._update_field_reading_label()
+            time.sleep(2)
+            self._update_temperature_reading_label()
+            self.progress_update.emit(100)
+            self.save_plot.emit(self.file_name)
+            self.update_measurement_progress.emit(0, 0, 0, 100)
+            end_time = time.time()
+            total_runtime = (end_time - start_time) / 3600
+            self.append_text.emit(f"Total runtime: {total_runtime} hours\n", 'black')
+            self.append_text.emit(f'Total data points: {str(self.pts)} pts\n', 'black')
+            self.send_notification.emit("The measurement has been completed successfully.")
+            self.append_text.emit("You measurement is finished!", 'green')
+            # stop_measurement()
+            self.measurement_finished.emit()
+            return
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            self.show_error.emit("Error", f'{tb_str}')
 
     def _continous_field_setting(self, field_direction, currentField, field_zone_count):
         if field_direction == 'unidirectional':
@@ -969,7 +981,7 @@ class ST_FMR_Worker(QThread):
             return cT
         except SystemExit as e:
             tb_str = traceback.format_exc()
-            self.notification_manager.send_message(
+            self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
 
     def _set_temperature(self, set_point, temp_rate):
@@ -983,7 +995,7 @@ class ST_FMR_Worker(QThread):
                 self.stop_measurement.emit()
         except SystemExit as e:
             tb_str = traceback.format_exc()
-            self.notification_manager.send_message(
+            self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
 
     def _set_field(self, set_point, field_rate):
@@ -998,8 +1010,8 @@ class ST_FMR_Worker(QThread):
             self.append_text.emit(f'Setting Field to {str(set_point)} Oe... \n', 'orange')
         except SystemExit as e:
             tb_str = traceback.format_exc()
-            self.notification_manager.send_message(
-                f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+            self.send_notification.emit(
+                f"Your measurement went wrong, possible PPMS command error {e} {tb_str}", 'critical')
 
     def _read_temperature(self):
         try:
@@ -1009,7 +1021,7 @@ class ST_FMR_Worker(QThread):
             return temp, status, unit
         except SystemExit as e:
             tb_str = traceback.format_exc()
-            self.notification_manager.send_message(
+            self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
 
     def _read_field(self):
@@ -1020,13 +1032,13 @@ class ST_FMR_Worker(QThread):
             return field, status, unit
         except SystemExit as e:
             tb_str = traceback.format_exc()
-            self.notification_manager.send_message(
+            self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
 
     # ==================================================================================
     # BNC CONTROL METHODS
     # ==================================================================================
-    def _set_bnc845(self, frequency, power, source_type):
+    def _set_enable_bnc845(self, frequency, power):
         """Set voltage for single channel using APP:VOLT command."""
         BNC_845M_COMMAND().set_frequency(self.bnc845, frequency)
         BNC_845M_COMMAND().set_power(self.bnc845,power)
@@ -1044,7 +1056,7 @@ class ST_FMR_Worker(QThread):
 
     def _get_current_power_bnc845(self):
         power = BNC_845M_COMMAND().get_power(self.bnc845).strip()
-        return freq
+        return power
 
     # ==================================================================================
     # FMR Method Testing
@@ -1168,7 +1180,7 @@ class ST_FMR_Worker(QThread):
 
                     f.write(row + "\n")
 
-            self.append_text.emit(f"✓ Saved consolidated data: {data_file}")
+            self.append_text.emit(f"✓ Saved consolidated data: {data_file}", 'green')
 
             # Also save summary statistics
             self._save_summary_statistics()
@@ -1179,7 +1191,7 @@ class ST_FMR_Worker(QThread):
             self.append_text(traceback.format_exc())
 
         except Exception as e:
-            self.append_text.emit(f"✗ Error saving consolidated data: {str(e)}")
+            self.append_text.emit(f"✗ Error saving consolidated data: {str(e)}", 'red')
 
     def _save_summary_statistics(self):
         """Save summary statistics file."""
@@ -1209,10 +1221,10 @@ class ST_FMR_Worker(QThread):
                 f.write(f"  Settling Time: {self.settling_time} s\n")
                 f.write(f"  Spectrum Averaging: {self.spectrum_averaging}\n")
 
-            self.append_text.emit(f"✓ Saved summary: {summary_file}")
+            self.append_text.emit(f"✓ Saved summary: {summary_file}", 'green')
 
         except Exception as e:
-            self.append_text.emit(f"✗ Error saving summary: {str(e)}")
+            self.append_text.emit(f"✗ Error saving summary: {str(e)}", 'red')
 
     # ==================================================================================
     # PLOTTING METHODS
@@ -1258,7 +1270,7 @@ class ST_FMR_Worker(QThread):
     # ==================================================================================
     def _wait_settling(self, message):
         """Wait for settling time."""
-        self.append_text.emit(f"    {message}")
+        self.append_text.emit(f"    {message}", 'purple')
         if self.demo_mode:
             time.sleep(0.1)
         else:
@@ -1266,7 +1278,7 @@ class ST_FMR_Worker(QThread):
 
     def _cleanup_instruments(self):
         """Turn off outputs and cleanup."""
-        self.append_text.emit("\nCleaning up...")
+        self.append_text.emit("\nCleaning up...", 'green')
 
         if self.bk9205 and not self.demo_mode:
             try:
@@ -1282,17 +1294,17 @@ class ST_FMR_Worker(QThread):
         """Stop the measurement."""
         self.running = False
         self.stopped_by_user = True
-        self.append_text.emit("\nStopping measurement...")
+        self.append_text.emit("\nStopping measurement...", 'red')
 
     def pause(self):
         """Pause the measurement."""
         self.paused = True
-        self.append_text.emit("\nMeasurement paused")
+        self.append_text.emit("\nMeasurement paused", 'red')
 
     def resume(self):
         """Resume the measurement."""
         self.paused = False
-        self.append_text.emit("\nMeasurement resumed")
+        self.append_text.emit("\nMeasurement resumed", 'red')
 
 class FMR_Measurement(QWidget):
     def __init__(self, ppms_client = None, bnc845 = None, dsp7265 = None):
@@ -2410,6 +2422,10 @@ class FMR_Measurement(QWidget):
             if hasattr(self, 'bnc845rf_state_reading_label'):
                 try:
                     state = bnc_cmd.get_output(instrument).strip()
+                    if str(state) == 0:
+                        state = "OFF"
+                    else:
+                        state = 'ON'
                     self.bnc845rf_state_reading_label.setText(state)
                 except:
                     pass
