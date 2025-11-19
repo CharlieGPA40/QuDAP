@@ -764,7 +764,7 @@ class Worker(QThread):
                  field_mode_fixed, nv_channel_1_enabled, nv_channel_2_enabled,nv_NPLC, ppms_field_One_zone_radio_enabled,
                  ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled, zone1_step_field, zone2_step_field,
                  zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate, zone2_field_rate,
-                 zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, dsp7265_current_time_constant,
+                 zone3_field_rate, Keithley_2182_Connected, Ketihley_6221_Connected, dsp7265_delay_config,
                  DSP7265_Connected, demo, keithley_6221_dc_config, keithley_6221_ac_config, ac_current_waveform, ac_current_freq,
                  ac_current_offset, eto_number_of_avg, init_temp_rate, demag_field, record_zero_field):
         super().__init__()
@@ -804,7 +804,7 @@ class Worker(QThread):
         self.zone3_field_rate = zone3_field_rate
         self.Keithley_2182_Connected = Keithley_2182_Connected
         self.ketihley_6221_connected = Ketihley_6221_Connected
-        self.dsp7265_current_time_constant = dsp7265_current_time_constant
+        self.dsp7265_delay_config = dsp7265_delay_config
         self.DSP7265_Connected = DSP7265_Connected
         self.demo = demo
         self.keithley_6221_dc_config = keithley_6221_dc_config
@@ -860,7 +860,7 @@ class Worker(QThread):
                                               zone3_field_rate=self.zone3_field_rate,
                                               Keithley_2182_Connected=self.Keithley_2182_Connected,
                                               Ketihley_6221_Connected=self.ketihley_6221_connected,
-                                              dsp7265_current_time_constant=self.dsp7265_current_time_constant,
+                                              dsp7265_delay_config=self.dsp7265_delay_config,
                                               DSP7265_Connected=self.DSP7265_Connected,
                                               running=lambda: self.running,
                                               demo=self.demo,
@@ -2475,7 +2475,7 @@ class Measurement(QMainWindow):
                     time.sleep(2)
                     DSPModel = self.DSP7265.query('ID')
                     QMessageBox.information(self, "Connected", F"Connected to {DSPModel}")
-                    self.dsp7265_ref_source, self.dsp7265_ref_freq, self.dsp7265_current_time_constant, self.dsp7265_current_sensitvity, self.dsp7265_measurement_type, self.dsp7265_oa = self.read_sr7265_settings(self.DSP7265)
+                    self.dsp7265_ref_source, self.dsp7265_ref_freq, self.dsp7265_current_time_constant, self.dsp7265_current_sensitvity, self.dsp7265_measurement_type, self.dsp7265_oa, self.dsp7265_slope = self.read_sr7265_settings(self.DSP7265)
 
                     # cur_freq = float(self.DSP7265.query('FRQ[.]')) / 1000
                     # self.dsp7265_ref_freq = str(cur_freq)
@@ -2486,7 +2486,7 @@ class Measurement(QMainWindow):
                 else:
                     QMessageBox.information(self, "Connected", F"Connected to Model DSP 7265")
                     self.dsp7265_ref_freq = '1000 Hz'
-                    self.dsp7265_oa = '0.5 Vrms'
+                    self.dsp7265_oa = '0.5'
                     self.dsp7265_current_sensitvity = '1 V'
                     self.dsp7265_current_time_constant = '20 ms'
                     self.dsp7265_ref_source = 'internal'
@@ -2717,6 +2717,7 @@ class Measurement(QMainWindow):
         #                         f"Please connect to lock-in amplifier client before start")
         #     return
         measurement_setting = {}
+        dsp7265_delay_config = None
         dialog = LogWindow()
         if dialog.exec():
             self._get_log_window_data(dialog)
@@ -2754,7 +2755,7 @@ class Measurement(QMainWindow):
                     measurement_setting['number_repetition'] = st_fmr_repetition_number
 
                 if self.DSP7265_Connected:
-                    dsp7265_current_time_constant = None
+                    dsp7265_delay_config = None
                     self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
                     if self.demo_mode:
                         self.append_text("Model DSP 7265 Demo", 'green')
@@ -2764,15 +2765,24 @@ class Measurement(QMainWindow):
                             self.log_box.append(str(model_7265))
                             f.write(f"Instrument: DSP 7265 enabled\n")
                             time.sleep(2)  # Wait for the reset to complete
-                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type, dsp7265_oa = self.read_sr7265_settings(self.DSP7265)
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type, dsp7265_oa, dsp7265_slope = self.read_sr7265_settings(self.DSP7265)
                             f.write(f"\tDSP 7264 reference source: {dsp7265_ref_source}\n")
                             f.write(f"\tDSP 7264 reference frequency: {dsp7265_ref_freq} Hz\n")
                             f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
                             f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
                             f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
                             f.write(f"\tDSP 7264 osillator amplitude: {dsp7265_oa}\n")
-                            slope_number = 1
-                            dsp7265_delay_config = dsp7265_current_time_constant * slope_number
+                            f.write(f"\tDSP 7265 slope: {dsp7265_slope}\n")
+                            if dsp7265_slope == '6 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 5
+                            elif dsp7265_slope == '12 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 7
+                            elif dsp7265_slope == '18 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 9
+                            elif dsp7265_slope == '24 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 10
+                            else:
+                                dsp7265_delay_config = dsp7265_current_time_constant * 2
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
                             self.stop_measurement()
@@ -2998,9 +3008,6 @@ class Measurement(QMainWindow):
                 f.write(f"Experiment Temperature (K): {temp_field_dict['all_temps']}\n")
                 f.close()
                 NotificationManager().send_message(f"{self.user} is running {self.measurement} on {self.sample_id}")
-                print(self.temp_field_setting)
-                print(bnc_845_settings)
-                print(measurement_setting)
                 self.fmr_worker = ST_FMR_Worker(
                     parent=self,
                     ppms_instrument=self.client,
@@ -3094,6 +3101,8 @@ class Measurement(QMainWindow):
         self.dsp7265_setting_layout.addLayout(self.dsp7265_frequency_ui())
         # Osillator amplitude
         self.dsp7265_setting_layout.addLayout(self.dsp7265_oscillator_amplitude_ui())
+        # Slope
+        self.dsp7265_setting_layout.addLayout(self.dsp7265_slope_ui())
         # Float
         self.dsp7265_setting_layout.addLayout(self.dsp7265_float_control_ui())
         # device
@@ -3238,7 +3247,7 @@ class Measurement(QMainWindow):
         self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_unit_text)
         self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_submit_button)
 
-        return self.dsp7265_freq_layout
+        return self.dsp7265_oa_layout
 
     def dsp7265_float_control_ui(self):
         self.dsp7265_float_layout = QHBoxLayout()
@@ -3254,6 +3263,21 @@ class Measurement(QMainWindow):
         self.dsp7265_float_layout.addWidget(self.dsp7265_float_text)
         self.dsp7265_float_layout.addWidget(self.dsp7265_float_channel_combo)
         return self.dsp7265_float_layout
+
+    def dsp7265_slope_ui(self):
+        self.dsp7265_slope_layout = QHBoxLayout()
+        self.dsp7265_slope_text = QLabel('Slope:')
+        self.dsp7265_slope_text.setFont(self.font)
+        self.dsp7265_slope_channel_combo = WideComboBox()
+        self.dsp7265_slope_channel_combo.setFont(self.font)
+        self.dsp7265_slope_channel_combo.setStyleSheet(self.QCombo_stylesheet)
+        self.dsp7265_slope_channel_combo.addItems(
+            ["Selection", "6 dB/octave", "12 dB/octave", "18 dB/octave", "24 dB/octave"])
+        self.dsp7265_slope_channel_combo.currentIndexChanged.connect(self.dsp7265_slope_control)
+
+        self.dsp7265_slope_layout.addWidget(self.dsp7265_slope_text)
+        self.dsp7265_slope_layout.addWidget(self.dsp7265_slope_channel_combo)
+        return self.dsp7265_slope_layout
 
     def dsp7265_device_control_ui(self):
         self.dsp7265_device_layout = QHBoxLayout()
@@ -3349,7 +3373,7 @@ class Measurement(QMainWindow):
         # self.dsp7265_freq_reading_unit_label.setFont(self.font)
         self.dsp7265_oa_reading_layout.addWidget(self.dsp7265_oa_reading_label)
         self.dsp7265_oa_reading_layout.addWidget(self.dsp7265_oa_reading_value_label)
-        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_oa + ' Vrms')
+        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_oa)
 
         self.dsp7265_sensitivity_reading_layout = QHBoxLayout()
         self.dsp7265_sensitivity_reading_label = QLabel('Sensitivity: ')
@@ -3425,9 +3449,14 @@ class Measurement(QMainWindow):
 
         sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
 
-        ampiltude = float(self.DSP7265.query('OA[.]'))
+        ampiltude = float(instrument.query('OA[.]'))
 
-        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage", ampiltude
+        # Time constant
+        slope_idx = int(instrument.query("SLOPE[.]"))
+        slope_values = ['6 dB/octave', '12 dB/octave', '18 dB/octave', '24 dB/octave']
+        slope = slope_values[slope_idx] if slope_idx < len(slope_values) else "Unknown"
+
+        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage", ampiltude, slope
 
     def dsp7265_imode_selection(self):
         try:
@@ -3560,6 +3589,11 @@ class Measurement(QMainWindow):
         if self.dsp7265_float_index != 0:
             self.DSP7265.write(f'FLOAT {str(self.dsp7265_float_index - 1)}')
 
+    def dsp7265_slope_control(self):
+        self.dsp7265_slope_index = self.dsp7265_slope_channel_combo.currentIndex()
+        if self.dsp7265_float_index != 0:
+            self.DSP7265.write(f'SLOPE {str(self.dsp7265_float_index - 1)}')
+
     def dsp7265_auto_phase(self):
         self.DSP7265.write('AQN')
 
@@ -3582,7 +3616,7 @@ class Measurement(QMainWindow):
         else:
             self.DSP7265.write(f'OA. {ampiltude}')
             ampiltude = float(self.DSP7265.query('OA[.]'))
-            self.dsp7265_oa_reading_value_label.setText(str(ampiltude) + ' Vrms')
+            self.dsp7265_oa_reading_value_label.setText(str(ampiltude))
 
     # ---------------------------------------------------------------------------------
     #  Keithley 2182 Portion
@@ -5850,7 +5884,7 @@ class Measurement(QMainWindow):
                             self.stop_measurement()
                             return
                     self.append_text('Keithley 2182 connected!\n', 'green')
-                dsp7265_current_time_constant = None
+                dsp7265_delay_config = None
                 if self.DSP7265_Connected:
                     self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
                     if self.demo_mode:
@@ -5861,14 +5895,24 @@ class Measurement(QMainWindow):
                             self.log_box.append(str(model_7265))
                             f.write(f"Instrument: DSP 7265 enabled\n")
                             time.sleep(2)  # Wait for the reset to complete
-                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type, dsp7265_oa = self.read_sr7265_settings(
-                                self.DSP7265)
+                            dsp7265_ref_source, dsp7265_ref_freq, dsp7265_current_time_constant, dsp7265_current_sensitvity, dsp7265_measurement_type, dsp7265_oa, dsp7265_slope = self.read_sr7265_settings(self.DSP7265)
                             f.write(f"\tDSP 7265 reference source: {dsp7265_ref_source}\n")
                             f.write(f"\tDSP 7265 reference frequency: {dsp7265_ref_freq} Hz\n")
                             f.write(f"\tDSP 7265 time constant: {dsp7265_current_time_constant}\n")
                             f.write(f"\tDSP 7265 sensitivity: {dsp7265_current_sensitvity}\n")
                             f.write(f"\tDSP 7265 measurement type: {dsp7265_measurement_type}\n")
                             f.write(f"\tDSP 7265 osillator amplitude: {dsp7265_oa}\n")
+                            f.write(f"\tDSP 7265 slope: {dsp7265_slope}\n")
+                            if dsp7265_slope == '6 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 5
+                            elif dsp7265_slope == '12 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 7
+                            elif dsp7265_slope == '18 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 9
+                            elif dsp7265_slope == '24 dB/octave':
+                                dsp7265_delay_config = dsp7265_current_time_constant * 10
+                            else:
+                                sp7265_delay_config = dsp7265_current_time_constant * 2
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
                             self.stop_measurement()
@@ -6232,7 +6276,7 @@ class Measurement(QMainWindow):
                                      self.zone2_step_field, self.zone3_step_field, self.zone1_top_field,
                                      self.zone2_top_field, self.zone3_top_field, self.zone1_field_rate,
                                      self.zone2_field_rate,self.zone3_field_rate, self.Keithley_2182_Connected,
-                                     self.ketihley_6221_connected,dsp7265_current_time_constant,self.DSP7265_Connected, self.demo_mode,
+                                     self.ketihley_6221_connected, dsp7265_delay_config, self.DSP7265_Connected, self.demo_mode,
                                      self.keithley_6221_dc_config, self.keithley_6221_ac_config, self.ac_current_waveform,
                                      self.ac_current_freq, self.ac_current_offset, eto_number_of_avg, init_temp_rate,
                                      demag_field, record_zero_field)  # Create a worker instance
@@ -6550,7 +6594,7 @@ class Measurement(QMainWindow):
                 ppms_field_Two_zone_radio_enabled, ppms_field_Three_zone_radio_enabled,zone1_step_field,
                 zone2_step_field, zone3_step_field, zone1_top_field, zone2_top_field, zone3_top_field, zone1_field_rate,
                 zone2_field_rate, zone3_field_rate, Keithley_2182_Connected,
-                Ketihley_6221_Connected, dsp7265_current_time_constant, DSP7265_Connected, running, demo, keithley_6221_dc_config,
+                Ketihley_6221_Connected, dsp7265_delay_config, DSP7265_Connected, running, demo, keithley_6221_dc_config,
                 keithley_6221_ac_config, ac_current_waveform, ac_current_freq, ac_current_offset,
                 eto_number_of_avg, init_temp_rate, demag_field, record_zero_field
                 ):
@@ -6829,7 +6873,8 @@ class Measurement(QMainWindow):
 
                         if DSP7265_Connected:
                             time.sleep(10)
-                            delay = convert_to_seconds(dsp7265_current_time_constant)
+                            # delay = convert_to_seconds(dsp7265_current_time_constant)
+                            delay = dsp7265_delay_config
                             cur_freq = str(float(DSP7265.query('FRQ[.]')) / 1000)
                             update_dsp7265_freq_label(cur_freq)
                             DSP7265.write('AQN')

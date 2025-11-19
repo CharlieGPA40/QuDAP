@@ -587,7 +587,7 @@ class BK9205_RIGOL_Worker(QThread):
 
 
             self._update_plots()
-            
+
             time.sleep(1)
             self._save_consolidated_data()
         self.save_plot.emit(self.file_name)
