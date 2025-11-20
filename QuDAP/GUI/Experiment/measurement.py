@@ -1900,7 +1900,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_average_layout = QHBoxLayout()
         eto_measurement_status_average_label = QLabel('Number of Average:')
         eto_measurement_status_average_label.setFont(self.font)
-        self.eto_measurement_status_average_reading_label = QLabel('NA')
+        self.eto_measurement_status_average_reading_label = QLabel('N/A')
         self.eto_measurement_status_average_reading_label.setFont(self.font)
         eto_measurement_status_average_layout.addWidget(eto_measurement_status_average_label)
         eto_measurement_status_average_layout.addWidget(self.eto_measurement_status_average_reading_label)
@@ -1913,7 +1913,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_time_remaining_in_days_layout = QHBoxLayout()
         eto_measurement_status_time_remaining_in_days_label = QLabel('In Days:')
         eto_measurement_status_time_remaining_in_days_label.setFont(self.font)
-        self.eto_measurement_status_time_remaining_in_days_reading_label = QLabel('NA')
+        self.eto_measurement_status_time_remaining_in_days_reading_label = QLabel('N/A')
         self.eto_measurement_status_time_remaining_in_days_reading_label.setFont(self.font)
         eto_measurement_status_time_remaining_in_days_layout.addWidget(eto_measurement_status_time_remaining_in_days_label)
         eto_measurement_status_time_remaining_in_days_layout.addWidget(self.eto_measurement_status_time_remaining_in_days_reading_label)
@@ -1921,7 +1921,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_time_remaining_in_hours_layout = QHBoxLayout()
         eto_measurement_status_time_remaining_in_hours_label = QLabel('In Hours:')
         eto_measurement_status_time_remaining_in_hours_label.setFont(self.font)
-        self.eto_measurement_status_time_remaining_in_hours_reading_label = QLabel('NA')
+        self.eto_measurement_status_time_remaining_in_hours_reading_label = QLabel('N/A')
         self.eto_measurement_status_time_remaining_in_hours_reading_label.setFont(self.font)
         eto_measurement_status_time_remaining_in_hours_layout.addWidget(
             eto_measurement_status_time_remaining_in_hours_label)
@@ -1931,7 +1931,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_time_remaining_in_mins_layout = QHBoxLayout()
         eto_measurement_status_time_remaining_in_mins_label = QLabel('In Minutes:')
         eto_measurement_status_time_remaining_in_mins_label.setFont(self.font)
-        self.eto_measurement_status_time_remaining_in_mins_reading_label = QLabel('NA')
+        self.eto_measurement_status_time_remaining_in_mins_reading_label = QLabel('N/A')
         self.eto_measurement_status_time_remaining_in_mins_reading_label.setFont(self.font)
         eto_measurement_status_time_remaining_in_mins_layout.addWidget(
             eto_measurement_status_time_remaining_in_mins_label)
@@ -1941,7 +1941,7 @@ class Measurement(QMainWindow):
         eto_measurement_status_cur_percent_layout = QHBoxLayout()
         eto_measurement_status_cur_percent_label = QLabel('Current Percentage:')
         eto_measurement_status_cur_percent_label.setFont(self.font)
-        self.eto_measurement_status_cur_percent_reading_label = QLabel('NA')
+        self.eto_measurement_status_cur_percent_reading_label = QLabel('N/A')
         self.eto_measurement_status_cur_percent_reading_label.setFont(self.font)
         eto_measurement_status_cur_percent_layout.addWidget(
             eto_measurement_status_cur_percent_label)
@@ -5468,7 +5468,7 @@ class Measurement(QMainWindow):
             if hasattr(self, 'keithley_2182nv'):
                 self.keithley_2182nv.write("*CLS")
             if hasattr(self, 'bnc845rf'):
-                self.bnc845rf_command.set_output(self.bnc845,'OFF')
+                self.bnc845rf_command.set_output(self.bnc845rf,'OFF')
                 self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         except Exception:
             pass
