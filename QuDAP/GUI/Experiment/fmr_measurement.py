@@ -126,6 +126,10 @@ class ST_FMR_Worker(QThread):
 
             # Clear plots
             self.clear_plot.emit()
+
+            if self.bnc845:
+                self._turn_off_output_bnc845()
+
             try:
                 self.send_notification.emit("The measurement has been started successfully.")
             except Exception as e:
@@ -150,11 +154,11 @@ class ST_FMR_Worker(QThread):
                 self.append_text.emit("=" * 60, 'red')
                 return  # Exit without emitting measurement_finished
 
-            # Save consolidated data
-            self._save_consolidated_data()
-
-            # Cleanup
-            self._cleanup_instruments()
+            # # Save consolidated data
+            # self._save_consolidated_data()
+            #
+            # # Cleanup
+            # self._cleanup_instruments()
 
             self.append_text.emit("=" * 60, 'red')
             self.append_text.emit("Measurement Complete!", 'red')
@@ -248,7 +252,8 @@ class ST_FMR_Worker(QThread):
                         break
 
                 self.append_text.emit(f'Stabilizing the Temperature for 5 minutes.....', 'orange')
-                time.sleep(300)
+                # time.sleep(300)
+                time.sleep(30)
                 self.temperature_array.append(curTemp)
                 if self.stopped_by_user:
                     self.append_text.emit("\n" + "=" * 60, 'red')
@@ -276,6 +281,12 @@ class ST_FMR_Worker(QThread):
                                 self.show_error.emit("BNC Setting Error", f'{e}')
                                 self.stop_measurement().emit()
                         for l in range(len(number_of_repetition)):
+                            total_progress = len(
+                                number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature
+                            if i == 0 and j == 0 and k == 0 and l == 0:
+                                remaining_progress = total_progress
+                            else:
+                                remaining_progress = remaining_progress - 1
                             self.repetition_array = []
                             self.repetition_array.append(number_of_repetition[l])
                             self.send_notification.emit(
@@ -336,8 +347,6 @@ class ST_FMR_Worker(QThread):
                                             'from_start']
                                         end_field = self.ppms_setting['field_setting']['final_continuous_list']['region1'][
                                             'to_end']
-
-                                totoal_progress = len(number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature
 
                                 self._set_field(start_field, fast_field_rate)
                                 time.sleep(4)
@@ -453,12 +462,13 @@ class ST_FMR_Worker(QThread):
                                         'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                         'purple')
 
-                                    total_time_in_seconds = Single_loop * totoal_progress * total_estimate_field_step
+
+                                    total_time_in_seconds = Single_loop * total_progress * total_estimate_field_step
                                     totoal_time_in_minutes = total_time_in_seconds / 60
                                     total_time_in_hours = totoal_time_in_minutes / 60
                                     total_time_in_days = total_time_in_hours / 24
 
-                                    estimate_time_in_seconds = Single_loop * totoal_progress * estimate_field_step
+                                    estimate_time_in_seconds = Single_loop * remaining_progress * estimate_field_step
                                     estimate_time_in_minutes = total_time_in_seconds / 60
                                     estimate_time_in_hours = totoal_time_in_minutes / 60
                                     estimate_time_in_days = total_time_in_hours / 24
@@ -578,7 +588,6 @@ class ST_FMR_Worker(QThread):
                                                 self.append_text.emit(
                                                     f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
 
-
                                         # ----------------------------- Measure NV voltage -------------------
                                         user_field_rate = self._continous_field_setting(field_direction, currentField,
                                                                                         field_zone_count)
@@ -602,12 +611,12 @@ class ST_FMR_Worker(QThread):
                                             'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                             'purple')
 
-                                        total_time_in_seconds = Single_loop * totoal_progress * total_estimate_field_step
+                                        total_time_in_seconds = Single_loop * total_progress * total_estimate_field_step
                                         totoal_time_in_minutes = total_time_in_seconds / 60
                                         total_time_in_hours = totoal_time_in_minutes / 60
                                         total_time_in_days = total_time_in_hours / 24
 
-                                        estimate_time_in_seconds = Single_loop * totoal_progress * estimate_field_step
+                                        estimate_time_in_seconds = Single_loop * remaining_progress * estimate_field_step
                                         estimate_time_in_minutes = total_time_in_seconds / 60
                                         estimate_time_in_hours = totoal_time_in_minutes / 60
                                         estimate_time_in_days = total_time_in_hours / 24
@@ -637,10 +646,10 @@ class ST_FMR_Worker(QThread):
                                 user_field_rate = self.ppms_setting['field_setting']['final_rate']
                                 number_of_field = len(field_list)
                                 number_of_field_update = number_of_field
-                                total_progress = len(number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature * number_of_field
+                                total_progress_stepped =  total_progress * number_of_field
 
                                 for m in range(number_of_field):
-                                    if m == int(number_of_field /2) :
+                                    if m == int(number_of_field /2) and field_direction == 'bidirectional':
                                         self.send_notification.emit(
                                             f"Starting the second half of measurement - ramping field up")
                                     if self.stopped_by_user:
@@ -649,6 +658,7 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit("=" * 60, 'red')
                                         return  # Exit without emitting measurement_finished
                                     currentField = field_list[m]
+
                                     single_measurement_start = time.time()
                                     self.append_text.emit(f'Loop is at {currentField} Oe \n', 'blue')
                                     self.append_text.emit(f'Set the field to {currentField} Oe and then collect data \n', 'blue')
@@ -673,13 +683,14 @@ class ST_FMR_Worker(QThread):
                                                 'critical')
 
                                     # ----------------------------- Measure NV voltage -------------------
+
                                     self.append_text.emit(f'Saving data for {MyField} Oe \n', 'green')
 
                                     MyField, field_status = self._update_field_reading_label()
                                     self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
 
-                                    # This method turn on the BNC
                                     curTemp, temperature_status = self._update_temperature_reading_label()
+
                                     if self.dsp7265:
                                         try:
                                             if self.stopped_by_user:
@@ -725,22 +736,22 @@ class ST_FMR_Worker(QThread):
                                     self.pts += 1  # Number of self.pts count
                                     single_measurement_end = time.time()
                                     Single_loop = single_measurement_end - single_measurement_start
-                                    number_of_field_update = number_of_field_update - 1
+                                    remaining_progress_stepped = remaining_progress * number_of_field - m
 
                                     self.append_text.emit('Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                                 'purple')
                                     self.append_text.emit('Estimated Single measurement (in hrs):  {} hrs \n'.format(
                                         Single_loop * number_of_field / 60 / 60), 'purple')
-                                    total_time_in_seconds = Single_loop * total_progress
+                                    total_time_in_seconds = Single_loop * total_progress_stepped
                                     total_time_in_minutes = total_time_in_seconds / 60
                                     total_time_in_hours = total_time_in_minutes / 60
                                     total_time_in_days = total_time_in_hours / 24
 
-                                    remaining_time_in_seconds = Single_loop * (len(number_of_repetition)-l) * (number_of_power-k) * (number_of_frequency-j) * (number_of_temperature-i) * (number_of_field-m)
+                                    # remaining_time_in_seconds = Single_loop * (len(number_of_repetition)-l) * (number_of_power-k) * (number_of_frequency-j) * (number_of_temperature-i) * (number_of_field-m)
+                                    remaining_time_in_seconds = Single_loop * remaining_progress_stepped
                                     remaining_time_in_minutes = remaining_time_in_seconds / 60
                                     remaining_time_in_hours = remaining_time_in_minutes / 60
                                     remaining_time_in_days = remaining_time_in_hours / 24
-
                                     self.append_text.emit(
                                         'Estimated Remaining Time for this round of measurement (in secs):  {} s \n'.format(
                                             remaining_time_in_seconds), 'purple')
@@ -754,14 +765,15 @@ class ST_FMR_Worker(QThread):
                                         'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                             remaining_time_in_days), 'purple')
                                     if self.stopped_by_user:
-                                        self.append_text.emit("\n" + "=" * 60)
-                                        self.append_text.emit("Measurement stopped by user")
-                                        self.append_text.emit("=" * 60)
+                                        self.append_text.emit("\n" + "=" * 60, 'red')
+                                        self.append_text.emit("Measurement stopped by user", 'red')
+                                        self.append_text.emit("=" * 60, 'red')
                                         return  # Exit without emitting measurement_finished
                                     current_progress = (total_time_in_seconds - remaining_time_in_seconds) / total_time_in_seconds
                                     self.progress_update.emit(int(current_progress * 100))
                                     self.update_measurement_progress.emit(remaining_time_in_days, remaining_time_in_hours,
                                                                 remaining_time_in_minutes, current_progress * 100)
+                                    time.sleep(2)
 
                             time.sleep(2)
                             self.client.set_field(zero_field,
@@ -778,6 +790,8 @@ class ST_FMR_Worker(QThread):
 
                         if self.bnc845:
                             self._turn_off_output_bnc845()
+                            time.sleep(5)
+                            self.update_fmr_ui.emit()
                 #         if len(self.repetition_array) > 1:
                 #             self.update_2d_plot.emit(self.field_array, self.repetition_array, self.lockin_x)
                 #     if len(self.power_array) > 1:
@@ -813,6 +827,9 @@ class ST_FMR_Worker(QThread):
             self.measurement_finished.emit()
             return
         except Exception as e:
+            tb_str = traceback.format_exc()
+            self.show_error.emit("Error", f'{tb_str}')
+        except SystemExit as e:
             tb_str = traceback.format_exc()
             self.show_error.emit("Error", f'{tb_str}')
 
@@ -1223,45 +1240,6 @@ class ST_FMR_Worker(QThread):
 
         except Exception as e:
             self.append_text.emit(f"✗ Error saving summary: {str(e)}", 'red')
-
-    # ==================================================================================
-    # PLOTTING METHODS
-    # ==================================================================================
-    def _update_plots(self):
-        """Update both the 2D cumulative plot and the current spectrum plot."""
-
-        # Extract frequency data (use first spectrum's frequencies)
-        if len(self.measurement_results) > 0:
-            freq_data = self.measurement_results[0]['spectrum']['frequencies']
-        else:
-            return
-
-        # Extract voltage/current values and spectra
-        y_data = []  # Voltages/currents
-        z_data = []  # All spectra (2D array)
-
-        for result in self.measurement_results:
-            # Get source value
-            if 'value' in result:
-                y_data.append(result['value'])
-            elif 'total_value' in result:
-                y_data.append(result['total_value'])
-            elif 'varying_value' in result:
-                y_data.append(result['varying_value'])
-            else:
-                y_data.append(0)
-
-            # Get spectrum power data
-            spectrum = result['spectrum']
-            z_data.append(spectrum['powers'])
-
-        # Update 2D cumulative plot (left) - now showing freq vs voltage
-        self.update_2d_plot.emit(freq_data, y_data, z_data)
-
-        # Update current spectrum plot (right)
-        latest_result = self.measurement_results[-1]
-        spectrum = latest_result['spectrum']
-        self.update_spectrum_plot.emit(spectrum['frequencies'], spectrum['powers'])
 
     # ==================================================================================
     # HELPER METHODS

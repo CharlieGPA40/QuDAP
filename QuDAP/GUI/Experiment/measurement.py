@@ -2837,7 +2837,10 @@ class Measurement(QMainWindow):
                 def create_field_dict(field_mode, temp_field_dict, field_direction):
                     field_zone_count = temp_field_dict['field_settings']['field_zone_count']
                     if field_mode == 'stepped':
-                        field_list = temp_field_dict['field_settings']['full_sweep_bidirectional']
+                        if field_direction == 'bidirectional':
+                            field_list = temp_field_dict['field_settings']['full_sweep_bidirectional']
+                        else:
+                            field_list = temp_field_dict['field_settings']['full_sweep_unidirectional']
                         field_rate = temp_field_dict['field_settings']['field_zones']['zone_1']['rate']
                         self.temp_field_setting['field_setting']['final_step_list'] = field_list
                         self.temp_field_setting['field_setting']['final_rate'] = field_rate
@@ -5464,7 +5467,9 @@ class Measurement(QMainWindow):
                 self.update_keithley_6221_update_label('N/A', 'OFF')
             if hasattr(self, 'keithley_2182nv'):
                 self.keithley_2182nv.write("*CLS")
-
+            if hasattr(self, 'bnc845rf'):
+                self.bnc845rf_command.set_output(self.bnc845,'OFF')
+                self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         except Exception:
             pass
 
@@ -5493,21 +5498,41 @@ class Measurement(QMainWindow):
                 print("No Such File.")
             caption = f"Data preview"
             NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
+
+        if hasattr(self, 'single_canvas'):
+            self.single_canvas.figure.savefig(
+                self.folder_path + "{}_{}_run{}_spectrum.png".format(self.sample_id, self.measurement, self.run))
+            time.sleep(5)
+            image_path = r"{}{}_{}_run{}_spectrum.png".format(self.folder_path, self.sample_id, self.measurement, self.run)
+            if not os.path.exists(image_path):
+                print("No Such File.")
+            caption = f"Data preview"
+            NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
+
+        if hasattr(self, 'cumulative_canvas'):
+            self.cumulative_canvas.figure.savefig(
+                self.folder_path + "{}_{}_run{}_2d_plot.png".format(self.sample_id, self.measurement, self.run))
+            time.sleep(5)
+            image_path = r"{}{}_{}_run{}_2d_plot.png".format(self.folder_path, self.sample_id, self.measurement, self.run)
+            if not os.path.exists(image_path):
+                print("No Such File.")
+            caption = f"Data preview"
+            NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
         try:
-            if self.worker is not None:
-                self.worker.stop()
-                self.worker = None
-                NotificationManager().send_message("Experiment Stop!", 'critical')
+            if hasattr(self, 'worker'):
+                if self.worker is not None:
+                    self.worker.stop()
+                    self.worker = None
+                    NotificationManager().send_message("Experiment Stop!", 'critical')
+
+            if hasattr(self, 'fmr_worker'):
+                if self.fmr_worker is not None:
+                    self.fmr_worker.stop()
+                    self.fmr_worker = None
+                    NotificationManager().send_message("Experiment Stop!", 'critical')
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
 
-        try:
-            if self.fmr_worker is not None:
-                self.fmr_worker.stop()
-                self.fmr_worker = None
-                NotificationManager().send_message("Experiment Stop!", 'critical')
-        except Exception:
-            QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         # try:
         #     self.canvas.axes.cla()
         #     self.canvas.axes_2.cla()
@@ -6506,6 +6531,15 @@ class Measurement(QMainWindow):
         except Exception as e:
             print(f"Error clearing plots: {e}")
 
+    def clear_fmr_2d_plot(self):
+        try:
+            if hasattr(self, 'cumulative_canvas'):
+                self.cumulative_canvas.axes.clear()
+                self.cumulative_canvas.axes.set_title('Waiting for spectrum...')
+                self.cumulative_canvas.draw()
+        except Exception as e:
+            print(f"Error clearing plots: {e}")
+
     def update_nv_channel_1_label(self, chanel1):
         self.keithley_2182_channel_1_reading_label.setText(chanel1)
 
@@ -6517,12 +6551,15 @@ class Measurement(QMainWindow):
 
     def measurement_finished(self):
         try:
-            self.keithley_6221.write(":OUTP OFF")
-            self.keithley_6221.write("SOUR:WAVE:ABOR \n")
-            # self.keithley_6221.write("*RST")
-            self.keithley_6221.write("*CLS")
+            if hasattr(self, 'keithley_6221'):
+                self.keithley_6221.write(":OUTP OFF")
+                self.keithley_6221.write("SOUR:WAVE:ABOR \n")
+                # self.keithley_6221.write("*RST")
+                self.keithley_6221.write("*CLS")
+            if hasattr(self, 'keithley_2182nv'):
             # self.keithley_2182nv.write("*RST")
-            self.keithley_2182nv.write("*CLS")
+                self.keithley_2182nv.write("*CLS")
+
         except Exception:
             pass
 
@@ -6574,10 +6611,23 @@ class Measurement(QMainWindow):
         self.dsp7265_phase_reading_value_label.setText(f'{str(phase)} degs')
 
     def update_measurement_progress(self, day, hour, min, progress):
-        self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)} days')
-        self.eto_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} hours')
-        self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)} mins')
-        self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progress)} %')
+        if hasattr(self, 'eto_measurement_status_time_remaining_in_days_reading_label'):
+            self.eto_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)} days')
+        if hasattr(self, 'eto_measurement_status_time_remaining_in_hours_reading_label'):
+            self.eto_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} hours')
+        if hasattr(self, 'eto_measurement_status_time_remaining_in_mins_reading_label'):
+            self.eto_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)} mins')
+        if hasattr(self, 'eto_measurement_status_cur_percent_reading_label'):
+            self.eto_measurement_status_cur_percent_reading_label.setText(f'{str(progress)} %')
+
+        if hasattr(self, 'fmr_measurement_status_time_remaining_in_days_reading_label'):
+            self.fmr_measurement_status_time_remaining_in_days_reading_label.setText(f'{str(day)} days')
+        if hasattr(self, 'fmr_measurement_status_time_remaining_in_hours_reading_label'):
+            self.fmr_measurement_status_time_remaining_in_hours_reading_label.setText(f'{str(hour)} hours')
+        if hasattr(self, 'fmr_measurement_status_time_remaining_in_mins_reading_label'):
+            self.fmr_measurement_status_time_remaining_in_mins_reading_label.setText(f'{str(min)} mins')
+        if hasattr(self, 'fmr_measurement_status_cur_percent_reading_label'):
+            self.fmr_measurement_status_cur_percent_reading_label.setText(f'{str(progress)} %')
 
     def update_eto_average_label(self):
         avg = self.eto_setting_average_line_edit.text()
