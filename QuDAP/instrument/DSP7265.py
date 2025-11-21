@@ -10,7 +10,871 @@ Based on Model SR7265 Instruction Manual
 Author: Command Interface Generator
 Date: 2025
 """
+"""
+DSP 7265 Lock-in Amplifier Sweep Control with Real-time Plotting
+Automatically uses 2x time constant for sweep rate
+Plots noise level vs frequency during sweep
+"""
 
+import sys
+import time
+import numpy as np
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QHBoxLayout, QPushButton, QLabel, QLineEdit,
+                             QComboBox, QDialog, QGroupBox, QMessageBox,
+                             QRadioButton, QButtonGroup, QSpinBox, QDoubleSpinBox,
+                             QCheckBox)
+from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtGui import QFont
+import pyvisa
+import pyqtgraph as pg
+from datetime import datetime
+
+# ============================================================================
+# Time Constant Mappings (from DSP 7265 manual)
+# ============================================================================
+
+TIME_CONSTANT_VALUES = {
+    0: 10e-6,  # 10 μs
+    1: 20e-6,  # 20 μs
+    2: 40e-6,  # 40 μs
+    3: 80e-6,  # 80 μs
+    4: 160e-6,  # 160 μs
+    5: 320e-6,  # 320 μs
+    6: 640e-6,  # 640 μs
+    7: 5e-3,  # 5 ms
+    8: 10e-3,  # 10 ms
+    9: 20e-3,  # 20 ms
+    10: 50e-3,  # 50 ms
+    11: 100e-3,  # 100 ms
+    12: 200e-3,  # 200 ms
+    13: 500e-3,  # 500 ms
+    14: 1.0,  # 1 s
+    15: 2.0,  # 2 s
+    16: 5.0,  # 5 s
+    17: 10.0,  # 10 s
+    18: 20.0,  # 20 s
+    19: 50.0,  # 50 s
+    20: 100.0,  # 100 s
+    21: 200.0,  # 200 s
+    22: 500.0,  # 500 s
+    23: 1000.0,  # 1000 s
+    24: 2000.0,  # 2000 s
+    25: 5000.0,  # 5000 s
+    26: 10000.0,  # 10000 s
+    27: 20000.0,  # 20000 s
+    28: 30000.0,  # 30000 s
+    29: 50000.0,  # 50000 s
+}
+
+
+# ============================================================================
+# Sweep Thread with Data Collection
+# ============================================================================
+
+class SweepThread(QThread):
+    """Thread to perform frequency or amplitude sweep with data collection"""
+
+    # Signals
+    progress_signal = pyqtSignal(int, str)  # (percentage, status)
+    data_point_signal = pyqtSignal(float, float, float, float)  # (freq/amp, noise, X, Y)
+    warning_signal = pyqtSignal(str, str)
+    error_signal = pyqtSignal(str, str)
+    info_signal = pyqtSignal(str, str)
+    sweep_complete_signal = pyqtSignal()
+
+    def __init__(self, instrument, sweep_type, start, stop, step,
+                 use_auto_rate=True, manual_rate=None, parent=None):
+        super().__init__(parent)
+        self.instrument = instrument
+        self.sweep_type = sweep_type
+        self.start = start
+        self.stop = stop
+        self.step = step
+        self.use_auto_rate = use_auto_rate
+        self.manual_rate = manual_rate
+        self.should_stop = False
+
+    def get_time_constant(self):
+        """Get current time constant from instrument"""
+        try:
+            tc_index = int(self.instrument.query('TC').strip())
+            tc_value = TIME_CONSTANT_VALUES.get(tc_index, 0.1)  # Default 100 ms
+            return tc_value
+        except Exception as e:
+            print(f"Error reading time constant: {e}")
+            return 0.1  # Default to 100 ms
+
+    def calculate_sweep_rate(self, tc_value):
+        """Calculate sweep rate as 2x time constant, convert to ms"""
+        rate_seconds = 2 * tc_value
+        rate_ms = rate_seconds * 1000
+
+        # Clamp to valid range (50 ms to 1000 s = 1000000 ms)
+        rate_ms = max(50, min(1000000, rate_ms))
+
+        return rate_ms
+
+    def read_measurement(self):
+        """Read X, Y, and magnitude from lock-in"""
+        try:
+            # Read X and Y outputs
+            x = float(self.instrument.query('X.').strip())
+            y = float(self.instrument.query('Y.').strip())
+
+            # Calculate magnitude (noise level)
+            magnitude = np.sqrt(x ** 2 + y ** 2)
+
+            return x, y, magnitude
+        except Exception as e:
+            print(f"Error reading measurement: {e}")
+            return 0.0, 0.0, 0.0
+
+    def run(self):
+        """Execute the sweep with data collection"""
+        try:
+            if not self.instrument:
+                self.error_signal.emit("No Instrument", "DSP 7265 is not connected")
+                return
+
+            # Get time constant and calculate sweep rate
+            if self.use_auto_rate:
+                tc_value = self.get_time_constant()
+                rate_ms = self.calculate_sweep_rate(tc_value)
+                self.info_signal.emit(
+                    "Auto Rate Configured",
+                    f"Time Constant: {tc_value * 1000:.2f} ms\nSweep Rate: {rate_ms:.2f} ms (2×TC)"
+                )
+            else:
+                rate_ms = self.manual_rate if self.manual_rate else 100
+
+            # Calculate sweep points
+            if self.start <= self.stop:
+                sweep_points = np.arange(self.start, self.stop + self.step / 2, self.step)
+            else:
+                sweep_points = np.arange(self.start, self.stop - self.step / 2, -self.step)
+
+            total_points = len(sweep_points)
+
+            if total_points == 0:
+                self.warning_signal.emit("Invalid Sweep", "No sweep points generated")
+                return
+
+            # Configure sweep based on type
+            if self.sweep_type == 'frequency':
+                self.info_signal.emit(
+                    "Frequency Sweep Started",
+                    f"Sweeping from {self.start} Hz to {self.stop} Hz\n"
+                    f"Total points: {total_points}\nRate: {rate_ms:.2f} ms/point"
+                )
+
+            elif self.sweep_type == 'amplitude':
+                self.info_signal.emit(
+                    "Amplitude Sweep Started",
+                    f"Sweeping from {self.start} V to {self.stop} V\n"
+                    f"Total points: {total_points}\nRate: {rate_ms:.2f} ms/point"
+                )
+
+            # Perform sweep point by point
+            for i, point in enumerate(sweep_points):
+                if self.should_stop:
+                    self.warning_signal.emit(
+                        "Sweep Stopped",
+                        "Sweep was stopped by user"
+                    )
+                    return
+
+                # Set frequency or amplitude
+                if self.sweep_type == 'frequency':
+                    # Set oscillator frequency
+                    # Fixed point mode: frequency in millihertz
+                    freq_mhz = point  # Convert Hz to mHz if needed
+                    self.instrument.write(f'OF. {freq_mhz}')
+                    status = f"Frequency: {point:.2f} Hz ({i + 1}/{total_points})"
+
+                elif self.sweep_type == 'amplitude':
+                    # Set oscillator amplitude
+                    # Fixed point mode: amplitude in microvolts rms
+                    amp_uv = point * 1e6  # Convert V to μV
+                    self.instrument.write(f'OA. {amp_uv}')
+                    status = f"Amplitude: {point:.6f} V ({i + 1}/{total_points})"
+
+                # Wait for settling (2× time constant)
+                time.sleep(rate_ms / 1000.0)
+
+                # Read measurement
+                x, y, noise_level = self.read_measurement()
+
+                # Emit data point
+                self.data_point_signal.emit(point, noise_level, x, y)
+
+                # Update progress
+                progress = int((i + 1) / total_points * 100)
+                self.progress_signal.emit(progress, status)
+
+            # Sweep complete
+            self.sweep_complete_signal.emit()
+            self.info_signal.emit(
+                "Sweep Complete",
+                f"{self.sweep_type.capitalize()} sweep finished successfully\n"
+                f"Collected {total_points} data points"
+            )
+
+        except Exception as e:
+            import traceback
+            self.error_signal.emit(
+                "Sweep Error",
+                f"An error occurred during sweep:\n{str(e)}\n\n{traceback.format_exc()}"
+            )
+
+    def stop(self):
+        """Stop the sweep"""
+        self.should_stop = True
+
+
+# ============================================================================
+# Sweep Setup Dialog
+# ============================================================================
+
+class SweepSetupDialog(QDialog):
+    """Dialog for configuring frequency or amplitude sweep"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Sweep Setup - DSP 7265")
+        self.setMinimumWidth(500)
+        self.setup_ui()
+
+    def setup_ui(self):
+        """Setup the user interface"""
+        layout = QVBoxLayout()
+
+        # Title
+        title = QLabel("Configure Frequency/Amplitude Sweep")
+        title_font = QFont()
+        title_font.setPointSize(12)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        # Sweep type selection
+        sweep_type_group = QGroupBox("Sweep Type")
+        sweep_type_layout = QVBoxLayout()
+
+        self.sweep_type_combo = QComboBox()
+        self.sweep_type_combo.addItems(["Frequency Sweep", "Amplitude Sweep"])
+        self.sweep_type_combo.currentTextChanged.connect(self.on_sweep_type_changed)
+        sweep_type_layout.addWidget(self.sweep_type_combo)
+
+        sweep_type_group.setLayout(sweep_type_layout)
+        layout.addWidget(sweep_type_group)
+
+        # Sweep parameters
+        params_group = QGroupBox("Sweep Parameters")
+        params_layout = QVBoxLayout()
+
+        # Start value
+        start_layout = QHBoxLayout()
+        self.start_label = QLabel("Start Frequency (Hz):")
+        self.start_label.setMinimumWidth(150)
+        self.start_entry = QDoubleSpinBox()
+        self.start_entry.setRange(0, 250000)
+        self.start_entry.setDecimals(3)
+        self.start_entry.setValue(1000)
+        self.start_entry.setSuffix(" Hz")
+        start_layout.addWidget(self.start_label)
+        start_layout.addWidget(self.start_entry)
+        params_layout.addLayout(start_layout)
+
+        # Stop value
+        stop_layout = QHBoxLayout()
+        self.stop_label = QLabel("Stop Frequency (Hz):")
+        self.stop_label.setMinimumWidth(150)
+        self.stop_entry = QDoubleSpinBox()
+        self.stop_entry.setRange(0, 250000)
+        self.stop_entry.setDecimals(3)
+        self.stop_entry.setValue(10000)
+        self.stop_entry.setSuffix(" Hz")
+        stop_layout.addWidget(self.stop_label)
+        stop_layout.addWidget(self.stop_entry)
+        params_layout.addLayout(stop_layout)
+
+        # Step size
+        step_layout = QHBoxLayout()
+        self.step_label = QLabel("Step Size (Hz):")
+        self.step_label.setMinimumWidth(150)
+        self.step_entry = QDoubleSpinBox()
+        self.step_entry.setRange(0.001, 10000)
+        self.step_entry.setDecimals(3)
+        self.step_entry.setValue(100)
+        self.step_entry.setSuffix(" Hz")
+        step_layout.addWidget(self.step_label)
+        step_layout.addWidget(self.step_entry)
+        params_layout.addLayout(step_layout)
+
+        params_group.setLayout(params_layout)
+        layout.addWidget(params_group)
+
+        # Sweep rate configuration
+        rate_group = QGroupBox("Sweep Rate Configuration")
+        rate_layout = QVBoxLayout()
+
+        # Auto rate checkbox
+        self.auto_rate_checkbox = QCheckBox("Automatic Rate (2× Time Constant)")
+        self.auto_rate_checkbox.setChecked(True)
+        self.auto_rate_checkbox.stateChanged.connect(self.on_auto_rate_changed)
+        rate_layout.addWidget(self.auto_rate_checkbox)
+
+        # Manual rate input
+        manual_rate_layout = QHBoxLayout()
+        rate_label = QLabel("Manual Rate (ms/point):")
+        rate_label.setMinimumWidth(150)
+        self.rate_entry = QSpinBox()
+        self.rate_entry.setRange(50, 1000000)
+        self.rate_entry.setSingleStep(10)
+        self.rate_entry.setValue(100)
+        self.rate_entry.setSuffix(" ms")
+        self.rate_entry.setEnabled(False)
+
+        manual_rate_layout.addWidget(rate_label)
+        manual_rate_layout.addWidget(self.rate_entry)
+        rate_layout.addLayout(manual_rate_layout)
+
+        # Info label
+        self.rate_info_label = QLabel(
+            "ℹ️ Sweep rate will be automatically set to 2× the current time constant"
+        )
+        self.rate_info_label.setWordWrap(True)
+        self.rate_info_label.setStyleSheet("color: blue; font-style: italic;")
+        rate_layout.addWidget(self.rate_info_label)
+
+        rate_group.setLayout(rate_layout)
+        layout.addWidget(rate_group)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.accept)
+
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.reject)
+
+        button_layout.addStretch()
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+    def on_sweep_type_changed(self, sweep_type):
+        """Update labels based on sweep type"""
+        if sweep_type == "Frequency Sweep":
+            self.start_label.setText("Start Frequency (Hz):")
+            self.stop_label.setText("Stop Frequency (Hz):")
+            self.step_label.setText("Step Size (Hz):")
+
+            self.start_entry.setRange(0, 250000)
+            self.stop_entry.setRange(0, 250000)
+            self.step_entry.setRange(0.001, 10000)
+
+            self.start_entry.setSuffix(" Hz")
+            self.stop_entry.setSuffix(" Hz")
+            self.step_entry.setSuffix(" Hz")
+
+            self.start_entry.setValue(1000)
+            self.stop_entry.setValue(10000)
+            self.step_entry.setValue(100)
+
+        elif sweep_type == "Amplitude Sweep":
+            self.start_label.setText("Start Amplitude (V):")
+            self.stop_label.setText("Stop Amplitude (V):")
+            self.step_label.setText("Step Size (V):")
+
+            self.start_entry.setRange(0, 5.0)
+            self.stop_entry.setRange(0, 5.0)
+            self.step_entry.setRange(0.000001, 1.0)
+
+            self.start_entry.setSuffix(" V")
+            self.stop_entry.setSuffix(" V")
+            self.step_entry.setSuffix(" V")
+
+            self.start_entry.setValue(0.1)
+            self.stop_entry.setValue(1.0)
+            self.step_entry.setValue(0.1)
+
+            self.start_entry.setDecimals(6)
+            self.stop_entry.setDecimals(6)
+            self.step_entry.setDecimals(6)
+
+    def on_auto_rate_changed(self, state):
+        """Enable/disable manual rate entry"""
+        is_auto = (state == Qt.CheckState.Checked.value)
+        self.rate_entry.setEnabled(not is_auto)
+
+        if is_auto:
+            self.rate_info_label.setText(
+                "ℹ️ Sweep rate will be automatically set to 2× the current time constant"
+            )
+        else:
+            self.rate_info_label.setText(
+                "ℹ️ Using manual sweep rate"
+            )
+
+    def get_sweep_parameters(self):
+        """Return the sweep parameters"""
+        sweep_type = 'frequency' if self.sweep_type_combo.currentText() == "Frequency Sweep" else 'amplitude'
+
+        params = {
+            'type': sweep_type,
+            'start': self.start_entry.value(),
+            'stop': self.stop_entry.value(),
+            'step': self.step_entry.value(),
+            'use_auto_rate': self.auto_rate_checkbox.isChecked(),
+            'manual_rate': self.rate_entry.value() if not self.auto_rate_checkbox.isChecked() else None
+        }
+
+        return params
+
+
+# ============================================================================
+# Main Window with Real-time Plot
+# ============================================================================
+
+class DSP7265MainWindow(QMainWindow):
+    """Main window for DSP 7265 control with real-time plotting"""
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("DSP 7265 Lock-in Amplifier - Sweep & Plot")
+        self.setGeometry(100, 100, 1200, 800)
+
+        # Instrument connection
+        self.instrument = None
+        self.rm = None
+
+        # Sweep thread
+        self.sweep_thread = None
+
+        # Data storage
+        self.sweep_data_x = []  # Frequency or amplitude
+        self.sweep_data_y = []  # Noise level
+        self.sweep_data_X = []  # X component
+        self.sweep_data_Y = []  # Y component
+
+        self.setup_ui()
+
+    def setup_ui(self):
+        """Setup the user interface"""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        main_layout = QHBoxLayout()
+
+        # Left panel - Controls
+        left_panel = QWidget()
+        left_layout = QVBoxLayout()
+
+        # Title
+        title = QLabel("DSP 7265 Control")
+        title_font = QFont()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        left_layout.addWidget(title)
+
+        # Connection section
+        connection_group = QGroupBox("Instrument Connection")
+        connection_layout = QVBoxLayout()
+
+        conn_button_layout = QHBoxLayout()
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.clicked.connect(self.connect_instrument)
+
+        self.disconnect_button = QPushButton("Disconnect")
+        self.disconnect_button.clicked.connect(self.disconnect_instrument)
+        self.disconnect_button.setEnabled(False)
+
+        conn_button_layout.addWidget(self.connect_button)
+        conn_button_layout.addWidget(self.disconnect_button)
+
+        self.connection_status = QLabel("Status: Not Connected")
+        self.connection_status.setStyleSheet("color: red; font-weight: bold;")
+
+        connection_layout.addLayout(conn_button_layout)
+        connection_layout.addWidget(self.connection_status)
+        connection_group.setLayout(connection_layout)
+        left_layout.addWidget(connection_group)
+
+        # Sweep control section
+        sweep_group = QGroupBox("Sweep Control")
+        sweep_layout = QVBoxLayout()
+
+        self.setup_sweep_button = QPushButton("Setup Sweep Parameters")
+        self.setup_sweep_button.setMinimumHeight(40)
+        self.setup_sweep_button.clicked.connect(self.open_sweep_setup)
+        self.setup_sweep_button.setEnabled(False)
+
+        sweep_control_layout = QHBoxLayout()
+        self.start_sweep_button = QPushButton("Start Sweep")
+        self.start_sweep_button.clicked.connect(self.start_sweep)
+        self.start_sweep_button.setEnabled(False)
+
+        self.stop_sweep_button = QPushButton("Stop Sweep")
+        self.stop_sweep_button.clicked.connect(self.stop_sweep)
+        self.stop_sweep_button.setEnabled(False)
+
+        sweep_control_layout.addWidget(self.start_sweep_button)
+        sweep_control_layout.addWidget(self.stop_sweep_button)
+
+        self.sweep_status = QLabel("Not configured")
+        self.sweep_status.setWordWrap(True)
+
+        sweep_layout.addWidget(self.setup_sweep_button)
+        sweep_layout.addLayout(sweep_control_layout)
+        sweep_layout.addWidget(QLabel("Status:"))
+        sweep_layout.addWidget(self.sweep_status)
+
+        sweep_group.setLayout(sweep_layout)
+        left_layout.addWidget(sweep_group)
+
+        # Progress section
+        progress_group = QGroupBox("Progress")
+        progress_layout = QVBoxLayout()
+
+        self.progress_label = QLabel("Progress: 0%")
+        self.status_label = QLabel("Status: Idle")
+        self.status_label.setWordWrap(True)
+
+        progress_layout.addWidget(self.progress_label)
+        progress_layout.addWidget(self.status_label)
+
+        progress_group.setLayout(progress_layout)
+        left_layout.addWidget(progress_group)
+
+        # Data controls
+        data_group = QGroupBox("Data Control")
+        data_layout = QVBoxLayout()
+
+        self.clear_data_button = QPushButton("Clear Plot Data")
+        self.clear_data_button.clicked.connect(self.clear_plot_data)
+
+        self.save_data_button = QPushButton("Save Data")
+        self.save_data_button.clicked.connect(self.save_data)
+
+        data_layout.addWidget(self.clear_data_button)
+        data_layout.addWidget(self.save_data_button)
+
+        data_group.setLayout(data_layout)
+        left_layout.addWidget(data_group)
+
+        left_layout.addStretch()
+
+        left_panel.setLayout(left_layout)
+        left_panel.setMaximumWidth(350)
+
+        # Right panel - Plot
+        right_panel = QWidget()
+        right_layout = QVBoxLayout()
+
+        plot_title = QLabel("Real-time Sweep Data")
+        plot_title_font = QFont()
+        plot_title_font.setPointSize(12)
+        plot_title_font.setBold(True)
+        plot_title.setFont(plot_title_font)
+        plot_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        right_layout.addWidget(plot_title)
+
+        # Create plot widget
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setBackground('w')
+        self.plot_widget.setLabel('left', 'Noise Level', units='V')
+        self.plot_widget.setLabel('bottom', 'Frequency', units='Hz')
+        self.plot_widget.setTitle('Noise Level vs Frequency')
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
+        self.plot_widget.addLegend()
+
+        # Create plot curve
+        self.plot_curve = self.plot_widget.plot(
+            pen=pg.mkPen(color=(255, 0, 0), width=2),
+            symbol='o',
+            symbolSize=5,
+            symbolBrush=(255, 0, 0),
+            name='Noise Level'
+        )
+
+        right_layout.addWidget(self.plot_widget)
+
+        right_panel.setLayout(right_layout)
+
+        # Add panels to main layout
+        main_layout.addWidget(left_panel)
+        main_layout.addWidget(right_panel)
+
+        central_widget.setLayout(main_layout)
+
+        # Store sweep parameters
+        self.sweep_params = None
+
+    def connect_instrument(self):
+        """Connect to DSP 7265"""
+        try:
+            self.rm = pyvisa.ResourceManager()
+            resources = self.rm.list_resources()
+
+            if not resources:
+                QMessageBox.warning(self, "No Devices", "No VISA devices found")
+                return
+
+            # Try to connect to GPIB device
+            for resource in resources:
+                if 'GPIB' in resource:
+                    self.instrument = self.rm.open_resource(resource)
+                    self.instrument.timeout = 5000
+
+                    try:
+                        # Test connection
+                        idn = self.instrument.query('ID')
+                        self.connection_status.setText(f"Connected: {idn.strip()}")
+                        self.connection_status.setStyleSheet("color: green; font-weight: bold;")
+
+                        self.connect_button.setEnabled(False)
+                        self.disconnect_button.setEnabled(True)
+                        self.setup_sweep_button.setEnabled(True)
+
+                        # Read current time constant
+                        tc_index = int(self.instrument.query('TC').strip())
+                        tc_value = TIME_CONSTANT_VALUES.get(tc_index, 0.1)
+
+                        QMessageBox.information(
+                            self,
+                            "Connected",
+                            f"Successfully connected to DSP 7265\n{idn}\n\n"
+                            f"Current Time Constant: {tc_value * 1000:.2f} ms"
+                        )
+                        return
+                    except:
+                        pass
+
+            QMessageBox.warning(self, "Connection Failed", "Could not connect to DSP 7265")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", f"Error connecting:\n{str(e)}")
+
+    def disconnect_instrument(self):
+        """Disconnect from instrument"""
+        try:
+            if self.instrument:
+                self.instrument.close()
+                self.instrument = None
+
+            if self.rm:
+                self.rm.close()
+                self.rm = None
+
+            self.connection_status.setText("Status: Not Connected")
+            self.connection_status.setStyleSheet("color: red; font-weight: bold;")
+
+            self.connect_button.setEnabled(True)
+            self.disconnect_button.setEnabled(False)
+            self.setup_sweep_button.setEnabled(False)
+            self.start_sweep_button.setEnabled(False)
+
+            QMessageBox.information(self, "Disconnected", "Disconnected from DSP 7265")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Disconnect Error", f"Error disconnecting:\n{str(e)}")
+
+    def open_sweep_setup(self):
+        """Open sweep setup dialog"""
+        dialog = SweepSetupDialog(self)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.sweep_params = dialog.get_sweep_parameters()
+
+            # Update status
+            sweep_type = self.sweep_params['type'].capitalize()
+            start = self.sweep_params['start']
+            stop = self.sweep_params['stop']
+            step = self.sweep_params['step']
+
+            if self.sweep_params['type'] == 'frequency':
+                unit = "Hz"
+                self.plot_widget.setLabel('bottom', 'Frequency', units='Hz')
+            else:
+                unit = "V"
+                self.plot_widget.setLabel('bottom', 'Amplitude', units='V')
+
+            rate_info = "Auto (2×TC)" if self.sweep_params[
+                'use_auto_rate'] else f"{self.sweep_params['manual_rate']} ms"
+
+            self.sweep_status.setText(
+                f"{sweep_type}: {start} to {stop} {unit}\n"
+                f"Step: {step} {unit}\n"
+                f"Rate: {rate_info}"
+            )
+
+            self.start_sweep_button.setEnabled(True)
+
+    def start_sweep(self):
+        """Start the configured sweep"""
+        if not self.sweep_params:
+            QMessageBox.warning(self, "No Configuration", "Please setup sweep parameters first")
+            return
+
+        if not self.instrument:
+            QMessageBox.warning(self, "No Connection", "Please connect to instrument first")
+            return
+
+        # Clear previous data
+        self.sweep_data_x = []
+        self.sweep_data_y = []
+        self.sweep_data_X = []
+        self.sweep_data_Y = []
+        self.plot_curve.setData([], [])
+
+        # Disable start button, enable stop button
+        self.start_sweep_button.setEnabled(False)
+        self.stop_sweep_button.setEnabled(True)
+        self.setup_sweep_button.setEnabled(False)
+
+        # Create and start sweep thread
+        self.sweep_thread = SweepThread(
+            self.instrument,
+            self.sweep_params['type'],
+            self.sweep_params['start'],
+            self.sweep_params['stop'],
+            self.sweep_params['step'],
+            self.sweep_params['use_auto_rate'],
+            self.sweep_params['manual_rate']
+        )
+
+        # Connect signals
+        self.sweep_thread.progress_signal.connect(self.update_progress)
+        self.sweep_thread.data_point_signal.connect(self.update_plot)
+        self.sweep_thread.warning_signal.connect(self.show_warning)
+        self.sweep_thread.error_signal.connect(self.show_error)
+        self.sweep_thread.info_signal.connect(self.show_info)
+        self.sweep_thread.sweep_complete_signal.connect(self.on_sweep_complete)
+        self.sweep_thread.finished.connect(self.on_thread_finished)
+
+        # Start thread
+        self.sweep_thread.start()
+
+    def stop_sweep(self):
+        """Stop the current sweep"""
+        if self.sweep_thread and self.sweep_thread.isRunning():
+            self.sweep_thread.stop()
+            self.stop_sweep_button.setEnabled(False)
+
+    def update_progress(self, percentage, status):
+        """Update progress display"""
+        self.progress_label.setText(f"Progress: {percentage}%")
+        self.status_label.setText(f"{status}")
+
+    def update_plot(self, x_value, noise_level, X, Y):
+        """Update plot with new data point"""
+        self.sweep_data_x.append(x_value)
+        self.sweep_data_y.append(noise_level)
+        self.sweep_data_X.append(X)
+        self.sweep_data_Y.append(Y)
+
+        # Update plot
+        self.plot_curve.setData(self.sweep_data_x, self.sweep_data_y)
+
+    def clear_plot_data(self):
+        """Clear plot data"""
+        self.sweep_data_x = []
+        self.sweep_data_y = []
+        self.sweep_data_X = []
+        self.sweep_data_Y = []
+        self.plot_curve.setData([], [])
+
+        QMessageBox.information(self, "Data Cleared", "Plot data has been cleared")
+
+    def save_data(self):
+        """Save sweep data to file"""
+        if not self.sweep_data_x:
+            QMessageBox.warning(self, "No Data", "No data to save")
+            return
+
+        try:
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"dsp7265_sweep_{timestamp}.csv"
+
+            # Save data
+            with open(filename, 'w') as f:
+                if self.sweep_params['type'] == 'frequency':
+                    f.write("Frequency (Hz),Noise Level (V),X (V),Y (V)\n")
+                else:
+                    f.write("Amplitude (V),Noise Level (V),X (V),Y (V)\n")
+
+                for i in range(len(self.sweep_data_x)):
+                    f.write(
+                        f"{self.sweep_data_x[i]},{self.sweep_data_y[i]},{self.sweep_data_X[i]},{self.sweep_data_Y[i]}\n")
+
+            QMessageBox.information(
+                self,
+                "Data Saved",
+                f"Data saved to:\n{filename}\n\nTotal points: {len(self.sweep_data_x)}"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Error saving data:\n{str(e)}")
+
+    def show_warning(self, title, message):
+        """Show warning message"""
+        QMessageBox.warning(self, title, message)
+
+    def show_error(self, title, message):
+        """Show error message"""
+        QMessageBox.critical(self, title, message)
+
+    def show_info(self, title, message):
+        """Show info message"""
+        QMessageBox.information(self, title, message)
+
+    def on_sweep_complete(self):
+        """Called when sweep completes"""
+        self.progress_label.setText("Progress: 100%")
+        self.status_label.setText("Sweep Complete!")
+
+    def on_thread_finished(self):
+        """Called when thread finishes"""
+        self.start_sweep_button.setEnabled(True)
+        self.stop_sweep_button.setEnabled(False)
+        self.setup_sweep_button.setEnabled(True)
+
+    def closeEvent(self, event):
+        """Handle window close"""
+        # Stop sweep if running
+        if self.sweep_thread and self.sweep_thread.isRunning():
+            self.sweep_thread.stop()
+            self.sweep_thread.wait()
+
+        # Disconnect instrument
+        if self.instrument:
+            try:
+                self.instrument.close()
+            except:
+                pass
+
+        event.accept()
+
+
+# ============================================================================
+# Main Application
+# ============================================================================
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = DSP7265MainWindow()
+    window.show()
+    sys.exit(app.exec())
 
 class SR7265_COMMAND:
     """
