@@ -16,6 +16,9 @@ matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+import pyqtgraph as pg
+from pyqtgraph import PlotWidget, ImageView
+from pyqtgraph.exporters import ImageExporter
 
 try:
     # from GUI.Experiment.BNC845RF import COMMAND
@@ -274,7 +277,8 @@ class BK9205_RIGOL_Worker(QThread):
             )
 
             # Step 1: Set voltage/current using set_all_voltages/currents command
-            self.bk9205_cmd.set_remote_mode(self.bk9205)
+            if not self.demo_mode:
+                self.bk9205_cmd.set_remote_mode(self.bk9205)
             self._set_channel_voltage_all_command(channel_num, value, source_type)
             # Step 2: Turn on the channel
             self._turn_on_channel(channel_num)
@@ -1379,6 +1383,96 @@ class RIGOL_Measurement(QWidget):
         return self.customize_layout
 
     def figure_layout_ui(self):
+        """Create plot widgets using PyQtGraph"""
+
+        # Configure PyQtGraph globally
+        pg.setConfigOptions(antialias=True)
+        pg.setConfigOption('background', 'w')  # White background
+        pg.setConfigOption('foreground', 'k')  # Black text
+
+        figure_group_box = QGroupBox("Graph")
+        figure_content_layout = QHBoxLayout()
+
+        # ========== LEFT PLOT: 2D Cumulative (PlotWidget with ImageItem) ==========
+        cumulative_figure_layout = QVBoxLayout()
+
+        # Title for cumulative plot
+        cumulative_title = QLabel("Frequency vs Voltage Spectrum Map")
+        cumulative_title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        cumulative_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create PlotWidget for 2D heatmap
+        self.cumulative_plot_widget = pg.PlotWidget()
+        self.cumulative_plot_widget.setBackground('w')
+
+        # Create ImageItem and add to plot
+        self.cumulative_image_item = pg.ImageItem()
+        self.cumulative_plot_widget.addItem(self.cumulative_image_item)
+
+        # Set colormap
+        self.cumulative_colormap = pg.colormap.get('viridis')
+        self.cumulative_image_item.setColorMap(self.cumulative_colormap)
+
+        try:
+            self.cumulative_colorbar = pg.ColorBarItem(
+                values=(0, 1),
+                colorMap=self.cumulative_colormap,
+                label='Power (dBm)',
+                limits=None
+            )
+            self.cumulative_colorbar.setImageItem(self.cumulative_image_item)
+        except Exception as e:
+            print(f"Warning: Could not create colorbar: {e}")
+        # Set labels
+        self.cumulative_plot_widget.setLabel('bottom', 'Frequency (GHz)', **{'font-size': '11pt'})
+        self.cumulative_plot_widget.setLabel('left', 'Voltage (V)', **{'font-size': '11pt'})
+
+        cumulative_figure_layout.addWidget(cumulative_title)
+        cumulative_figure_layout.addWidget(self.cumulative_plot_widget)
+        figure_content_layout.addLayout(cumulative_figure_layout)
+
+        # ========== RIGHT PLOT: Single Spectrum (PlotWidget) ==========
+        single_figure_layout = QVBoxLayout()
+
+        # Title for single plot
+        single_title = QLabel("Latest Spectrum")
+        single_title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        single_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create PlotWidget for line plot
+        self.single_plot_widget = pg.PlotWidget()
+        self.single_plot_widget.setBackground('w')
+        self.single_plot_widget.showGrid(x=True, y=True, alpha=0.3)
+
+        # Set labels
+        self.single_plot_widget.setLabel('left', 'Power (dBm)', **{'font-size': '11pt'})
+        self.single_plot_widget.setLabel('bottom', 'Frequency (GHz)', **{'font-size': '11pt'})
+
+        # Add legend
+        self.single_plot_widget.addLegend()
+
+        single_figure_layout.addWidget(single_title)
+        single_figure_layout.addWidget(self.single_plot_widget)
+        figure_content_layout.addLayout(single_figure_layout)
+
+        # Create compatibility references (for existing code that references canvas)
+        self.cumulative_canvas = type('obj', (object,), {
+            'axes': self.cumulative_plot_widget.getPlotItem(),
+            'figure': self.cumulative_plot_widget,
+            'draw': lambda: None  # PyQtGraph auto-updates
+        })()
+
+        self.single_canvas = type('obj', (object,), {
+            'axes': self.single_plot_widget.getPlotItem(),
+            'figure': self.single_plot_widget,
+            'draw': lambda: None  # PyQtGraph auto-updates
+        })()
+
+        figure_group_box.setLayout(figure_content_layout)
+        figure_group_box.setFixedSize(1150, 400)
+        return figure_group_box
+
+    def figure_layout_ui_matplotlib(self):
         try:
             from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
             from instrument.BK_precision_9129B import BK_9129_COMMAND
@@ -2032,7 +2126,7 @@ class RIGOL_Measurement(QWidget):
                     folder_path=self.folder_path,
                     file_name=self.file_name,
                     run_number=self.run,
-                    demo_mode=getattr(self, 'demo_mode', False),
+                    demo_mode=getattr(self, 'demo_mode', True),
                     settling_time=1.0,
                     spectrum_averaging=1,
                     save_individual_spectra=False
@@ -2072,10 +2166,12 @@ class RIGOL_Measurement(QWidget):
         """Prepare UI for measurement (clear plots, create log box, etc.)."""
         try:
             # Clear existing plots
-            self.cumulative_canvas.axes.cla()
-            self.single_canvas.axes.cla()
-            self.cumulative_canvas.draw()
-            self.single_canvas.draw()
+            # self.cumulative_canvas.axes.cla()
+            self.cumulative_image_item.clear()
+            self.single_plot_widget.clear()
+            # self.single_canvas.axes.cla()
+            # self.cumulative_canvas.draw()
+            # self.single_canvas.draw()
 
             # Remove old log box and progress bar if they exist
             if hasattr(self, 'log_box'):
@@ -2126,6 +2222,7 @@ class RIGOL_Measurement(QWidget):
             self.log_box.clear()
 
         except Exception as e:
+            print(traceback.format_exc())
             print(f"Error preparing UI: {str(e)}")
 
     def _connect_worker_signals(self):
@@ -2238,7 +2335,7 @@ class RIGOL_Measurement(QWidget):
         if hasattr(self, 'rigol_power_label'):
             self.rigol_power_label.setText(text)
 
-    def update_2d_plot(self, x_data, y_data, z_data):
+    def update_2d_plot_matplotlib(self, x_data, y_data, z_data):
         """
         Update 2D cumulative plot (left plot).
         Creates a 2D colormap showing frequency vs voltage with spectrum power as color.
@@ -2324,10 +2421,114 @@ class RIGOL_Measurement(QWidget):
 
         except Exception as e:
             print(f"Error updating 2D plot: {str(e)}")
-            import traceback
             print(traceback.format_exc())
 
-    def update_spectrum_plot(self, freq_data, power_data):
+    def update_2d_plot(self, x_data, y_data, z_data):
+        """
+        Update 2D cumulative plot using PyQtGraph PlotWidget with ImageItem.
+
+        Args:
+            x_data: List of frequencies (Hz)
+            y_data: List of voltage/current values
+            z_data: List of spectra (2D array of power values)
+        """
+        if not hasattr(self, 'cumulative_image_item'):
+            print("ERROR: cumulative_image_item not found!")
+            return
+
+        if not hasattr(self, 'cumulative_plot_widget'):
+            print("ERROR: cumulative_plot_widget not found!")
+            return
+
+        try:
+            import numpy as np
+
+            # Validate input data
+            if len(x_data) == 0 or len(y_data) == 0 or len(z_data) == 0:
+                print("ERROR: Empty data received")
+                return
+
+            # Convert to numpy arrays
+            freq_ghz = np.array(x_data) / 1e9
+            voltages = np.array(y_data)
+            Z = np.array(z_data)
+
+            print(f"\n=== 2D Plot Update ===")
+            print(f"Frequencies: {len(freq_ghz)} points, range [{freq_ghz[0]:.3f}, {freq_ghz[-1]:.3f}] GHz")
+            print(f"Voltages: {len(voltages)} points, range [{voltages[0]:.6f}, {voltages[-1]:.6f}]")
+            print(f"Z shape before processing: {Z.shape}")
+            print(f"Z value range: [{np.min(Z):.3f}, {np.max(Z):.3f}] dBm")
+
+            # Ensure Z is 2D
+            if Z.ndim == 1:
+                print(f"Warning: Z is 1D, reshaping...")
+                Z = Z.reshape(len(voltages), len(freq_ghz))
+
+            # Transpose for PyQtGraph (expects [x, y] indexing)
+            Z_transposed = Z.T
+
+            print(f"Final Z shape for display: {Z_transposed.shape}")
+
+            # CRITICAL FIX: Set levels explicitly for negative dBm values
+            z_min = float(np.min(Z))
+            z_max = float(np.max(Z))
+
+            print(f"Setting explicit levels: [{z_min:.3f}, {z_max:.3f}]")
+
+            # Set the image data WITHOUT autoLevels (it doesn't work well with negative values)
+            self.cumulative_image_item.setImage(
+                Z_transposed,
+                autoLevels=False  # IMPORTANT: Turn OFF autoLevels
+            )
+
+            # CRITICAL: Set levels manually
+            self.cumulative_image_item.setLevels([z_min, z_max])
+
+            # Set position and scale
+            freq_min = float(freq_ghz[0])
+            freq_max = float(freq_ghz[-1])
+            volt_min = float(voltages[0])
+            volt_max = float(voltages[-1])
+
+            # Handle single point case
+            if freq_min == freq_max:
+                freq_min -= 0.1
+                freq_max += 0.1
+            if volt_min == volt_max:
+                volt_min -= 0.1
+                volt_max += 0.1
+
+            width = freq_max - freq_min
+            height = volt_max - volt_min
+
+            print(f"Image rect: pos=({freq_min:.3f}, {volt_min:.3f}), size=({width:.3f}, {height:.3f})")
+
+            # Set the rectangle
+            self.cumulative_image_item.setRect(
+                freq_min, volt_min, width, height
+            )
+
+            # Force view to auto-range
+            self.cumulative_plot_widget.getViewBox().autoRange()
+
+            # Update axis label
+            if hasattr(self, 'worker') and self.worker is not None:
+                try:
+                    source_type = self.worker.measurement_data.get('source_type', 'voltage').capitalize()
+                    unit = 'V' if source_type.lower() == 'voltage' else 'A'
+                    self.cumulative_plot_widget.setLabel('left', f'{source_type} ({unit})', **{'font-size': '11pt'})
+                except:
+                    pass
+
+            print(f"✓ 2D plot updated successfully\n")
+
+        except Exception as e:
+            print(f"\n✗ ERROR in update_2d_plot: {e}")
+            import traceback
+            traceback.print_exc()
+            print()
+
+    def update_spectrum_plot_matplotlib(self, freq_data, power_data):
         """
         Update spectrum plot (right plot).
         Shows the latest captured spectrum.
@@ -2409,24 +2610,113 @@ class RIGOL_Measurement(QWidget):
             import traceback
             print(traceback.format_exc())
 
+    def update_spectrum_plot(self, freq_data, power_data):
+        """
+        Update spectrum plot using PyQtGraph PlotWidget.
+
+        Args:
+            freq_data: List of frequencies in Hz
+            power_data: List of power values in dBm
+        """
+        if not hasattr(self, 'single_plot_widget'):
+            return
+
+        try:
+            import numpy as np
+
+            # Convert frequency to GHz
+            freq_ghz = np.array(freq_data) / 1e9
+            power = np.array(power_data)
+
+            # Clear previous plot
+            self.single_plot_widget.clear()
+
+            # Plot spectrum line
+            pen = pg.mkPen(color='r', width=2)
+            self.single_plot_widget.plot(
+                freq_ghz,
+                power,
+                pen=pen,
+                name='Spectrum'
+            )
+
+            # Find and mark peak
+            peak_power = np.max(power)
+            peak_idx = np.argmax(power)
+            peak_freq = freq_ghz[peak_idx]
+
+            # Plot peak marker
+            self.single_plot_widget.plot(
+                [peak_freq],
+                [peak_power],
+                pen=None,
+                symbol='o',
+                symbolSize=10,
+                symbolBrush='g',
+                symbolPen=pg.mkPen('k', width=2),
+                name=f'Peak: {peak_power:.2f} dBm @ {peak_freq:.3f} GHz'
+            )
+
+            # Add vertical line at peak
+            peak_line = pg.InfiniteLine(
+                pos=peak_freq,
+                angle=90,
+                pen=pg.mkPen('g', style=Qt.PenStyle.DashLine, width=1),
+                movable=False
+            )
+            self.single_plot_widget.addItem(peak_line)
+
+            # Set labels (if not already set)
+            self.single_plot_widget.setLabel('left', 'Power (dBm)', **{'font-size': '11pt'})
+            self.single_plot_widget.setLabel('bottom', 'Frequency (GHz)', **{'font-size': '11pt'})
+
+            # Set y-axis range with some padding
+            y_min = np.min(power)
+            y_max = np.max(power)
+            y_range = y_max - y_min
+            self.single_plot_widget.setYRange(
+                y_min - 0.1 * y_range,
+                y_max + 0.1 * y_range,
+                padding=0
+            )
+
+            print(f"Spectrum plot updated: {len(freq_data)} points, peak at {peak_freq:.3f} GHz")
+
+        except Exception as e:
+            print(f"Error updating spectrum plot: {e}")
+            import traceback
+            traceback.print_exc()
+
     def clear_plot(self):
         """Clear all plots."""
         try:
-            if hasattr(self, 'cumulative_canvas'):
-                self.cumulative_canvas.figure.clear()
-                self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
-                self.cumulative_canvas.axes.set_title('Waiting for measurement...')
-                self.cumulative_canvas.draw()
-                self.cumulative_colorbar = None
+            # if hasattr(self, 'cumulative_canvas'):
+            #     self.cumulative_canvas.figure.clear()
+            #     self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
+            #     self.cumulative_canvas.axes.set_title('Waiting for measurement...')
+            #     self.cumulative_canvas.draw()
+            #     self.cumulative_colorbar = None
+            #
+            # if hasattr(self, 'single_canvas'):
+            #     self.single_canvas.axes.clear()
+            #     self.single_canvas.axes.set_title('Waiting for spectrum...')
+            #     self.single_canvas.draw()
 
-            if hasattr(self, 'single_canvas'):
-                self.single_canvas.axes.clear()
-                self.single_canvas.axes.set_title('Waiting for spectrum...')
-                self.single_canvas.draw()
+            try:
+                if hasattr(self, 'cumulative_image_view'):
+                    self.cumulative_image_item.clear()
+                    print("Cleared cumulative 2D plot")
+
+                if hasattr(self, 'single_plot_widget'):
+                    self.single_plot_widget.clear()
+                    print("Cleared single spectrum plot")
+
+            except Exception as e:
+                print(f"Error clearing plots: {e}")
         except Exception as e:
             print(f"Error clearing plots: {e}")
 
-    def save_individual_spectrum_plot(self, filename):
+    def save_individual_spectrum_plot_matplotlib(self, filename):
         """Save current spectrum plot (right side) to file."""
         try:
             spectrum_file = f"{self.folder_path}/{filename}"
@@ -2441,7 +2731,22 @@ class RIGOL_Measurement(QWidget):
         except Exception as e:
             self.append_text(f"    ✗ Error saving spectrum plot: {str(e)}")
 
-    def save_plot(self, filename):
+    def save_individual_spectrum_plot(self, filename):
+        """Save current spectrum plot to file using PyQtGraph exporter."""
+        try:
+            spectrum_file = f"{self.folder_path}/{filename}"
+
+            # Use PyQtGraph's ImageExporter
+            exporter = pg.exporters.ImageExporter(self.single_plot_widget.plotItem)
+            exporter.parameters()['width'] = 1920  # High resolution
+            exporter.export(spectrum_file)
+
+            self.append_text(f"    ✓ Spectrum plot saved: {filename}")
+
+        except Exception as e:
+            self.append_text(f"    ✗ Error saving spectrum plot: {str(e)}")
+
+    def save_plot_matplotlib(self, filename):
         """Save current plots to files."""
         try:
             # Save cumulative plot
@@ -2463,6 +2768,28 @@ class RIGOL_Measurement(QWidget):
             #     facecolor='white',
             #     edgecolor='none'
             # )
+
+            self.append_text(f"✓ Plots saved: {filename}_cumulative.png, {filename}_spectrum.png")
+
+        except Exception as e:
+            self.append_text(f"✗ Error saving plots: {str(e)}")
+            import traceback
+            self.append_text(traceback.format_exc())
+
+    def save_plot(self, filename):
+        """Save current plots to files using PyQtGraph exporter."""
+        try:
+            # Save cumulative 2D plot
+            cumulative_file = f"{self.folder_path}/{filename}_cumulative.png"
+            exporter_cumulative = pg.exporters.ImageExporter(self.cumulative_plot_widget.plotItem)
+            exporter_cumulative.parameters()['width'] = 1920
+            exporter_cumulative.export(cumulative_file)
+
+            # # Save spectrum plot
+            # spectrum_file = f"{self.folder_path}/{filename}_spectrum.png"
+            # exporter_spectrum = pg.exporters.ImageExporter(self.single_plot_widget.plotItem)
+            # exporter_spectrum.parameters()['width'] = 1920
+            # exporter_spectrum.export(spectrum_file)
 
             self.append_text(f"✓ Plots saved: {filename}_cumulative.png, {filename}_spectrum.png")
 

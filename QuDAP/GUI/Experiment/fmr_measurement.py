@@ -55,15 +55,16 @@ class ST_FMR_Worker(QThread):
     update_dsp7265_freq_label = pyqtSignal(str)
     update_lockin_label = pyqtSignal(str, str, str, str)
 
-    save_individual_plot = pyqtSignal(str)
     send_notification = pyqtSignal(str)
 
     # Plotting signals
     update_2d_plot = pyqtSignal(list, list, list)  # x_data (indices), y_data (voltages), z_data (peak powers)
     update_fmr_spectrum_plot = pyqtSignal(list, list)  # freq_data, power_data
-    save_plot = pyqtSignal(str)  # filename
+    save_individual_plot = pyqtSignal(str)  # filename
     clear_plot = pyqtSignal()
     clear_fmr_plot = pyqtSignal()
+    save_2d_plot = pyqtSignal(str)  # filename
+
 
     # Measurement progress
     update_measurement_progress = pyqtSignal(float, float, float, float)
@@ -104,6 +105,9 @@ class ST_FMR_Worker(QThread):
         # Data storage
         self.measurement_results = []
         self.all_spectra = []
+        self.cumulative_repetition_data = []  # Store all repetition data
+        self.cumulative_power_data = {}  # Dict keyed by power level
+        self.cumulative_frequency_data = {}  # Dict keyed by (power, frequency)
 
         # initialize ppms safe command
         try:
@@ -154,9 +158,6 @@ class ST_FMR_Worker(QThread):
                 self.append_text.emit("=" * 60, 'red')
                 return  # Exit without emitting measurement_finished
 
-            # # Save consolidated data
-            # self._save_consolidated_data()
-            #
             # # Cleanup
             self._cleanup_instruments()
 
@@ -171,7 +172,6 @@ class ST_FMR_Worker(QThread):
             error_msg = f"Error in measurement: {str(e)}\n{traceback.format_exc()}"
             self.append_text.emit(error_msg, 'red')
             self.stop_measurement.emit()
-
 
     def _execute_measurement(self):
         """Execute the main measurement loop."""
@@ -195,6 +195,7 @@ class ST_FMR_Worker(QThread):
 
             fast_field_rate = 220
             zero_field = 0
+            result = {}
 
             start_time = time.time()
             self.append_text.emit('Measurement Start....\n', 'red')
@@ -313,7 +314,7 @@ class ST_FMR_Worker(QThread):
 
                             self.clear_plot.emit()
 
-                            csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}_K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run}_repeat_{number_of_repetition[l]}.csv"
+                            csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}.csv"
 
                             time.sleep(5)
 
@@ -486,13 +487,13 @@ class ST_FMR_Worker(QThread):
 
 
                                     total_time_in_seconds = Single_loop * total_progress * total_estimate_field_step
-                                    totoal_time_in_minutes = total_time_in_seconds / 60
-                                    total_time_in_hours = totoal_time_in_minutes / 60
+                                    total_time_in_minutes = total_time_in_seconds / 60
+                                    total_time_in_hours = total_time_in_minutes / 60
                                     total_time_in_days = total_time_in_hours / 24
 
                                     estimate_time_in_seconds = Single_loop * remaining_progress * estimate_field_step
                                     estimate_time_in_minutes = total_time_in_seconds / 60
-                                    estimate_time_in_hours = totoal_time_in_minutes / 60
+                                    estimate_time_in_hours = total_time_in_minutes / 60
                                     estimate_time_in_days = total_time_in_hours / 24
 
                                     self.append_text.emit(
@@ -515,7 +516,7 @@ class ST_FMR_Worker(QThread):
                                     current_progress = (total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
                                     self.progress_update.emit(int(current_progress * 100))
                                     self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
-                                                                totoal_time_in_minutes, current_progress * 100)
+                                                                total_time_in_minutes, current_progress * 100)
 
                                 # ----------------- Loop Up ----------------------#
                                 if field_direction == 'bidirectional':
@@ -647,13 +648,13 @@ class ST_FMR_Worker(QThread):
                                             'purple')
 
                                         total_time_in_seconds = Single_loop * total_progress * total_estimate_field_step
-                                        totoal_time_in_minutes = total_time_in_seconds / 60
-                                        total_time_in_hours = totoal_time_in_minutes / 60
+                                        total_time_in_minutes = total_time_in_seconds / 60
+                                        total_time_in_hours = total_time_in_minutes / 60
                                         total_time_in_days = total_time_in_hours / 24
 
                                         estimate_time_in_seconds = Single_loop * remaining_progress * estimate_field_step
                                         estimate_time_in_minutes = total_time_in_seconds / 60
-                                        estimate_time_in_hours = totoal_time_in_minutes / 60
+                                        estimate_time_in_hours = total_time_in_minutes / 60
                                         estimate_time_in_days = total_time_in_hours / 24
 
                                         self.append_text.emit(
@@ -677,7 +678,7 @@ class ST_FMR_Worker(QThread):
                                                                        total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
                                         self.progress_update.emit(int(current_progress * 100))
                                         self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
-                                                                              totoal_time_in_minutes,
+                                                                              total_time_in_minutes,
                                                                               current_progress * 100)
 
                             else:
@@ -820,12 +821,22 @@ class ST_FMR_Worker(QThread):
                                         return  # Exit without emitting measurement_finished
                                     time.sleep(2)
 
+                            # Update single spectrum plot with completed data
+                            self.append_text.emit('Updating single spectrum plot...', 'blue')
+                            self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
 
+                            # Save individual spectrum plot
+
+                            individual_plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_{power_list[k]}dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}"
+
+                            self.save_individual_plot.emit(individual_plot_filename)
+                            self.append_text.emit(f'Saved individual spectrum: {individual_plot_filename}',
+                                                      'green')
                             time.sleep(2)
                             self.client.set_field(zero_field,
-                                             fast_field_rate,
-                                             self.client.field.approach_mode.oscillate,  # linear/oscillate
-                                             self.client.field.driven_mode.driven)
+                                                  fast_field_rate,
+                                                  self.client.field.approach_mode.oscillate,
+                                                  self.client.field.driven_mode.driven)
                             self.append_text.emit('Waiting for Zero Field', 'red')
                             time.sleep(2)
                             while True:
@@ -834,17 +845,130 @@ class ST_FMR_Worker(QThread):
                                 if field_status == 'Holding (driven)':
                                     break
 
+                            # Store current measurement result
+                            single_result = {
+                                'temperature': temperature_list[i],
+                                'frequency': frequency_list[j],
+                                'power': power_list[k],
+                                'repetition': number_of_repetition[l],
+                                'field': self.field_array.copy(),
+                                'x': self.lockin_x.copy(),
+                                'y': self.lockin_y.copy(),
+                                'mag': self.lockin_mag.copy(),
+                                'phase': self.lockin_pahse.copy()
+                            }
+                            self.measurement_results.append(single_result)
+
+                            # Store for cumulative plotting
+                            self.cumulative_repetition_data.append(single_result)
+
+                            # Initialize power key if needed
+                            power_key = f"{power_list[k]}"
+                            if power_key not in self.cumulative_power_data:
+                                self.cumulative_power_data[power_key] = []
+                            self.cumulative_power_data[power_key].append(single_result)
+
+                            # Initialize frequency key if needed
+                            freq_key = f"{power_list[k]}_{frequency_list[j]}"
+                            if freq_key not in self.cumulative_frequency_data:
+                                self.cumulative_frequency_data[freq_key] = []
+                            self.cumulative_frequency_data[freq_key].append(single_result)
+
+                            # ========== REPETITION PLOT ==========
+                            # Update repetition plot if more than 1 repetition
+                            if len(number_of_repetition) > 1 and len(self.cumulative_repetition_data) > 0:
+                                self.append_text.emit('Updating repetition 2D plot...', 'blue')
+
+                                # Extract data for 2D plot (Field vs Repetition)
+                                rep_numbers = [d['repetition'] for d in self.cumulative_repetition_data]
+                                field_data = self.cumulative_repetition_data[0]['field']  # Use first as reference
+                                intensity_matrix = [d['x'] for d in self.cumulative_repetition_data]
+
+                                self.update_2d_plot.emit(field_data, rep_numbers, intensity_matrix)
+
+                                # Save plot when all repetitions for this power/frequency are complete
+                                if l == len(number_of_repetition) - 1:
+                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_{power_list[k]}dBm_Run_{self.run_number}_Repetition"
+
+                                    self.save_2d_plot.emit(plot_filename)
+                                    self.append_text.emit(f'Saved repetition plot: {plot_filename}', 'green')
+
+                            # After all repetitions complete for this power level
                         if self.bnc845:
                             self._turn_off_output_bnc845()
                             time.sleep(5)
                             self.update_fmr_ui.emit()
-                #         if len(self.repetition_array) > 1:
-                #             self.update_2d_plot.emit(self.field_array, self.repetition_array, self.lockin_x)
-                #     if len(self.power_array) > 1:
-                #         self.update_2d_plot.emit(self.field_array, self.power_array, self.lockin_x)
-                # if len(self.frequency_array) > 1:
-                #     self.update_2d_plot.emit(self.field_array, self.frequency_array, self.lockin_x)
 
+                            # Clear repetition data for next power/frequency combination
+                        self.cumulative_repetition_data = []
+
+                        # ========== POWER PLOT ==========
+                        # Update power plot if more than 1 power level
+                        if number_of_power > 1 and len(self.cumulative_power_data.get(power_key, [])) > 0:
+                            self.append_text.emit('Updating power 2D plot...', 'blue')
+
+                            # Use latest repetition data for each power level
+                            power_levels = []
+                            power_intensity_matrix = []
+                            field_reference = None
+
+                            for p_idx, p_val in enumerate(power_list[:k + 1]):
+                                p_key = f"{p_val}"
+                                if p_key in self.cumulative_power_data and len(self.cumulative_power_data[p_key]) > 0:
+                                    # Use the last repetition for this power
+                                    latest_data = self.cumulative_power_data[p_key][-1]
+                                    power_levels.append(p_val)
+                                    power_intensity_matrix.append(latest_data['x'])
+                                    if field_reference is None:
+                                        field_reference = latest_data['field']
+
+                            if len(power_levels) > 1 and field_reference is not None:
+                                self.update_2d_plot.emit(field_reference, power_levels, power_intensity_matrix)
+
+                                # Save plot when all powers for this frequency are complete
+                                if k == number_of_power - 1:
+                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_Power"
+                                    self.save_2d_plot.emit(plot_filename)
+                                    self.append_text.emit(f'Saved power plot: {plot_filename}', 'green')
+
+                        # After all power levels complete for this frequency
+                        # ========== FREQUENCY PLOT ==========
+                        # Update frequency plot if more than 1 frequency
+                    if number_of_frequency > 1:
+                        self.append_text.emit('Updating frequency 2D plot...', 'blue')
+
+                        # For each power level, create a frequency plot
+                        for p_idx, p_val in enumerate(power_list):
+                            p_key = f"{p_val}"
+
+                            freq_levels = []
+                            freq_intensity_matrix = []
+                            field_reference = None
+
+                            # Collect data for each frequency at this power level
+                            for f_idx, f_val in enumerate(frequency_list[:j + 1]):
+                                freq_key = f"{p_val}_{f_val}"
+                                if freq_key in self.cumulative_frequency_data and len(
+                                        self.cumulative_frequency_data[freq_key]) > 0:
+                                    # Use the latest repetition for this frequency/power combo
+                                    latest_data = self.cumulative_frequency_data[freq_key][-1]
+                                    freq_levels.append(f_val)
+                                    freq_intensity_matrix.append(latest_data['x'])
+                                    if field_reference is None:
+                                        field_reference = latest_data['field']
+
+                            if len(freq_levels) > 1 and field_reference is not None:
+                                self.update_2d_plot.emit(field_reference, freq_levels, freq_intensity_matrix)
+
+                                # Save plot when all frequencies are complete for this power
+                                if j == number_of_frequency - 1:
+                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_Frequency"
+                                    self.save_2d_plot.emit(plot_filename)
+                                    self.append_text.emit(f'Saved frequency plot: {plot_filename}', 'green')
+
+                        # Clear cumulative data for next temperature
+                    self.cumulative_power_data = {}
+                    self.cumulative_frequency_data = {}
             time.sleep(2)
             self.client.set_field(zero_field,
                                   fast_field_rate,
@@ -861,7 +985,8 @@ class ST_FMR_Worker(QThread):
             time.sleep(2)
             self._update_temperature_reading_label()
             self.progress_update.emit(100)
-            self.save_plot.emit(self.file_name)
+            # self.save_plot.emit(self.file_name)
+            # self.save_2d_plot.emit(self.file_name)
             self.update_measurement_progress.emit(0, 0, 0, 100)
             end_time = time.time()
             total_runtime = (end_time - start_time) / 3600
@@ -1010,7 +1135,6 @@ class ST_FMR_Worker(QThread):
                             'rate']
         return user_field_rate
 
-
     # ==================================================================================
     # LABEL UPDATE METHODS
     # ==================================================================================
@@ -1142,150 +1266,6 @@ class ST_FMR_Worker(QThread):
                 'timestamp': datetime.datetime.now().isoformat()
             }
         }
-
-    # ==================================================================================
-    # DATA SAVING METHODS
-    # ==================================================================================
-    def _save_consolidated_data(self):
-        """Save consolidated data file with all measurements and complete spectra."""
-        try:
-            self.append_text.emit("\nSaving consolidated measurement data...")
-
-            data_file = f"{self.folder_path}/{self.file_name}_all_data.txt"
-
-            with open(data_file, 'w') as f:
-                # Write header information
-                f.write("# BK9205 + RIGOL Consolidated Measurement Data\n")
-                f.write("=" * 80 + "\n")
-                f.write(f"# Measurement Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"# Run Number: {self.run_number}\n")
-                f.write(f"# Channel Mode: {self.measurement_data['channel_mode']}\n")
-                f.write(f"# Source Type: {self.measurement_data['source_type']}\n")
-                f.write(f"# Total Points: {len(self.measurement_results)}\n")
-                f.write(f"# Settling Time: {self.settling_time} s\n")
-                f.write(f"# Spectrum Averaging: {self.spectrum_averaging}\n")
-                f.write("=" * 80 + "\n\n")
-
-                # # Write summary table
-                # f.write("# SUMMARY TABLE\n")
-                # f.write("# Point\tTimestamp\tSource_Value\tUnit\tPeak_Power(dBm)\tPeak_Freq(Hz)\tCenter_Freq(Hz)\n")
-                #
-                # for result in self.measurement_results:
-                #     point = result['point']
-                #     timestamp = result['timestamp']
-                #
-                #     # Determine source value
-                #     if 'value' in result:
-                #         value = result['value']
-                #         unit = result['unit']
-                #     elif 'total_value' in result:
-                #         value = result['total_value']
-                #         unit = result['unit']
-                #     elif 'varying_value' in result:
-                #         value = result['varying_value']
-                #         unit = result.get('unit', 'V')
-                #     else:
-                #         value = 0
-                #         unit = 'V'
-                #
-                #     spectrum = result['spectrum']
-                #     peak_power = max(spectrum['powers'])
-                #     peak_idx = spectrum['powers'].index(peak_power)
-                #     peak_freq = spectrum['frequencies'][peak_idx]
-                #     center_freq = (spectrum['frequencies'][0] + spectrum['frequencies'][-1]) / 2
-                #
-                #     f.write(
-                #         f"{point}\t{timestamp}\t{value:.6f}\t{unit}\t{peak_power:.6f}\t{peak_freq:.6e}\t{center_freq:.6e}\n")
-
-                # Write complete spectrum data with side-by-side power columns
-                f.write("\n\n# COMPLETE SPECTRUM DATA\n")
-                f.write("# All power values are in dBm\n")
-                f.write("# Frequency data is the same for all measurements\n")
-                f.write("=" * 80 + "\n")
-
-                # Get frequency data (same for all measurements)
-                freq_data = self.measurement_results[0]['spectrum']['frequencies']
-
-                # Build header for spectrum data
-                header = "Frequency(Hz)"
-                for result in self.measurement_results:
-                    point = result['point']
-
-                    # Get source value for column label
-                    if 'value' in result:
-                        value = result['value']
-                        unit = result['unit']
-                    elif 'total_value' in result:
-                        value = result['total_value']
-                        unit = result['unit']
-                    elif 'varying_value' in result:
-                        value = result['varying_value']
-                        unit = result.get('unit', 'V')
-                    else:
-                        value = 0
-                        unit = 'V'
-
-                    header += f"\t{value:.3f}{unit}"
-
-                f.write(header + "\n")
-
-                # Write data rows
-                num_freq_points = len(freq_data)
-                for i in range(num_freq_points):
-                    row = f"{freq_data[i]:.6e}"
-
-                    # Append power value from each measurement
-                    for result in self.measurement_results:
-                        power = result['spectrum']['powers'][i]
-                        row += f"\t{power:.6f}"
-
-                    f.write(row + "\n")
-
-            self.append_text.emit(f"✓ Saved consolidated data: {data_file}", 'green')
-
-            # Also save summary statistics
-            self._save_summary_statistics()
-
-        except Exception as e:
-            self.append_text(f"✗ Error saving consolidated data: {str(e)}")
-            import traceback
-            self.append_text(traceback.format_exc())
-
-        except Exception as e:
-            self.append_text.emit(f"✗ Error saving consolidated data: {str(e)}", 'red')
-
-    def _save_summary_statistics(self):
-        """Save summary statistics file."""
-        try:
-            summary_file = f"{self.folder_path}/{self.file_name}_summary.txt"
-
-            with open(summary_file, 'w') as f:
-                f.write("BK9205 + RIGOL Measurement Summary\n")
-                f.write("=" * 60 + "\n\n")
-                f.write(f"Measurement Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Run Number: {self.run_number}\n")
-                f.write(f"Total Points: {len(self.measurement_results)}\n\n")
-
-                # Calculate statistics
-                all_peak_powers = [max(r['spectrum']['powers']) for r in self.measurement_results]
-
-                f.write("Peak Power Statistics:\n")
-                f.write(f"  Maximum: {max(all_peak_powers):.2f} dBm\n")
-                f.write(f"  Minimum: {min(all_peak_powers):.2f} dBm\n")
-                f.write(f"  Mean: {np.mean(all_peak_powers):.2f} dBm\n")
-                f.write(f"  Std Dev: {np.std(all_peak_powers):.2f} dBm\n\n")
-
-                # Measurement configuration
-                f.write("Configuration:\n")
-                f.write(f"  Channel Mode: {self.measurement_data['channel_mode']}\n")
-                f.write(f"  Source Type: {self.measurement_data['source_type']}\n")
-                f.write(f"  Settling Time: {self.settling_time} s\n")
-                f.write(f"  Spectrum Averaging: {self.spectrum_averaging}\n")
-
-            self.append_text.emit(f"✓ Saved summary: {summary_file}", 'green')
-
-        except Exception as e:
-            self.append_text.emit(f"✗ Error saving summary: {str(e)}", 'red')
 
     # ==================================================================================
     # HELPER METHODS

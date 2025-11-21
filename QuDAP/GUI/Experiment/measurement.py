@@ -13,7 +13,6 @@ import threading
 
 import pyvisa as visa
 import matplotlib
-import numpy as np
 
 
 if platform.system() == 'Windows':
@@ -35,6 +34,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont, QDoubleValidator, QIcon
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QSettings, QSize
 from PyQt6.QtGui import QKeyEvent
+import pyqtgraph as pg
+from pyqtgraph.exporters import ImageExporter
+from pyqtgraph import PlotWidget, ImageView
+import numpy as np
 
 # for simulation purpose
 matplotlib.use('QtAgg')
@@ -57,7 +60,73 @@ except ImportError:
     from instrument.BK_precision_9129B import BK_9129_COMMAND
     from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from instrument.BNC845 import BNC_845M_COMMAND
-    
+
+
+
+
+class PyQtGraphPlotWidget(QWidget):
+    """Widget containing PyQtGraph plot with controls"""
+
+    def __init__(self, parent=None, title="Plot"):
+        super().__init__(parent)
+
+        # Create layout
+        layout = QVBoxLayout(self)
+
+        # Create title label
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create plot widget
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setBackground('w')  # White background
+
+        # Enable antialiasing for better quality
+        pg.setConfigOptions(antialias=True)
+
+        # Add to layout
+        layout.addWidget(title_label)
+        layout.addWidget(self.plot_widget)
+
+        # Reference to plot item
+        self.plot_item = self.plot_widget.getPlotItem()
+
+        # Enable grid
+        self.plot_item.showGrid(x=True, y=True, alpha=0.3)
+
+        # Store plot data references
+        self.plot_data_item = None
+
+
+class PyQtGraph2DPlotWidget(QWidget):
+    """Widget for 2D heatmap/contour plots using PyQtGraph ImageView"""
+
+    def __init__(self, parent=None, title="2D Plot"):
+        super().__init__(parent)
+
+        # Create layout
+        layout = QVBoxLayout(self)
+
+        # Create title label
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create ImageView for 2D plot
+        self.image_view = pg.ImageView()
+
+        # Configure color map
+        self.colormap = pg.colormap.get('viridis')
+        self.image_view.setColorMap(self.colormap)
+
+        # Add to layout
+        layout.addWidget(title_label)
+        layout.addWidget(self.image_view)
+
+        # Store reference to view
+        self.view = self.image_view.getView()
+        self.image_item = self.image_view.getImageItem()
 
 class ExitProtection:
     def __init__(self):
@@ -1700,32 +1769,32 @@ class Measurement(QMainWindow):
 
                     figure_group_box = QGroupBox("Graph")
                     if self.FMR_ST_FMR:
-                        figure_content_layout = QHBoxLayout()
-                        cumulative_figure_Layout = QVBoxLayout()
-                        self.cumulative_canvas = MplCanvas(self, width=10, height=10, dpi=100)
-                        cumulative_toolbar = NavigationToolbar(self.cumulative_canvas, self)
-                        cumulative_toolbar.setStyleSheet("""
-                                                                                                        QWidget {
-                                                                                                            border: None;
-                                                                                                        }
-                                                                                                    """)
-                        cumulative_figure_Layout.addWidget(cumulative_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-                        cumulative_figure_Layout.addWidget(self.cumulative_canvas,
-                                                           alignment=Qt.AlignmentFlag.AlignCenter)
-                        figure_content_layout.addLayout(cumulative_figure_Layout)
-
-                        single_figure_Layout = QVBoxLayout()
-                        self.single_canvas = MplCanvas(self, width=10, height=10, dpi=100)
-                        single_toolbar = NavigationToolbar(self.single_canvas, self)
-                        single_toolbar.setStyleSheet("""
-                                                                                                               QWidget {
-                                                                                                                   border: None;
-                                                                                                               }
-                                                                                                           """)
-                        single_figure_Layout.addWidget(single_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
-                        single_figure_Layout.addWidget(self.single_canvas, alignment=Qt.AlignmentFlag.AlignCenter)
-                        figure_content_layout.addLayout(single_figure_Layout)
-                        figure_group_box.setLayout(figure_content_layout)
+                        # figure_content_layout = QHBoxLayout()
+                        # cumulative_figure_Layout = QVBoxLayout()
+                        # self.cumulative_canvas = MplCanvas(self, width=10, height=10, dpi=100)
+                        # cumulative_toolbar = NavigationToolbar(self.cumulative_canvas, self)
+                        # cumulative_toolbar.setStyleSheet("""
+                        #                                                                                 QWidget {
+                        #                                                                                     border: None;
+                        #                                                                                 }
+                        #                                                                             """)
+                        # cumulative_figure_Layout.addWidget(cumulative_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+                        # cumulative_figure_Layout.addWidget(self.cumulative_canvas,
+                        #                                    alignment=Qt.AlignmentFlag.AlignCenter)
+                        # figure_content_layout.addLayout(cumulative_figure_Layout)
+                        #
+                        # single_figure_Layout = QVBoxLayout()
+                        # self.single_canvas = MplCanvas(self, width=10, height=10, dpi=100)
+                        # single_toolbar = NavigationToolbar(self.single_canvas, self)
+                        # single_toolbar.setStyleSheet("""
+                        #                                                                                        QWidget {
+                        #                                                                                            border: None;
+                        #                                                                                        }
+                        #                                                                                    """)
+                        # single_figure_Layout.addWidget(single_toolbar, alignment=Qt.AlignmentFlag.AlignCenter)
+                        # single_figure_Layout.addWidget(self.single_canvas, alignment=Qt.AlignmentFlag.AlignCenter)
+                        # figure_content_layout.addLayout(single_figure_Layout)
+                        figure_group_box.setLayout(self.create_dual_plot_ui())
                     else:
                         figure_Layout = QVBoxLayout()
                         self.canvas = MplCanvas(self, width=100, height=10, dpi=100)
@@ -1837,9 +1906,9 @@ class Measurement(QMainWindow):
 
                         self.main_layout.addLayout(self.Instruments_Content_Layout)
 
-                        # self.rigol_measurement = RIGOL_Measurement(True, True)
-                        # self.customize_layout_class = self.rigol_measurement.init_ui()
-                        # self.main_layout.addLayout(self.customize_layout_class)
+                        self.rigol_measurement = RIGOL_Measurement(True, True)
+                        self.customize_layout_class = self.rigol_measurement.init_ui()
+                        self.main_layout.addLayout(self.customize_layout_class)
 
                         self.instru_connect_btn.setStyleSheet(self.Button_stylesheet)
                         self.refresh_btn.setStyleSheet(self.Button_stylesheet)
@@ -3062,7 +3131,9 @@ class Measurement(QMainWindow):
         self.fmr_worker.update_ppms_chamber_reading_label.connect(self.update_ppms_chamber_reading_label)
         self.fmr_worker.update_lockin_label.connect(self.update_lockin_label)
         self.fmr_worker.update_fmr_spectrum_plot.connect(self.update_fmr_spectrum_plot)
-        self.fmr_worker.save_plot.connect(self.save_plot)
+        self.fmr_worker.update_2d_plot.connect(self.update_2d_plot)
+        self.fmr_worker.save_individual_plot.connect(self.save_individual_plot)
+        self.fmr_worker.save_2d_plot.connect(self.save_2d_plot)
         self.fmr_worker.clear_plot.connect(self.clear_plot)
         self.fmr_worker.measurement_finished.connect(self.measurement_finished)
         self.fmr_worker.error_message.connect(self.error_popup)
@@ -5382,6 +5453,85 @@ class Measurement(QMainWindow):
     # ---------------------------------------------------------------------------------
     #  MISC
     # ---------------------------------------------------------------------------------
+    def create_dual_plot_ui(self):
+        """Create the plot interface with two plots side by side using PyQtGraph"""
+
+        # Configure PyQtGraph globally
+        pg.setConfigOptions(antialias=True)
+        pg.setConfigOption('background', 'w')  # White background
+        pg.setConfigOption('foreground', 'k')  # Black text
+
+        plot_layout = QHBoxLayout()
+
+        # ========== LEFT PLOT: 2D Cumulative (PlotWidget with ImageItem) ==========
+        cumulative_widget = QWidget()
+        cumulative_layout = QVBoxLayout(cumulative_widget)
+
+        cumulative_title = QLabel("FMR 2D Spectral Map")
+        cumulative_title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        cumulative_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create PlotWidget for 2D heatmap
+        self.cumulative_plot_widget = pg.PlotWidget()
+        self.cumulative_plot_widget.setBackground('w')
+
+        # Create ImageItem and add to plot
+        self.cumulative_image_item = pg.ImageItem()
+        self.cumulative_plot_widget.addItem(self.cumulative_image_item)
+
+        # Set colormap
+        self.cumulative_colormap = pg.colormap.get('viridis')
+        self.cumulative_image_item.setColorMap(self.cumulative_colormap)
+
+        # Set labels
+        self.cumulative_plot_widget.setLabel('bottom', 'Field (Oe)', **{'font-size': '12pt', 'font-weight': 'bold'})
+        self.cumulative_plot_widget.setLabel('left', 'Parameter', **{'font-size': '12pt', 'font-weight': 'bold'})
+
+        cumulative_layout.addWidget(cumulative_title)
+        cumulative_layout.addWidget(self.cumulative_plot_widget)
+
+        # ========== RIGHT PLOT: Single Spectrum (PlotWidget) ==========
+        single_widget = QWidget()
+        single_layout = QVBoxLayout(single_widget)
+
+        single_title = QLabel("Current FMR Spectrum")
+        single_title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        single_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create PlotWidget for line plot
+        self.single_plot_widget = pg.PlotWidget()
+        self.single_plot_widget.setBackground('w')
+        self.single_plot_widget.showGrid(x=True, y=True, alpha=0.3)
+
+        # Set labels
+        self.single_plot_widget.setLabel('left', 'Lock-in X (V)', **{'font-size': '12pt', 'font-weight': 'bold'})
+        self.single_plot_widget.setLabel('bottom', 'Field (Oe)', **{'font-size': '12pt', 'font-weight': 'bold'})
+
+        # Add legend
+        self.single_plot_widget.addLegend()
+
+        single_layout.addWidget(single_title)
+        single_layout.addWidget(self.single_plot_widget)
+
+        # Create compatibility references (for existing code that might reference canvas)
+        self.cumulative_canvas = type('obj', (object,), {
+            'axes': self.cumulative_plot_widget.getPlotItem(),
+            'figure': self.cumulative_plot_widget,
+            'draw': lambda: None  # PyQtGraph auto-updates
+        })()
+
+        self.single_canvas = type('obj', (object,), {
+            'axes': self.single_plot_widget.getPlotItem(),
+            'figure': self.single_plot_widget,
+            'draw': lambda: None  # PyQtGraph auto-updates
+        })()
+
+        # Add plots to layout
+        plot_layout.addWidget(cumulative_widget)
+        plot_layout.addWidget(single_widget)
+
+        return plot_layout
+
     def _parse_custom_list(self, list_string):
         """
         Parse a comma-separated string of values into a list of floats.
@@ -6389,6 +6539,181 @@ class Measurement(QMainWindow):
             caption = f"Data preview"
             NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=image_path)
 
+    def save_2d_plot_matplotlib(self, filename):
+        """
+        Save the current 2D cumulative plot to file.
+
+        Args:
+            filename: base filename without extension
+        """
+        if not hasattr(self, 'cumulative_canvas'):
+            print("Error: No cumulative canvas to save")
+            return
+
+        try:
+            import datetime
+
+            # Get folder path
+            if hasattr(self, 'folder_path') and self.folder_path:
+                folder_path = self.folder_path
+            else:
+                folder_path = os.path.dirname(filename) if os.path.dirname(filename) else '.'
+
+            # Ensure folder exists
+            os.makedirs(folder_path, exist_ok=True)
+
+            # Get base filename without extension
+            base_name = os.path.splitext(os.path.basename(filename))[0]
+
+            # Save PNG (high resolution)
+            png_path = os.path.join(folder_path, f"{base_name}_2d.png")
+            self.cumulative_canvas.figure.savefig(
+                png_path,
+                dpi=300,
+                bbox_inches='tight',
+                facecolor='white'
+            )
+
+            caption = f"Data preview"
+            NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=png_path)
+
+
+        except Exception as e:
+            print(f"Error saving plot: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def save_2d_plot(self, filename):
+        """Save the current 2D cumulative plot with duplicate handling."""
+        if not hasattr(self, 'cumulative_image_view'):
+            print("Error: No cumulative image view to save")
+            return
+
+        try:
+            # Get folder path
+            if hasattr(self, 'folder_path') and self.folder_path:
+                folder_path = self.folder_path
+            else:
+                folder_path = os.path.dirname(filename) if os.path.dirname(filename) else '.'
+
+            os.makedirs(folder_path, exist_ok=True)
+
+            # Get base filename
+            base_name = os.path.splitext(os.path.basename(filename))[0]
+            base_name_with_suffix = f"{base_name}_2d"
+
+            # Get unique filename
+            png_path = self._get_unique_filepath(folder_path, base_name_with_suffix, "png")
+
+            # Export the image view
+            exporter = pg.exporters.ImageExporter(self.cumulative_plot_widget.plotItem)
+            exporter.parameters()['width'] = 1920  # High resolution
+            exporter.export(png_path)
+
+            print(f"2D plot saved: {png_path}")
+
+            # Send notification if available
+            try:
+                NotificationManager().send_message_with_image(
+                    message=f"Data Saved - Data preview",
+                    image_path=png_path
+                )
+            except Exception as e:
+                print(f"Warning: Could not send notification: {e}")
+
+            return png_path
+
+        except Exception as e:
+            print(f"Error saving 2D plot: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def save_individual_plot_matplotlib(self, filename):
+        """
+        Save the current single spectrum plot to file.
+
+        Args:
+            filename: base filename without extension
+        """
+        if not hasattr(self, 'single_canvas'):
+            print("Error: No single canvas to save")
+            return
+
+        try:
+            # Get folder path
+            if hasattr(self, 'folder_path') and self.folder_path:
+                folder_path = self.folder_path
+            else:
+                folder_path = os.path.dirname(filename) if os.path.dirname(filename) else '.'
+
+            # Ensure folder exists
+            os.makedirs(folder_path, exist_ok=True)
+
+            # Get base filename without extension
+            base_name = os.path.splitext(os.path.basename(filename))[0]
+
+            # Save PNG (high resolution)
+            png_path = os.path.join(folder_path, f"{base_name}.png")
+            self.single_canvas.figure.savefig(
+                png_path,
+                dpi=300,
+                bbox_inches='tight',
+                facecolor='white'
+            )
+
+            caption = f"Data preview"
+            NotificationManager().send_message_with_image(message=f"Data Saved - {caption}", image_path=png_path)
+
+        except Exception as e:
+            print(f"Error saving individual plot: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def save_individual_plot(self, filename):
+        """Save the current single spectrum plot with duplicate handling."""
+        if not hasattr(self, 'single_plot_widget'):
+            print("Error: No single plot widget to save")
+            return
+
+        try:
+            # Get folder path
+            if hasattr(self, 'folder_path') and self.folder_path:
+                folder_path = self.folder_path
+            else:
+                folder_path = os.path.dirname(filename) if os.path.dirname(filename) else '.'
+
+            os.makedirs(folder_path, exist_ok=True)
+
+            # Get base filename
+            base_name = os.path.splitext(os.path.basename(filename))[0]
+
+            # Get unique paths
+            png_path = self._get_unique_filepath(folder_path, base_name, "png")
+
+            # Export the plot
+            exporter = pg.exporters.ImageExporter(self.single_plot_widget.plotItem)
+            exporter.parameters()['width'] = 1920  # High resolution
+            exporter.export(png_path)
+
+            print(f"Individual spectrum saved: {png_path}")
+            # Send notification if available
+            try:
+                NotificationManager().send_message_with_image(
+                    message=f"Data Saved - Data preview",
+                    image_path=png_path
+                )
+            except Exception as e:
+                print(f"Warning: Could not send notification: {e}")
+
+            return png_path
+
+        except Exception as e:
+            print(f"Error saving individual plot: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     def send_notification(self, message):
         NotificationManager().send_message(message=message)
 
@@ -6406,97 +6731,295 @@ class Measurement(QMainWindow):
         self.canvas.figure.tight_layout()
         self.canvas.draw()
 
-    def update_fmr_spectrum_plot(self, x_data, y_data):
-        self.single_canvas.axes.plot(x_data, y_data, 'black', marker='s')
-        self.single_canvas.axes.set_ylabel('FMR Intensity (a.u.)', color='black')
-        self.single_canvas.axes.set_xlabel('Field (Oe)')
-        self.single_canvas.figure.tight_layout()
-        self.single_canvas.draw()
-
-    def error_popup(self, e, tb_str):
-        self.stop_measurement()
-        QMessageBox.warning(self, str(e), f'{tb_str}')
-
-    def update_2d_plot(self, x_data, y_data, z_data):
+    def update_fmr_spectrum_plot_matplotlib(self, field_data, intensity_data):
         """
-        Update 2D cumulative plot (left plot).
-        Creates a 2D colormap showing frequency vs voltage with spectrum power as color.
+        Update the single FMR spectrum plot (line plot).
 
         Args:
-            x_data: List of frequencies (Hz) - can be from first spectrum
-            y_data: List of voltage/current values for each measurement
-            z_data: List of spectra (each spectrum is a list of power values)
+            field_data: list of field values (Oe)
+            intensity_data: list of lock-in X values (V)
         """
-        if not hasattr(self, 'cumulative_canvas'):
+        if not hasattr(self, 'single_canvas'):
+            return
+
+        try:
+            # Clear previous plot
+            self.single_canvas.axes.cla()
+
+            # Plot the spectrum
+            self.single_canvas.axes.plot(field_data, intensity_data, 'b-', linewidth=1.5, marker='o',
+                                         markersize=3, label='X')
+
+            # Set labels and title
+            self.single_canvas.axes.set_xlabel('Field (Oe)', fontsize=12, fontweight='bold')
+            self.single_canvas.axes.set_ylabel('Voltage (V)', fontsize=12, fontweight='bold')
+            self.single_canvas.axes.set_title('FMR Spectrum', fontsize=14, fontweight='bold')
+
+            # Add grid
+            self.single_canvas.axes.grid(True, alpha=0.3, linestyle='--')
+
+            # Add legend
+            self.single_canvas.axes.legend(loc='best')
+
+            # Tight layout
+            try:
+                self.single_canvas.figure.tight_layout()
+            except:
+                pass
+
+            # Refresh canvas
+            self.single_canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating FMR spectrum plot: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def update_fmr_spectrum_plot(self, field_data, intensity_data):
+        """
+        Update the single FMR spectrum plot (line plot) using PyQtGraph.
+
+        Args:
+            field_data: list of field values (Oe)
+            intensity_data: list of lock-in X values (V)
+        """
+        if not hasattr(self, 'single_plot_widget'):
+            print("ERROR: single_plot_widget not found!")
             return
 
         try:
             import numpy as np
 
-            # Clear the figure completely to avoid colorbar issues
-            self.cumulative_canvas.figure.clear()
+            # Convert to numpy arrays
+            field_array = np.array(field_data)
+            intensity_array = np.array(intensity_data)
 
-            # Create new axes
-            self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
+            print(
+                f"Updating spectrum: {len(field_array)} points, field range [{field_array[0]:.1f}, {field_array[-1]:.1f}] Oe")
 
-            # Reset colorbar reference
-            self.cumulative_colorbar = None
+            # Clear previous plot
+            self.single_plot_widget.clear()
 
-            # Convert frequencies to GHz for better readability
-            freq_ghz = np.array(x_data) / 1e9
-
-            # Create 2D array: rows = different voltages, columns = frequency points
-            # z_data should be a 2D array where each row is a spectrum
-            Z = np.array(z_data)  # Shape: (num_voltages, num_freq_points)
-
-            # Create meshgrid for plotting
-            Y, X = np.meshgrid(y_data, freq_ghz)
-
-            # Create 2D heatmap
-            im = self.cumulative_canvas.axes.pcolormesh(
-                X, Y, Z.T,  # Transpose Z to match meshgrid dimensions
-                cmap='viridis',
-                shading='auto'
+            # Plot the spectrum
+            pen = pg.mkPen(color='b', width=2)
+            self.single_plot_widget.plot(
+                field_array,
+                intensity_array,
+                pen=pen,
+                symbol='o',
+                symbolSize=3,
+                symbolBrush='b',
+                name='Lock-in X'
             )
 
+            # Set labels (in case they were cleared)
+            self.single_plot_widget.setLabel('left', 'Lock-in X (V)', **{'font-size': '12pt', 'font-weight': 'bold'})
+            self.single_plot_widget.setLabel('bottom', 'Field (Oe)', **{'font-size': '12pt', 'font-weight': 'bold'})
+
+            print(f"✓ Spectrum plot updated successfully")
+
+        except Exception as e:
+            print(f"✗ Error updating FMR spectrum plot: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def update_2d_plot_matplotlib(self, field_data, y_parameter, intensity_matrix):
+        """
+        Update 2D contour/heatmap plot for FMR measurements.
+
+        Args:
+            field_data: list of field values (x-axis) in Oe
+            y_parameter: list of varying parameter (repetition/power/frequency) (y-axis)
+            intensity_matrix: list of lists, each inner list is lock-in X intensity at one y_parameter value
+        """
+        if not hasattr(self, 'cumulative_canvas'):
+            return
+
+        try:
+            # Clear previous plot
+            self.cumulative_canvas.figure.clear()
+
+            # Recreate axes
+            self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
+
+            # Convert to numpy arrays for easier manipulation
+            import numpy as np
+
+            field_array = np.array(field_data)
+            y_array = np.array(y_parameter)
+
+            # Create 2D meshgrid
+            X, Y = np.meshgrid(field_array, y_array)
+
+            # Convert intensity_matrix to 2D array
+            Z = np.array(intensity_matrix)
+
+            # Handle dimension mismatches
+            if Z.ndim == 1:
+                n_y = len(y_array)
+                n_field = len(field_array)
+                Z = Z.reshape(n_y, n_field)
+
+            # Ensure Z has the right shape
+            if Z.shape[0] != len(y_array) or Z.shape[1] != len(field_array):
+                print(f"Warning: Reshaping Z from {Z.shape} to ({len(y_array)}, {len(field_array)})")
+                min_y = min(Z.shape[0], len(y_array))
+                min_field = min(Z.shape[1], len(field_array))
+                Z = Z[:min_y, :min_field]
+                X, Y = np.meshgrid(field_array[:min_field], y_array[:min_y])
+
+            # Create contour plot
+            contour = self.cumulative_canvas.axes.contourf(X, Y, Z, levels=20, cmap='viridis')
+
             # Add colorbar
-            try:
-                self.cumulative_colorbar = self.cumulative_canvas.figure.colorbar(
-                    im,
-                    ax=self.cumulative_canvas.axes,
-                    label='Power (dBm)',
-                    pad=0.02
-                )
-            except Exception as e:
-                print(f"Warning: Could not create colorbar: {e}")
+            if hasattr(self, 'cumulative_colorbar') and self.cumulative_colorbar is not None:
+                self.cumulative_colorbar.remove()
+            self.cumulative_colorbar = self.cumulative_canvas.figure.colorbar(
+                contour,
+                ax=self.cumulative_canvas.axes
+            )
+            self.cumulative_colorbar.set_label('Lock-in X (V)', rotation=270, labelpad=20)
 
-            # Labels and styling
-            self.cumulative_canvas.axes.set_xlabel('Frequency (GHz)', fontsize=11, fontweight='bold')
+            # Set labels
+            self.cumulative_canvas.axes.set_xlabel('Field (Oe)', fontsize=12)
 
-            # Determine ylabel based on worker's measurement_data
-            if hasattr(self, 'worker') and self.worker is not None and hasattr(self.worker, 'measurement_data'):
-                source_type = self.worker.measurement_data.get('source_type', 'voltage').capitalize()
-                unit = 'V' if source_type.lower() == 'voltage' else 'A'
-            else:
-                source_type = 'Value'
-                unit = 'V/A'
+            # Determine y-axis label based on data
+            if len(y_parameter) > 0:
+                y_val = y_parameter[0]
+                if all(isinstance(y, int) for y in y_parameter) and max(y_parameter) < 100:
+                    # Likely repetition numbers
+                    self.cumulative_canvas.axes.set_ylabel('Repetition #', fontsize=12)
+                elif y_val > 1e6:
+                    # Likely frequency in Hz
+                    self.cumulative_canvas.axes.set_ylabel('Frequency (Hz)', fontsize=12)
+                elif -50 <= y_val <= 50:
+                    # Likely power in dBm
+                    self.cumulative_canvas.axes.set_ylabel('Power (dBm)', fontsize=12)
+                else:
+                    self.cumulative_canvas.axes.set_ylabel('Parameter', fontsize=12)
 
-            self.cumulative_canvas.axes.set_ylabel(f'{source_type} ({unit})', fontsize=11, fontweight='bold')
-            self.cumulative_canvas.axes.set_title('Frequency vs Voltage Spectrum Map', fontsize=13, fontweight='bold')
+            self.cumulative_canvas.axes.set_title('FMR 2D Map', fontsize=14, fontweight='bold')
 
-            # Adjust layout
-            try:
-                self.cumulative_canvas.figure.tight_layout()
-            except Exception as e:
-                print(f"Warning: tight_layout failed: {e}")
-
-            # Draw the canvas
+            # Refresh canvas
             self.cumulative_canvas.draw()
 
         except Exception as e:
-            print(f"Error updating 2D plot: {str(e)}")
+            print(f"Error updating 2D plot: {e}")
             import traceback
-            print(traceback.format_exc())
+            traceback.print_exc()
+
+    def update_2d_plot(self, field_data, y_parameter, intensity_matrix):
+        """
+        Update 2D contour/heatmap plot for FMR measurements using PyQtGraph.
+
+        Args:
+            field_data: list of field values (x-axis) in Oe
+            y_parameter: list of varying parameter (repetition/power/frequency) (y-axis)
+            intensity_matrix: list of lists, each inner list is lock-in X intensity
+        """
+        if not hasattr(self, 'cumulative_image_item'):
+            print("ERROR: cumulative_image_item not found!")
+            return
+
+        try:
+            import numpy as np
+
+            # Convert to numpy arrays
+            field_array = np.array(field_data)
+            y_array = np.array(y_parameter)
+            Z = np.array(intensity_matrix)
+
+            print(f"\n=== 2D FMR Plot Update ===")
+            print(f"Field: {len(field_array)} points, range [{field_array[0]:.1f}, {field_array[-1]:.1f}] Oe")
+            print(f"Y-parameter: {len(y_array)} points, range [{y_array[0]:.3f}, {y_array[-1]:.3f}]")
+            print(f"Z shape before processing: {Z.shape}")
+            print(f"Z value range: [{np.min(Z):.6f}, {np.max(Z):.6f}] V")
+
+            # Ensure Z is 2D
+            if Z.ndim == 1:
+                n_y = len(y_array)
+                n_field = len(field_array)
+                Z = Z.reshape(n_y, n_field)
+                print(f"Reshaped Z to: {Z.shape}")
+
+            # Handle dimension mismatches
+            if Z.shape[0] != len(y_array) or Z.shape[1] != len(field_array):
+                print(f"Warning: Reshaping Z from {Z.shape} to ({len(y_array)}, {len(field_array)})")
+                min_y = min(Z.shape[0], len(y_array))
+                min_field = min(Z.shape[1], len(field_array))
+                Z = Z[:min_y, :min_field]
+                field_array = field_array[:min_field]
+                y_array = y_array[:min_y]
+
+            # Transpose for PyQtGraph (expects [x, y] indexing)
+            Z_transposed = Z.T
+            print(f"Transposed Z shape: {Z_transposed.shape}")
+
+            # Get data range for levels
+            z_min = float(np.min(Z))
+            z_max = float(np.max(Z))
+            print(f"Setting color levels: [{z_min:.6f}, {z_max:.6f}]")
+
+            # Set the image data
+            self.cumulative_image_item.setImage(
+                Z_transposed,
+                autoLevels=False
+            )
+
+            # Set levels explicitly
+            self.cumulative_image_item.setLevels([z_min, z_max])
+
+            # Set position and scale
+            field_min = float(field_array[0])
+            field_max = float(field_array[-1])
+            y_min = float(y_array[0])
+            y_max = float(y_array[-1])
+
+            # Handle single point cases
+            if field_min == field_max:
+                field_min -= 1
+                field_max += 1
+            if y_min == y_max:
+                y_min -= 0.1
+                y_max += 0.1
+
+            width = field_max - field_min
+            height = y_max - y_min
+
+            print(f"Image rect: pos=({field_min:.1f}, {y_min:.3f}), size=({width:.1f}, {height:.3f})")
+
+            # Set the rectangle
+            self.cumulative_image_item.setRect(
+                field_min, y_min, width, height
+            )
+
+            # Auto-range the view
+            self.cumulative_plot_widget.getViewBox().autoRange()
+
+            # Determine y-axis label
+            if len(y_parameter) > 0:
+                y_val = y_parameter[0]
+                if all(isinstance(y, int) for y in y_parameter) and max(y_parameter) < 100:
+                    ylabel = 'Repetition #'
+                elif y_val > 1e6:
+                    ylabel = 'Frequency (Hz)'
+                elif -50 <= y_val <= 50:
+                    ylabel = 'Power (dBm)'
+                else:
+                    ylabel = 'Parameter'
+
+                self.cumulative_plot_widget.setLabel('left', ylabel, **{'font-size': '12pt', 'font-weight': 'bold'})
+
+            print(f"✓ 2D FMR plot updated successfully\n")
+
+        except Exception as e:
+            print(f"✗ Error updating 2D plot: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def error_popup(self, e, tb_str):
+        self.stop_measurement()
+        QMessageBox.warning(self, str(e), f'{tb_str}')
 
     def clear_plot(self):
         try:
@@ -6519,26 +7042,63 @@ class Measurement(QMainWindow):
                 self.single_canvas.axes.clear()
                 self.single_canvas.axes.set_title('Waiting for spectrum...')
                 self.single_canvas.draw()
+
+            if hasattr(self, 'cumulative_image_item'):
+                try:
+                    self.cumulative_image_item.clear()
+                    print("Cleared cumulative plot")
+                except Exception as e:
+                    print(f"Error clearing cumulative plot: {e}")
+
+            if hasattr(self, 'single_plot_widget'):
+                try:
+                    self.single_plot_widget.clear()
+                    print("Cleared single spectrum plot")
+                except Exception as e:
+                    print(f"Error clearing single plot: {e}")
         except Exception as e:
             print(f"Error clearing plots: {e}")
 
     def clear_fmr_plot(self):
         try:
-            if hasattr(self, 'single_canvas'):
-                self.single_canvas.axes.clear()
-                self.single_canvas.axes.set_title('Waiting for spectrum...')
-                self.single_canvas.draw()
+            if hasattr(self, 'single_plot_widget'):
+                try:
+                    self.single_plot_widget.clear()
+                    print("Cleared single spectrum plot")
+                except Exception as e:
+                    print(f"Error clearing single plot: {e}")
         except Exception as e:
             print(f"Error clearing plots: {e}")
 
     def clear_fmr_2d_plot(self):
         try:
-            if hasattr(self, 'cumulative_canvas'):
-                self.cumulative_canvas.axes.clear()
-                self.cumulative_canvas.axes.set_title('Waiting for spectrum...')
-                self.cumulative_canvas.draw()
+            if hasattr(self, 'cumulative_image_item'):
+                try:
+                    self.cumulative_image_item.clear()
+                    print("Cleared cumulative plot")
+                except Exception as e:
+                    print(f"Error clearing cumulative plot: {e}")
+
         except Exception as e:
             print(f"Error clearing plots: {e}")
+
+    def _get_unique_filepath(self, folder, base_name, extension):
+        """Generate a unique filepath by adding numeric suffix if file exists."""
+        filepath = os.path.join(folder, f"{base_name}.{extension}")
+
+        if not os.path.exists(filepath):
+            return filepath
+
+        # File exists, find next available number
+        counter = 1
+        while True:
+            new_filepath = os.path.join(folder, f"{base_name}_{counter}.{extension}")
+            if not os.path.exists(new_filepath):
+                return new_filepath
+            counter += 1
+
+            if counter > 10000:
+                raise ValueError(f"Could not find unique filename after 10000 attempts")
 
     def update_nv_channel_1_label(self, chanel1):
         self.keithley_2182_channel_1_reading_label.setText(chanel1)
@@ -6559,6 +7119,9 @@ class Measurement(QMainWindow):
             if hasattr(self, 'keithley_2182nv'):
             # self.keithley_2182nv.write("*RST")
                 self.keithley_2182nv.write("*CLS")
+            if hasattr(self, 'bnc845rf'):
+                self.bnc845rf_command.set_output(self.bnc845rf,'OFF')
+                self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
 
         except Exception:
             pass
@@ -6582,6 +7145,11 @@ class Measurement(QMainWindow):
             if self.worker is not None:
                 self.worker.stop()
                 self.worker = None
+
+            if hasattr(self, 'fmr_worker'):
+                if self.fmr_worker is not None:
+                    self.fmr_worker.stop()
+                    self.fmr_worker = None
         except Exception:
             QMessageBox.warning(self, 'Fail', "Fail to stop the experiment")
         # self.stop_measurement()
