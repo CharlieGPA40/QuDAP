@@ -213,6 +213,9 @@ class ST_FMR_Worker(QThread):
                 self.append_text.emit("=" * 60, 'red')
                 return  # Exit without emitting measurement_finished
 
+            self.pts = 0
+
+
             for i in range(number_of_temperature):
                 if self.stopped_by_user:
                     self.append_text.emit("\n" + "=" * 60, 'red')
@@ -331,7 +334,7 @@ class ST_FMR_Worker(QThread):
                                     self.show_error.emit("DSP Setting Error", f'{e}')
                                     self.stop_measurement().emit()
 
-                            self.pts = 0
+
                             self.field_array = []
                             self.lockin_x = []
                             self.lockin_y = []
