@@ -5504,7 +5504,7 @@ class Measurement(QMainWindow):
         self.single_plot_widget.showGrid(x=True, y=True, alpha=0.3)
 
         # Set labels
-        self.single_plot_widget.setLabel('left', 'Lock-in X (V)', **{'font-size': '12pt', 'font-weight': 'bold'})
+        self.single_plot_widget.setLabel('left', 'Voltage (V)', **{'font-size': '12pt', 'font-weight': 'bold'})
         self.single_plot_widget.setLabel('bottom', 'Field (Oe)', **{'font-size': '12pt', 'font-weight': 'bold'})
 
         # Add legend
@@ -6809,11 +6809,11 @@ class Measurement(QMainWindow):
                 symbol='o',
                 symbolSize=3,
                 symbolBrush='b',
-                name='Lock-in X'
+                name='Voltage'
             )
 
             # Set labels (in case they were cleared)
-            self.single_plot_widget.setLabel('left', 'Lock-in X (V)', **{'font-size': '12pt', 'font-weight': 'bold'})
+            self.single_plot_widget.setLabel('left', 'Voltage (V)', **{'font-size': '12pt', 'font-weight': 'bold'})
             self.single_plot_widget.setLabel('bottom', 'Field (Oe)', **{'font-size': '12pt', 'font-weight': 'bold'})
 
             print(f"✓ Spectrum plot updated successfully")
@@ -6878,7 +6878,7 @@ class Measurement(QMainWindow):
                 contour,
                 ax=self.cumulative_canvas.axes
             )
-            self.cumulative_colorbar.set_label('Lock-in X (V)', rotation=270, labelpad=20)
+            self.cumulative_colorbar.set_label('Voltage (V)', rotation=270, labelpad=20)
 
             # Set labels
             self.cumulative_canvas.axes.set_xlabel('Field (Oe)', fontsize=12)
