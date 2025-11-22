@@ -119,13 +119,14 @@ class SweepThread(QThread):
         """Read X, Y, and magnitude from lock-in"""
         try:
             # Read X and Y outputs
-            x = float(self.instrument.query('X.').strip())
-            y = float(self.instrument.query('Y.').strip())
+            # x = float(self.instrument.query('X.').strip())
+            # y = float(self.instrument.query('Y.').strip())
+            noise = float(self.instrument.query('NHZ.').strip())
 
             # Calculate magnitude (noise level)
-            magnitude = np.sqrt(x ** 2 + y ** 2)
-
-            return x, y, magnitude
+            # magnitude = np.sqrt(x ** 2 + y ** 2)
+            return noise
+            # return x, y, magnitude
         except Exception as e:
             print(f"Error reading measurement: {e}")
             return 0.0, 0.0, 0.0
