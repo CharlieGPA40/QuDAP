@@ -22,11 +22,12 @@ try:
     # from GUI.Experiment.BNC845RF import COMMAND
     from QuDAP.instrument.BNC845 import BNC_845M_COMMAND
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
-
+    from QuDAP.misc.logger import logger
 except ImportError:
     # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from instrument.BNC845 import BNC_845M_COMMAND
     from instrument.BK_precision_9129B import BK_9129_COMMAND
+    from misc.logger import logger
     # from GUI.Experiment.rigol_experiment import RIGOL_Measurement
 
 
@@ -127,7 +128,10 @@ class ST_FMR_Worker(QThread):
             self.append_text.emit("Starting ST_FMR Measurement", 'green')
             self.append_text.emit(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 'green')
             self.append_text.emit("=" * 60, 'green')
-
+            logger.info("=" * 60)
+            logger.info("Starting ST_FMR Measurement")
+            logger.info(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info("=" * 60)
             # Clear plots
             self.clear_plot.emit()
 
@@ -139,10 +143,14 @@ class ST_FMR_Worker(QThread):
             except Exception as e:
                 tb_str = traceback.format_exc()
                 self.show_error.emit("Error", f'{tb_str}')
+                logger.error(f'Error {tb_str}')
             if self.stopped_by_user:
                 self.append_text.emit("\n" + "=" * 60, 'red')
                 self.append_text.emit("Measurement stopped by user", 'red')
                 self.append_text.emit("=" * 60, 'red')
+                logger.warning("\n" + "=" * 60)
+                logger.warning("Measurement stopped by user")
+                logger.warning("=" * 60)
                 return  # Exit without emitting measurement_finished
 
             # Execute measurement
@@ -156,6 +164,9 @@ class ST_FMR_Worker(QThread):
                 self.append_text.emit("\n" + "=" * 60, 'red')
                 self.append_text.emit("Measurement stopped by user", 'red')
                 self.append_text.emit("=" * 60, 'red')
+                logger.warning("\n" + "=" * 60)
+                logger.warning("Measurement stopped by user")
+                logger.warning("=" * 60)
                 return  # Exit without emitting measurement_finished
 
             # # Cleanup
@@ -164,12 +175,16 @@ class ST_FMR_Worker(QThread):
             self.append_text.emit("=" * 60, 'red')
             self.append_text.emit("Measurement Complete!", 'red')
             self.append_text.emit("=" * 60, 'red')
+            logger.success("=" * 60)
+            logger.success("Measurement Complete!")
+            logger.success("=" * 60)
             self.measurement_finished.emit()
 
         except Exception as e:
             tb_str = traceback.format_exc()
-            self.show_error.emit("Error", f'{tb_str}', 'black')
+            self.show_error.emit("Error", f'{tb_str}')
             error_msg = f"Error in measurement: {str(e)}\n{traceback.format_exc()}"
+            logger.error(error_msg)
             self.append_text.emit(error_msg, 'red')
             self.stop_measurement.emit()
 
@@ -199,6 +214,7 @@ class ST_FMR_Worker(QThread):
 
             start_time = time.time()
             self.append_text.emit('Measurement Start....\n', 'red')
+            logger.success('Measurement Start!')
             time.sleep(5)
 
             # -------------Temperature Status---------------------
@@ -212,6 +228,9 @@ class ST_FMR_Worker(QThread):
                 self.append_text.emit("\n" + "=" * 60, 'red')
                 self.append_text.emit("Measurement stopped by user", 'red')
                 self.append_text.emit("=" * 60, 'red')
+                logger.warning("\n" + "=" * 60)
+                logger.warning("Measurement stopped by user")
+                logger.warning("=" * 60)
                 return  # Exit without emitting measurement_finished
 
             self.pts = 0
@@ -222,6 +241,9 @@ class ST_FMR_Worker(QThread):
                     self.append_text.emit("\n" + "=" * 60, 'red')
                     self.append_text.emit("Measurement stopped by user", 'red')
                     self.append_text.emit("=" * 60, 'red')
+                    logger.warning("\n" + "=" * 60)
+                    logger.warning("Measurement stopped by user")
+                    logger.warning("=" * 60)
                     return  # Exit without emitting measurement_finished
                 self.temperature_array = []
                 self._set_field(zero_field, fast_field_rate)
@@ -232,6 +254,9 @@ class ST_FMR_Worker(QThread):
                         self.append_text.emit("\n" + "=" * 60, 'red')
                         self.append_text.emit("Measurement stopped by user", 'red')
                         self.append_text.emit("=" * 60, 'red')
+                        logger.warning("\n" + "=" * 60)
+                        logger.warning("Measurement stopped by user")
+                        logger.warning("=" * 60)
                         return  # Exit without emitting measurement_finished
                     time.sleep(15)
                     _, field_status = self._update_field_reading_label()
@@ -239,6 +264,7 @@ class ST_FMR_Worker(QThread):
                         break
 
                 self.append_text.emit(f'Current loop sets at {str(temperature_list[i])} K\n', 'blue')
+                logger.info(f'Current loop sets at {str(temperature_list[i])} K')
                 temperature_set_point = temperature_list[i]
                 # This part separates the initial temperature chasing rate and really measurement temperate rate
                 if i == 0:
@@ -246,6 +272,7 @@ class ST_FMR_Worker(QThread):
                 else:
                     self._set_temperature(temperature_set_point, temperature_rate)
                 self.append_text.emit(f'Waiting for {temperature_set_point} K Temperature\n', 'red')
+                logger.info(f'Waiting for {temperature_set_point} K Temperature')
                 time.sleep(4)
 
                 self._update_temperature_reading_label()
@@ -254,6 +281,9 @@ class ST_FMR_Worker(QThread):
                         self.append_text.emit("\n" + "=" * 60, 'red')
                         self.append_text.emit("Measurement stopped by user", 'red')
                         self.append_text.emit("=" * 60, 'red')
+                        logger.warning("\n" + "=" * 60)
+                        logger.warning("Measurement stopped by user")
+                        logger.warning("=" * 60)
                         return  # Exit without emitting measurement_finished
                     time.sleep(1.5)
                     curTemp, temperature_status = self._update_temperature_reading_label()
@@ -261,6 +291,7 @@ class ST_FMR_Worker(QThread):
                         break
 
                 self.append_text.emit(f'Stabilizing the Temperature for 5 minutes.....', 'orange')
+                logger.info(f'Stabilizing the Temperature for 5 minutes.....')
                 # time.sleep(300)
                 time.sleep(30)
                 self.temperature_array.append(curTemp)
@@ -268,6 +299,9 @@ class ST_FMR_Worker(QThread):
                     self.append_text.emit("\n" + "=" * 60, 'red')
                     self.append_text.emit("Measurement stopped by user", 'red')
                     self.append_text.emit("=" * 60, 'red')
+                    logger.warning("\n" + "=" * 60)
+                    logger.warning("Measurement stopped by user")
+                    logger.warning("=" * 60)
                     return  # Exit without emitting measurement_finished
 
                 for j in range(number_of_frequency):
@@ -275,6 +309,9 @@ class ST_FMR_Worker(QThread):
                         self.append_text.emit("\n" + "=" * 60, 'red')
                         self.append_text.emit("Measurement stopped by user", 'red')
                         self.append_text.emit("=" * 60, 'red')
+                        logger.warning("\n" + "=" * 60)
+                        logger.warning("Measurement stopped by user")
+                        logger.warning("=" * 60)
                         return  # Exit without emitting measurement_finished
                     self.frequency_array = []
                     for k in range(number_of_power):
@@ -299,6 +336,9 @@ class ST_FMR_Worker(QThread):
                                 self.append_text.emit("\n" + "=" * 60, 'red')
                                 self.append_text.emit("Measurement stopped by user", 'red')
                                 self.append_text.emit("=" * 60, 'red')
+                                logger.warning("\n" + "=" * 60)
+                                logger.warning("Measurement stopped by user")
+                                logger.warning("=" * 60)
                                 return  # Exit without emitting measurement_finished
                             total_progress = len(
                                 number_of_repetition) * number_of_power * number_of_frequency * number_of_temperature
@@ -322,6 +362,9 @@ class ST_FMR_Worker(QThread):
                                 self.append_text.emit("\n" + "=" * 60, 'red')
                                 self.append_text.emit("Measurement stopped by user", 'red')
                                 self.append_text.emit("=" * 60, 'red')
+                                logger.warning("\n" + "=" * 60)
+                                logger.warning("Measurement stopped by user")
+                                logger.warning("=" * 60)
                                 return  # Exit without emitting measurement_finished
 
                             if self.dsp7265:
@@ -378,6 +421,9 @@ class ST_FMR_Worker(QThread):
                                             self.append_text.emit("\n" + "=" * 60, 'red')
                                             self.append_text.emit("Measurement stopped by user", 'red')
                                             self.append_text.emit("=" * 60, 'red')
+                                            logger.warning("\n" + "=" * 60)
+                                            logger.warning("Measurement stopped by user")
+                                            logger.warning("=" * 60)
                                             return  # Exit without emitting measurement_finished
                                         time.sleep(1)
                                         MyField, field_status = self._update_field_reading_label()
@@ -385,6 +431,7 @@ class ST_FMR_Worker(QThread):
                                             break
                                     except SystemExit as e:
                                         self.error_message.emit(e, e)
+                                        logger.warning(e)
                                         self.send_notification.emit(
                                             "Your measurement went wrong, possible PPMS client lost connection", 'critical')
                                 time.sleep(20)
@@ -395,7 +442,8 @@ class ST_FMR_Worker(QThread):
                                         'rate']
                                 self._set_field(end_field, user_field_rate)
 
-                                self.append_text.emit(f'Start collecting data \n', 'purple')
+                                self.append_text.emit('Start collecting data \n', 'purple')
+                                logger.success('Start collecting data!')
                                 counter = 0
 
                                 while currentField >= end_field + 1:
@@ -407,6 +455,9 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit("\n" + "=" * 60, 'red')
                                         self.append_text.emit("Measurement stopped by user", 'red')
                                         self.append_text.emit("=" * 60, 'red')
+                                        logger.warning("\n" + "=" * 60)
+                                        logger.warning("Measurement stopped by user")
+                                        logger.warning("=" * 60)
                                         return  # Exit without emitting measurement_finished
                                     counter += 1
 
@@ -416,6 +467,7 @@ class ST_FMR_Worker(QThread):
                                     currentField, field_status = self._update_field_reading_label()
 
                                     self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
+                                    logger.success(f'Saving data for {currentField} Oe')
 
                                     if self.dsp7265:
                                         try:
@@ -423,8 +475,12 @@ class ST_FMR_Worker(QThread):
                                                 self.append_text.emit("\n" + "=" * 60, 'red')
                                                 self.append_text.emit("Measurement stopped by user", 'red')
                                                 self.append_text.emit("=" * 60, 'red')
+                                                logger.warning("\n" + "=" * 60)
+                                                logger.warning("Measurement stopped by user")
+                                                logger.warning("=" * 60)
                                                 return  # Exit without emitting measurement_finished
                                             self._wait_settling("Wait for settling time.")
+
                                             currentField, field_status = self._update_field_reading_label()
                                             self.field_array.append(currentField)
                                             X = float(self.dsp7265.query("X."))  # Read the measurement result
@@ -445,6 +501,7 @@ class ST_FMR_Worker(QThread):
                                                 # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                         except Exception as e:
                                             self.show_error.emit("Reading Error", f'{e}')
+                                            logger.error(f"Reading Error {e}")
                                             self.stop_measurement().emit()
                                             return
 
@@ -461,6 +518,7 @@ class ST_FMR_Worker(QThread):
                                             csv_writer.writerow(
                                                 [curTemp, currentField, X, Y, Mag, Phase])
                                             self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
+                                            logger.success(f'Data Saved for {currentField} Oe at {curTemp} K')
                                     # ----------------------------- Measure NV voltage -------------------
                                     user_field_rate = self._continous_field_setting(field_direction, currentField,
                                                                                     field_zone_count)
@@ -469,8 +527,12 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit("\n" + "=" * 60, 'red')
                                         self.append_text.emit("Measurement stopped by user", 'red')
                                         self.append_text.emit("=" * 60, 'red')
+                                        logger.warning("\n" + "=" * 60)
+                                        logger.warning("Measurement stopped by user")
+                                        logger.warning("=" * 60, 'red')
                                         return  # Exit without emitting measurement_finished
                                     self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
+                                    logger.info(f'Field Rate = {user_field_rate}')
                                     # Update currentField for the next iteration
                                     total_estimate_field_step = (start_field - end_field) / user_field_rate
                                     estimate_field_step = (currentField - end_field) / user_field_rate
@@ -484,6 +546,7 @@ class ST_FMR_Worker(QThread):
                                     self.append_text.emit(
                                         'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                         'purple')
+                                    logger.info('Estimated Single Field measurement (in secs):  {} s'.format(Single_loop))
 
 
                                     total_time_in_seconds = Single_loop * total_progress * total_estimate_field_step
@@ -508,10 +571,15 @@ class ST_FMR_Worker(QThread):
                                     self.append_text.emit(
                                         'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                             estimate_time_in_days), 'purple')
+                                    logger.info('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs'.format(
+                                            estimate_time_in_hours))
                                     if self.stopped_by_user:
                                         self.append_text.emit("\n" + "=" * 60, 'red')
                                         self.append_text.emit("Measurement stopped by user", 'red')
                                         self.append_text.emit("=" * 60, 'red')
+                                        logger.warning("\n" + "=" * 60)
+                                        logger.warning("Measurement stopped by user")
+                                        logger.warning("=" * 60)
                                         return  # Exit without emitting measurement_finished
                                     current_progress = (total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
                                     self.progress_update.emit(int(current_progress * 100))
@@ -524,7 +592,8 @@ class ST_FMR_Worker(QThread):
                                         f"Starting the second half of measurement - ramping field up")
                                     currentField = end_field
                                     self._set_field(end_field, user_field_rate)
-                                    self.append_text.emit(f'Start collecting data \n', 'Purple')
+                                    self.append_text.emit('Start collecting data\n', 'Purple')
+                                    logger.success('Start collecting data')
                                     time.sleep(4)
                                     MyField, field_status = self._update_field_reading_label()
                                     self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
@@ -534,6 +603,9 @@ class ST_FMR_Worker(QThread):
                                                 self.append_text.emit("\n" + "=" * 60, 'red')
                                                 self.append_text.emit("Measurement stopped by user", 'red')
                                                 self.append_text.emit("=" * 60, 'red')
+                                                logger.warning("\n" + "=" * 60)
+                                                logger.warning("Measurement stopped by user")
+                                                logger.warning("=" * 60)
                                                 return  # Exit without emitting measurement_finished
                                             time.sleep(1)
                                             MyField, field_status = self._update_field_reading_label()
@@ -541,6 +613,7 @@ class ST_FMR_Worker(QThread):
                                                 break
                                         except SystemExit as e:
                                             self.error_message.emit(e, e)
+                                            logger.error(e)
                                             self.send_notification.emit(
                                                 "Your measurement went wrong, possible PPMS client error",
                                                 'critical')
@@ -556,6 +629,9 @@ class ST_FMR_Worker(QThread):
                                             self.append_text.emit("\n" + "=" * 60, 'red')
                                             self.append_text.emit("Measurement stopped by user", 'red')
                                             self.append_text.emit("=" * 60, 'red')
+                                            logger.warning("\n" + "=" * 60)
+                                            logger.warning("Measurement stopped by user")
+                                            logger.warning("=" * 60)
                                             return  # Exit without emitting measurement_finished
                                         user_field_rate = self._continous_field_setting(field_direction, currentField,
                                                                                         field_zone_count)
@@ -565,6 +641,9 @@ class ST_FMR_Worker(QThread):
                                             self.append_text.emit("\n" + "=" * 60, 'red')
                                             self.append_text.emit("Measurement stopped by user", 'red')
                                             self.append_text.emit("=" * 60, 'red')
+                                            logger.warning("\n" + "=" * 60)
+                                            logger.warning("Measurement stopped by user")
+                                            logger.warning("=" * 60)
                                             return  # Exit without emitting measurement_finished
                                         counter += 1
 
@@ -573,6 +652,7 @@ class ST_FMR_Worker(QThread):
                                         time.sleep(1)
                                         currentField, field_status = self._update_field_reading_label()
                                         self.append_text.emit(f'Saving data for {currentField} Oe \n', 'green')
+                                        logger.success(f'Saving data for {currentField} Oe')
 
                                         if self.dsp7265:
                                             try:
@@ -580,6 +660,9 @@ class ST_FMR_Worker(QThread):
                                                     self.append_text.emit("\n" + "=" * 60, 'red')
                                                     self.append_text.emit("Measurement stopped by user", 'red')
                                                     self.append_text.emit("=" * 60, 'red')
+                                                    logger.warning("\n" + "=" * 60)
+                                                    logger.warning("Measurement stopped by user")
+                                                    logger.warning("=" * 60)
                                                     return  # Exit without emitting measurement_finished
                                                 self._wait_settling("Wait for settling time.")
                                                 currentField, field_status = self._update_field_reading_label()
@@ -619,6 +702,7 @@ class ST_FMR_Worker(QThread):
                                                     [curTemp, currentField, X, Y, Mag, Phase])
                                                 self.append_text.emit(
                                                     f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
+                                                logger.success(f'Data Saved for {currentField} Oe at {curTemp} K')
 
                                         # ----------------------------- Measure NV voltage -------------------
                                         user_field_rate = self._continous_field_setting(field_direction, currentField,
@@ -627,12 +711,16 @@ class ST_FMR_Worker(QThread):
                                         self._set_field(end_field, user_field_rate)
 
                                         self.append_text.emit(f'Field Rate = {user_field_rate}\n', 'orange')
+                                        logger.info(f'Field Rate = {user_field_rate}')
 
                                         # Update currentField for the next iteration
                                         if self.stopped_by_user:
                                             self.append_text.emit("\n" + "=" * 60, 'red')
                                             self.append_text.emit("Measurement stopped by user", 'red')
                                             self.append_text.emit("=" * 60, 'red')
+                                            logger.warning("\n" + "=" * 60)
+                                            logger.warning("Measurement stopped by user")
+                                            logger.warning("=" * 60)
                                             return  # Exit without emitting measurement_finished
                                         total_estimate_field_step = (start_field - end_field) / user_field_rate
                                         estimate_field_step = (currentField - end_field) / user_field_rate
@@ -646,7 +734,7 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit(
                                             'Estimated Single Field measurement (in secs):  {} s \n'.format(Single_loop),
                                             'purple')
-
+                                        logger.info('Estimated Single Field measurement (in secs):  {} s'.format(Single_loop))
                                         total_time_in_seconds = Single_loop * total_progress * total_estimate_field_step
                                         total_time_in_minutes = total_time_in_seconds / 60
                                         total_time_in_hours = total_time_in_minutes / 60
@@ -669,10 +757,15 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit(
                                             'Estimated Remaining Time for this round of measurement (in days):  {} days \n'.format(
                                                 estimate_time_in_days), 'purple')
+                                        logger.info('Estimated Remaining Time for this round of measurement (in hrs):  {} hrs'.format(
+                                                estimate_time_in_hours))
                                         if self.stopped_by_user:
                                             self.append_text.emit("\n" + "=" * 60, 'red')
                                             self.append_text.emit("Measurement stopped by user", 'red')
                                             self.append_text.emit("=" * 60, 'red')
+                                            logger.warning("\n" + "=" * 60)
+                                            logger.warning("Measurement stopped by user")
+                                            logger.warning("=" * 60)
                                             return  # Exit without emitting measurement_finished
                                         current_progress = (
                                                                        total_time_in_seconds - estimate_time_in_seconds) / total_time_in_seconds
@@ -696,6 +789,9 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit("\n" + "=" * 60, 'red')
                                         self.append_text.emit("Measurement stopped by user", 'red')
                                         self.append_text.emit("=" * 60, 'red')
+                                        logger.warning("\n" + "=" * 60)
+                                        logger.warning("Measurement stopped by user")
+                                        logger.warning("=" * 60)
                                         return  # Exit without emitting measurement_finished
                                     currentField = field_list[m]
 
@@ -711,6 +807,9 @@ class ST_FMR_Worker(QThread):
                                                 self.append_text.emit("\n" + "=" * 60, 'red')
                                                 self.append_text.emit("Measurement stopped by user", 'red')
                                                 self.append_text.emit("=" * 60, 'red')
+                                                logger.warning("\n" + "=" * 60)
+                                                logger.warning("Measurement stopped by user")
+                                                logger.warning("=" * 60)
                                                 return  # Exit without emitting measurement_finished
                                             time.sleep(1)
                                             MyField, field_status = self._update_field_reading_label()
@@ -725,6 +824,7 @@ class ST_FMR_Worker(QThread):
                                     # ----------------------------- Measure NV voltage -------------------
 
                                     self.append_text.emit(f'Saving data for {MyField} Oe \n', 'green')
+                                    logger.success(f'Saving data for {MyField} Oe')
 
                                     MyField, field_status = self._update_field_reading_label()
                                     self.update_ppms_field_reading_label.emit(str(MyField), 'Oe', field_status)
@@ -737,6 +837,9 @@ class ST_FMR_Worker(QThread):
                                                 self.append_text.emit("\n" + "=" * 60, 'red')
                                                 self.append_text.emit("Measurement stopped by user", 'red')
                                                 self.append_text.emit("=" * 60, 'red')
+                                                logger.warning("\n" + "=" * 60)
+                                                logger.warning("Measurement stopped by user")
+                                                logger.warning("=" * 60)
                                                 return  # Exit without emitting measurement_finished
                                             self._wait_settling("Wait for settling time.")
                                             X = float(self.dsp7265.query("X."))  # Read the measurement result
@@ -769,6 +872,7 @@ class ST_FMR_Worker(QThread):
                                             csv_writer.writerow(
                                                 [curTemp, currentField, X, Y, Mag, Phase])
                                             self.append_text.emit(f'Data Saved for {currentField} Oe at {curTemp} K\n', 'green')
+                                            logger.success(f'Data Saved for {currentField} Oe at {curTemp} K')
 
                                     self._update_field_reading_label()
                                     self._update_temperature_reading_label()
@@ -808,6 +912,9 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit("\n" + "=" * 60, 'red')
                                         self.append_text.emit("Measurement stopped by user", 'red')
                                         self.append_text.emit("=" * 60, 'red')
+                                        logger.warning("\n" + "=" * 60)
+                                        logger.warning("Measurement stopped by user")
+                                        logger.warning("=" * 60)
                                         return  # Exit without emitting measurement_finished
                                     current_progress = (total_time_in_seconds - remaining_time_in_seconds) / total_time_in_seconds
                                     self.progress_update.emit(int(current_progress * 100))
@@ -818,11 +925,15 @@ class ST_FMR_Worker(QThread):
                                         self.append_text.emit("\n" + "=" * 60, 'red')
                                         self.append_text.emit("Measurement stopped by user", 'red')
                                         self.append_text.emit("=" * 60, 'red')
+                                        logger.warning("\n" + "=" * 60)
+                                        logger.warning("Measurement stopped by user")
+                                        logger.warning("=" * 60)
                                         return  # Exit without emitting measurement_finished
                                     time.sleep(2)
 
                             # Update single spectrum plot with completed data
                             self.append_text.emit('Updating single spectrum plot...', 'blue')
+
                             self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
 
                             # Save individual spectrum plot
@@ -994,15 +1105,20 @@ class ST_FMR_Worker(QThread):
             self.append_text.emit(f'Total data points: {str(self.pts)} pts\n', 'black')
             self.send_notification.emit("The measurement has been completed successfully.")
             self.append_text.emit("You measurement is finished!", 'green')
+            logger.success(f"Total runtime: {total_runtime} hours")
+            logger.success(f'Total data points: {str(self.pts)} pts\n')
+            logger.success("You measurement is finished!")
             # stop_measurement()
             self.measurement_finished.emit()
             return
         except Exception as e:
             tb_str = traceback.format_exc()
             self.show_error.emit("Error", f'{tb_str}')
+            logger.error(f'{tb_str}')
         except SystemExit as e:
             tb_str = traceback.format_exc()
             self.show_error.emit("Error", f'{tb_str}')
+            logger.error(f'{tb_str}')
 
     def _continous_field_setting(self, field_direction, currentField, field_zone_count):
         if field_direction == 'unidirectional':
@@ -1165,9 +1281,12 @@ class ST_FMR_Worker(QThread):
                 self.stop_measurement.emit()
             return cT
         except SystemExit as e:
+            self.stop_measurement.emit()
             tb_str = traceback.format_exc()
             self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+            self.show_error('PPMS command error', f"Your measurement went wrong, possible PPMS command error {e}")
+            logger.error(f'{str(e)} {tb_str}')
 
     def _set_temperature(self, set_point, temp_rate):
         try:
@@ -1180,8 +1299,11 @@ class ST_FMR_Worker(QThread):
                 self.stop_measurement.emit()
         except SystemExit as e:
             tb_str = traceback.format_exc()
+            logger.error(f'{str(e)} {tb_str}')
+            self.stop_measurement.emit()
             self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+            self.show_error('PPMS command error', f"Your measurement went wrong, possible PPMS command error {e}")
 
     def _set_field(self, set_point, field_rate):
         try:
@@ -1194,9 +1316,13 @@ class ST_FMR_Worker(QThread):
                 self.stop_measurement.emit()
             self.append_text.emit(f'Setting Field to {str(set_point)} Oe... \n', 'orange')
         except SystemExit as e:
+            self.stop_measurement.emit()
+
             tb_str = traceback.format_exc()
+            logger.error(f'{str(e)} {tb_str}')
             self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e} {tb_str}", 'critical')
+            self.show_error('PPMS command error', f"Your measurement went wrong, possible PPMS command error {e}")
 
     def _read_temperature(self):
         try:
@@ -1205,9 +1331,13 @@ class ST_FMR_Worker(QThread):
                 self.stop_measurement.emit()
             return temp, status, unit
         except SystemExit as e:
+            self.stop_measurement.emit()
+
             tb_str = traceback.format_exc()
+            logger.error(f'{str(e)} {tb_str}')
             self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+            self.show_error('PPMS command error', f"Your measurement went wrong, possible PPMS command error {e}")
 
     def _read_field(self):
         try:
@@ -1216,9 +1346,13 @@ class ST_FMR_Worker(QThread):
                 self.stop_measurement.emit()
             return field, status, unit
         except SystemExit as e:
+            self.stop_measurement.emit()
+
             tb_str = traceback.format_exc()
+            logger.error(f'{str(e)} {tb_str}')
             self.send_notification.emit(
                 f"Your measurement went wrong, possible PPMS command error {e}", 'critical')
+            self.show_error('PPMS command error', f"Your measurement went wrong, possible PPMS command error {e}")
 
     # ==================================================================================
     # BNC CONTROL METHODS
@@ -1227,13 +1361,16 @@ class ST_FMR_Worker(QThread):
         """Set voltage for single channel using APP:VOLT command."""
         BNC_845M_COMMAND().set_frequency(self.bnc845, frequency)
         BNC_845M_COMMAND().set_power(self.bnc845,power)
+        logger.info(f'Set BNC 845 frequency {frequency} power {power}')
 
     def _turn_on_output_bnc845(self):
         """Turn on a bncl."""
         BNC_845M_COMMAND().set_output(self.bnc845,'ON')
+        logger.info(f'Set BNC 845 ON')
 
     def _turn_off_output_bnc845(self):
         BNC_845M_COMMAND().set_output(self.bnc845,'OFF')
+        logger.info(f'Set BNC 845 OFF')
 
     def _get_current_frequency_bnc845(self):
         freq = BNC_845M_COMMAND().get_frequency(self.bnc845).strip()
@@ -1273,14 +1410,17 @@ class ST_FMR_Worker(QThread):
     def _wait_settling(self, message):
         """Wait for settling time."""
         self.append_text.emit(f"    {message}", 'purple')
+
         if self.demo_mode:
             time.sleep(0.1)
         else:
             time.sleep(self.settling_time)
+            logger.info(self.settling_time)
 
     def _cleanup_instruments(self):
         """Turn off outputs and cleanup."""
         self.append_text.emit("\nCleaning up...", 'green')
+        logger.info("Cleaning up...")
 
         if self.bnc845:
             try:
@@ -1295,16 +1435,19 @@ class ST_FMR_Worker(QThread):
         self.running = False
         self.stopped_by_user = True
         self.append_text.emit("\nStopping measurement...", 'red')
+        logger.warning("Stopping measurement...")
 
     def pause(self):
         """Pause the measurement."""
         self.paused = True
         self.append_text.emit("\nMeasurement paused", 'red')
+        logger.warning("Measurement paused...")
 
     def resume(self):
         """Resume the measurement."""
         self.paused = False
         self.append_text.emit("\nMeasurement resumed", 'red')
+        logger.info("Measurement paused...")
 
 class FMR_Measurement(QWidget):
     def __init__(self, ppms_client = None, bnc845 = None, dsp7265 = None):
@@ -2632,19 +2775,54 @@ class FMR_Measurement(QWidget):
 
     def _parse_custom_list(self, list_string):
         """
-        Parse a comma-separated string of values into a list of floats.
-        Example: "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
+        Parse a comma-separated or space-separated string of values into a list of floats.
+
+        Handles multiple formats:
+        - "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
+        - "1, 2, 3, 4" -> [1.0, 2.0, 3.0, 4.0]
+        - "1 2 3 4" -> [1.0, 2.0, 3.0, 4.0]
+        - "[1, 2, 3, 4]" -> [1.0, 2.0, 3.0, 4.0]
+        - "1.5,2.5,3.5" -> [1.5, 2.5, 3.5]
+        - Mixed: "1.0 2.5, 3.7,5.0" -> [1.0, 2.5, 3.7, 5.0]
+
+        Args:
+            list_string: String containing numbers separated by commas and/or spaces
+
+        Returns:
+            List of floats, or empty list if parsing fails
         """
         try:
-            # Remove brackets if present
-            list_string = list_string.strip('[]')
+            if not list_string or not isinstance(list_string, str):
+                return []
 
-            # Split by comma and convert to float
-            values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
+            # Remove brackets if present
+            list_string = list_string.strip('[](){}')
+
+            # Remove extra whitespace
+            list_string = list_string.strip()
+
+            if not list_string:
+                return []
+
+            # Replace multiple spaces with single space
+            import re
+            list_string = re.sub(r'\s+', ' ', list_string)
+
+            # Try comma-separated first (most common)
+            if ',' in list_string:
+                # Split by comma, then handle any spaces around values
+                values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
+            else:
+                # No commas, try space-separated
+                values = [float(x.strip()) for x in list_string.split() if x.strip()]
+
+            # Filter out any NaN or Inf values
+            values = [v for v in values if not (float('inf') == abs(v) or v != v)]
 
             return values
 
-        except (ValueError, TypeError, AttributeError):
+        except (ValueError, TypeError, AttributeError) as e:
+            print(f"Error parsing custom list '{list_string}': {e}")
             return []
 
     def fmr_measurement_status_ui(self):

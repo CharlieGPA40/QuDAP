@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QCheckBox, QTextEdit, QPushButton, QComboBox, QLineEdit, QScrollArea, QDialog, QRadioButton, QMainWindow,
     QDialogButtonBox, QProgressBar, QButtonGroup, QApplication, QCompleter, QToolButton
 )
-from PyQt6.QtGui import QIcon, QFont, QDoubleValidator, QIcon
+from PyQt6.QtGui import QColor, QFont, QDoubleValidator, QIcon
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QThread, QSettings, QSize
 from PyQt6.QtGui import QKeyEvent
 import pyqtgraph as pg
@@ -52,6 +52,8 @@ try:
     from QuDAP.instrument.BK_precision_9129B import BK_9129_COMMAND
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from QuDAP.instrument.BNC845 import BNC_845M_COMMAND
+    from QuDAP.instrument.DSP7265 import TIME_CONSTANT_VALUES
+    from QuDAP.misc.logger import logger
 except ImportError:
     # from QuDAP.GUI.Experiment.BNC845RF import COMMAND
     from GUI.Experiment.rigol_experiment import RIGOL_Measurement
@@ -60,9 +62,8 @@ except ImportError:
     from instrument.BK_precision_9129B import BK_9129_COMMAND
     from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
     from instrument.BNC845 import BNC_845M_COMMAND
-
-
-
+    from instrument.DSP7265 import TIME_CONSTANT_VALUES
+    from misc.logger import logger
 
 class PyQtGraphPlotWidget(QWidget):
     """Widget containing PyQtGraph plot with controls"""
@@ -97,7 +98,6 @@ class PyQtGraphPlotWidget(QWidget):
 
         # Store plot data references
         self.plot_data_item = None
-
 
 class PyQtGraph2DPlotWidget(QWidget):
     """Widget for 2D heatmap/contour plots using PyQtGraph ImageView"""
@@ -312,6 +312,7 @@ class ThreadSafePPMSCommands:
                 return self.client.get_chamber()
             except SystemExit as e:
                 tb_str = traceback.format_exc()
+                logger.error(e)
                 if self.notification_manager:
                     self.notification_manager.send_message(
                         f"Chamber status error: {e}", 'critical'
@@ -319,6 +320,7 @@ class ThreadSafePPMSCommands:
                 raise
             except Exception as e:
                 tb_str = traceback.format_exc()
+                logger.error(e)
                 if self.notification_manager:
                     self.notification_manager.send_message(
                         f"Chamber status error: {e}", 'critical'
@@ -354,6 +356,7 @@ class ThreadSafePPMSCommands:
                 )
                 print(f"✓ Temperature set to {set_point} K")
             except SystemExit as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -361,6 +364,7 @@ class ThreadSafePPMSCommands:
                     )
                 raise
             except Exception as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -405,6 +409,7 @@ class ThreadSafePPMSCommands:
                     print(f"✓ Field set to {set_point} Oe")
 
             except SystemExit as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -412,6 +417,7 @@ class ThreadSafePPMSCommands:
                     )
                 raise
             except Exception as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -443,6 +449,7 @@ class ThreadSafePPMSCommands:
                 temp_unit = self.client.temperature.units
                 return (temperature, status, temp_unit)
             except SystemExit as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -450,6 +457,7 @@ class ThreadSafePPMSCommands:
                     )
                 raise
             except Exception as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -484,6 +492,7 @@ class ThreadSafePPMSCommands:
                 field_unit = self.client.field.units
                 return (field, status, field_unit)
             except SystemExit as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -491,6 +500,7 @@ class ThreadSafePPMSCommands:
                     )
                 raise
             except Exception as e:
+                logger.error(e)
                 tb_str = traceback.format_exc()
                 if self.notification_manager:
                     self.notification_manager.send_message(
@@ -528,18 +538,22 @@ class ThreadSafePPMSCommands:
 
             if not success:
                 print("⚠ Failed to read temperature")
+                logger.error("⚠ Failed to read temperature")
                 time.sleep(check_interval)
                 continue
 
             print(f"  Current: {temp:.2f} K → Target: {target_temp:.2f} K")
+            logger.info(f"  Current: {temp:.2f} K → Target: {target_temp:.2f} K")
 
             if abs(temp - target_temp) <= tolerance:
                 print(f"✓ Temperature stabilized at {temp:.2f} K")
+                logger.success(f"✓ Temperature stabilized at {temp:.2f} K")
                 return True
 
             time.sleep(check_interval)
 
         print(f"⚠ Temperature wait timeout after {max_wait}s")
+        logger.info(f"⚠ Temperature wait timeout after {max_wait}s")
         return False
 
     def wait_for_field(self, target_field, tolerance=10, max_wait=600, check_interval=2):
@@ -562,18 +576,22 @@ class ThreadSafePPMSCommands:
 
             if not success:
                 print("⚠ Failed to read field")
+                logger.error("⚠ Failed to read field")
                 time.sleep(check_interval)
                 continue
 
             print(f"  Current: {field:.1f} Oe → Target: {target_field:.1f} Oe")
+            logger.info(f"  Current: {field:.1f} Oe → Target: {target_field:.1f} Oe")
 
             if abs(field - target_field) <= tolerance:
                 print(f"✓ Field stabilized at {field:.1f} Oe")
+                logger.success(f"✓ Field stabilized at {field:.1f} Oe")
                 return True
 
             time.sleep(check_interval)
 
         print(f"⚠ Field wait timeout after {max_wait}s")
+        logger.info(f"⚠ Field wait timeout after {max_wait}s")
         return False
 
 class NotificationManager:
@@ -1162,6 +1180,7 @@ class Measurement(QMainWindow):
         super().__init__()
         ExitProtection().install()
         try:
+            logger.log_signal.connect(self.append_text_with_color)
             self.PRESET = False
             self.ETO_SELECTED = False
             self.FMR_SELECTED = False
@@ -2587,6 +2606,7 @@ class Measurement(QMainWindow):
                 QMessageBox.information(self, "Connected", F"Connected to {bnc845rf_model}")
                 self.instru_connect_btn.setText('Disconnect')
                 self.bnc845rf_window_ui()
+
             except visa.errors.VisaIOError:
                 QMessageBox.warning(self, "Connection Fail!", "Please try to reconnect")
         else:
@@ -2783,10 +2803,11 @@ class Measurement(QMainWindow):
         # reading = self.fmr_widget._get_modulation_readings_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
         self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
 
-        # if self.DSP7265_Connected == False:
-        #     QMessageBox.warning(self, "Missing Connection ",
-        #                         f"Please connect to lock-in amplifier client before start")
-        #     return
+        if self.DSP7265_Connected == False:
+            QMessageBox.warning(self, "Missing Connection ",
+                                f"Please connect to lock-in amplifier client before start")
+            return
+
         measurement_setting = {}
         dsp7265_delay_config = None
         dialog = LogWindow()
@@ -2794,7 +2815,11 @@ class Measurement(QMainWindow):
             self._get_log_window_data(dialog)
             try:
                 self._prepare_measurement_ui()
+                log_file = f"{self.folder_path}/{self.file_name}_log.txt"
+                logger.set_log_file(log_file)
+
                 self.append_text('Create Log...!\n', 'green')
+                logger.success("Create Log...!")
                 f = open(self.folder_path + f'{self.random_number}_Experiment_Log.txt', "a")
                 today = datetime.datetime.today()
                 self.formatted_date_csv = today.strftime("%m-%Y-%d %H:%M:%S")
@@ -2828,8 +2853,10 @@ class Measurement(QMainWindow):
                 if self.DSP7265_Connected:
                     dsp7265_delay_config = None
                     self.append_text('Check Connection of DSP Lock-in 7265....\n', 'yellow')
+                    logger.info('Check Connection of DSP Lock-in 7265....')
                     if self.demo_mode:
                         self.append_text("Model DSP 7265 Demo", 'green')
+                        logger.info("Model DSP 7265 Demo")
                     else:
                         try:
                             model_7265 = self.DSP7265.query('ID')
@@ -2842,34 +2869,42 @@ class Measurement(QMainWindow):
                             f.write(f"\tDSP 7264 time constant: {dsp7265_current_time_constant}\n")
                             f.write(f"\tDSP 7264 sensitivity: {dsp7265_current_sensitvity}\n")
                             f.write(f"\tDSP 7264 measurement type: {dsp7265_measurement_type}\n")
-                            f.write(f"\tDSP 7264 osillator amplitude: {dsp7265_oa}\n")
+                            f.write(f"\tDSP 7264 oscillator amplitude: {dsp7265_oa} 'Vrms'\n")
                             f.write(f"\tDSP 7265 slope: {dsp7265_slope}\n")
+                            tc_index = int(self.DSP7265.query('TC').strip())
+                            tc_value = TIME_CONSTANT_VALUES.get(tc_index, 0.1)  # Default 100 ms
                             if dsp7265_slope == '6 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 5
+                                dsp7265_delay_config = tc_value * 5
                             elif dsp7265_slope == '12 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 7
+                                dsp7265_delay_config = tc_value * 7
                             elif dsp7265_slope == '18 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 9
+                                dsp7265_delay_config = tc_value * 9
                             elif dsp7265_slope == '24 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 10
+                                dsp7265_delay_config = tc_value * 10
                             else:
-                                dsp7265_delay_config = dsp7265_current_time_constant * 2
+                                dsp7265_delay_config = tc_value * 2
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
+                            logger.error('Fail to connectDSP Lock-in 7265 ' + str(e))
                             self.stop_measurement()
                             return
                     self.append_text('DSP Lock-in 7265 connected!\n', 'green')
+                    logger.success('DSP Lock-in 7265 connected!')
                 if self.BNC845RF_CONNECTED:
                     self.append_text('Check Connection of BNC 845 RF....\n', 'yellow')
+                    logger.info('Check Connection of BNC 845 RF....')
                     try:
                         model_bnc845rf = self.bnc845rf_command.get_id(self.bnc845rf)
                         self.append_text(str(model_bnc845rf), 'green')
+                        logger.success(str(model_bnc845rf))
                         f.write(f"Instrument: BNC 845 RF enabled\n")
                     except visa.errors.VisaIOError as e:
                         QMessageBox.warning(self, 'Fail to connect BNC 845 RF', str(e))
+                        logger.error('Fail to connect BNC 845 RF ' + str(e))
                         self.stop_measurement()
                         return
                     self.append_text('BNC 845 RF connected!\n', 'green')
+                    logger.success('BNC 845 RF connected!')
                     frequency_list = bnc_845_settings['frequency_settings']['Final_list']
                     start_frequency = frequency_list[0]
                     start_frequency = self.fmr_widget.format_frequency_with_unit(start_frequency)
@@ -2901,7 +2936,9 @@ class Measurement(QMainWindow):
                     f.write(f"\tBNC 845 RF Modulation: {bnc_845_settings['modulation_settings']}\n")
 
                 self.append_text('Start initializing parameters...!\n', 'orange')
+                logger.info('Start initializing parameters...!')
                 self.append_text('Start initializing Temperatures...!\n', 'blue')
+                logger.info('Start initializing Temperatures...!')
                 # =============================== Set the Temperature and Field ==================================== #
                 def create_field_dict(field_mode, temp_field_dict, field_direction):
                     field_zone_count = temp_field_dict['field_settings']['field_zone_count']
@@ -3029,6 +3066,7 @@ class Measurement(QMainWindow):
                 except KeyError:
                     QMessageBox.warning(self, "Potential Missing Temperature Entry",
                                         f'Check All the Entries!')
+                    logger.error("Potential Missing Temperature Entry")
 
                 field_direction = temp_field_dict['field_settings']['field_direction']
                 field_mode = temp_field_dict['field_settings']['field_mode']
@@ -3107,6 +3145,7 @@ class Measurement(QMainWindow):
 
             except SystemExit as e:
                 QMessageBox.critical(self, 'Possible Client Error', 'Check the client')
+                logger.error('Possible Client Error')
                 self.stop_measurement()
                 self.notification.send_notification(
                     message="Your measurement went wrong, possible PPMS client lost connection")
@@ -3119,7 +3158,7 @@ class Measurement(QMainWindow):
                 tb_str = traceback.format_exc()
                 self.stop_measurement()
                 QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
-
+                logger.error(f'{tb_str} {str(e)}')
                 self.notification.send_notification(message=f"Error-{tb_str} {str(e)}")
 
     def _connect_fmr_worker_signals(self):
@@ -3154,6 +3193,7 @@ class Measurement(QMainWindow):
     def bnc845rf_window_ui(self):
         self.fmr_widget = FMR_Measurement(bnc845=self.bnc845rf)
         self.Instruments_measurement_setup_layout.addWidget(self.fmr_widget)
+        self.fmr_widget.update_ui_from_instrument(instrument=self.bnc845rf, bnc_cmd=self.bnc845rf_command)
 
     # ---------------------------------------------------------------------------------
     #  DSP 7265 Portion
@@ -3449,7 +3489,7 @@ class Measurement(QMainWindow):
         # self.dsp7265_freq_reading_unit_label.setFont(self.font)
         self.dsp7265_oa_reading_layout.addWidget(self.dsp7265_oa_reading_label)
         self.dsp7265_oa_reading_layout.addWidget(self.dsp7265_oa_reading_value_label)
-        self.dsp7265_freq_reading_value_label.setText(self.dsp7265_oa)
+        self.dsp7265_oa_reading_value_label.setText(self.dsp7265_oa + 'Vrms')
 
         self.dsp7265_sensitivity_reading_layout = QHBoxLayout()
         self.dsp7265_sensitivity_reading_label = QLabel('Sensitivity: ')
@@ -3525,14 +3565,15 @@ class Measurement(QMainWindow):
 
         sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
 
-        ampiltude = float(instrument.query('OA[.]'))
+        amplitude = float(instrument.query('OA[.]')) / 1e-6
+        amplitude = str(amplitude)
 
         # Time constant
         slope_idx = int(instrument.query("SLOPE[.]"))
         slope_values = ['6 dB/octave', '12 dB/octave', '18 dB/octave', '24 dB/octave']
         slope = slope_values[slope_idx] if slope_idx < len(slope_values) else "Unknown"
 
-        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage", ampiltude, slope
+        return ref_source, ref_freq, time_constant, sensitivity, "Current" if mode > 0 else "Voltage", amplitude, slope
 
     def dsp7265_imode_selection(self):
         try:
@@ -3667,7 +3708,7 @@ class Measurement(QMainWindow):
 
     def dsp7265_slope_control(self):
         self.dsp7265_slope_index = self.dsp7265_slope_channel_combo.currentIndex()
-        if self.dsp7265_float_index != 0:
+        if self.dsp7265_slope_index != 0:
             self.DSP7265.write(f'SLOPE {str(self.dsp7265_float_index - 1)}')
 
     def dsp7265_auto_phase(self):
@@ -3686,13 +3727,13 @@ class Measurement(QMainWindow):
             self.dsp7265_freq_reading_value_label.setText(str(cur_freq) + ' Hz')
 
     def dsp7265_oa_setting(self):
-        ampiltude = self.dsp7265_oa_entry_box.text()
-        if ampiltude is None:
+        amplitude = self.dsp7265_oa_entry_box.text()
+        if amplitude is None:
             QMessageBox.warning(self, 'Warning', 'Frequency not set')
         else:
-            self.DSP7265.write(f'OA. {ampiltude}')
-            ampiltude = float(self.DSP7265.query('OA[.]'))
-            self.dsp7265_oa_reading_value_label.setText(str(ampiltude))
+            self.DSP7265.write(f'OA. {str(float(amplitude) * 1e6)}')
+            amplitude = float(self.DSP7265.query('OA[.]')) / 1e-6
+            self.dsp7265_oa_reading_value_label.setText(str(amplitude) + ' Vrms')
 
     # ---------------------------------------------------------------------------------
     #  Keithley 2182 Portion
@@ -5532,21 +5573,84 @@ class Measurement(QMainWindow):
 
         return plot_layout
 
+    def append_text_with_color(self, text, color):
+        """
+        Slot method to update GUI with colored log messages.
+        This is called automatically when logger.log_signal is emitted.
+
+        Args:
+            text: The log message (e.g., "Starting measurement...")
+            color: Color name (e.g., 'red', 'green', 'blue', 'orange', 'purple', 'black')
+        """
+        if not hasattr(self, 'log_box'):
+            return
+
+        try:
+            # Set the text color for the next append
+            self.log_box.setTextColor(QColor(color))
+
+            # Append the text
+            self.log_box.append(text)
+
+            # Auto-scroll to show the latest message
+            scrollbar = self.log_box.verticalScrollBar()
+            if scrollbar:
+                scrollbar.setValue(scrollbar.maximum())
+
+        except Exception as e:
+            print(f"Error appending to log box: {e}")
+
+
     def _parse_custom_list(self, list_string):
         """
-        Parse a comma-separated string of values into a list of floats.
-        Example: "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
+        Parse a comma-separated or space-separated string of values into a list of floats.
+
+        Handles multiple formats:
+        - "1.0, 2.5, 3.7, 5.0" -> [1.0, 2.5, 3.7, 5.0]
+        - "1, 2, 3, 4" -> [1.0, 2.0, 3.0, 4.0]
+        - "1 2 3 4" -> [1.0, 2.0, 3.0, 4.0]
+        - "[1, 2, 3, 4]" -> [1.0, 2.0, 3.0, 4.0]
+        - "1.5,2.5,3.5" -> [1.5, 2.5, 3.5]
+        - Mixed: "1.0 2.5, 3.7,5.0" -> [1.0, 2.5, 3.7, 5.0]
+
+        Args:
+            list_string: String containing numbers separated by commas and/or spaces
+
+        Returns:
+            List of floats, or empty list if parsing fails
         """
         try:
-            # Remove brackets if present
-            list_string = list_string.strip('[]')
+            if not list_string or not isinstance(list_string, str):
+                return []
 
-            # Split by comma and convert to float
-            values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
+            # Remove brackets if present
+            list_string = list_string.strip('[](){}')
+
+            # Remove extra whitespace
+            list_string = list_string.strip()
+
+            if not list_string:
+                return []
+
+            # Replace multiple spaces with single space
+            import re
+            list_string = re.sub(r'\s+', ' ', list_string)
+
+            # Try comma-separated first (most common)
+            if ',' in list_string:
+                # Split by comma, then handle any spaces around values
+                values = [float(x.strip()) for x in list_string.split(',') if x.strip()]
+            else:
+                # No commas, try space-separated
+                values = [float(x.strip()) for x in list_string.split() if x.strip()]
+
+            # Filter out any NaN or Inf values
+            values = [v for v in values if not (float('inf') == abs(v) or v != v)]
 
             return values
 
-        except (ValueError, TypeError, AttributeError):
+        except (ValueError, TypeError, AttributeError) as e:
+            print(f"Error parsing custom list '{list_string}': {e}")
             return []
 
     def rst(self):
@@ -6087,18 +6191,20 @@ class Measurement(QMainWindow):
                             f.write(f"\tDSP 7265 time constant: {dsp7265_current_time_constant}\n")
                             f.write(f"\tDSP 7265 sensitivity: {dsp7265_current_sensitvity}\n")
                             f.write(f"\tDSP 7265 measurement type: {dsp7265_measurement_type}\n")
-                            f.write(f"\tDSP 7265 osillator amplitude: {dsp7265_oa}\n")
+                            f.write(f"\tDSP 7265 osillator amplitude: {dsp7265_oa} 'Vrms'\n")
                             f.write(f"\tDSP 7265 slope: {dsp7265_slope}\n")
+                            tc_index = int(self.DSP7265.query('TC').strip())
+                            tc_value = TIME_CONSTANT_VALUES.get(tc_index, 0.1)
                             if dsp7265_slope == '6 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 5
+                                dsp7265_delay_config = tc_value * 5
                             elif dsp7265_slope == '12 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 7
+                                dsp7265_delay_config = tc_value * 7
                             elif dsp7265_slope == '18 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 9
+                                dsp7265_delay_config = tc_value * 9
                             elif dsp7265_slope == '24 dB/octave':
-                                dsp7265_delay_config = dsp7265_current_time_constant * 10
+                                dsp7265_delay_config = tc_value * 10
                             else:
-                                sp7265_delay_config = dsp7265_current_time_constant * 2
+                                sp7265_delay_config = tc_value * 2
                         except visa.errors.VisaIOError as e:
                             QMessageBox.warning(self, 'Fail to connectDSP Lock-in 7265', str(e))
                             self.stop_measurement()
@@ -6801,14 +6907,14 @@ class Measurement(QMainWindow):
             self.single_plot_widget.clear()
 
             # Plot the spectrum
-            pen = pg.mkPen(color='b', width=2)
+            pen = pg.mkPen(color='black', width=4)
             self.single_plot_widget.plot(
                 field_array,
                 intensity_array,
                 pen=pen,
                 symbol='o',
-                symbolSize=3,
-                symbolBrush='b',
+                symbolSize=5,
+                symbolBrush='black',
                 name='Voltage'
             )
 
@@ -7031,17 +7137,17 @@ class Measurement(QMainWindow):
                 self.canvas.axes.set_title('Waiting for measurement...')
                 self.canvas.draw()
 
-            if hasattr(self, 'cumulative_canvas'):
-                self.cumulative_canvas.figure.clear()
-                self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
-                self.cumulative_canvas.axes.set_title('Waiting for measurement...')
-                self.cumulative_canvas.draw()
-                self.cumulative_colorbar = None
+            # if hasattr(self, 'cumulative_canvas'):
+            #     self.cumulative_canvas.figure.clear()
+            #     self.cumulative_canvas.axes = self.cumulative_canvas.figure.add_subplot(111)
+            #     self.cumulative_canvas.axes.set_title('Waiting for measurement...')
+            #     self.cumulative_canvas.draw()
+            #     self.cumulative_colorbar = None
 
-            if hasattr(self, 'single_canvas'):
-                self.single_canvas.axes.clear()
-                self.single_canvas.axes.set_title('Waiting for spectrum...')
-                self.single_canvas.draw()
+            # if hasattr(self, 'single_canvas'):
+            #     self.single_canvas.axes.clear()
+            #     self.single_canvas.axes.set_title('Waiting for spectrum...')
+            #     self.single_canvas.draw()
 
             if hasattr(self, 'cumulative_image_item'):
                 try:
