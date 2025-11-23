@@ -43,7 +43,9 @@ dependencies = [
     "newportxps",
     'clr',
     'scipy',
-    'lmfit'
+    'lmfit',
+    'requests',
+    'pyqtgraph'
 ]
 
 [project.scripts]

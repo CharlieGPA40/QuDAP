@@ -3356,7 +3356,7 @@ class Measurement(QMainWindow):
         self.dsp7265_oa_unit_text.setFont(self.font)
         self.dsp7265_oa_submit_button = QPushButton('Set')
         self.dsp7265_oa_submit_button.setStyleSheet(self.Button_stylesheet)
-        self.dsp7265_oa_submit_button.clicked.connect(self.dsp7265_freq_setting)
+        self.dsp7265_oa_submit_button.clicked.connect(self.dsp7265_oa_setting)
 
         self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_text)
         self.dsp7265_oa_layout.addWidget(self.dsp7265_oa_entry_box)
@@ -3565,7 +3565,7 @@ class Measurement(QMainWindow):
 
         sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
 
-        amplitude = float(instrument.query('OA[.]')) / 1e-6
+        amplitude = float(instrument.query('OA[.]')) / 1e6
         amplitude = str(amplitude)
 
         # Time constant
@@ -3732,7 +3732,7 @@ class Measurement(QMainWindow):
             QMessageBox.warning(self, 'Warning', 'Frequency not set')
         else:
             self.DSP7265.write(f'OA. {str(float(amplitude) * 1e6)}')
-            amplitude = float(self.DSP7265.query('OA[.]')) / 1e-6
+            amplitude = float(self.DSP7265.query('OA[.]')) / 1e6
             self.dsp7265_oa_reading_value_label.setText(str(amplitude) + ' Vrms')
 
     # ---------------------------------------------------------------------------------
