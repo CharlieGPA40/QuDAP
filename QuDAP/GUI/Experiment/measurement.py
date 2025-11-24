@@ -157,8 +157,8 @@ def is_multivu_running():
                 text=True,
                 timeout=5
             )
-
-            if 'MultiVu.exe' in result.stdout or 'Dynacool.exe' in result.stdout or 'Multivu.exe' in result.stdout:
+            # print(result.stdout)
+            if 'MultiVu.exe' in result.stdout or 'Dynacool.exe' in result.stdout or 'Multivu.exe' in result.stdout or 'PpmsMvu.exe' in result.stdout:
                 is_running = True
             else:
                 is_running = False
@@ -3183,6 +3183,7 @@ class Measurement(QMainWindow):
         self.fmr_worker.show_info.connect(self.show_info)
         self.fmr_worker.update_fmr_ui.connect(self.update_fmr_ui)
         self.fmr_worker.clear_fmr_plot.connect(self.clear_fmr_plot)
+        self.fmr_worker.clear_fmr_2d_plot.connect(self.clear_fmr_2d_plot)
         self.fmr_worker.send_notification.connect(self.send_notification)
 
 
@@ -3731,7 +3732,8 @@ class Measurement(QMainWindow):
         if amplitude is None:
             QMessageBox.warning(self, 'Warning', 'Frequency not set')
         else:
-            self.DSP7265.write(f'OA. {str(float(amplitude) * 1e6)}')
+            self.DSP7265.write(f'OA. {str(float(amplitude))}')
+            time.sleep(1)
             amplitude = float(self.DSP7265.query('OA[.]')) / 1e6
             self.dsp7265_oa_reading_value_label.setText(str(amplitude) + ' Vrms')
 
@@ -5715,6 +5717,7 @@ class Measurement(QMainWindow):
 
     def stop_measurement(self):
         try:
+            logger.close()
             if hasattr(self, 'keithley_6221'):
                 self.keithley_6221.write(":OUTP OFF")
                 self.keithley_6221.write("SOUR:WAVE:ABOR \n")
@@ -7014,6 +7017,115 @@ class Measurement(QMainWindow):
             import traceback
             traceback.print_exc()
 
+    # def update_2d_plot(self, field_data, y_parameter, intensity_matrix):
+    #     """
+    #     Update 2D contour/heatmap plot for FMR measurements using PyQtGraph.
+    #
+    #     Args:
+    #         field_data: list of field values (x-axis) in Oe
+    #         y_parameter: list of varying parameter (repetition/power/frequency) (y-axis)
+    #         intensity_matrix: list of lists, each inner list is lock-in X intensity
+    #     """
+    #     if not hasattr(self, 'cumulative_image_item'):
+    #         print("ERROR: cumulative_image_item not found!")
+    #         return
+    #
+    #     try:
+    #         import numpy as np
+    #
+    #         # Convert to numpy arrays
+    #         field_array = np.array(field_data)
+    #         y_array = np.array(y_parameter)
+    #         Z = np.array(intensity_matrix)
+    #
+    #         print(f"\n=== 2D FMR Plot Update ===")
+    #         print(f"Field: {len(field_array)} points, range [{field_array[0]:.1f}, {field_array[-1]:.1f}] Oe")
+    #         print(f"Y-parameter: {len(y_array)} points, range [{y_array[0]:.3f}, {y_array[-1]:.3f}]")
+    #         print(f"Z shape before processing: {Z.shape}")
+    #         print(f"Z value range: [{np.min(Z):.6f}, {np.max(Z):.6f}] V")
+    #
+    #         # Ensure Z is 2D
+    #         if Z.ndim == 1:
+    #             n_y = len(y_array)
+    #             n_field = len(field_array)
+    #             Z = Z.reshape(n_y, n_field)
+    #             print(f"Reshaped Z to: {Z.shape}")
+    #
+    #         # Handle dimension mismatches
+    #         if Z.shape[0] != len(y_array) or Z.shape[1] != len(field_array):
+    #             print(f"Warning: Reshaping Z from {Z.shape} to ({len(y_array)}, {len(field_array)})")
+    #             min_y = min(Z.shape[0], len(y_array))
+    #             min_field = min(Z.shape[1], len(field_array))
+    #             Z = Z[:min_y, :min_field]
+    #             field_array = field_array[:min_field]
+    #             y_array = y_array[:min_y]
+    #
+    #         # Transpose for PyQtGraph (expects [x, y] indexing)
+    #         Z_transposed = Z.T
+    #         print(f"Transposed Z shape: {Z_transposed.shape}")
+    #
+    #         # Get data range for levels
+    #         z_min = float(np.min(Z))
+    #         z_max = float(np.max(Z))
+    #         print(f"Setting color levels: [{z_min:.6f}, {z_max:.6f}]")
+    #
+    #         # Set the image data
+    #         self.cumulative_image_item.setImage(
+    #             Z_transposed,
+    #             autoLevels=False
+    #         )
+    #
+    #         # Set levels explicitly
+    #         self.cumulative_image_item.setLevels([z_min, z_max])
+    #
+    #         # Set position and scale
+    #         field_min = float(field_array[0])
+    #         field_max = float(field_array[-1])
+    #         y_min = float(y_array[0])
+    #         y_max = float(y_array[-1])
+    #
+    #         # Handle single point cases
+    #         if field_min == field_max:
+    #             field_min -= 1
+    #             field_max += 1
+    #         if y_min == y_max:
+    #             y_min -= 0.1
+    #             y_max += 0.1
+    #
+    #         width = field_max - field_min
+    #         height = y_max - y_min
+    #
+    #         print(f"Image rect: pos=({field_min:.1f}, {y_min:.3f}), size=({width:.1f}, {height:.3f})")
+    #
+    #         # Set the rectangle
+    #         self.cumulative_image_item.setRect(
+    #             field_min, y_min, width, height
+    #         )
+    #
+    #         # Auto-range the view
+    #         self.cumulative_plot_widget.getViewBox().autoRange()
+    #
+    #         # Determine y-axis label
+    #         if len(y_parameter) > 0:
+    #             y_val = y_parameter[0]
+    #             if all(isinstance(y, int) for y in y_parameter) and max(y_parameter) < 100:
+    #                 ylabel = 'Repetition #'
+    #             elif y_val > 1e6:
+    #                 ylabel = 'Frequency (Hz)'
+    #             elif -50 <= y_val <= 50:
+    #                 ylabel = 'Power (dBm)'
+    #             else:
+    #                 ylabel = 'Parameter'
+    #
+    #             self.cumulative_plot_widget.setLabel('left', ylabel, **{'font-size': '12pt', 'font-weight': 'bold'})
+    #
+    #         print(f"✓ 2D FMR plot updated successfully\n")
+    #
+    #     except Exception as e:
+    #         print(f"✗ Error updating 2D plot: {e}")
+    #         import traceback
+    #         traceback.print_exc()
+
     def update_2d_plot(self, field_data, y_parameter, intensity_matrix):
         """
         Update 2D contour/heatmap plot for FMR measurements using PyQtGraph.
@@ -7028,51 +7140,88 @@ class Measurement(QMainWindow):
             return
 
         try:
-            import numpy as np
-
             # Convert to numpy arrays
             field_array = np.array(field_data)
             y_array = np.array(y_parameter)
-            Z = np.array(intensity_matrix)
+
+            # Convert intensity matrix - handle list of lists properly
+            if isinstance(intensity_matrix, list):
+                # Check if it's a list of lists/arrays
+                if len(intensity_matrix) > 0 and isinstance(intensity_matrix[0], (list, np.ndarray)):
+                    Z = np.array(intensity_matrix)
+                else:
+                    # Single list - reshape it
+                    Z = np.array(intensity_matrix).reshape(1, -1)
+            else:
+                Z = np.array(intensity_matrix)
 
             print(f"\n=== 2D FMR Plot Update ===")
             print(f"Field: {len(field_array)} points, range [{field_array[0]:.1f}, {field_array[-1]:.1f}] Oe")
-            print(f"Y-parameter: {len(y_array)} points, range [{y_array[0]:.3f}, {y_array[-1]:.3f}]")
+            print(f"Y-parameter: {len(y_array)} points, range [{y_array[0]:.3e}, {y_array[-1]:.3e}]")
             print(f"Z shape before processing: {Z.shape}")
             print(f"Z value range: [{np.min(Z):.6f}, {np.max(Z):.6f}] V")
 
+            # Check if we have enough data for 2D plot
+            if len(y_array) < 2:
+                print(f"⚠ Warning: Only {len(y_array)} y-parameter point(s). Need at least 2 for 2D plot.")
+                return
+
+            if len(field_array) < 2:
+                print(f"⚠ Warning: Only {len(field_array)} field point(s). Need at least 2 for 2D plot.")
+                return
+
             # Ensure Z is 2D
             if Z.ndim == 1:
+                print(f"Converting 1D array to 2D")
                 n_y = len(y_array)
                 n_field = len(field_array)
                 Z = Z.reshape(n_y, n_field)
                 print(f"Reshaped Z to: {Z.shape}")
 
+            # Expected shape: (n_y_points, n_field_points)
+            expected_shape = (len(y_array), len(field_array))
+
             # Handle dimension mismatches
-            if Z.shape[0] != len(y_array) or Z.shape[1] != len(field_array):
-                print(f"Warning: Reshaping Z from {Z.shape} to ({len(y_array)}, {len(field_array)})")
-                min_y = min(Z.shape[0], len(y_array))
-                min_field = min(Z.shape[1], len(field_array))
-                Z = Z[:min_y, :min_field]
-                field_array = field_array[:min_field]
-                y_array = y_array[:min_y]
+            if Z.shape != expected_shape:
+                print(f"⚠ Warning: Z shape {Z.shape} doesn't match expected {expected_shape}")
+
+                # Try to fix common issues
+                if Z.shape[0] == len(field_array) and Z.shape[1] == len(y_array):
+                    # Data is transposed
+                    print("Detected transposed data, swapping dimensions")
+                    Z = Z.T
+                else:
+                    # Crop to minimum dimensions
+                    print(f"Cropping to safe dimensions")
+                    min_y = min(Z.shape[0], len(y_array))
+                    min_field = min(Z.shape[1], len(field_array))
+                    Z = Z[:min_y, :min_field]
+                    field_array = field_array[:min_field]
+                    y_array = y_array[:min_y]
+                    print(f"New Z shape: {Z.shape}")
 
             # Transpose for PyQtGraph (expects [x, y] indexing)
+            # PyQtGraph displays image as image[x, y] where x is horizontal (field) and y is vertical (parameter)
+            # Our Z is [y_parameter, field], so we need to transpose to [field, y_parameter]
             Z_transposed = Z.T
-            print(f"Transposed Z shape: {Z_transposed.shape}")
+            print(f"Transposed Z shape for PyQtGraph: {Z_transposed.shape} (field × y_param)")
 
             # Get data range for levels
             z_min = float(np.min(Z))
             z_max = float(np.max(Z))
+
+            # Handle case where all values are the same
+            if z_min == z_max:
+                print(f"⚠ Warning: All Z values are identical ({z_min:.6f})")
+                z_min -= abs(z_min) * 0.01 if z_min != 0 else 0.01
+                z_max += abs(z_max) * 0.01 if z_max != 0 else 0.01
+
             print(f"Setting color levels: [{z_min:.6f}, {z_max:.6f}]")
 
             # Set the image data
-            self.cumulative_image_item.setImage(
-                Z_transposed,
-                autoLevels=False
-            )
+            self.cumulative_image_item.setImage(Z_transposed, autoLevels=False)
 
-            # Set levels explicitly
+            # Set levels explicitly (important for negative values like dBm)
             self.cumulative_image_item.setLevels([z_min, z_max])
 
             # Set position and scale
@@ -7081,40 +7230,74 @@ class Measurement(QMainWindow):
             y_min = float(y_array[0])
             y_max = float(y_array[-1])
 
-            # Handle single point cases
+            # Handle single point cases (add small epsilon)
             if field_min == field_max:
-                field_min -= 1
-                field_max += 1
+                epsilon = 1.0
+                field_min -= epsilon
+                field_max += epsilon
+                print(f"⚠ Warning: Single field point, adding epsilon")
+
             if y_min == y_max:
-                y_min -= 0.1
-                y_max += 0.1
+                epsilon = abs(y_min) * 0.01 if y_min != 0 else 0.01
+                y_min -= epsilon
+                y_max += epsilon
+                print(f"⚠ Warning: Single y-parameter point, adding epsilon")
 
             width = field_max - field_min
             height = y_max - y_min
 
-            print(f"Image rect: pos=({field_min:.1f}, {y_min:.3f}), size=({width:.1f}, {height:.3f})")
+            print(f"Image rect: pos=({field_min:.1f}, {y_min:.3e}), size=({width:.1f}, {height:.3e})")
 
-            # Set the rectangle
-            self.cumulative_image_item.setRect(
-                field_min, y_min, width, height
-            )
+            # Set the rectangle (defines the coordinate space)
+            self.cumulative_image_item.setRect(field_min, y_min, width, height)
 
-            # Auto-range the view
-            self.cumulative_plot_widget.getViewBox().autoRange()
-
-            # Determine y-axis label
+            # Determine y-axis label based on the values
             if len(y_parameter) > 0:
                 y_val = y_parameter[0]
-                if all(isinstance(y, int) for y in y_parameter) and max(y_parameter) < 100:
+
+                # Check for repetition numbers (small integers)
+                if all(isinstance(y, (int, np.integer)) for y in y_parameter) and max(y_parameter) < 100:
                     ylabel = 'Repetition #'
-                elif y_val > 1e6:
-                    ylabel = 'Frequency (Hz)'
-                elif -50 <= y_val <= 50:
+
+                # Check for frequency (large values > 1 MHz)
+                elif abs(y_val) > 1:
+                    ylabel = 'Frequency'
+                    units = 'Hz'
+
+                    # Use appropriate frequency units
+                    if abs(y_val) > 1e9:
+                        y_array_display = y_array / 1e9
+                        units = 'GHz'
+                        ylabel = 'Frequency (GHz)'
+                    elif abs(y_val) > 1e6:
+                        y_array_display = y_array / 1e6
+                        units = 'MHz'
+                        ylabel = 'Frequency (MHz)'
+                    elif abs(y_val) > 1e3:
+                        y_array_display = y_array / 1e3
+                        units = 'kHz'
+                        ylabel = 'Frequency (kHz)'
+
+                    print(
+                        f"Detected frequency sweep: {len(y_array)} points from {y_array[0] / 1e9:.3f} to {y_array[-1] / 1e9:.3f} GHz")
+
+                # Check for power (typical range -50 to +50 dBm)
+                elif -20 <= y_val <= 20:
                     ylabel = 'Power (dBm)'
+
+                # Check for voltage (typical range 0-10 V)
+                elif 0 <= y_val <= 1:
+                    ylabel = 'Voltage (V)'
+
                 else:
                     ylabel = 'Parameter'
 
                 self.cumulative_plot_widget.setLabel('left', ylabel, **{'font-size': '12pt', 'font-weight': 'bold'})
+                self.cumulative_plot_widget.setLabel('bottom', 'Field (Oe)',
+                                                     **{'font-size': '12pt', 'font-weight': 'bold'})
+
+            # Auto-range the view
+            self.cumulative_plot_widget.getViewBox().autoRange()
 
             print(f"✓ 2D FMR plot updated successfully\n")
 
@@ -7231,7 +7414,7 @@ class Measurement(QMainWindow):
 
         except Exception:
             pass
-
+        logger.close()
         self.running = False
         self.measurement_active = False
         self.set_all_inputs_enabled(True)

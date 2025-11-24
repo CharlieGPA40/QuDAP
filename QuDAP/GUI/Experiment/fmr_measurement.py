@@ -64,6 +64,7 @@ class ST_FMR_Worker(QThread):
     save_individual_plot = pyqtSignal(str)  # filename
     clear_plot = pyqtSignal()
     clear_fmr_plot = pyqtSignal()
+    clear_fmr_2d_plot = pyqtSignal()
     save_2d_plot = pyqtSignal(str)  # filename
 
 
@@ -261,6 +262,7 @@ class ST_FMR_Worker(QThread):
                     time.sleep(15)
                     _, field_status = self._update_field_reading_label()
                     if field_status == 'Holding (driven)':
+                        time.sleep(5)
                         break
 
                 self.append_text.emit(f'Current loop sets at {str(temperature_list[i])} K\n', 'blue')
@@ -303,7 +305,9 @@ class ST_FMR_Worker(QThread):
                     logger.warning("Measurement stopped by user")
                     logger.warning("=" * 60)
                     return  # Exit without emitting measurement_finished
-
+                freq_levels = []
+                freq_intensity_matrix = []
+                field_reference = None
                 for j in range(number_of_frequency):
                     if self.stopped_by_user:
                         self.append_text.emit("\n" + "=" * 60, 'red')
@@ -314,6 +318,9 @@ class ST_FMR_Worker(QThread):
                         logger.warning("=" * 60)
                         return  # Exit without emitting measurement_finished
                     self.frequency_array = []
+                    power_levels = []
+                    power_intensity_matrix = []
+                    field_reference = None
                     for k in range(number_of_power):
                         current_frequency = frequency_list[j]
                         current_power = power_list[k]
@@ -321,12 +328,15 @@ class ST_FMR_Worker(QThread):
                         if self.bnc845:
                             try:
                                 self._set_enable_bnc845(frequency=current_frequency, power=current_power)
-                                self._turn_on_output_bnc845()
-                                time.sleep(1)
+
+                                time.sleep(2)
                                 self.update_fmr_ui.emit()
+                                time.sleep(2)
                                 curFreq = self._get_current_frequency_bnc845()
+                                time.sleep(2)
                                 self.frequency_array.append(curFreq)
                                 curPower = self._get_current_power_bnc845()
+                                time.sleep(2)
                                 self.power_array.append(curPower)
                             except Exception as e:
                                 self.show_error.emit("BNC Setting Error", f'{e}')
@@ -352,7 +362,7 @@ class ST_FMR_Worker(QThread):
                                 f"Starting measurement at temperature: {str(temperature_list[i])} K, frequency: {frequency_list[j]} Hz,"
                                 f"power: {power_list[k]} dBm, repetition: {number_of_repetition[l]}")
 
-                            self.clear_plot.emit()
+                            self.clear_fmr_plot.emit()
 
                             csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}.csv"
 
@@ -445,7 +455,8 @@ class ST_FMR_Worker(QThread):
                                 self.append_text.emit('Start collecting data \n', 'purple')
                                 logger.success('Start collecting data!')
                                 counter = 0
-
+                                self._turn_on_output_bnc845()
+                                time.sleep(2)
                                 while currentField >= end_field + 1:
                                     user_field_rate = self._continous_field_setting(field_direction, currentField, field_zone_count)
                                     self._set_field(end_field, user_field_rate)
@@ -610,6 +621,7 @@ class ST_FMR_Worker(QThread):
                                             time.sleep(1)
                                             MyField, field_status = self._update_field_reading_label()
                                             if field_status == 'Holding (driven)':
+                                                time.sleep(5)
                                                 break
                                         except SystemExit as e:
                                             self.error_message.emit(e, e)
@@ -773,14 +785,14 @@ class ST_FMR_Worker(QThread):
                                         self.update_measurement_progress.emit(total_time_in_days, total_time_in_hours,
                                                                               total_time_in_minutes,
                                                                               current_progress * 100)
-
                             else:
                                 field_list = self.ppms_setting['field_setting']['final_step_list']
                                 user_field_rate = self.ppms_setting['field_setting']['final_rate']
                                 number_of_field = len(field_list)
                                 number_of_field_update = number_of_field
                                 total_progress_stepped =  total_progress * number_of_field
-
+                                self._turn_on_output_bnc845()
+                                time.sleep(2)
                                 for m in range(number_of_field):
                                     if m == int(number_of_field /2) and field_direction == 'bidirectional':
                                         self.send_notification.emit(
@@ -814,6 +826,7 @@ class ST_FMR_Worker(QThread):
                                             time.sleep(1)
                                             MyField, field_status = self._update_field_reading_label()
                                             if field_status == 'Holding (driven)':
+                                                time.sleep(5)
                                                 break
                                         except SystemExit as e:
                                             self.error_message.emit(e, e)
@@ -954,6 +967,7 @@ class ST_FMR_Worker(QThread):
                                 time.sleep(1)
                                 MyField, field_status = self._update_field_reading_label()
                                 if field_status == 'Holding (driven)':
+                                    time.sleep(5)
                                     break
 
                             # Store current measurement result
@@ -1019,9 +1033,9 @@ class ST_FMR_Worker(QThread):
                             self.append_text.emit('Updating power 2D plot...', 'blue')
 
                             # Use latest repetition data for each power level
-                            power_levels = []
-                            power_intensity_matrix = []
-                            field_reference = None
+                            # power_levels = []
+                            # power_intensity_matrix = []
+                            # field_reference = None
 
                             for p_idx, p_val in enumerate(power_list[:k + 1]):
                                 p_key = f"{p_val}"
@@ -1045,6 +1059,7 @@ class ST_FMR_Worker(QThread):
                         # After all power levels complete for this frequency
                         # ========== FREQUENCY PLOT ==========
                         # Update frequency plot if more than 1 frequency
+
                     if number_of_frequency > 1:
                         self.append_text.emit('Updating frequency 2D plot...', 'blue')
 
@@ -1052,9 +1067,9 @@ class ST_FMR_Worker(QThread):
                         for p_idx, p_val in enumerate(power_list):
                             p_key = f"{p_val}"
 
-                            freq_levels = []
-                            freq_intensity_matrix = []
-                            field_reference = None
+                            # freq_levels = []
+                            # freq_intensity_matrix = []
+                            # field_reference = None
 
                             # Collect data for each frequency at this power level
                             for f_idx, f_val in enumerate(frequency_list[:j + 1]):
@@ -1069,6 +1084,7 @@ class ST_FMR_Worker(QThread):
                                         field_reference = latest_data['field']
 
                             if len(freq_levels) > 1 and field_reference is not None:
+
                                 self.update_2d_plot.emit(field_reference, freq_levels, freq_intensity_matrix)
 
                                 # Save plot when all frequencies are complete for this power
@@ -1091,6 +1107,7 @@ class ST_FMR_Worker(QThread):
                 time.sleep(1)
                 MyField, field_status = self._update_field_reading_label()
                 if field_status == 'Holding (driven)':
+                    time.sleep(5)
                     break
             self._update_field_reading_label()
             time.sleep(2)
@@ -1415,7 +1432,7 @@ class ST_FMR_Worker(QThread):
             time.sleep(0.1)
         else:
             time.sleep(self.settling_time)
-            logger.info(self.settling_time)
+            logger.info(str(self.settling_time))
 
     def _cleanup_instruments(self):
         """Turn off outputs and cleanup."""
@@ -3398,9 +3415,9 @@ class FMR_Measurement(QWidget):
                 errors.append("Customized Power: Field not initialized")
                 return False, {}, errors
 
-            if not hasattr(self, 'bnc845rf_frequency_zone_customized_unit_combo'):
-                errors.append("Customized Power: Field not initialized")
-                return False, {}, errors
+            # if not hasattr(self, 'bnc845rf_frequency_zone_customized_unit_combo'):
+            #     errors.append("Customized Power: Field not initialized")
+            #     return False, {}, errors
 
             power_list_str = self.bnc845rf_power_zone_customized_entry.text().strip()
 
