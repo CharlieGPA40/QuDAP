@@ -79,6 +79,15 @@ class HybridLogger(QObject):
     def purple(self, message):
         self._log('INFO', message, 'purple')
 
+    def close(self):
+        """Close the log file handler"""
+        if self.file_handler:
+            self.logger.info("=" * 60)
+            self.logger.info(f"Logging session ended")
+            self.logger.info("=" * 60)
+            self.logger.removeHandler(self.file_handler)
+            self.file_handler.close()
+            self.file_handler = None
 
 # Create singleton
 logger = HybridLogger()
