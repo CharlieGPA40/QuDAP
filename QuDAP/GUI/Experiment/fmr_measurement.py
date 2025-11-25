@@ -365,6 +365,7 @@ class ST_FMR_Worker(QThread):
                             self.clear_fmr_plot.emit()
 
                             csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}.csv"
+                            csv_filename = csv_filename.replace(".", "_")
 
                             time.sleep(5)
 
@@ -490,7 +491,7 @@ class ST_FMR_Worker(QThread):
                                                 logger.warning("Measurement stopped by user")
                                                 logger.warning("=" * 60)
                                                 return  # Exit without emitting measurement_finished
-                                            self._wait_settling("Wait for settling time.")
+                                            # self._wait_settling("Wait for settling time.")
 
                                             currentField, field_status = self._update_field_reading_label()
                                             self.field_array.append(currentField)
@@ -676,7 +677,7 @@ class ST_FMR_Worker(QThread):
                                                     logger.warning("Measurement stopped by user")
                                                     logger.warning("=" * 60)
                                                     return  # Exit without emitting measurement_finished
-                                                self._wait_settling("Wait for settling time.")
+                                                # self._wait_settling("Wait for settling time.")
                                                 currentField, field_status = self._update_field_reading_label()
                                                 self.field_array.append(currentField)
                                                 X = float(self.dsp7265.query("X."))  # Read the measurement result
@@ -952,6 +953,7 @@ class ST_FMR_Worker(QThread):
                             # Save individual spectrum plot
 
                             individual_plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_{power_list[k]}dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}"
+                            individual_plot_filename = individual_plot_filename.replace(".", "_")
 
                             self.save_individual_plot.emit(individual_plot_filename)
                             self.append_text.emit(f'Saved individual spectrum: {individual_plot_filename}',
@@ -1013,8 +1015,8 @@ class ST_FMR_Worker(QThread):
 
                                 # Save plot when all repetitions for this power/frequency are complete
                                 if l == len(number_of_repetition) - 1:
-                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_{power_list[k]}dBm_Run_{self.run_number}_Repetition"
-
+                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_{power_list[k]}dBm_Run_{self.run_number}_Repetition_2d_Plot"
+                                    plot_filename = plot_filename.replace(".", "_")
                                     self.save_2d_plot.emit(plot_filename)
                                     self.append_text.emit(f'Saved repetition plot: {plot_filename}', 'green')
 
@@ -1052,7 +1054,8 @@ class ST_FMR_Worker(QThread):
 
                                 # Save plot when all powers for this frequency are complete
                                 if k == number_of_power - 1:
-                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_Power"
+                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}Hz_Power_2d_Plot"
+                                    plot_filename = plot_filename.replace(".", "_")
                                     self.save_2d_plot.emit(plot_filename)
                                     self.append_text.emit(f'Saved power plot: {plot_filename}', 'green')
 
@@ -1089,7 +1092,8 @@ class ST_FMR_Worker(QThread):
 
                                 # Save plot when all frequencies are complete for this power
                                 if j == number_of_frequency - 1:
-                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_Frequency"
+                                    plot_filename = f"{self.file_name}_{temperature_list[i]}K_Frequency_2d_Plot"
+                                    plot_filename = plot_filename.replace(".", "_")
                                     self.save_2d_plot.emit(plot_filename)
                                     self.append_text.emit(f'Saved frequency plot: {plot_filename}', 'green')
 

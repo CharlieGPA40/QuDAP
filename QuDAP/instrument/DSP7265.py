@@ -83,14 +83,14 @@ class SweepThread(QThread):
     info_signal = pyqtSignal(str, str)
     sweep_complete_signal = pyqtSignal()
 
-    def __init__(self, instrument, sweep_type, start, stop, step,
+    def __init__(self, instrument, sweep_type, start_value, stop_value, step_value,
                  use_auto_rate=True, manual_rate=None, parent=None):
         super().__init__(parent)
         self.instrument = instrument
         self.sweep_type = sweep_type
-        self.start = start
-        self.stop = stop
-        self.step = step
+        self.start_value = start_value
+        self.stop_value = stop_value
+        self.step_value = step_value
         self.use_auto_rate = use_auto_rate
         self.manual_rate = manual_rate
         self.should_stop = False
@@ -119,13 +119,13 @@ class SweepThread(QThread):
         """Read X, Y, and magnitude from lock-in"""
         try:
             # Read X and Y outputs
-            # x = float(self.instrument.query('X.').strip())
-            # y = float(self.instrument.query('Y.').strip())
+            x = float(self.instrument.query('X.').strip())
+            y = float(self.instrument.query('Y.').strip())
             noise = float(self.instrument.query('NHZ.').strip())
 
             # Calculate magnitude (noise level)
             # magnitude = np.sqrt(x ** 2 + y ** 2)
-            return noise
+            return x, y, noise
             # return x, y, magnitude
         except Exception as e:
             print(f"Error reading measurement: {e}")
@@ -134,6 +134,7 @@ class SweepThread(QThread):
     def run(self):
         """Execute the sweep with data collection"""
         try:
+            print('ENTER')
             if not self.instrument:
                 self.error_signal.emit("No Instrument", "DSP 7265 is not connected")
                 return
@@ -150,29 +151,29 @@ class SweepThread(QThread):
                 rate_ms = self.manual_rate if self.manual_rate else 100
 
             # Calculate sweep points
-            if self.start <= self.stop:
-                sweep_points = np.arange(self.start, self.stop + self.step / 2, self.step)
+            if self.start_value <= self.stop_value:
+                sweep_points = np.arange(self.start_value, self.stop_value + self.step_value / 2, self.step_value)
             else:
-                sweep_points = np.arange(self.start, self.stop - self.step / 2, -self.step)
+                sweep_points = np.arange(self.start_value, self.stop_value - self.step_value / 2, -self.step_value)
 
             total_points = len(sweep_points)
 
             if total_points == 0:
                 self.warning_signal.emit("Invalid Sweep", "No sweep points generated")
                 return
-
+            print('Enter')
             # Configure sweep based on type
             if self.sweep_type == 'frequency':
                 self.info_signal.emit(
                     "Frequency Sweep Started",
-                    f"Sweeping from {self.start} Hz to {self.stop} Hz\n"
+                    f"Sweeping from {self.start_value} Hz to {self.stop_value} Hz\n"
                     f"Total points: {total_points}\nRate: {rate_ms:.2f} ms/point"
                 )
 
             elif self.sweep_type == 'amplitude':
                 self.info_signal.emit(
                     "Amplitude Sweep Started",
-                    f"Sweeping from {self.start} V to {self.stop} V\n"
+                    f"Sweeping from {self.start_value} V to {self.stop_value} V\n"
                     f"Total points: {total_points}\nRate: {rate_ms:.2f} ms/point"
                 )
 
@@ -591,7 +592,7 @@ class DSP7265MainWindow(QMainWindow):
         # Create plot widget
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setBackground('w')
-        self.plot_widget.setLabel('left', 'Noise Level', units='V')
+        self.plot_widget.setLabel('left', 'Noise Level', units='Volt(Amp)/sqrt(Hz)')
         self.plot_widget.setLabel('bottom', 'Frequency', units='Hz')
         self.plot_widget.setTitle('Noise Level vs Frequency')
         self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
@@ -741,6 +742,7 @@ class DSP7265MainWindow(QMainWindow):
         self.stop_sweep_button.setEnabled(True)
         self.setup_sweep_button.setEnabled(False)
 
+        print(self.sweep_params)
         # Create and start sweep thread
         self.sweep_thread = SweepThread(
             self.instrument,
@@ -762,6 +764,7 @@ class DSP7265MainWindow(QMainWindow):
         self.sweep_thread.finished.connect(self.on_thread_finished)
 
         # Start thread
+
         self.sweep_thread.start()
 
     def stop_sweep(self):
