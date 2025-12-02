@@ -328,7 +328,6 @@ class ST_FMR_Worker(QThread):
                         if self.bnc845:
                             try:
                                 self._set_enable_bnc845(frequency=current_frequency, power=current_power)
-
                                 time.sleep(2)
                                 self.update_fmr_ui.emit()
                                 time.sleep(2)
@@ -792,6 +791,7 @@ class ST_FMR_Worker(QThread):
                                 number_of_field = len(field_list)
                                 number_of_field_update = number_of_field
                                 total_progress_stepped =  total_progress * number_of_field
+                                self._set_field(field_list[0], user_field_rate)
                                 self._turn_on_output_bnc845()
                                 time.sleep(2)
                                 for m in range(number_of_field):

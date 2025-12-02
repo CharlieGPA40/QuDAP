@@ -7268,15 +7268,15 @@ class Measurement(QMainWindow):
                     if abs(y_val) > 1e9:
                         y_array_display = y_array / 1e9
                         units = 'GHz'
-                        ylabel = 'Frequency (GHz)'
+                        ylabel = 'Frequency (Hz)'
                     elif abs(y_val) > 1e6:
                         y_array_display = y_array / 1e6
                         units = 'MHz'
-                        ylabel = 'Frequency (MHz)'
+                        ylabel = 'Frequency (Hz)'
                     elif abs(y_val) > 1e3:
                         y_array_display = y_array / 1e3
                         units = 'kHz'
-                        ylabel = 'Frequency (kHz)'
+                        ylabel = 'Frequency (Hz)'
 
                     print(
                         f"Detected frequency sweep: {len(y_array)} points from {y_array[0] / 1e9:.3f} to {y_array[-1] / 1e9:.3f} GHz")
