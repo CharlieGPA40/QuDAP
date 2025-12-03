@@ -503,12 +503,11 @@ class ST_FMR_Worker(QThread):
                                             self.lockin_y.append(Y)
                                             self.lockin_mag.append(Mag)
                                             self.lockin_pahse.append(Phase)
-                                            self.field_array.append(MyField)
                                             # Update current spectrum plot (right)
                                             if counter % 20 == 0:
                                                 counter = 0
                                                 # # Drop off the first y element, append a new one.
-                                                self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+                                            self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
                                                 # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                         except Exception as e:
                                             self.show_error.emit("Reading Error", f'{e}')
@@ -565,7 +564,7 @@ class ST_FMR_Worker(QThread):
                                     total_time_in_hours = total_time_in_minutes / 60
                                     total_time_in_days = total_time_in_hours / 24
 
-                                    estimate_time_in_seconds = Single_loop * remaining_progress * estimate_field_step
+                                    estimate_time_in_seconds = Single_loop * remaining_progress * total_estimate_field_step
                                     estimate_time_in_minutes = total_time_in_seconds / 60
                                     estimate_time_in_hours = total_time_in_minutes / 60
                                     estimate_time_in_days = total_time_in_hours / 24
@@ -688,12 +687,11 @@ class ST_FMR_Worker(QThread):
                                                 self.lockin_y.append(Y)
                                                 self.lockin_mag.append(Mag)
                                                 self.lockin_pahse.append(Phase)
-                                                self.field_array.append(MyField)
                                                 # Update current spectrum plot (right)
                                                 if counter % 20 == 0:
                                                     counter = 0
                                                     # # Drop off the first y element, append a new one.
-                                                    self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
+                                                self.update_fmr_spectrum_plot.emit(self.field_array, self.lockin_x)
                                                     # update_plot(self.field_array, self.lockin_pahse, 'red', False, True)
                                             except Exception as e:
                                                 self.show_error.emit("Reading Error", f'{e}')
@@ -752,7 +750,7 @@ class ST_FMR_Worker(QThread):
                                         total_time_in_hours = total_time_in_minutes / 60
                                         total_time_in_days = total_time_in_hours / 24
 
-                                        estimate_time_in_seconds = Single_loop * remaining_progress * estimate_field_step
+                                        estimate_time_in_seconds = Single_loop * remaining_progress * total_estimate_field_step
                                         estimate_time_in_minutes = total_time_in_seconds / 60
                                         estimate_time_in_hours = total_time_in_minutes / 60
                                         estimate_time_in_days = total_time_in_hours / 24
@@ -1003,14 +1001,14 @@ class ST_FMR_Worker(QThread):
 
                             # ========== REPETITION PLOT ==========
                             # Update repetition plot if more than 1 repetition
-                            if len(number_of_repetition) > 1 and len(self.cumulative_repetition_data) > 0:
+                            if len(self.cumulative_repetition_data) > 0:
                                 self.append_text.emit('Updating repetition 2D plot...', 'blue')
 
                                 # Extract data for 2D plot (Field vs Repetition)
                                 rep_numbers = [d['repetition'] for d in self.cumulative_repetition_data]
                                 field_data = self.cumulative_repetition_data[0]['field']  # Use first as reference
                                 intensity_matrix = [d['x'] for d in self.cumulative_repetition_data]
-
+                                # print(field_data, rep_numbers, intensity_matrix)
                                 self.update_2d_plot.emit(field_data, rep_numbers, intensity_matrix)
 
                                 # Save plot when all repetitions for this power/frequency are complete
@@ -1031,7 +1029,7 @@ class ST_FMR_Worker(QThread):
 
                         # ========== POWER PLOT ==========
                         # Update power plot if more than 1 power level
-                        if number_of_power > 1 and len(self.cumulative_power_data.get(power_key, [])) > 0:
+                        if len(self.cumulative_power_data.get(power_key, [])) > 0:
                             self.append_text.emit('Updating power 2D plot...', 'blue')
 
                             # Use latest repetition data for each power level
