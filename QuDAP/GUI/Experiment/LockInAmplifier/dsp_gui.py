@@ -49,7 +49,7 @@ class MonitorThread(QThread):
 
                     elapsed_time = time.time() - self.start_time
                     self.data_signal.emit(elapsed_time, X, Y, Mag, Phase, Noise)
-                    time.sleep(0.01)
+                    time.sleep(1)
 
                 except Exception as e:
                     self.error_signal.emit(f"Monitoring error: {str(e)}")
@@ -215,11 +215,13 @@ class SweepThread(QThread):
                     self.instrument.write(f'OF. {point}')
                     status = f"Frequency: {point:.2f} Hz ({i + 1}/{total_points})"
                 else:
-                    amp_uv = point * 1e6
+                    # amp_uv = point * 1e6
+                    amp_uv = point
                     self.instrument.write(f'OA. {amp_uv}')
                     status = f"Amplitude: {point:.6f} V ({i + 1}/{total_points})"
 
                 time.sleep(rate_ms / 1000.0)
+                time.sleep(1)
 
                 x = float(self.instrument.query('X.').strip())
                 y = float(self.instrument.query('Y.').strip())
@@ -1405,6 +1407,7 @@ class DSP7265(QMainWindow):
             self.sweep_thread.info_signal.connect(self.on_info)
             self.sweep_thread.sweep_complete_signal.connect(self.on_complete)
             self.sweep_thread.finished.connect(self.on_finished)
+            self.reading_thread.stop()
             self.sweep_thread.start()
 
             self.operation_status.setText("Status: Sweep in progress")
@@ -1488,6 +1491,7 @@ class DSP7265(QMainWindow):
         self.is_plotting = False
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        self.reading_thread.start()
 
     def clear_plot_data(self):
         """Clear plot data"""
