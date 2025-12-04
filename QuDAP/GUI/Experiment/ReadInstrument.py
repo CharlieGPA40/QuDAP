@@ -24,7 +24,7 @@ class InstrumentScanner(QThread):
     def query_instrument_id(self, inst):
         """Try multiple identification commands"""
         id_commands = [
-            "*IDN?", "ID?", "ID", "*ID?", "IDENTIFY?",
+            "ID?","*IDN?", "ID", "*ID?", "IDENTIFY?",
             "MODEL?", "I", "++ver", "VER?", "VERSION?"
         ]
 

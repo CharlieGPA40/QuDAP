@@ -1,7 +1,7 @@
 import time
 import platform
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
+    QWidget, QMainWindow, QMessageBox, QGroupBox, QStackedWidget, QVBoxLayout, QLabel, QHBoxLayout
 , QCheckBox, QPushButton, QComboBox, QLineEdit)
 from PyQt6.QtGui import QFont, QIntValidator, QValidator, QDoubleValidator
 from PyQt6.QtCore import pyqtSignal, Qt, QObject, QThread
@@ -49,7 +49,6 @@ class MplCanvas(FigureCanvas):
 
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
-
 
 class PPMS(QWidget):
 

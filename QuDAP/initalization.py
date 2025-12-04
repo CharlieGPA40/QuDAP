@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QFont, QPixmap
 from PyQt6.QtCore import QObject, Qt, pyqtSignal, pyqtSlot, QTimer
 import sys
+import traceback
 
 from numpy.f2py.crackfortran import expectbegin
 
@@ -27,6 +28,7 @@ try:
     import QuDAP.GUI.Dashboard.Dashboard as Dashboard
     import QuDAP.GUI.Plot.plotting as pt
     import QuDAP.GUI.Experiment.ReadInstrument as reading_instrument
+    import QuDAP.GUI.Experiment.integrated_experiment as integrated_measurement
     
 except ImportError as e:
     import GUI.FMR.FMR as fmr
@@ -48,6 +50,7 @@ except ImportError as e:
     import GUI.Dashboard.Dashboard as Dashboard
     import GUI.Plot.plotting as pt
     import GUI.Experiment.ReadInstrument as reading_instrument
+    import GUI.Experiment.integrated_experiment as integrated_measurement
 
 class Communicator(QObject):
     change_page = pyqtSignal(int, int, int)
@@ -111,6 +114,11 @@ class MainWindow(QMainWindow):
         self.parent_side_bar.addItem(dashboard_list_widget)
         self.parent_side_bar.addItem(data_processing_list_widget)
         self.parent_side_bar.addItem(experiment_list_widget)
+        # ==================================================================
+        # This part potentially need to replace the current experiment tab
+        experiment_test_list_widget = QListWidgetItem(QIcon("GUI/Icon/cpu.svg"), 'Test')
+        self.parent_side_bar.addItem(experiment_test_list_widget)
+        # ==================================================================
         self.parent_side_bar.currentRowChanged.connect(self.update_menu_bar)
 
         # Left Sidebar
@@ -221,7 +229,11 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(reading_instrument.InstrumentDetector())  # 16
         self.pages.addWidget(AboutSoftware.AboutQuDAP())  # 17
         self.pages.addWidget(Contact.ContactQuDAP()) # 18
-
+        try:
+            self.pages.addWidget(integrated_measurement.INTEGRATED_EXPERIMENT()) # 19
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f'{tb_str} {str(e)}')
         # self.toggle_dark_mode()
         # Main Layout
         self.main_layout = QHBoxLayout()
@@ -266,7 +278,7 @@ class MainWindow(QMainWindow):
         self.help_setting_side_bar.setCurrentRow(-1)  # Force clearing selection
         self.child_sidebar.clear()
 
-        if current_row == 0:  # dashboard page
+        if current_row == 0 or current_row == 3:  # dashboard page
             self.child_sidebar.hide()
             self.hide_button.setEnabled(False)
             self.pages.setCurrentIndex(0)
@@ -307,6 +319,10 @@ class MainWindow(QMainWindow):
             self.child_sidebar.currentRowChanged.connect(self.update_exp_processing)
             self.pages.setCurrentIndex(0)
             self.CURRENT_INDEX_PARENT = 2
+
+        elif current_row == 3:
+            self.pages.setCurrentIndex(19)
+            self.CURRENT_INDEX_PARENT = 3
 
         # elif current_row == 3:  # ETO
         #     self.child_sidebar.addItem(QListWidgetItem("Edit Profile"))
