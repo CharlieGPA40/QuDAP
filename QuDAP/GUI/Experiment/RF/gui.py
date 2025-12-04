@@ -269,7 +269,7 @@ class BNC845RF(QMainWindow):
         self.left_layout.setSpacing(10)
 
         # Title
-        title = QLabel("RF Control")
+        title = QLabel("BNC RF")
         title_font = QFont()
         title_font.setPointSize(12)
         title_font.setBold(True)
@@ -484,7 +484,7 @@ class BNC845RF(QMainWindow):
         mod_label.setFixedWidth(80)
         self.mod_combo = QComboBox()
         self.mod_combo.setFont(self.font)
-        self.mod_combo.addItems(["Select Modulation", "Pulse Mod", "Amplitude Mod", "Frequency Mod", "Phase Mod"])
+        self.mod_combo.addItems(["No Modulation", "Pulse Mod", "Amplitude Mod", "Frequency Mod", "Phase Mod"])
         self.mod_combo.currentIndexChanged.connect(self.on_modulation_type_changed)
         mod_select_layout.addWidget(mod_label)
         mod_select_layout.addWidget(self.mod_combo, 1)
@@ -496,11 +496,7 @@ class BNC845RF(QMainWindow):
         # self.mod_stack.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
 
         # Page 0: No modulation selected (empty widget with zero height)
-        page0 = QWidget()
-        page0.setMaximumHeight(0)
-        page0_layout = QVBoxLayout()
-        page0_layout.setContentsMargins(0, 0, 0, 0)
-        page0.setLayout(page0_layout)
+        page0 = self.create_no_mod_page()
         self.mod_stack.addWidget(page0)
 
         # Page 1: Pulse Modulation
@@ -523,6 +519,23 @@ class BNC845RF(QMainWindow):
 
         self.mod_group.setLayout(mod_layout)
         parent_layout.addWidget(self.mod_group)
+
+    def create_no_mod_page(self):
+        """Create no modulation control page"""
+        page = QWidget()
+        page.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        layout = QVBoxLayout()
+
+        # State control
+        no_mod_layout = QHBoxLayout()
+        no_mod_label = QLabel("No Modulation")
+        no_mod_label.setFont(self.font)
+        no_mod_label.setFixedWidth(100)
+        no_mod_layout.addWidget(no_mod_label)
+        layout.addLayout(no_mod_layout)
+
+        page.setLayout(layout)
+        return page
 
     def create_pulse_mod_page(self):
         """Create pulse modulation control page"""

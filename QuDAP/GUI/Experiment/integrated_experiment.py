@@ -8,15 +8,15 @@ try:
     from GUI.Experiment.PPMS import PPMS
     from GUI.Experiment.VoltageCurrentSource.gui import VCS_GUI
     from GUI.Experiment.RF.gui import BNC845RF
-    # from GUI.Experiment.Keithley2182nv import NV
     from GUI.Experiment.Nanovoltmeter.gui import NV
+    from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
     from GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
 except ImportError:
     from QuDAP.GUI.Experiment.PPMS import PPMS
     from QuDAP.GUI.Experiment.VoltageCurrentSource.gui import VCS_GUI
-    # from QuDAP.GUI.Experiment.Keithley2182nv import NV
     from QuDAP.GUI.Experiment.RF.gui import BNC845RF
     from QuDAP.GUI.Experiment.Nanovoltmeter.gui import NV
+    from QuDAP.GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
     from QuDAP.GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
 
 
@@ -48,7 +48,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
     def setup_main_tabs(self):
         """Setup main tabs"""
-
+        request_text = 'Request new instrument integration at chunli.tang@auburn.edu'
         # Tab 1: PPMS (no subtabs)
         ppms_widget = QWidget()
         ppms_layout = QVBoxLayout()
@@ -58,26 +58,21 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
         self.main_tab_widget.addTab(ppms_widget, "PPMS")
 
         # Tab 2: Lock-in Amplifiers (with subtabs)
-        lock_in_widget = QWidget()
-        lock_in_layout = QVBoxLayout()
-        lock_in_layout.setContentsMargins(10, 10, 10, 10)
-        lock_in_layout.addWidget(QLabel("Lock-in amplifier content"))
-        lock_in_widget.setLayout(lock_in_layout)
-        self.main_tab_widget.addTab(lock_in_widget, "Lock-in amplifier")
+        lock_in_tab = self.create_tab_with_subtabs(
+            [("Signal Recovery", DSP7265()), ("Stanford Research", QLabel("Monitor content")),
+             ("Coming Soon", QLabel(request_text))])
+        self.main_tab_widget.addTab(lock_in_tab, "Lock-in amplifier")
 
 
         # Tab 3: Voltage & Current Source (with subtabs)
-        vcs_tab = self.create_tab_with_subtabs([("Keithley 6221", VCS_GUI()), ("B&K Precision 9205B", QLabel("Monitor content")),
-            ("Coming Soon", QLabel("Coming Soon ..."))])
-        self.main_tab_widget.addTab(vcs_tab, "Voltage & Current Source")
+        vcs_tab = self.create_tab_with_subtabs([("Keithley", VCS_GUI()), ("B&K Precision", QLabel("Monitor content")),
+            ("Coming Soon", QLabel(request_text))])
+        self.main_tab_widget.addTab(vcs_tab, "Voltage/Current Source")
 
         # Tab 4: Nanovoltmeter
-        nano_widget = QWidget()
-        nano_layout = QVBoxLayout()
-        nano_layout.setContentsMargins(10, 10, 10, 10)
-        nano_layout.addWidget(NV())
-        nano_widget.setLayout(nano_layout)
-        self.main_tab_widget.addTab(nano_widget, "Nanovoltmeter")
+        nano_tab = self.create_tab_with_subtabs(
+            [("Keithley", NV()), ("Coming Soon", QLabel(request_text))])
+        self.main_tab_widget.addTab(nano_tab, "Nanovoltmeter")
 
         # Tab 5: Spectrum Analyzer (with subtabs)
         spectrum_tab = self.create_tab_with_subtabs(
@@ -86,12 +81,8 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
         self.main_tab_widget.addTab(spectrum_tab, "Spectrum Analyzer")
 
         # Tab 6: RF Source
-        rf_widget = QWidget()
-        rf_layout = QVBoxLayout()
-        rf_layout.setContentsMargins(10, 10, 10, 10)
-        rf_layout.addWidget(BNC845RF())
-        rf_widget.setLayout(rf_layout)
-        self.main_tab_widget.addTab(rf_widget, "RF Source")
+        rf_tab = self.create_tab_with_subtabs([("BNC", BNC845RF()), ("Coming Soon", QLabel("Request new instrument integration at chunli.tang@auburn.edu"))])
+        self.main_tab_widget.addTab(rf_tab, "RF Source")
 
         # Tab 7: Measurement (with subtabs)
         measurement_tab = self.create_tab_with_subtabs(
