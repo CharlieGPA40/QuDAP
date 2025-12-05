@@ -13,7 +13,7 @@ try:
     import QuDAP.GUI.Setting.Setting as Setting
     import QuDAP.GUI.Setting.AboutSoftware as AboutSoftware
     import QuDAP.GUI.Setting.Contact as Contact
-    import QuDAP.GUI.Experiment.PPMS as ppms
+    import QuDAP.GUI.Experiment.PPMS_old as ppms
     import QuDAP.GUI.Experiment.QD as qd
     import QuDAP.GUI.VSM.VSM as vsm
     import QuDAP.GUI.ETO.ETO as eto
@@ -35,7 +35,7 @@ except ImportError as e:
     import GUI.Setting.Setting as Setting
     import GUI.Setting.AboutSoftware as AboutSoftware
     import GUI.Setting.Contact as Contact
-    import GUI.Experiment.PPMS as ppms
+    import GUI.Experiment.PPMS_old as ppms
     import GUI.Experiment.QD as qd
     import GUI.VSM.VSM as vsm
     import GUI.ETO.ETO as eto

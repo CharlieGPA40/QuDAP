@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGroupBox,
                              QPushButton, QComboBox, QCheckBox, QLineEdit, QMessageBox, QScrollArea, QSizePolicy,
-                             QRadioButton, QButtonGroup, QDoubleSpinBox, QSpinBox)
-from PyQt6.QtGui import QIcon, QFont
+                             QDoubleSpinBox, QSpinBox)
+from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 import sys
 import pyvisa as visa
@@ -17,17 +17,11 @@ try:
 except ImportError:
     from QuDAP.instrument.instrument_connection import InstrumentConnection
 
-# Time Constant Mappings
-TIME_CONSTANT_VALUES = {0: 10e-6, 1: 20e-6, 2: 40e-6, 3: 80e-6, 4: 160e-6, 5: 320e-6, 6: 640e-6, 7: 5e-3, 8: 10e-3,
-    9: 20e-3, 10: 50e-3, 11: 100e-3, 12: 200e-3, 13: 500e-3, 14: 1.0, 15: 2.0, 16: 5.0, 17: 10.0, 18: 20.0, 19: 50.0,
-    20: 100.0, 21: 200.0, 22: 500.0, 23: 1000.0, 24: 2000.0, 25: 5000.0, 26: 10000.0, 27: 20000.0, 28: 30000.0,
-    29: 50000.0}
-
 
 class MonitorThread(QThread):
     """Thread to monitor lock-in parameters in real-time"""
 
-    data_signal = pyqtSignal(float, float, float, float, float, float)
+    data_signal = pyqtSignal(float, float, float, float, float)  # (time, X, Y, R, Theta)
     error_signal = pyqtSignal(str)
 
     def __init__(self, instrument, parent=None):
@@ -41,14 +35,16 @@ class MonitorThread(QThread):
         try:
             while not self.should_stop:
                 try:
-                    X = float(self.instrument.query("X."))
-                    Y = float(self.instrument.query("Y."))
-                    Mag = float(self.instrument.query("MAG."))
-                    Phase = float(self.instrument.query("PHA."))
-                    Noise = float(self.instrument.query("NHZ."))
+                    # Use SNAP command for efficient reading
+                    values = self.instrument.query("SNAP? 1,2,3,4")
+                    X, Y, R, Theta = values.split(',')
+                    X = float(X)
+                    Y = float(Y)
+                    R = float(R)
+                    Theta = float(Theta)
 
                     elapsed_time = time.time() - self.start_time
-                    self.data_signal.emit(elapsed_time, X, Y, Mag, Phase, Noise)
+                    self.data_signal.emit(elapsed_time, X, Y, R, Theta)
                     time.sleep(0.1)
 
                 except Exception as e:
@@ -66,7 +62,7 @@ class MonitorThread(QThread):
 class EmulationThread(QThread):
     """Thread for emulation mode monitoring"""
 
-    data_signal = pyqtSignal(float, float, float, float, float, float)
+    data_signal = pyqtSignal(float, float, float, float, float)  # (time, X, Y, R, Theta)
     error_signal = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -81,12 +77,11 @@ class EmulationThread(QThread):
                 try:
                     X = random.randint(0, 1000) / 1000
                     Y = random.randint(0, 1000) / 1000
-                    Mag = np.sqrt(X ** 2 + Y ** 2)
-                    Phase = random.randint(0, 360)
-                    Noise = random.randint(0, 100) / 1e6
+                    R = np.sqrt(X ** 2 + Y ** 2)
+                    Theta = random.randint(0, 360)
 
                     elapsed_time = time.time() - self.start_time
-                    self.data_signal.emit(elapsed_time, X, Y, Mag, Phase, Noise)
+                    self.data_signal.emit(elapsed_time, X, Y, R, Theta)
                     time.sleep(0.1)
 
                 except Exception as e:
@@ -104,7 +99,7 @@ class EmulationThread(QThread):
 class ContinuousReadingThread(QThread):
     """Thread for continuous reading updates when connected"""
 
-    reading_signal = pyqtSignal(float, float, float, float, float)
+    reading_signal = pyqtSignal(float, float, float, float)  # (X, Y, R, Theta)
     error_signal = pyqtSignal(str)
 
     def __init__(self, instrument, parent=None):
@@ -117,13 +112,14 @@ class ContinuousReadingThread(QThread):
         try:
             while not self.should_stop:
                 try:
-                    X = float(self.instrument.query("X."))
-                    Y = float(self.instrument.query("Y."))
-                    Mag = float(self.instrument.query("MAG."))
-                    Phase = float(self.instrument.query("PHA."))
-                    Noise = float(self.instrument.query("NHZ."))
+                    values = self.instrument.query("SNAP? 1,2,3,4")
+                    X, Y, R, Theta = values.split(',')
+                    X = float(X)
+                    Y = float(Y)
+                    R = float(R)
+                    Theta = float(Theta)
 
-                    self.reading_signal.emit(X, Y, Mag, Phase, Noise)
+                    self.reading_signal.emit(X, Y, R, Theta)
                     time.sleep(1)
 
                 except Exception as e:
@@ -143,7 +139,7 @@ class SweepThread(QThread):
     """Thread to perform frequency or amplitude sweep"""
 
     progress_signal = pyqtSignal(int, str)
-    data_point_signal = pyqtSignal(float, float, float, float, float, float)
+    data_point_signal = pyqtSignal(float, float, float, float, float)  # (sweep_value, X, Y, R, Theta)
     error_signal = pyqtSignal(str)
     info_signal = pyqtSignal(str, str)
     sweep_complete_signal = pyqtSignal()
@@ -163,8 +159,12 @@ class SweepThread(QThread):
     def get_time_constant(self):
         """Get current time constant from instrument"""
         try:
-            tc_index = int(self.instrument.query('TC').strip())
-            tc_value = TIME_CONSTANT_VALUES.get(tc_index, 0.1)
+            # SR830 OFLT? returns time constant index (0-19)
+            tc_index = int(self.instrument.query('OFLT?').strip())
+            # SR830 time constants: 10µs to 30ks
+            tc_values = [10e-6, 30e-6, 100e-6, 300e-6, 1e-3, 3e-3, 10e-3, 30e-3, 100e-3, 300e-3, 1, 3, 10, 30, 100, 300,
+                         1e3, 3e3, 10e3, 30e3]
+            tc_value = tc_values[tc_index] if tc_index < len(tc_values) else 0.1
             return tc_value
         except Exception as e:
             print(f"Error reading time constant: {e}")
@@ -180,7 +180,7 @@ class SweepThread(QThread):
         """Execute the sweep"""
         try:
             if not self.instrument:
-                self.error_signal.emit("DSP 7265 is not connected")
+                self.error_signal.emit("SR830 is not connected")
                 return
 
             if self.instrument == 'Emulation':
@@ -223,27 +223,27 @@ class SweepThread(QThread):
                 if self.instrument == 'Emulation':
                     x = random.randint(0, 1000) / 1000
                     y = random.randint(0, 1000) / 1000
-                    mag = np.sqrt(x ** 2 + y ** 2)
-                    phase = random.randint(0, 360)
-                    noise = random.randint(0, 100) / 1e6
+                    r = np.sqrt(x ** 2 + y ** 2)
+                    theta = random.randint(0, 360)
                     status = f"{sweep_type_name}: {point:.2f} {unit} ({i + 1}/{total_points})"
                 else:
                     if self.sweep_type == 'frequency':
-                        self.instrument.write(f'OF. {point}')
+                        self.instrument.write(f'FREQ {point}')
                         status = f"Frequency: {point:.2f} Hz ({i + 1}/{total_points})"
                     else:
-                        self.instrument.write(f'OA. {point}')
+                        self.instrument.write(f'SLVL {point}')
                         status = f"Amplitude: {point:.6f} V ({i + 1}/{total_points})"
 
                     time.sleep(rate_ms / 1000.0)
 
-                    x = float(self.instrument.query('X.').strip())
-                    y = float(self.instrument.query('Y.').strip())
-                    mag = float(self.instrument.query('MAG.').strip())
-                    phase = float(self.instrument.query('PHA.').strip())
-                    noise = float(self.instrument.query('NHZ.').strip())
+                    values = self.instrument.query("SNAP? 1,2,3,4")
+                    x, y, r, theta = values.split(',')
+                    x = float(x)
+                    y = float(y)
+                    r = float(r)
+                    theta = float(theta)
 
-                self.data_point_signal.emit(point, x, y, mag, phase, noise)
+                self.data_point_signal.emit(point, x, y, r, theta)
                 progress = int((i + 1) / total_points * 100)
                 self.progress_signal.emit(progress, status)
 
@@ -263,13 +263,13 @@ class SweepThread(QThread):
         self.should_stop = True
 
 
-class DSP7265(QMainWindow):
+class SR830(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("DSP 7265 Lock-in Amplifier")
+        self.setWindowTitle("SR830 Lock-in Amplifier")
         self.setGeometry(100, 100, 1600, 900)
 
-        self.DSP7265_instrument = None
+        self.SR830_instrument = None
         self.monitor_thread = None
         self.sweep_thread = None
         self.reading_thread = None
@@ -281,9 +281,8 @@ class DSP7265(QMainWindow):
         self.sweep_param_data = []
         self.x_data = []
         self.y_data = []
-        self.mag_data = []
-        self.phase_data = []
-        self.noise_data = []
+        self.r_data = []
+        self.theta_data = []
 
         self.is_sweep_mode = False
 
@@ -340,7 +339,7 @@ class DSP7265(QMainWindow):
         self.left_layout.setSpacing(10)
 
         # Title
-        title = QLabel("DSP 7265 Lock-in Amplifier")
+        title = QLabel("SR830 Lock-in Amplifier")
         title.setFont(self.titlefont)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.left_layout.addWidget(title)
@@ -348,7 +347,6 @@ class DSP7265(QMainWindow):
         # Setup sections
         self.setup_connection_section(self.left_layout)
         self.setup_readings_section(self.left_layout)
-        self.setup_mode_section(self.left_layout)
         self.setup_configuration_section(self.left_layout)
         self.setup_auto_functions_section(self.left_layout)
         self.setup_monitor_section(self.left_layout)
@@ -369,7 +367,7 @@ class DSP7265(QMainWindow):
 
     def setup_connection_section(self, parent_layout):
         """Setup device connection section"""
-        self.connection_widget = InstrumentConnection(instrument_list=["DSP 7265 Lock-in"], allow_emulation=True,
+        self.connection_widget = InstrumentConnection(instrument_list=["SR830 Lock-in"], allow_emulation=True,
             title="Instrument Connection")
         self.connection_widget.instrument_connected.connect(self.on_instrument_connected)
         self.connection_widget.instrument_disconnected.connect(self.on_instrument_disconnected)
@@ -402,38 +400,38 @@ class DSP7265(QMainWindow):
         y_layout.addWidget(self.y_reading_label, 1)
         readings_layout.addLayout(y_layout)
 
-        # Magnitude
-        mag_layout = QHBoxLayout()
-        mag_label = QLabel("Magnitude:")
-        mag_label.setFont(self.font)
-        mag_label.setFixedWidth(100)
-        self.mag_reading_label = QLabel("N/A V")
-        self.mag_reading_label.setFont(self.font)
-        mag_layout.addWidget(mag_label)
-        mag_layout.addWidget(self.mag_reading_label, 1)
-        readings_layout.addLayout(mag_layout)
+        # R (Magnitude)
+        r_layout = QHBoxLayout()
+        r_label = QLabel("R:")
+        r_label.setFont(self.font)
+        r_label.setFixedWidth(100)
+        self.r_reading_label = QLabel("N/A V")
+        self.r_reading_label.setFont(self.font)
+        r_layout.addWidget(r_label)
+        r_layout.addWidget(self.r_reading_label, 1)
+        readings_layout.addLayout(r_layout)
 
-        # Phase
-        phase_layout = QHBoxLayout()
-        phase_label = QLabel("Phase:")
-        phase_label.setFont(self.font)
-        phase_label.setFixedWidth(100)
-        self.phase_reading_label = QLabel("N/A deg")
-        self.phase_reading_label.setFont(self.font)
-        phase_layout.addWidget(phase_label)
-        phase_layout.addWidget(self.phase_reading_label, 1)
-        readings_layout.addLayout(phase_layout)
+        # Theta (Phase)
+        theta_layout = QHBoxLayout()
+        theta_label = QLabel("θ (Theta):")
+        theta_label.setFont(self.font)
+        theta_label.setFixedWidth(100)
+        self.theta_reading_label = QLabel("N/A deg")
+        self.theta_reading_label.setFont(self.font)
+        theta_layout.addWidget(theta_label)
+        theta_layout.addWidget(self.theta_reading_label, 1)
+        readings_layout.addLayout(theta_layout)
 
-        # Noise
-        noise_layout = QHBoxLayout()
-        noise_label = QLabel("Noise:")
-        noise_label.setFont(self.font)
-        noise_label.setFixedWidth(100)
-        self.noise_reading_label = QLabel("N/A V/√Hz")
-        self.noise_reading_label.setFont(self.font)
-        noise_layout.addWidget(noise_label)
-        noise_layout.addWidget(self.noise_reading_label, 1)
-        readings_layout.addLayout(noise_layout)
+        # Frequency
+        freq_layout = QHBoxLayout()
+        freq_label = QLabel("Frequency:")
+        freq_label.setFont(self.font)
+        freq_label.setFixedWidth(100)
+        self.freq_reading_label = QLabel("N/A Hz")
+        self.freq_reading_label.setFont(self.font)
+        freq_layout.addWidget(freq_label)
+        freq_layout.addWidget(self.freq_reading_label, 1)
+        readings_layout.addLayout(freq_layout)
 
         # Amplitude
         amp_layout = QHBoxLayout()
@@ -468,28 +466,6 @@ class DSP7265(QMainWindow):
         tc_layout.addWidget(self.tc_reading_label, 1)
         readings_layout.addLayout(tc_layout)
 
-        # Slope
-        slope_layout = QHBoxLayout()
-        slope_label = QLabel("Slope:")
-        slope_label.setFont(self.font)
-        slope_label.setFixedWidth(100)
-        self.slope_reading_label = QLabel("N/A")
-        self.slope_reading_label.setFont(self.font)
-        slope_layout.addWidget(slope_label)
-        slope_layout.addWidget(self.slope_reading_label, 1)
-        readings_layout.addLayout(slope_layout)
-
-        # Reference
-        ref_layout = QHBoxLayout()
-        ref_label = QLabel("Reference:")
-        ref_label.setFont(self.font)
-        ref_label.setFixedWidth(100)
-        self.ref_reading_label = QLabel("N/A")
-        self.ref_reading_label.setFont(self.font)
-        ref_layout.addWidget(ref_label)
-        ref_layout.addWidget(self.ref_reading_label, 1)
-        readings_layout.addLayout(ref_layout)
-
         # Update button
         update_btn = QPushButton("Update Readings")
         update_btn.clicked.connect(self.update_readings_from_instrument)
@@ -500,91 +476,23 @@ class DSP7265(QMainWindow):
         readings_group.setLayout(readings_layout)
         parent_layout.addWidget(readings_group)
 
-    def setup_mode_section(self, parent_layout):
-        """Setup IMODE and VMODE section"""
-        mode_group = QGroupBox("Input Mode Configuration")
-        mode_layout = QVBoxLayout()
-
-        # IMODE selection
-        imode_layout = QHBoxLayout()
-        imode_label = QLabel("IMODE:")
-        imode_label.setFont(self.font)
-        imode_label.setFixedWidth(100)
-        self.imode_combo = QComboBox()
-        self.imode_combo.setFont(self.font)
-        self.imode_combo.addItems(["Select Mode", "Voltage Mode", "High Bandwidth Current", "Low Noise Current"])
-        self.imode_combo.currentIndexChanged.connect(self.on_imode_changed)
-        imode_layout.addWidget(imode_label)
-        imode_layout.addWidget(self.imode_combo, 1)
-        mode_layout.addLayout(imode_layout)
-
-        # VMODE container
-        self.vmode_widget = QWidget()
-        vmode_layout = QHBoxLayout()
-        vmode_layout.setContentsMargins(0, 0, 0, 0)
-        vmode_label = QLabel("VMODE:")
-        vmode_label.setFont(self.font)
-        vmode_label.setFixedWidth(100)
-        self.vmode_combo = QComboBox()
-        self.vmode_combo.setFont(self.font)
-        self.vmode_combo.addItems(["Select Input", "Both Grounded", "A", "-B", "A-B"])
-        self.vmode_combo.currentIndexChanged.connect(self.on_vmode_changed)
-        vmode_layout.addWidget(vmode_label)
-        vmode_layout.addWidget(self.vmode_combo, 1)
-        self.vmode_widget.setLayout(vmode_layout)
-        self.vmode_widget.setVisible(False)
-        mode_layout.addWidget(self.vmode_widget)
-
-        mode_group.setLayout(mode_layout)
-        parent_layout.addWidget(mode_group)
-
     def setup_configuration_section(self, parent_layout):
         """Setup configuration section"""
         config_group = QGroupBox("Configuration")
         config_layout = QVBoxLayout()
 
-        # Reference
+        # Reference Source
         ref_layout = QHBoxLayout()
         ref_label = QLabel("Reference:")
         ref_label.setFont(self.font)
         ref_label.setFixedWidth(100)
         self.ref_combo = QComboBox()
         self.ref_combo.setFont(self.font)
-        self.ref_combo.addItems(["INT", "EXT REAR", "EXT FRONT"])
+        self.ref_combo.addItems(["External", "Internal"])
         self.ref_combo.currentIndexChanged.connect(self.apply_reference)
         ref_layout.addWidget(ref_label)
         ref_layout.addWidget(self.ref_combo, 1)
         config_layout.addLayout(ref_layout)
-
-        # Line Filter
-        lf_layout = QHBoxLayout()
-        lf_label = QLabel("Line Filter:")
-        lf_label.setFont(self.font)
-        lf_label.setFixedWidth(100)
-        self.lf_n1_combo = QComboBox()
-        self.lf_n1_combo.setFont(self.font)
-        self.lf_n1_combo.addItems(["Select", "Off", "50/60 Hz Notch", "100/120 Hz Notch", "Both Filters"])
-        lf_layout.addWidget(lf_label)
-        lf_layout.addWidget(self.lf_n1_combo, 1)
-        config_layout.addLayout(lf_layout)
-
-        # Line Filter Frequency
-        lf_freq_layout = QHBoxLayout()
-        lf_freq_label = QLabel("Filter Freq:")
-        lf_freq_label.setFont(self.font)
-        lf_freq_label.setFixedWidth(100)
-        self.lf_n2_combo = QComboBox()
-        self.lf_n2_combo.setFont(self.font)
-        self.lf_n2_combo.addItems(["Select", "60 Hz (120 Hz)", "50 Hz (100 Hz)"])
-        lf_freq_layout.addWidget(lf_freq_label)
-        lf_freq_layout.addWidget(self.lf_n2_combo, 1)
-        config_layout.addLayout(lf_freq_layout)
-
-        lf_btn = QPushButton("Apply Line Filter")
-        lf_btn.clicked.connect(self.apply_line_filter)
-        lf_btn.setFont(self.font)
-        lf_btn.setMinimumHeight(30)
-        config_layout.addWidget(lf_btn)
 
         # Frequency
         freq_layout = QHBoxLayout()
@@ -607,26 +515,26 @@ class DSP7265(QMainWindow):
         freq_set_btn.setMinimumHeight(30)
         config_layout.addWidget(freq_set_btn)
 
-        # Oscillator Amplitude
-        osc_layout = QHBoxLayout()
-        osc_label = QLabel("Osc. Amplitude:")
-        osc_label.setFont(self.font)
-        osc_label.setFixedWidth(100)
-        self.osc_entry = QLineEdit()
-        self.osc_entry.setFont(self.font)
-        self.osc_entry.setPlaceholderText("Vrms")
-        osc_vrms_label = QLabel("Vrms")
-        osc_vrms_label.setFont(self.font)
-        osc_layout.addWidget(osc_label)
-        osc_layout.addWidget(self.osc_entry, 1)
-        osc_layout.addWidget(osc_vrms_label)
-        config_layout.addLayout(osc_layout)
+        # Sine Output Amplitude
+        amp_layout = QHBoxLayout()
+        amp_label = QLabel("Sine Amplitude:")
+        amp_label.setFont(self.font)
+        amp_label.setFixedWidth(100)
+        self.amp_entry = QLineEdit()
+        self.amp_entry.setFont(self.font)
+        self.amp_entry.setPlaceholderText("Vrms")
+        amp_vrms_label = QLabel("Vrms")
+        amp_vrms_label.setFont(self.font)
+        amp_layout.addWidget(amp_label)
+        amp_layout.addWidget(self.amp_entry, 1)
+        amp_layout.addWidget(amp_vrms_label)
+        config_layout.addLayout(amp_layout)
 
-        osc_set_btn = QPushButton("Set Amplitude")
-        osc_set_btn.clicked.connect(self.apply_oscillator_amplitude)
-        osc_set_btn.setFont(self.font)
-        osc_set_btn.setMinimumHeight(30)
-        config_layout.addWidget(osc_set_btn)
+        amp_set_btn = QPushButton("Set Amplitude")
+        amp_set_btn.clicked.connect(self.apply_amplitude)
+        amp_set_btn.setFont(self.font)
+        amp_set_btn.setMinimumHeight(30)
+        config_layout.addWidget(amp_set_btn)
 
         # Sensitivity
         sens_layout = QHBoxLayout()
@@ -649,72 +557,28 @@ class DSP7265(QMainWindow):
         tc_label = QLabel("Time Constant:")
         tc_label.setFont(self.font)
         tc_label.setFixedWidth(100)
-        tc_label.setToolTip("Select TC that is 5 to 10 times larger than 1/f")
         self.tc_combo = QComboBox()
         self.tc_combo.setFont(self.font)
         self.tc_combo.addItems(
-            ["Select", "10 µs", "20 µs", "40 µs", "80 µs", "160 µs", "320 µs", "640 µs", "5 ms", "10 ms", "20 ms",
-                "50 ms", "100 ms", "200 ms", "500 ms", "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s", "200 s",
-                "500 s", "1 ks", "2 ks", "5 ks", "10 ks", "20 ks", "50 ks", "100 ks"])
+            ["Select", "10 µs", "30 µs", "100 µs", "300 µs", "1 ms", "3 ms", "10 ms", "30 ms", "100 ms", "300 ms",
+                "1 s", "3 s", "10 s", "30 s", "100 s", "300 s", "1 ks", "3 ks", "10 ks", "30 ks"])
         self.tc_combo.currentIndexChanged.connect(self.apply_time_constant)
         tc_layout.addWidget(tc_label)
         tc_layout.addWidget(self.tc_combo, 1)
         config_layout.addLayout(tc_layout)
 
-        # Slope
+        # Filter Slope
         slope_layout = QHBoxLayout()
-        slope_label = QLabel("Slope:")
+        slope_label = QLabel("Filter Slope:")
         slope_label.setFont(self.font)
         slope_label.setFixedWidth(100)
         self.slope_combo = QComboBox()
         self.slope_combo.setFont(self.font)
-        self.slope_combo.addItems(["Select", "6 dB/octave", "12 dB/octave", "18 dB/octave", "24 dB/octave"])
+        self.slope_combo.addItems(["Select", "6 dB/oct", "12 dB/oct", "18 dB/oct", "24 dB/oct"])
         self.slope_combo.currentIndexChanged.connect(self.apply_slope)
         slope_layout.addWidget(slope_label)
         slope_layout.addWidget(self.slope_combo, 1)
         config_layout.addLayout(slope_layout)
-
-        # Float/Ground Control
-        float_layout = QHBoxLayout()
-        float_label = QLabel("Float/Ground:")
-        float_label.setFont(self.font)
-        float_label.setFixedWidth(100)
-        self.float_combo = QComboBox()
-        self.float_combo.setFont(self.font)
-        self.float_combo.addItems(["Select", "Ground", "Float (1 kΩ)"])
-        self.float_combo.currentIndexChanged.connect(self.apply_float_control)
-        float_layout.addWidget(float_label)
-        float_layout.addWidget(self.float_combo, 1)
-        config_layout.addLayout(float_layout)
-
-        # Input Device Control
-        device_layout = QHBoxLayout()
-        device_label = QLabel("Input Device:")
-        device_label.setFont(self.font)
-        device_label.setFixedWidth(100)
-        self.device_combo = QComboBox()
-        self.device_combo.setFont(self.font)
-        self.device_combo.addItems(["Select", "Bipolar (10 kΩ)", "FET (10 MΩ)"])
-        self.device_combo.currentIndexChanged.connect(self.apply_device_control)
-        device_layout.addWidget(device_label)
-        device_layout.addWidget(self.device_combo, 1)
-        config_layout.addLayout(device_layout)
-
-        # Clear and Reset buttons
-        clr_rst_layout = QHBoxLayout()
-        self.clr_btn = QPushButton("Clear")
-        self.clr_btn.clicked.connect(self.clear_instrument)
-        self.clr_btn.setFont(self.font)
-        self.clr_btn.setMinimumHeight(30)
-
-        self.rst_btn = QPushButton("Reset")
-        self.rst_btn.clicked.connect(self.reset_instrument)
-        self.rst_btn.setFont(self.font)
-        self.rst_btn.setMinimumHeight(30)
-
-        clr_rst_layout.addWidget(self.clr_btn)
-        clr_rst_layout.addWidget(self.rst_btn)
-        config_layout.addLayout(clr_rst_layout)
 
         config_group.setLayout(config_layout)
         parent_layout.addWidget(config_group)
@@ -724,24 +588,24 @@ class DSP7265(QMainWindow):
         auto_group = QGroupBox("Auto Functions")
         auto_layout = QHBoxLayout()
 
-        auto_sens_btn = QPushButton("Auto Sens.")
-        auto_sens_btn.clicked.connect(self.auto_sensitivity)
-        auto_sens_btn.setFont(self.font)
-        auto_sens_btn.setMinimumHeight(30)
+        auto_gain_btn = QPushButton("Auto Gain")
+        auto_gain_btn.clicked.connect(self.auto_gain)
+        auto_gain_btn.setFont(self.font)
+        auto_gain_btn.setMinimumHeight(30)
+
+        auto_reserve_btn = QPushButton("Auto Reserve")
+        auto_reserve_btn.clicked.connect(self.auto_reserve)
+        auto_reserve_btn.setFont(self.font)
+        auto_reserve_btn.setMinimumHeight(30)
 
         auto_phase_btn = QPushButton("Auto Phase")
         auto_phase_btn.clicked.connect(self.auto_phase)
         auto_phase_btn.setFont(self.font)
         auto_phase_btn.setMinimumHeight(30)
 
-        auto_meas_btn = QPushButton("Auto Meas.")
-        auto_meas_btn.clicked.connect(self.auto_measurement)
-        auto_meas_btn.setFont(self.font)
-        auto_meas_btn.setMinimumHeight(30)
-
-        auto_layout.addWidget(auto_sens_btn)
+        auto_layout.addWidget(auto_gain_btn)
+        auto_layout.addWidget(auto_reserve_btn)
         auto_layout.addWidget(auto_phase_btn)
-        auto_layout.addWidget(auto_meas_btn)
 
         auto_group.setLayout(auto_layout)
         parent_layout.addWidget(auto_group)
@@ -781,23 +645,17 @@ class DSP7265(QMainWindow):
         self.y_monitor_checkbox.stateChanged.connect(self.on_checkbox_changed)
         monitor_layout.addWidget(self.y_monitor_checkbox)
 
-        self.mag_monitor_checkbox = QCheckBox("Magnitude")
-        self.mag_monitor_checkbox.setFont(self.font)
-        self.mag_monitor_checkbox.setChecked(True)
-        self.mag_monitor_checkbox.stateChanged.connect(self.on_checkbox_changed)
-        monitor_layout.addWidget(self.mag_monitor_checkbox)
+        self.r_monitor_checkbox = QCheckBox("R (Magnitude)")
+        self.r_monitor_checkbox.setFont(self.font)
+        self.r_monitor_checkbox.setChecked(True)
+        self.r_monitor_checkbox.stateChanged.connect(self.on_checkbox_changed)
+        monitor_layout.addWidget(self.r_monitor_checkbox)
 
-        self.phase_monitor_checkbox = QCheckBox("Phase")
-        self.phase_monitor_checkbox.setFont(self.font)
-        self.phase_monitor_checkbox.setChecked(True)
-        self.phase_monitor_checkbox.stateChanged.connect(self.on_checkbox_changed)
-        monitor_layout.addWidget(self.phase_monitor_checkbox)
-
-        self.noise_monitor_checkbox = QCheckBox("Noise")
-        self.noise_monitor_checkbox.setFont(self.font)
-        self.noise_monitor_checkbox.setChecked(True)
-        self.noise_monitor_checkbox.stateChanged.connect(self.on_checkbox_changed)
-        monitor_layout.addWidget(self.noise_monitor_checkbox)
+        self.theta_monitor_checkbox = QCheckBox("θ (Phase)")
+        self.theta_monitor_checkbox.setFont(self.font)
+        self.theta_monitor_checkbox.setChecked(True)
+        self.theta_monitor_checkbox.stateChanged.connect(self.on_checkbox_changed)
+        monitor_layout.addWidget(self.theta_monitor_checkbox)
 
         # Sweep parameters
         self.sweep_params_widget = QWidget()
@@ -811,7 +669,7 @@ class DSP7265(QMainWindow):
         self.sweep_start_label.setFixedWidth(100)
         self.sweep_start_entry = QDoubleSpinBox()
         self.sweep_start_entry.setFont(self.font)
-        self.sweep_start_entry.setRange(0, 250000)
+        self.sweep_start_entry.setRange(0, 102000)
         self.sweep_start_entry.setDecimals(3)
         self.sweep_start_entry.setValue(1000)
         start_layout.addWidget(self.sweep_start_label)
@@ -825,7 +683,7 @@ class DSP7265(QMainWindow):
         self.sweep_stop_label.setFixedWidth(100)
         self.sweep_stop_entry = QDoubleSpinBox()
         self.sweep_stop_entry.setFont(self.font)
-        self.sweep_stop_entry.setRange(0, 250000)
+        self.sweep_stop_entry.setRange(0, 102000)
         self.sweep_stop_entry.setDecimals(3)
         self.sweep_stop_entry.setValue(10000)
         stop_layout.addWidget(self.sweep_stop_label)
@@ -905,7 +763,7 @@ class DSP7265(QMainWindow):
         parent_layout.addWidget(data_group)
 
     def create_plot_panel(self):
-        """Create the plot panel with three PyQtGraph plots"""
+        """Create the plot panel with PyQtGraph plots"""
         right_panel = QWidget()
         right_layout = QVBoxLayout()
 
@@ -917,130 +775,64 @@ class DSP7265(QMainWindow):
         plot_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_layout.addWidget(plot_title)
 
-        # X/Y/Magnitude plot
-        self.xy_plot_widget = pg.PlotWidget()
-        self.xy_plot_widget.setBackground('w')
-        self.xy_plot_widget.setLabel('left', 'Voltage', units='V')
-        self.xy_plot_widget.setLabel('bottom', 'Time', units='s')
-        self.xy_plot_widget.setTitle('X, Y, and Magnitude')
-        self.xy_plot_widget.showGrid(x=True, y=True, alpha=0.3)
-        self.xy_plot_widget.addLegend()
+        # X/Y/R plot
+        self.xyr_plot_widget = pg.PlotWidget()
+        self.xyr_plot_widget.setBackground('w')
+        self.xyr_plot_widget.setLabel('left', 'Voltage', units='V')
+        self.xyr_plot_widget.setLabel('bottom', 'Time', units='s')
+        self.xyr_plot_widget.setTitle('X, Y, and R')
+        self.xyr_plot_widget.showGrid(x=True, y=True, alpha=0.3)
+        self.xyr_plot_widget.addLegend()
 
-        self.x_curve = self.xy_plot_widget.plot(pen=pg.mkPen(color=(0, 0, 255), width=2), symbol='o', symbolSize=4,
+        self.x_curve = self.xyr_plot_widget.plot(pen=pg.mkPen(color=(0, 0, 255), width=2), symbol='o', symbolSize=4,
             symbolBrush=(0, 0, 255), name='X')
 
-        self.y_curve = self.xy_plot_widget.plot(pen=pg.mkPen(color=(255, 0, 0), width=2), symbol='o', symbolSize=4,
+        self.y_curve = self.xyr_plot_widget.plot(pen=pg.mkPen(color=(255, 0, 0), width=2), symbol='o', symbolSize=4,
             symbolBrush=(255, 0, 0), name='Y')
 
-        self.mag_curve = self.xy_plot_widget.plot(pen=pg.mkPen(color=(0, 128, 0), width=2), symbol='o', symbolSize=4,
-            symbolBrush=(0, 128, 0), name='Magnitude')
+        self.r_curve = self.xyr_plot_widget.plot(pen=pg.mkPen(color=(0, 128, 0), width=2), symbol='o', symbolSize=4,
+            symbolBrush=(0, 128, 0), name='R')
 
-        # Phase plot
-        self.phase_plot_widget = pg.PlotWidget()
-        self.phase_plot_widget.setBackground('w')
-        self.phase_plot_widget.setLabel('left', 'Phase', units='deg')
-        self.phase_plot_widget.setLabel('bottom', 'Time', units='s')
-        self.phase_plot_widget.setTitle('Phase')
-        self.phase_plot_widget.showGrid(x=True, y=True, alpha=0.3)
-        self.phase_plot_widget.addLegend()
+        # Theta (Phase) plot
+        self.theta_plot_widget = pg.PlotWidget()
+        self.theta_plot_widget.setBackground('w')
+        self.theta_plot_widget.setLabel('left', 'Phase', units='deg')
+        self.theta_plot_widget.setLabel('bottom', 'Time', units='s')
+        self.theta_plot_widget.setTitle('θ (Phase)')
+        self.theta_plot_widget.showGrid(x=True, y=True, alpha=0.3)
+        self.theta_plot_widget.addLegend()
 
-        self.phase_curve = self.phase_plot_widget.plot(pen=pg.mkPen(color=(128, 0, 128), width=2), symbol='o',
-            symbolSize=4, symbolBrush=(128, 0, 128), name='Phase')
+        self.theta_curve = self.theta_plot_widget.plot(pen=pg.mkPen(color=(128, 0, 128), width=2), symbol='o',
+            symbolSize=4, symbolBrush=(128, 0, 128), name='θ')
 
-        # Noise plot
-        self.noise_plot_widget = pg.PlotWidget()
-        self.noise_plot_widget.setBackground('w')
-        self.noise_plot_widget.setLabel('left', 'Noise', units='V/√Hz')
-        self.noise_plot_widget.setLabel('bottom', 'Time', units='s')
-        self.noise_plot_widget.setTitle('Noise')
-        self.noise_plot_widget.showGrid(x=True, y=True, alpha=0.3)
-        self.noise_plot_widget.addLegend()
-
-        self.noise_curve = self.noise_plot_widget.plot(pen=pg.mkPen(color=(255, 128, 0), width=2), symbol='o',
-            symbolSize=4, symbolBrush=(255, 128, 0), name='Noise')
-
-        right_layout.addWidget(self.xy_plot_widget)
-        right_layout.addWidget(self.phase_plot_widget)
-        right_layout.addWidget(self.noise_plot_widget)
+        right_layout.addWidget(self.xyr_plot_widget)
+        right_layout.addWidget(self.theta_plot_widget)
 
         right_panel.setLayout(right_layout)
         return right_panel
-
-    def on_imode_changed(self, index):
-        """Handle IMODE selection change"""
-        if not self.isConnect or not self.DSP7265_instrument:
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            if index > 0:
-                self.vmode_widget.setVisible(True)
-                self.update_sensitivity_options(index - 1)  # Add this line
-            else:
-                self.vmode_widget.setVisible(False)
-            return
-
-        if index == 0:
-            self.vmode_widget.setVisible(False)
-            return
-
-        try:
-            # IMODE: 0=Voltage, 1=High BW Current, 2=Low Noise Current
-            self.DSP7265_instrument.write(f'IMODE {index - 1}')
-            time.sleep(0.1)
-
-            # Show VMODE for ALL modes
-            self.vmode_widget.setVisible(True)
-
-            # Update sensitivity options based on mode
-            self.update_sensitivity_options(index - 1)  # Add this line
-
-            self.update_readings_from_instrument()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error setting IMODE:\n{str(e)}")
-
-    def on_vmode_changed(self, index):
-        """Handle VMODE selection change"""
-        if not self.isConnect or not self.DSP7265_instrument:
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            return
-
-        if index == 0:
-            return
-
-        try:
-            # VMODE: 0=Both grounded, 1=A, 2=-B, 3=A-B
-            self.DSP7265_instrument.write(f'VMODE {index - 1}')
-            time.sleep(0.1)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error setting VMODE:\n{str(e)}")
 
     def on_mode_changed(self, mode):
         """Handle mode change"""
         if mode == "Real-time Monitor":
             self.sweep_params_widget.setVisible(False)
             self.is_sweep_mode = False
-            self.xy_plot_widget.setLabel('bottom', 'Time', units='s')
-            self.phase_plot_widget.setLabel('bottom', 'Time', units='s')
-            self.noise_plot_widget.setLabel('bottom', 'Time', units='s')
+            self.xyr_plot_widget.setLabel('bottom', 'Time', units='s')
+            self.theta_plot_widget.setLabel('bottom', 'Time', units='s')
         elif mode == "Frequency Sweep":
             self.sweep_params_widget.setVisible(True)
             self.is_sweep_mode = True
             self.sweep_start_label.setText("Start (Hz):")
             self.sweep_stop_label.setText("Stop (Hz):")
             self.sweep_step_label.setText("Step (Hz):")
-            self.sweep_start_entry.setRange(0, 250000)
-            self.sweep_stop_entry.setRange(0, 250000)
+            self.sweep_start_entry.setRange(0, 102000)
+            self.sweep_stop_entry.setRange(0, 102000)
             self.sweep_step_entry.setRange(0.001, 10000)
             self.sweep_start_entry.setDecimals(3)
             self.sweep_start_entry.setValue(1000)
             self.sweep_stop_entry.setValue(10000)
             self.sweep_step_entry.setValue(100)
-            self.xy_plot_widget.setLabel('bottom', 'Frequency', units='Hz')
-            self.phase_plot_widget.setLabel('bottom', 'Frequency', units='Hz')
-            self.noise_plot_widget.setLabel('bottom', 'Frequency', units='Hz')
+            self.xyr_plot_widget.setLabel('bottom', 'Frequency', units='Hz')
+            self.theta_plot_widget.setLabel('bottom', 'Frequency', units='Hz')
         else:
             self.sweep_params_widget.setVisible(True)
             self.is_sweep_mode = True
@@ -1051,46 +843,16 @@ class DSP7265(QMainWindow):
             self.sweep_stop_entry.setRange(0, 5.0)
             self.sweep_step_entry.setRange(0.000001, 1.0)
             self.sweep_start_entry.setDecimals(6)
-            self.sweep_start_entry.setValue(0.1)
-            self.sweep_stop_entry.setValue(1.0)
+            self.sweep_start_entry.setValue(0.004)
+            self.sweep_stop_entry.setValue(5.0)
             self.sweep_step_entry.setValue(0.1)
-            self.xy_plot_widget.setLabel('bottom', 'Amplitude', units='V')
-            self.phase_plot_widget.setLabel('bottom', 'Amplitude', units='V')
-            self.noise_plot_widget.setLabel('bottom', 'Amplitude', units='V')
+            self.xyr_plot_widget.setLabel('bottom', 'Amplitude', units='Vrms')
+            self.theta_plot_widget.setLabel('bottom', 'Amplitude', units='Vrms')
 
     def on_checkbox_changed(self):
         """Handle checkbox state change"""
         if self.is_plotting:
             self.update_plot_visibility()
-
-    def update_sensitivity_options(self, mode):
-        """Update sensitivity combobox based on IMODE
-        mode: 0=Voltage, 1=High BW Current, 2=Low Noise Current
-        """
-        # Disconnect signal to prevent triggering apply_sensitivity
-        self.sens_combo.blockSignals(True)
-
-        # Clear current items
-        self.sens_combo.clear()
-
-        if mode == 0:  # Voltage Mode (IMODE=0)
-            self.sens_combo.addItems(
-                ["Select", "2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV", "1 µV", "2 µV",
-                    "5 µV", "10 µV", "20 µV", "50 µV", "100 µV", "200 µV", "500 µV", "1 mV", "2 mV", "5 mV", "10 mV",
-                    "20 mV", "50 mV", "100 mV", "200 mV", "500 mV", "1 V"])
-        elif mode == 1:  # High Bandwidth Current (IMODE=1)
-            self.sens_combo.addItems(
-                ["Select", "2 fA", "5 fA", "10 fA", "20 fA", "50 fA", "100 fA", "200 fA", "500 fA", "1 pA", "2 pA",
-                    "5 pA", "10 pA", "20 pA", "50 pA", "100 pA", "200 pA", "500 pA", "1 nA", "2 nA", "5 nA", "10 nA",
-                    "20 nA", "50 nA", "100 nA", "200 nA", "500 nA", "1 µA"])
-        elif mode == 2:  # Low Noise Current (IMODE=2)
-            self.sens_combo.addItems(
-                ["Select", "n/a", "n/a", "n/a", "n/a", "n/a", "n/a", "n/a", "5 fA", "10 fA", "20 fA", "50 fA", "100 fA",
-                    "200 fA", "500 fA", "1 pA", "2 pA", "5 pA", "10 pA", "20 pA", "50 pA", "100 pA", "200 pA", "500 pA",
-                    "1 nA", "2 nA", "5 nA", "10 nA"])
-
-        # Re-enable signals
-        self.sens_combo.blockSignals(False)
 
     def update_plot_visibility(self):
         """Update plot visibility and auto-zoom"""
@@ -1106,41 +868,34 @@ class DSP7265(QMainWindow):
         else:
             self.y_curve.setData([], [])
 
-        if self.mag_monitor_checkbox.isChecked():
-            self.mag_curve.setData(x_data, self.mag_data)
+        if self.r_monitor_checkbox.isChecked():
+            self.r_curve.setData(x_data, self.r_data)
         else:
-            self.mag_curve.setData([], [])
+            self.r_curve.setData([], [])
 
-        self.xy_plot_widget.autoRange()
+        self.xyr_plot_widget.autoRange()
 
-        if self.phase_monitor_checkbox.isChecked():
-            self.phase_curve.setData(x_data, self.phase_data)
+        if self.theta_monitor_checkbox.isChecked():
+            self.theta_curve.setData(x_data, self.theta_data)
         else:
-            self.phase_curve.setData([], [])
+            self.theta_curve.setData([], [])
 
-        self.phase_plot_widget.autoRange()
-
-        if self.noise_monitor_checkbox.isChecked():
-            self.noise_curve.setData(x_data, self.noise_data)
-        else:
-            self.noise_curve.setData([], [])
-
-        self.noise_plot_widget.autoRange()
+        self.theta_plot_widget.autoRange()
 
     def on_instrument_connected(self, instrument, instrument_name):
         """Handle instrument connection"""
-        self.DSP7265_instrument = instrument
+        self.SR830_instrument = instrument
         self.isConnect = True
         print(f"Connected to {instrument_name}")
 
-        if self.DSP7265_instrument:
+        if self.SR830_instrument:
             self.update_readings_from_instrument()
 
-            if self.DSP7265_instrument != 'Emulation':
-                self.reading_thread = ContinuousReadingThread(self.DSP7265_instrument)
+            if self.SR830_instrument != 'Emulation':
+                self.reading_thread = ContinuousReadingThread(self.SR830_instrument)
                 self.reading_thread.reading_signal.connect(self.update_current_readings)
                 self.reading_thread.error_signal.connect(self.on_reading_error)
-                # self.reading_thread.start()
+                self.reading_thread.start()
             else:
                 self.reading_timer = QTimer()
                 self.reading_timer.timeout.connect(self.update_emulation_readings)
@@ -1164,45 +919,40 @@ class DSP7265(QMainWindow):
         if hasattr(self, 'reading_timer'):
             self.reading_timer.stop()
 
-        self.DSP7265_instrument = None
+        self.SR830_instrument = None
         self.isConnect = False
         print(f"Disconnected from {instrument_name}")
 
         self.start_btn.setEnabled(False)
         self.x_reading_label.setText("N/A V")
         self.y_reading_label.setText("N/A V")
-        self.mag_reading_label.setText("N/A V")
-        self.phase_reading_label.setText("N/A deg")
-        self.noise_reading_label.setText("N/A V/√Hz")
+        self.r_reading_label.setText("N/A V")
+        self.theta_reading_label.setText("N/A deg")
+        self.freq_reading_label.setText("N/A Hz")
         self.amp_reading_label.setText("N/A Vrms")
         self.sens_reading_label.setText("N/A")
         self.tc_reading_label.setText("N/A")
-        self.slope_reading_label.setText("N/A")
-        self.ref_reading_label.setText("N/A")
 
-    def update_current_readings(self, X, Y, Mag, Phase, Noise):
+    def update_current_readings(self, X, Y, R, Theta):
         """Update current reading labels"""
         if not self.is_plotting:
             self.x_reading_label.setText(f"{X:.6f} V")
             self.y_reading_label.setText(f"{Y:.6f} V")
-            self.mag_reading_label.setText(f"{Mag:.6f} V")
-            self.phase_reading_label.setText(f"{Phase:.2f} deg")
-            self.noise_reading_label.setText(f"{Noise:.9f} V/√Hz")
+            self.r_reading_label.setText(f"{R:.6f} V")
+            self.theta_reading_label.setText(f"{Theta:.2f} deg")
 
     def update_emulation_readings(self):
         """Update readings for emulation mode"""
         if not self.is_plotting:
             X = random.random()
             Y = random.random()
-            Mag = np.sqrt(X ** 2 + Y ** 2)
-            Phase = random.randint(0, 360)
-            Noise = random.random() * 1e-6
+            R = np.sqrt(X ** 2 + Y ** 2)
+            Theta = random.randint(0, 360)
 
             self.x_reading_label.setText(f"{X:.6f} V")
             self.y_reading_label.setText(f"{Y:.6f} V")
-            self.mag_reading_label.setText(f"{Mag:.6f} V")
-            self.phase_reading_label.setText(f"{Phase} deg")
-            self.noise_reading_label.setText(f"{Noise:.9f} V/√Hz")
+            self.r_reading_label.setText(f"{R:.6f} V")
+            self.theta_reading_label.setText(f"{Theta} deg")
 
     def on_reading_error(self, error_msg):
         """Handle reading thread error"""
@@ -1210,158 +960,69 @@ class DSP7265(QMainWindow):
 
     def update_readings_from_instrument(self):
         """Manual update of readings from instrument"""
-        if not self.isConnect or not self.DSP7265_instrument:
+        if not self.isConnect or not self.SR830_instrument:
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             self.x_reading_label.setText(f"{random.random():.6f} V")
             self.y_reading_label.setText(f"{random.random():.6f} V")
-            self.mag_reading_label.setText(f"{random.random():.6f} V")
-            self.phase_reading_label.setText(f"{random.randint(0, 360)} deg")
-            self.noise_reading_label.setText(f"{random.random() * 1e-6:.9f} V/√Hz")
+            self.r_reading_label.setText(f"{random.random():.6f} V")
+            self.theta_reading_label.setText(f"{random.randint(0, 360)} deg")
+            self.freq_reading_label.setText("1000 Hz")
             self.amp_reading_label.setText("1.0 Vrms")
             self.sens_reading_label.setText("100 mV")
             self.tc_reading_label.setText("1 s")
-            self.slope_reading_label.setText("6 dB/octave")
-            self.ref_reading_label.setText("Internal")
             return
 
         try:
-            X = float(self.DSP7265_instrument.query("X."))
-            self.x_reading_label.setText(f"{X:.6f} V")
+            # Read X, Y, R, Theta
+            values = self.SR830_instrument.query("SNAP? 1,2,3,4")
+            X, Y, R, Theta = values.split(',')
+            self.x_reading_label.setText(f"{float(X):.6f} V")
+            self.y_reading_label.setText(f"{float(Y):.6f} V")
+            self.r_reading_label.setText(f"{float(R):.6f} V")
+            self.theta_reading_label.setText(f"{float(Theta):.2f} deg")
 
-            Y = float(self.DSP7265_instrument.query("Y."))
-            self.y_reading_label.setText(f"{Y:.6f} V")
+            # Frequency
+            freq = float(self.SR830_instrument.query('FREQ?'))
+            self.freq_reading_label.setText(f"{freq:.2f} Hz")
 
-            Mag = float(self.DSP7265_instrument.query("MAG."))
-            self.mag_reading_label.setText(f"{Mag:.6f} V")
-
-            Phase = float(self.DSP7265_instrument.query("PHA."))
-            self.phase_reading_label.setText(f"{Phase:.2f} deg")
-
-            Noise = float(self.DSP7265_instrument.query("NHZ."))
-            self.noise_reading_label.setText(f"{Noise:.9f} V/√Hz")
-
-            amplitude = float(self.DSP7265_instrument.query('OA[.]')) / 1e6
-            self.amp_reading_label.setText(f"{amplitude:.6f} Vrms")
+            # Amplitude
+            amp = float(self.SR830_instrument.query('SLVL?'))
+            self.amp_reading_label.setText(f"{amp:.6f} Vrms")
 
             # Sensitivity
-            sen_idx = int(self.DSP7265_instrument.query("SEN"))
-            mode = int(self.DSP7265_instrument.query("IMODE"))
-
-            if mode > 0:
-                sen_values = ["2fA", "5fA", "10fA", "20fA", "50fA", "100fA", "200fA", "500fA", "1pA", "2pA", "5pA",
-                              "10pA", "20pA", "50pA", "100pA", "200pA", "500pA", "1nA", "2nA", "5nA", "10nA", "20nA",
-                              "50nA", "100nA", "200nA", "500nA", "1µA"]
-            else:
-                sen_values = ["", "2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV", "1 µV",
-                              "2 µV", "5 µV", "10 µV", "20 µV", "50 µV", "100 µV", "200 µV", "500 µV", "1 mV", "2 mV",
-                              "5 mV", "10 mV", "20 mV", "50 mV", "100 mV", "200 mV", "500 mV", "1 V"]
-
-            sensitivity = sen_values[sen_idx] if sen_idx < len(sen_values) else "Unknown"
+            sens_idx = int(self.SR830_instrument.query("SENS?"))
+            sens_values = ["2 nV", "5 nV", "10 nV", "20 nV", "50 nV", "100 nV", "200 nV", "500 nV", "1 µV", "2 µV",
+                           "5 µV", "10 µV", "20 µV", "50 µV", "100 µV", "200 µV", "500 µV", "1 mV", "2 mV", "5 mV",
+                           "10 mV", "20 mV", "50 mV", "100 mV", "200 mV", "500 mV", "1 V"]
+            sensitivity = sens_values[sens_idx] if sens_idx < len(sens_values) else "Unknown"
             self.sens_reading_label.setText(sensitivity)
 
             # Time constant
-            tc_idx = int(self.DSP7265_instrument.query("TC"))
-            tc_values = ["10 µs", "20 µs", "40 µs", "80 µs", "160 µs", "320 µs", "640 µs", "5 ms", "10 ms", "20 ms",
-                         "50 ms", "100 ms", "200 ms", "500 ms", "1 s", "2 s", "5 s", "10 s", "20 s", "50 s", "100 s",
-                         "200 s", "500 s", "1 ks", "2 ks", "5 ks", "10 ks", "20 ks", "50 ks", "100 ks"]
+            tc_idx = int(self.SR830_instrument.query("OFLT?"))
+            tc_values = ["10 µs", "30 µs", "100 µs", "300 µs", "1 ms", "3 ms", "10 ms", "30 ms", "100 ms", "300 ms",
+                         "1 s", "3 s", "10 s", "30 s", "100 s", "300 s", "1 ks", "3 ks", "10 ks", "30 ks"]
             time_constant = tc_values[tc_idx] if tc_idx < len(tc_values) else "Unknown"
             self.tc_reading_label.setText(time_constant)
-
-            # Slope
-            slope_idx = int(self.DSP7265_instrument.query("SLOPE"))
-            slope_values = ['6 dB/octave', '12 dB/octave', '18 dB/octave', '24 dB/octave']
-            slope = slope_values[slope_idx] if slope_idx < len(slope_values) else "Unknown"
-            self.slope_reading_label.setText(slope)
-
-            # Reference source
-            ref = int(self.DSP7265_instrument.query("IE"))
-            ref_sources = {0: "Internal", 1: "External TTL", 2: "External Analog"}
-            ref_source = ref_sources.get(ref, "Unknown")
-            self.ref_reading_label.setText(ref_source)
 
         except Exception as e:
             print(f"Error updating readings: {e}")
 
     def apply_reference(self):
-        """Apply reference setting"""
+        """Apply reference source setting"""
         if not self.isConnect:
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             return
 
         idx = self.ref_combo.currentIndex()
         try:
-            self.DSP7265_instrument.write(f'IE {idx}')
+            self.SR830_instrument.write(f'FMOD {idx}')
             time.sleep(0.1)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting reference:\n{str(e)}")
-
-    def apply_line_filter(self):
-        """Apply line filter settings"""
-        if not self.isConnect:
-            QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            QMessageBox.information(self, "Emulation Mode", "Configuration not applied in emulation mode")
-            return
-
-        lf_n1_idx = self.lf_n1_combo.currentIndex()
-        lf_n2_idx = self.lf_n2_combo.currentIndex()
-
-        if lf_n1_idx == 0:
-            QMessageBox.warning(self, "Warning", "Please select line filter mode")
-            return
-
-        try:
-            if lf_n2_idx == 0:
-                self.DSP7265_instrument.write(f'LF {lf_n1_idx - 1} 0')
-            else:
-                self.DSP7265_instrument.write(f'LF {lf_n1_idx - 1} {lf_n2_idx - 1}')
-
-            time.sleep(0.1)
-            QMessageBox.information(self, "Success", "Line filter applied successfully")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error setting line filter:\n{str(e)}")
-
-    def apply_float_control(self):
-        """Apply float/ground control"""
-        if not self.isConnect:
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            return
-
-        idx = self.float_combo.currentIndex()
-        if idx == 0:
-            return
-
-        try:
-            self.DSP7265_instrument.write(f'FLOAT {idx - 1}')
-            time.sleep(0.1)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error setting float control:\n{str(e)}")
-
-    def apply_device_control(self):
-        """Apply input device control"""
-        if not self.isConnect:
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            return
-
-        idx = self.device_combo.currentIndex()
-        if idx == 0:
-            return
-
-        try:
-            self.DSP7265_instrument.write(f'FET {idx - 1}')
-            time.sleep(0.1)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error setting input device:\n{str(e)}")
 
     def apply_frequency(self):
         """Apply frequency setting"""
@@ -1369,7 +1030,7 @@ class DSP7265(QMainWindow):
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Configuration not applied in emulation mode")
             return
 
@@ -1379,31 +1040,31 @@ class DSP7265(QMainWindow):
             return
 
         try:
-            self.DSP7265_instrument.write(f'OF. {freq}')
+            self.SR830_instrument.write(f'FREQ {freq}')
             time.sleep(0.1)
             QMessageBox.information(self, "Success", "Frequency set successfully")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting frequency:\n{str(e)}")
 
-    def apply_oscillator_amplitude(self):
-        """Apply oscillator amplitude setting"""
+    def apply_amplitude(self):
+        """Apply sine output amplitude setting"""
         if not self.isConnect:
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Configuration not applied in emulation mode")
             return
 
-        amp = self.osc_entry.text()
+        amp = self.amp_entry.text()
         if not amp:
             QMessageBox.warning(self, "Warning", "Please enter amplitude")
             return
 
         try:
-            self.DSP7265_instrument.write(f'OA. {amp}')
-            time.sleep(1)
-            QMessageBox.information(self, "Success", "Oscillator amplitude set successfully")
+            self.SR830_instrument.write(f'SLVL {amp}')
+            time.sleep(0.1)
+            QMessageBox.information(self, "Success", "Amplitude set successfully")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting amplitude:\n{str(e)}")
 
@@ -1413,7 +1074,7 @@ class DSP7265(QMainWindow):
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Configuration not applied in emulation mode")
             return
 
@@ -1422,7 +1083,7 @@ class DSP7265(QMainWindow):
             return
 
         try:
-            self.DSP7265_instrument.write(f'SEN {idx}')
+            self.SR830_instrument.write(f'SENS {idx - 1}')
             time.sleep(0.1)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting sensitivity:\n{str(e)}")
@@ -1433,7 +1094,7 @@ class DSP7265(QMainWindow):
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Configuration not applied in emulation mode")
             return
 
@@ -1442,18 +1103,18 @@ class DSP7265(QMainWindow):
             return
 
         try:
-            self.DSP7265_instrument.write(f'TC {idx - 1}')
+            self.SR830_instrument.write(f'OFLT {idx - 1}')
             time.sleep(0.1)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting time constant:\n{str(e)}")
 
     def apply_slope(self):
-        """Apply slope setting"""
+        """Apply filter slope setting"""
         if not self.isConnect:
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Configuration not applied in emulation mode")
             return
 
@@ -1462,65 +1123,47 @@ class DSP7265(QMainWindow):
             return
 
         try:
-            self.DSP7265_instrument.write(f'SLOPE {idx - 1}')
+            self.SR830_instrument.write(f'OFSL {idx - 1}')
             time.sleep(0.1)
-            QMessageBox.information(self, "Success", "Slope set successfully")
+            QMessageBox.information(self, "Success", "Filter slope set successfully")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting slope:\n{str(e)}")
 
-    def clear_instrument(self):
-        """Clear instrument status"""
+    def auto_gain(self):
+        """Auto gain"""
         if not self.isConnect:
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
-            return
-
-        try:
-            self.DSP7265_instrument.write('*CLS')
-            QMessageBox.information(self, "Success", "Instrument status cleared")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error clearing instrument:\n{str(e)}")
-
-    def reset_instrument(self):
-        """Reset instrument to default settings"""
-        if not self.isConnect:
-            QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            return
-
-        reply = QMessageBox.question(self, "Confirm Reset",
-                                     "Are you sure you want to reset the instrument to default settings?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-
-        if reply == QMessageBox.StandardButton.Yes:
-            try:
-                self.DSP7265_instrument.write('*RST')
-                time.sleep(1)
-                QMessageBox.information(self, "Success", "Instrument reset successfully")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Error resetting instrument:\n{str(e)}")
-
-    def auto_sensitivity(self):
-        """Auto sensitivity"""
-        if not self.isConnect:
-            QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Auto functions not available in emulation mode")
             return
 
         try:
-            self.DSP7265_instrument.write('AS')
-            time.sleep(1)
+            self.SR830_instrument.write('AGAN')
+            time.sleep(2)
             self.update_readings_from_instrument()
-            QMessageBox.information(self, "Success", "Auto sensitivity completed")
+            QMessageBox.information(self, "Success", "Auto gain completed")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error in auto sensitivity:\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"Error in auto gain:\n{str(e)}")
+
+    def auto_reserve(self):
+        """Auto reserve"""
+        if not self.isConnect:
+            QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
+            return
+
+        if self.SR830_instrument == 'Emulation':
+            QMessageBox.information(self, "Emulation Mode", "Auto functions not available in emulation mode")
+            return
+
+        try:
+            self.SR830_instrument.write('ARSV')
+            time.sleep(2)
+            self.update_readings_from_instrument()
+            QMessageBox.information(self, "Success", "Auto reserve completed")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error in auto reserve:\n{str(e)}")
 
     def auto_phase(self):
         """Auto phase"""
@@ -1528,35 +1171,17 @@ class DSP7265(QMainWindow):
             QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
             return
 
-        if self.DSP7265_instrument == 'Emulation':
+        if self.SR830_instrument == 'Emulation':
             QMessageBox.information(self, "Emulation Mode", "Auto functions not available in emulation mode")
             return
 
         try:
-            self.DSP7265_instrument.write('AQN')
-            time.sleep(1)
+            self.SR830_instrument.write('APHS')
+            time.sleep(2)
             self.update_readings_from_instrument()
             QMessageBox.information(self, "Success", "Auto phase completed")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error in auto phase:\n{str(e)}")
-
-    def auto_measurement(self):
-        """Auto measurement"""
-        if not self.isConnect:
-            QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
-            return
-
-        if self.DSP7265_instrument == 'Emulation':
-            QMessageBox.information(self, "Emulation Mode", "Auto functions not available in emulation mode")
-            return
-
-        try:
-            self.DSP7265_instrument.write('ASM')
-            time.sleep(2)
-            self.update_readings_from_instrument()
-            QMessageBox.information(self, "Success", "Auto measurement completed")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error in auto measurement:\n{str(e)}")
 
     def start_operation(self):
         """Start monitoring or sweep based on mode"""
@@ -1565,7 +1190,7 @@ class DSP7265(QMainWindow):
             return
 
         if not (
-                self.x_monitor_checkbox.isChecked() or self.y_monitor_checkbox.isChecked() or self.mag_monitor_checkbox.isChecked() or self.phase_monitor_checkbox.isChecked() or self.noise_monitor_checkbox.isChecked()):
+                self.x_monitor_checkbox.isChecked() or self.y_monitor_checkbox.isChecked() or self.r_monitor_checkbox.isChecked() or self.theta_monitor_checkbox.isChecked()):
             QMessageBox.warning(self, "No Selection", "Please select at least one parameter to plot")
             return
 
@@ -1574,24 +1199,22 @@ class DSP7265(QMainWindow):
         self.sweep_param_data = []
         self.x_data = []
         self.y_data = []
-        self.mag_data = []
-        self.phase_data = []
-        self.noise_data = []
+        self.r_data = []
+        self.theta_data = []
         self.x_curve.setData([], [])
         self.y_curve.setData([], [])
-        self.mag_curve.setData([], [])
-        self.phase_curve.setData([], [])
-        self.noise_curve.setData([], [])
+        self.r_curve.setData([], [])
+        self.theta_curve.setData([], [])
 
         self.is_plotting = True
         mode = self.mode_combo.currentText()
 
         if mode == "Real-time Monitor":
             self.is_sweep_mode = False
-            if self.DSP7265_instrument == 'Emulation':
+            if self.SR830_instrument == 'Emulation':
                 self.monitor_thread = EmulationThread()
             else:
-                self.monitor_thread = MonitorThread(self.DSP7265_instrument)
+                self.monitor_thread = MonitorThread(self.SR830_instrument)
 
             self.monitor_thread.data_signal.connect(self.update_plots)
             self.monitor_thread.error_signal.connect(self.on_error)
@@ -1608,10 +1231,10 @@ class DSP7265(QMainWindow):
             step_val = self.sweep_step_entry.value()
             use_auto = self.sweep_auto_rate_checkbox.isChecked()
 
-            if self.DSP7265_instrument == 'Emulation':
+            if self.SR830_instrument == 'Emulation':
                 self.sweep_thread = SweepThread('Emulation', sweep_type, start_val, stop_val, step_val, use_auto)
             else:
-                self.sweep_thread = SweepThread(self.DSP7265_instrument, sweep_type, start_val, stop_val, step_val,
+                self.sweep_thread = SweepThread(self.SR830_instrument, sweep_type, start_val, stop_val, step_val,
                                                 use_auto)
 
             self.sweep_thread.progress_signal.connect(self.update_progress)
@@ -1648,46 +1271,42 @@ class DSP7265(QMainWindow):
         self.operation_status.setText("Status: Stopped")
 
         # Restart reading thread
-        if self.DSP7265_instrument and self.DSP7265_instrument != 'Emulation':
+        if self.SR830_instrument and self.SR830_instrument != 'Emulation':
             if not self.reading_thread or not self.reading_thread.isRunning():
-                self.reading_thread = ContinuousReadingThread(self.DSP7265_instrument)
+                self.reading_thread = ContinuousReadingThread(self.SR830_instrument)
                 self.reading_thread.reading_signal.connect(self.update_current_readings)
                 self.reading_thread.error_signal.connect(self.on_reading_error)
                 self.reading_thread.start()
 
-    def update_plots(self, time_val, X, Y, Mag, Phase, Noise):
+    def update_plots(self, time_val, X, Y, R, Theta):
         """Update plots for real-time monitoring"""
         self.time_data.append(time_val)
         self.x_data.append(X)
         self.y_data.append(Y)
-        self.mag_data.append(Mag)
-        self.phase_data.append(Phase)
-        self.noise_data.append(Noise)
+        self.r_data.append(R)
+        self.theta_data.append(Theta)
 
         self.update_plot_visibility()
 
         self.x_reading_label.setText(f"{X:.6f} V")
         self.y_reading_label.setText(f"{Y:.6f} V")
-        self.mag_reading_label.setText(f"{Mag:.6f} V")
-        self.phase_reading_label.setText(f"{Phase:.2f} deg")
-        self.noise_reading_label.setText(f"{Noise:.9f} V/√Hz")
+        self.r_reading_label.setText(f"{R:.6f} V")
+        self.theta_reading_label.setText(f"{Theta:.2f} deg")
 
-    def update_sweep_plots(self, sweep_val, X, Y, Mag, Phase, Noise):
+    def update_sweep_plots(self, sweep_val, X, Y, R, Theta):
         """Update plots for sweep"""
         self.sweep_param_data.append(sweep_val)
         self.x_data.append(X)
         self.y_data.append(Y)
-        self.mag_data.append(Mag)
-        self.phase_data.append(Phase)
-        self.noise_data.append(Noise)
+        self.r_data.append(R)
+        self.theta_data.append(Theta)
 
         self.update_plot_visibility()
 
         self.x_reading_label.setText(f"{X:.6f} V")
         self.y_reading_label.setText(f"{Y:.6f} V")
-        self.mag_reading_label.setText(f"{Mag:.6f} V")
-        self.phase_reading_label.setText(f"{Phase:.2f} deg")
-        self.noise_reading_label.setText(f"{Noise:.9f} V/√Hz")
+        self.r_reading_label.setText(f"{R:.6f} V")
+        self.theta_reading_label.setText(f"{Theta:.2f} deg")
 
     def update_progress(self, percentage, status):
         """Update progress for sweep"""
@@ -1719,14 +1338,12 @@ class DSP7265(QMainWindow):
         self.sweep_param_data = []
         self.x_data = []
         self.y_data = []
-        self.mag_data = []
-        self.phase_data = []
-        self.noise_data = []
+        self.r_data = []
+        self.theta_data = []
         self.x_curve.setData([], [])
         self.y_curve.setData([], [])
-        self.mag_curve.setData([], [])
-        self.phase_curve.setData([], [])
-        self.noise_curve.setData([], [])
+        self.r_curve.setData([], [])
+        self.theta_curve.setData([], [])
 
         QMessageBox.information(self, "Data Cleared", "Plot data has been cleared")
 
@@ -1742,25 +1359,25 @@ class DSP7265(QMainWindow):
             if self.is_sweep_mode:
                 mode = self.mode_combo.currentText()
                 sweep_type = "frequency" if "Frequency" in mode else "amplitude"
-                filename = f"dsp7265_sweep_{sweep_type}_{timestamp}.csv"
+                filename = f"sr830_sweep_{sweep_type}_{timestamp}.csv"
 
                 with open(filename, 'w') as f:
-                    header_param = "Frequency (Hz)" if sweep_type == "frequency" else "Amplitude (V)"
-                    f.write(f"{header_param},X (V),Y (V),Magnitude (V),Phase (deg),Noise (V/√Hz)\n")
+                    header_param = "Frequency (Hz)" if sweep_type == "frequency" else "Amplitude (Vrms)"
+                    f.write(f"{header_param},X (V),Y (V),R (V),θ (deg)\n")
                     for i in range(len(self.sweep_param_data)):
                         f.write(
-                            f"{self.sweep_param_data[i]},{self.x_data[i]},{self.y_data[i]},{self.mag_data[i]},{self.phase_data[i]},{self.noise_data[i]}\n")
+                            f"{self.sweep_param_data[i]},{self.x_data[i]},{self.y_data[i]},{self.r_data[i]},{self.theta_data[i]}\n")
 
                 QMessageBox.information(self, "Data Saved",
                                         f"Sweep data saved to:\n{filename}\n\nTotal points: {len(self.sweep_param_data)}")
             else:
-                filename = f"dsp7265_monitor_{timestamp}.csv"
+                filename = f"sr830_monitor_{timestamp}.csv"
 
                 with open(filename, 'w') as f:
-                    f.write("Time (s),X (V),Y (V),Magnitude (V),Phase (deg),Noise (V/√Hz)\n")
+                    f.write("Time (s),X (V),Y (V),R (V),θ (deg)\n")
                     for i in range(len(self.time_data)):
                         f.write(
-                            f"{self.time_data[i]},{self.x_data[i]},{self.y_data[i]},{self.mag_data[i]},{self.phase_data[i]},{self.noise_data[i]}\n")
+                            f"{self.time_data[i]},{self.x_data[i]},{self.y_data[i]},{self.r_data[i]},{self.theta_data[i]}\n")
 
                 QMessageBox.information(self, "Data Saved",
                                         f"Monitoring data saved to:\n{filename}\n\nTotal points: {len(self.time_data)}")
@@ -1785,9 +1402,9 @@ class DSP7265(QMainWindow):
         if hasattr(self, 'reading_timer'):
             self.reading_timer.stop()
 
-        if self.DSP7265_instrument and self.DSP7265_instrument != 'Emulation':
+        if self.SR830_instrument and self.SR830_instrument != 'Emulation':
             try:
-                self.DSP7265_instrument.close()
+                self.SR830_instrument.close()
             except:
                 pass
 
@@ -1796,6 +1413,6 @@ class DSP7265(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = DSP7265()
+    window = SR830()
     window.show()
     sys.exit(app.exec())

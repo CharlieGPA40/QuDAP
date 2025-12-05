@@ -10,13 +10,17 @@ try:
     from GUI.Experiment.RF.gui import BNC845RF
     from GUI.Experiment.Nanovoltmeter.gui import NV
     from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
+    from GUI.Experiment.LockInAmplifier.sr_gui import SR830
+    from GUI.Experiment.PPMS.gui import PPMS
     from GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
 except ImportError:
-    from QuDAP.GUI.Experiment.PPMS import PPMS
-    from QuDAP.GUI.Experiment.VoltageCurrentSource.gui import VCS_GUI
+    from QuDAP.GUI.Experiment.PPMS_old import PPMS
+    from QuDAP.GUI.Experiment.VoltageCurrentSource.keithley_gui import VCS_GUI
     from QuDAP.GUI.Experiment.RF.gui import BNC845RF
     from QuDAP.GUI.Experiment.Nanovoltmeter.gui import NV
     from QuDAP.GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
+    from QuDAP.GUI.Experiment.LockInAmplifier.sr_gui import SR830
+    from QuDAP.GUI.Experiment.PPMS.gui import PPMS
     from QuDAP.GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
 
 
@@ -59,7 +63,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
         # Tab 2: Lock-in Amplifiers (with subtabs)
         lock_in_tab = self.create_tab_with_subtabs(
-            [("Signal Recovery", DSP7265()), ("Stanford Research", QLabel("Monitor content")),
+            [("Signal Recovery", DSP7265()), ("Stanford Research", SR830()),
              ("Coming Soon", QLabel(request_text))])
         self.main_tab_widget.addTab(lock_in_tab, "Lock-in amplifier")
 
