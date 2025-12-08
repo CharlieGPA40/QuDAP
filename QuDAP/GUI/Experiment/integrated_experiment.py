@@ -5,17 +5,6 @@ from PyQt6.QtGui import QFont
 import sys
 
 try:
-    from GUI.Experiment.PPMS import PPMS
-    from GUI.Experiment.VoltageCurrentSource.gui import Keithley6221
-    from GUI.Experiment.RF.gui import BNC845RF
-    from GUI.Experiment.Nanovoltmeter.gui import NV
-    from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
-    from GUI.Experiment.LockInAmplifier.sr_gui import SR830
-    from GUI.Experiment.PPMS.gui import PPMS
-    from GUI.Experiment.PresetMeasurement.main import MeasurementSystemMainWindow
-    from GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
-except ImportError:
-    from QuDAP.GUI.Experiment.PPMS_old import PPMS
     from QuDAP.GUI.Experiment.VoltageCurrentSource.keithley_gui import Keithley6221
     from QuDAP.GUI.Experiment.RF.gui import BNC845RF
     from QuDAP.GUI.Experiment.Nanovoltmeter.gui import NV
@@ -24,6 +13,17 @@ except ImportError:
     from QuDAP.GUI.Experiment.PPMS.gui import PPMS
     from QuDAP.GUI.Experiment.PresetMeasurement.main import MeasurementSystemMainWindow
 
+except ImportError:
+    from GUI.Experiment.VoltageCurrentSource.keithley_gui import Keithley6221
+    from GUI.Experiment.RF.gui import BNC845RF
+    from GUI.Experiment.Nanovoltmeter.gui import NV
+    from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
+    from GUI.Experiment.LockInAmplifier.sr_gui import SR830
+    from GUI.Experiment.PPMS.gui import PPMS
+    from GUI.Experiment.PresetMeasurement.main import MeasurementSystemMainWindow
+    from GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
+    # from QuDAP.GUI.Experiment.PPMS_old import PPMS
+    
 
 class INTEGRATED_EXPERIMENT(QMainWindow):
     def __init__(self):
