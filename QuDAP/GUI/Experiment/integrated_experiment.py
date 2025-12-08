@@ -6,22 +6,23 @@ import sys
 
 try:
     from GUI.Experiment.PPMS import PPMS
-    from GUI.Experiment.VoltageCurrentSource.gui import VCS_GUI
+    from GUI.Experiment.VoltageCurrentSource.gui import Keithley6221
     from GUI.Experiment.RF.gui import BNC845RF
     from GUI.Experiment.Nanovoltmeter.gui import NV
     from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
     from GUI.Experiment.LockInAmplifier.sr_gui import SR830
     from GUI.Experiment.PPMS.gui import PPMS
+    from GUI.Experiment.PresetMeasurement.main import MeasurementSystemMainWindow
     from GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
 except ImportError:
     from QuDAP.GUI.Experiment.PPMS_old import PPMS
-    from QuDAP.GUI.Experiment.VoltageCurrentSource.keithley_gui import VCS_GUI
+    from QuDAP.GUI.Experiment.VoltageCurrentSource.keithley_gui import Keithley6221
     from QuDAP.GUI.Experiment.RF.gui import BNC845RF
     from QuDAP.GUI.Experiment.Nanovoltmeter.gui import NV
     from QuDAP.GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
     from QuDAP.GUI.Experiment.LockInAmplifier.sr_gui import SR830
     from QuDAP.GUI.Experiment.PPMS.gui import PPMS
-    from QuDAP.GUI.FMR.FMRDataInterpolation import FMR_DATA_INTERPOLATION
+    from QuDAP.GUI.Experiment.PresetMeasurement.main import MeasurementSystemMainWindow
 
 
 class INTEGRATED_EXPERIMENT(QMainWindow):
@@ -69,7 +70,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
 
         # Tab 3: Voltage & Current Source (with subtabs)
-        vcs_tab = self.create_tab_with_subtabs([("Keithley", VCS_GUI()), ("B&K Precision", QLabel("Monitor content")),
+        vcs_tab = self.create_tab_with_subtabs([("Keithley", Keithley6221()), ("B&K Precision", QLabel("Monitor content")),
             ("Coming Soon", QLabel(request_text))])
         self.main_tab_widget.addTab(vcs_tab, "Voltage/Current Source")
 
@@ -90,7 +91,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
         # Tab 7: Measurement (with subtabs)
         measurement_tab = self.create_tab_with_subtabs(
-            [("Setup", QLabel("Measurement setup")), ("Run", QLabel("Run measurement")),
+            [("Setup", MeasurementSystemMainWindow()), ("Run", QLabel("Run measurement")),
                 ("Results", QLabel("Results"))])
         self.main_tab_widget.addTab(measurement_tab, "Measurement")
 
