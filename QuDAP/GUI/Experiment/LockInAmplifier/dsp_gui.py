@@ -702,6 +702,7 @@ class DSP7265(QMainWindow):
 
         # Clear and Reset buttons
         clr_rst_layout = QHBoxLayout()
+
         self.clr_btn = QPushButton("Clear")
         self.clr_btn.clicked.connect(self.clear_instrument)
         self.clr_btn.setFont(self.font)
@@ -1137,6 +1138,8 @@ class DSP7265(QMainWindow):
             self.update_readings_from_instrument()
 
             if self.DSP7265_instrument != 'Emulation':
+                QTimer.singleShot(500, self.read_and_fill_dsp7265_settings)
+
                 self.reading_thread = ContinuousReadingThread(self.DSP7265_instrument)
                 self.reading_thread.reading_signal.connect(self.update_current_readings)
                 self.reading_thread.error_signal.connect(self.on_reading_error)
@@ -1283,6 +1286,98 @@ class DSP7265(QMainWindow):
 
         except Exception as e:
             print(f"Error updating readings: {e}")
+
+    def read_and_fill_dsp7265_settings(self):
+        """Read current settings from DSP7265 and auto-fill the UI"""
+        if not self.DSP7265_instrument or self.DSP7265_instrument == 'Emulation':
+            return
+
+        try:
+            # Read IMODE first (determines sensitivity options)
+            imode_idx = int(self.DSP7265_instrument.query("IMODE"))
+            self.imode_combo.setCurrentIndex(imode_idx + 1)  # +1 for "Select Mode"
+
+            # Update sensitivity options based on IMODE
+            self.update_sensitivity_options(imode_idx)
+
+            # Read VMODE (show VMODE widget for all modes)
+            vmode_idx = int(self.DSP7265_instrument.query("VMODE"))
+            self.vmode_combo.setCurrentIndex(vmode_idx + 1)  # +1 for "Select Input"
+            self.vmode_widget.setVisible(True)
+
+            # Read and set frequency
+            freq = float(self.DSP7265_instrument.query('FRQ[.]')) / 1000
+            self.freq_entry.setText(f"{freq:.3f}")
+
+            # Read and set reference source
+            ref = int(self.DSP7265_instrument.query("IE"))
+            if 0 <= ref <= 2:
+                self.ref_combo.setCurrentIndex(ref)
+
+            # Read and set time constant
+            tc_idx = int(self.DSP7265_instrument.query("TC"))
+            if 0 <= tc_idx < self.tc_combo.count() - 1:
+                self.tc_combo.setCurrentIndex(tc_idx + 1)  # +1 for "Select"
+
+            # Read and set sensitivity
+            sen_idx = int(self.DSP7265_instrument.query("SEN"))
+            if 0 <= sen_idx < self.sens_combo.count() - 1:
+                self.sens_combo.setCurrentIndex(sen_idx + 1)  # +1 for "Select"
+
+            # Read and set amplitude
+            amplitude = float(self.DSP7265_instrument.query('OA[.]')) / 1e6
+            self.osc_entry.setText(f"{amplitude:.6f}")
+
+            # Read and set slope
+            slope_idx = int(self.DSP7265_instrument.query("SLOPE"))
+            if 0 <= slope_idx < self.slope_combo.count() - 1:
+                self.slope_combo.setCurrentIndex(slope_idx + 1)  # +1 for "Select"
+
+            # Read and set float
+            float_idx = int(self.DSP7265_instrument.query("FLOAT"))
+            if 0 <= float_idx < self.float_combo.count() - 1:
+                self.float_combo.setCurrentIndex(float_idx + 1)  # +1 for "Select"
+
+            # Read and set device
+            device_idx = int(self.DSP7265_instrument.query("FET"))
+            if 0 <= device_idx < self.device_combo.count() - 1:
+                self.device_combo.setCurrentIndex(device_idx + 1)  # +1 for "Select"
+
+            # Read and set line filter
+            lf_response = self.DSP7265_instrument.query("LF").strip()
+
+            # Parse LF response - format is typically "n1,n2" or just numbers
+            # n1: filter mode (0=off, 1=50/60Hz, 2=100/120Hz, 3=both)
+            # n2: frequency (0=60Hz, 1=50Hz)
+            try:
+                if ',' in lf_response:
+                    lf_parts = lf_response.split(',')
+                    filter_mode = int(lf_parts[0])
+                    filter_freq = int(lf_parts[1]) if len(lf_parts) > 1 else 0
+                else:
+                    # Parse as single value with bits
+                    lf_val = int(lf_response)
+                    filter_mode = lf_val & 0x03  # Bits 0-1
+                    filter_freq = (lf_val >> 2) & 0x01  # Bit 2
+
+                if 0 <= filter_mode <= 3:
+                    self.lf_n1_combo.setCurrentIndex(filter_mode + 1)  # +1 for "Select"
+
+                if filter_freq in [0, 1]:
+                    self.lf_n2_combo.setCurrentIndex(filter_freq + 1)  # +1 for "Select"
+
+            except Exception as lf_error:
+                print(f"Error parsing line filter response: {lf_error}")
+
+            print("DSP7265 settings auto-filled successfully")
+            QMessageBox.information(self, "Settings Loaded",
+                                    "Current DSP7265 settings have been loaded into the interface")
+
+        except Exception as e:
+            import traceback
+            print(f"Error reading DSP7265 settings: {e}")
+            print(traceback.format_exc())
+            QMessageBox.warning(self, "Read Error", f"Could not read all settings from DSP7265:\n{str(e)}")
 
     def apply_reference(self):
         """Apply reference setting"""

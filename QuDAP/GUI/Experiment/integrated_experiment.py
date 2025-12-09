@@ -6,6 +6,9 @@ import sys
 
 try:
     from QuDAP.GUI.Experiment.VoltageCurrentSource.keithley_gui import Keithley6221
+    from QuDAP.GUI.Experiment.VoltageCurrentSource.bk_gui import BK9129
+    from QuDAP.GUI.Experiment.VoltageCurrentSource.kepco_gui import KEPCO
+    from QuDAP.GUI.Experiment.SpectrumAnalyzer.rigol_gui import RigolDSA800
     from QuDAP.GUI.Experiment.RF.gui import BNC845RF
     from QuDAP.GUI.Experiment.Nanovoltmeter.gui import NV
     from QuDAP.GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
@@ -15,6 +18,9 @@ try:
 
 except ImportError:
     from GUI.Experiment.VoltageCurrentSource.keithley_gui import Keithley6221
+    from GUI.Experiment.VoltageCurrentSource.bk_gui import BK9129
+    from GUI.Experiment.VoltageCurrentSource.kepco_gui import KEPCO
+    from GUI.Experiment.SpectrumAnalyzer.rigol_gui import RigolDSA800
     from GUI.Experiment.RF.gui import BNC845RF
     from GUI.Experiment.Nanovoltmeter.gui import NV
     from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
@@ -70,7 +76,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
 
         # Tab 3: Voltage & Current Source (with subtabs)
-        vcs_tab = self.create_tab_with_subtabs([("Keithley", Keithley6221()), ("B&K Precision", QLabel("Monitor content")),
+        vcs_tab = self.create_tab_with_subtabs([("Keithley", Keithley6221()), ("B&K Precision", BK9129()),("KEPCO", KEPCO()),
             ("Coming Soon", QLabel(request_text))])
         self.main_tab_widget.addTab(vcs_tab, "Voltage/Current Source")
 
@@ -81,7 +87,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
         # Tab 5: Spectrum Analyzer (with subtabs)
         spectrum_tab = self.create_tab_with_subtabs(
-            [("Live View", QLabel("Live spectrum")), ("Sweep", QLabel("Sweep configuration")),
+            [("Rigol", RigolDSA800()), ("Sweep", QLabel("Sweep configuration")),
                 ("Analysis", QLabel("Analysis tools"))])
         self.main_tab_widget.addTab(spectrum_tab, "Spectrum Analyzer")
 

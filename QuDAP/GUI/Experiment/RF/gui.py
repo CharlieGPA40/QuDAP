@@ -14,6 +14,7 @@ import numpy as np
 import pyqtgraph as pg
 from datetime import datetime
 
+
 class COMMAND:
     """Command class for BNC 845 RF Signal Generator"""
 
@@ -159,10 +160,11 @@ class MonitorThread(QThread):
     data_signal = pyqtSignal(float, float, float)  # (time, frequency, power)
     error_signal = pyqtSignal(str)
 
-    def __init__(self, instrument, command, parent=None):
+    def __init__(self, instrument, command, is_emulation=False, parent=None):
         super().__init__(parent)
         self.instrument = instrument
         self.command = command
+        self.is_emulation = is_emulation
         self.should_stop = False
         self.start_time = time.time()
 
@@ -171,9 +173,14 @@ class MonitorThread(QThread):
         try:
             while not self.should_stop:
                 try:
-                    # Read current frequency and power
-                    freq = float(self.command.get_frequency(self.instrument).strip())
-                    power = float(self.command.get_power(self.instrument).strip())
+                    if self.is_emulation:
+                        # Emulated readings
+                        freq = 1e9 + np.random.randn() * 1e6
+                        power = 0.0 + np.random.randn() * 0.1
+                    else:
+                        # Read current frequency and power
+                        freq = float(self.command.get_frequency(self.instrument).strip())
+                        power = float(self.command.get_power(self.instrument).strip())
 
                     # Calculate elapsed time
                     elapsed_time = time.time() - self.start_time
@@ -196,22 +203,117 @@ class MonitorThread(QThread):
         self.should_stop = True
 
 
+class SweepThread(QThread):
+    """Thread for executing parameter sweeps"""
+
+    sweep_data_signal = pyqtSignal(dict)  # {step, param_value, freq, power, time}
+    sweep_complete_signal = pyqtSignal()
+    sweep_status_signal = pyqtSignal(str)
+    error_signal = pyqtSignal(str)
+
+    def __init__(self, instrument, command, sweep_config, is_emulation=False, parent=None):
+        super().__init__(parent)
+        self.instrument = instrument
+        self.command = command
+        self.sweep_config = sweep_config
+        self.is_emulation = is_emulation
+        self.should_stop = False
+        self.start_time = time.time()
+
+    def run(self):
+        """Execute the sweep"""
+        try:
+            sweep_type = self.sweep_config['type']
+            start_val = self.sweep_config['start']
+            stop_val = self.sweep_config['stop']
+            num_steps = self.sweep_config['steps']
+            delay = self.sweep_config['delay']
+
+            # Generate sweep values
+            sweep_values = np.linspace(start_val, stop_val, num_steps)
+
+            for step_idx, param_value in enumerate(sweep_values):
+                if self.should_stop:
+                    break
+
+                # Set the parameter
+                self.sweep_status_signal.emit(
+                    f"Step {step_idx + 1}/{num_steps}: Setting {sweep_type} = {param_value:.3f}")
+
+                try:
+                    if sweep_type == 'RF Frequency':
+                        if not self.is_emulation:
+                            self.command.set_frequency(self.instrument, str(int(param_value)))
+                    elif sweep_type == 'RF Power':
+                        if not self.is_emulation:
+                            self.command.set_power(self.instrument, str(param_value))
+                    elif sweep_type == 'AM Frequency':
+                        if not self.is_emulation:
+                            self.command.set_am_frequency(self.instrument, str(param_value))
+                    elif sweep_type == 'AM Depth':
+                        if not self.is_emulation:
+                            self.command.set_am_depth(self.instrument, str(int(param_value)))
+                    elif sweep_type == 'FM Frequency':
+                        if not self.is_emulation:
+                            self.command.set_fm_frequency(self.instrument, str(param_value))
+                    elif sweep_type == 'FM Deviation':
+                        if not self.is_emulation:
+                            self.command.set_fm_deviation(self.instrument, str(param_value))
+
+                    # Wait for settling
+                    time.sleep(delay)
+
+                    # Read current state
+                    if self.is_emulation:
+                        freq = 1e9 + param_value * 1e6 if sweep_type != 'RF Frequency' else param_value
+                        power = param_value if sweep_type == 'RF Power' else 0.0
+                    else:
+                        freq = float(self.command.get_frequency(self.instrument).strip())
+                        power = float(self.command.get_power(self.instrument).strip())
+
+                    elapsed_time = time.time() - self.start_time
+
+                    # Emit data
+                    sweep_data = {'step': step_idx, 'param_value': param_value, 'frequency': freq, 'power': power,
+                        'time': elapsed_time}
+                    self.sweep_data_signal.emit(sweep_data)
+
+                except Exception as e:
+                    self.error_signal.emit(f"Error at step {step_idx + 1}: {str(e)}")
+                    break
+
+            if not self.should_stop:
+                self.sweep_complete_signal.emit()
+
+        except Exception as e:
+            self.error_signal.emit(f"Sweep thread error: {str(e)}")
+
+    def stop(self):
+        """Stop sweep"""
+        self.should_stop = True
+
+
 class BNC845RF(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("RF Signal Generator")
+        self.setWindowTitle("BNC 845 RF Signal Generator")
         self.setGeometry(100, 100, 1400, 900)
 
         self.bnc845 = None
         self.command = COMMAND()
         self.monitor_thread = None
+        self.sweep_thread = None
 
         # Data storage
         self.time_data = []
         self.freq_data = []
         self.power_data = []
 
+        # Sweep data storage
+        self.sweep_data_storage = []
+
         self.font = QFont("Arial", 10)
+        self.titlefont = QFont("Arial", 12, QFont.Weight.Bold)
 
         # Load scrollbar stylesheet if available
         try:
@@ -258,26 +360,23 @@ class BNC845RF(QMainWindow):
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scroll_area.setStyleSheet(self.scrollbar_stylesheet)
-        self.scroll_area.setFixedWidth(400)  # Fixed width for left panel
+        self.scroll_area.setFixedWidth(500)
 
         # Content widget for scroll area
         left_content = QWidget()
-        left_content.setMaximumWidth(380)  # Slightly less than scroll area to prevent horizontal overflow
+        left_content.setMaximumWidth(480)
 
         self.left_layout = QVBoxLayout()
         self.left_layout.setContentsMargins(10, 10, 10, 10)
         self.left_layout.setSpacing(10)
 
         # Title
-        title = QLabel("BNC RF")
-        title_font = QFont()
-        title_font.setPointSize(12)
-        title_font.setBold(True)
-        title.setFont(title_font)
+        title = QLabel("BNC 845 RF Signal Generator")
+        title.setFont(self.titlefont)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.left_layout.addWidget(title)
 
-        # Connection section using standalone class
+        # Connection section
         self.connection_widget = InstrumentConnection(instrument_list=["BNC 845 RF"], allow_emulation=True,
             title="Instrument Connection")
         self.connection_widget.instrument_connected.connect(self.on_instrument_connected)
@@ -293,6 +392,9 @@ class BNC845RF(QMainWindow):
         # Modulation section
         self.setup_modulation_section(self.left_layout)
 
+        # Sweep section (NEW)
+        self.setup_sweep_section(self.left_layout)
+
         # Monitor control section
         self.setup_monitor_section(self.left_layout)
 
@@ -305,12 +407,12 @@ class BNC845RF(QMainWindow):
         left_content.setLayout(self.left_layout)
         self.scroll_area.setWidget(left_content)
 
-        # Right panel - Plots (no scroll)
+        # Right panel - Plots
         right_panel = self.create_plot_panel()
 
         # Add panels to main layout
         main_layout.addWidget(self.scroll_area)
-        main_layout.addWidget(right_panel, 1)  # stretch factor 1
+        main_layout.addWidget(right_panel, 1)
 
         central_widget.setLayout(main_layout)
 
@@ -320,11 +422,15 @@ class BNC845RF(QMainWindow):
         print(f"Connected to {instrument_name}")
 
         # Update readings if real instrument
-        if self.bnc845:
+        if self.bnc845 and self.bnc845 != 'Emulation':
             self.update_readings_from_instrument()
 
-        # Enable monitor button
+        # Enable controls
         self.start_monitor_btn.setEnabled(True)
+        self.start_sweep_btn.setEnabled(True)
+
+        # Update sweep options based on current modulation state
+        self.update_sweep_options()
 
     def on_instrument_disconnected(self, instrument_name):
         """Handle instrument disconnection"""
@@ -332,11 +438,16 @@ class BNC845RF(QMainWindow):
         if self.monitor_thread and self.monitor_thread.isRunning():
             self.stop_monitoring()
 
+        # Stop sweep if active
+        if self.sweep_thread and self.sweep_thread.isRunning():
+            self.abort_sweep()
+
         self.bnc845 = None
         print(f"Disconnected from {instrument_name}")
 
-        # Disable monitor button
+        # Disable controls
         self.start_monitor_btn.setEnabled(False)
+        self.start_sweep_btn.setEnabled(False)
 
     def setup_reading_section(self, parent_layout):
         """Setup reading display section"""
@@ -473,7 +584,6 @@ class BNC845RF(QMainWindow):
     def setup_modulation_section(self, parent_layout):
         """Setup modulation section with dynamic vertical sizing"""
         self.mod_group = QGroupBox("Modulation")
-        # self.mod_group.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
 
         mod_layout = QVBoxLayout()
 
@@ -491,11 +601,9 @@ class BNC845RF(QMainWindow):
         mod_layout.addLayout(mod_select_layout)
 
         # Stacked widget for modulation-specific controls
-
         self.mod_stack = QStackedWidget()
-        # self.mod_stack.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
 
-        # Page 0: No modulation selected (empty widget with zero height)
+        # Page 0: No modulation selected
         page0 = self.create_no_mod_page()
         self.mod_stack.addWidget(page0)
 
@@ -526,13 +634,9 @@ class BNC845RF(QMainWindow):
         page.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         layout = QVBoxLayout()
 
-        # State control
-        no_mod_layout = QHBoxLayout()
         no_mod_label = QLabel("No Modulation")
         no_mod_label.setFont(self.font)
-        no_mod_label.setFixedWidth(100)
-        no_mod_layout.addWidget(no_mod_label)
-        layout.addLayout(no_mod_layout)
+        layout.addWidget(no_mod_label)
 
         page.setLayout(layout)
         return page
@@ -744,6 +848,340 @@ class BNC845RF(QMainWindow):
         page.setLayout(layout)
         return page
 
+    def setup_sweep_section(self, parent_layout):
+        """Setup parameter sweep section (NEW)"""
+        self.sweep_group = QGroupBox("Parameter Sweep")
+        sweep_layout = QVBoxLayout()
+
+        # Sweep type selection
+        type_layout = QHBoxLayout()
+        type_label = QLabel("Sweep Type:")
+        type_label.setFont(self.font)
+        type_label.setFixedWidth(100)
+        self.sweep_type_combo = QComboBox()
+        self.sweep_type_combo.setFont(self.font)
+        # Initially add only RF options
+        self.sweep_type_combo.addItems(["RF Frequency", "RF Power"])
+        self.sweep_type_combo.currentTextChanged.connect(self.on_sweep_type_changed)
+        type_layout.addWidget(type_label)
+        type_layout.addWidget(self.sweep_type_combo, 1)
+        sweep_layout.addLayout(type_layout)
+
+        # Start value
+        start_layout = QHBoxLayout()
+        start_label = QLabel("Start:")
+        start_label.setFont(self.font)
+        start_label.setFixedWidth(100)
+        self.sweep_start_spin = QDoubleSpinBox()
+        self.sweep_start_spin.setFont(self.font)
+        self.sweep_start_spin.setRange(100000, 26500000000)
+        self.sweep_start_spin.setDecimals(0)
+        self.sweep_start_spin.setValue(1000000000)
+        self.sweep_start_suffix = QLabel("Hz")
+        self.sweep_start_suffix.setFont(self.font)
+        start_layout.addWidget(start_label)
+        start_layout.addWidget(self.sweep_start_spin, 1)
+        start_layout.addWidget(self.sweep_start_suffix)
+        sweep_layout.addLayout(start_layout)
+
+        # Stop value
+        stop_layout = QHBoxLayout()
+        stop_label = QLabel("Stop:")
+        stop_label.setFont(self.font)
+        stop_label.setFixedWidth(100)
+        self.sweep_stop_spin = QDoubleSpinBox()
+        self.sweep_stop_spin.setFont(self.font)
+        self.sweep_stop_spin.setRange(100000, 26500000000)
+        self.sweep_stop_spin.setDecimals(0)
+        self.sweep_stop_spin.setValue(2000000000)
+        self.sweep_stop_suffix = QLabel("Hz")
+        self.sweep_stop_suffix.setFont(self.font)
+        stop_layout.addWidget(stop_label)
+        stop_layout.addWidget(self.sweep_stop_spin, 1)
+        stop_layout.addWidget(self.sweep_stop_suffix)
+        sweep_layout.addLayout(stop_layout)
+
+        # Number of steps
+        steps_layout = QHBoxLayout()
+        steps_label = QLabel("Steps:")
+        steps_label.setFont(self.font)
+        steps_label.setFixedWidth(100)
+        self.sweep_steps_spin = QSpinBox()
+        self.sweep_steps_spin.setFont(self.font)
+        self.sweep_steps_spin.setRange(2, 1000)
+        self.sweep_steps_spin.setValue(11)
+        self.sweep_steps_suffix = QLabel("points")
+        self.sweep_steps_suffix.setFont(self.font)
+        steps_layout.addWidget(steps_label)
+        steps_layout.addWidget(self.sweep_steps_spin, 1)
+        steps_layout.addWidget(self.sweep_steps_suffix)
+        sweep_layout.addLayout(steps_layout)
+
+        # Time delay between steps
+        delay_layout = QHBoxLayout()
+        delay_label = QLabel("Delay:")
+        delay_label.setFont(self.font)
+        delay_label.setFixedWidth(100)
+        self.sweep_delay_spin = QDoubleSpinBox()
+        self.sweep_delay_spin.setFont(self.font)
+        self.sweep_delay_spin.setRange(0.0, 60.0)
+        self.sweep_delay_spin.setDecimals(2)
+        self.sweep_delay_spin.setValue(0.5)
+        self.sweep_delay_spin.setSuffix(" s")
+        delay_layout.addWidget(delay_label)
+        delay_layout.addWidget(self.sweep_delay_spin, 1)
+        sweep_layout.addLayout(delay_layout)
+
+        # Sweep control buttons
+        sweep_btn_layout = QHBoxLayout()
+
+        self.start_sweep_btn = QPushButton("Start Sweep")
+        self.start_sweep_btn.setFont(self.font)
+        self.start_sweep_btn.clicked.connect(self.start_sweep)
+        self.start_sweep_btn.setMinimumHeight(35)
+        self.start_sweep_btn.setEnabled(False)
+        self.start_sweep_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+
+        self.abort_sweep_btn = QPushButton("Abort Sweep")
+        self.abort_sweep_btn.setFont(self.font)
+        self.abort_sweep_btn.clicked.connect(self.abort_sweep)
+        self.abort_sweep_btn.setMinimumHeight(35)
+        self.abort_sweep_btn.setEnabled(False)
+        self.abort_sweep_btn.setStyleSheet("background-color: #f44336; color: white; font-weight: bold;")
+
+        sweep_btn_layout.addWidget(self.start_sweep_btn)
+        sweep_btn_layout.addWidget(self.abort_sweep_btn)
+        sweep_layout.addLayout(sweep_btn_layout)
+
+        # Sweep status
+        self.sweep_status_label = QLabel("Status: Ready")
+        self.sweep_status_label.setFont(self.font)
+        self.sweep_status_label.setWordWrap(True)
+        sweep_layout.addWidget(self.sweep_status_label)
+
+        # Data save button
+        save_sweep_btn = QPushButton("Save Sweep Data")
+        save_sweep_btn.setFont(self.font)
+        save_sweep_btn.clicked.connect(self.save_sweep_data)
+        save_sweep_btn.setMinimumHeight(30)
+        sweep_layout.addWidget(save_sweep_btn)
+
+        self.sweep_group.setLayout(sweep_layout)
+        parent_layout.addWidget(self.sweep_group)
+
+    def update_sweep_options(self):
+        """Update sweep type options based on current modulation state"""
+        current_selection = self.sweep_type_combo.currentText()
+
+        # Block signals while updating
+        self.sweep_type_combo.blockSignals(True)
+        self.sweep_type_combo.clear()
+
+        # Always add RF options
+        sweep_options = ["RF Frequency", "RF Power"]
+
+        # Check modulation state and add appropriate options
+        mod_type = self.mod_type_reading_label.text()
+        mod_state = self.mod_state_reading_label.text()
+
+        if mod_state == "ON":
+            if mod_type == "AM":
+                sweep_options.extend(["AM Frequency", "AM Depth"])
+            elif mod_type == "FM":
+                sweep_options.extend(["FM Frequency", "FM Deviation"])
+
+        # Add all options
+        self.sweep_type_combo.addItems(sweep_options)
+
+        # Try to restore previous selection if still available
+        index = self.sweep_type_combo.findText(current_selection)
+        if index >= 0:
+            self.sweep_type_combo.setCurrentIndex(index)
+        else:
+            self.sweep_type_combo.setCurrentIndex(0)
+
+        # Unblock signals
+        self.sweep_type_combo.blockSignals(False)
+
+        # Update ranges for current selection
+        self.on_sweep_type_changed(self.sweep_type_combo.currentText())
+
+    def on_sweep_type_changed(self, sweep_type):
+        """Update sweep parameter ranges based on type"""
+        if sweep_type == "RF Frequency":
+            self.sweep_start_spin.setRange(100000, 26500000000)
+            self.sweep_stop_spin.setRange(100000, 26500000000)
+            self.sweep_start_spin.setDecimals(0)
+            self.sweep_stop_spin.setDecimals(0)
+            self.sweep_start_spin.setValue(1000000000)
+            self.sweep_stop_spin.setValue(2000000000)
+            self.sweep_start_suffix.setText("Hz")
+            self.sweep_stop_suffix.setText("Hz")
+        elif sweep_type == "RF Power":
+            self.sweep_start_spin.setRange(-21.0, 15.0)
+            self.sweep_stop_spin.setRange(-21.0, 15.0)
+            self.sweep_start_spin.setDecimals(2)
+            self.sweep_stop_spin.setDecimals(2)
+            self.sweep_start_spin.setValue(-10.0)
+            self.sweep_stop_spin.setValue(10.0)
+            self.sweep_start_suffix.setText("dBm")
+            self.sweep_stop_suffix.setText("dBm")
+        elif sweep_type == "AM Frequency":
+            self.sweep_start_spin.setRange(0.1, 1000000)
+            self.sweep_stop_spin.setRange(0.1, 1000000)
+            self.sweep_start_spin.setDecimals(1)
+            self.sweep_stop_spin.setDecimals(1)
+            self.sweep_start_spin.setValue(100)
+            self.sweep_stop_spin.setValue(10000)
+            self.sweep_start_suffix.setText("Hz")
+            self.sweep_stop_suffix.setText("Hz")
+        elif sweep_type == "AM Depth":
+            self.sweep_start_spin.setRange(0, 100)
+            self.sweep_stop_spin.setRange(0, 100)
+            self.sweep_start_spin.setDecimals(0)
+            self.sweep_stop_spin.setDecimals(0)
+            self.sweep_start_spin.setValue(0)
+            self.sweep_stop_spin.setValue(100)
+            self.sweep_start_suffix.setText("%")
+            self.sweep_stop_suffix.setText("%")
+        elif sweep_type == "FM Frequency":
+            self.sweep_start_spin.setRange(0.1, 1000000)
+            self.sweep_stop_spin.setRange(0.1, 1000000)
+            self.sweep_start_spin.setDecimals(1)
+            self.sweep_stop_spin.setDecimals(1)
+            self.sweep_start_spin.setValue(100)
+            self.sweep_stop_spin.setValue(10000)
+            self.sweep_start_suffix.setText("Hz")
+            self.sweep_stop_suffix.setText("Hz")
+        elif sweep_type == "FM Deviation":
+            self.sweep_start_spin.setRange(1, 10000000)
+            self.sweep_stop_spin.setRange(1, 10000000)
+            self.sweep_start_spin.setDecimals(0)
+            self.sweep_stop_spin.setDecimals(0)
+            self.sweep_start_spin.setValue(1000)
+            self.sweep_stop_spin.setValue(100000)
+            self.sweep_start_suffix.setText("Hz")
+            self.sweep_stop_suffix.setText("Hz")
+
+    def start_sweep(self):
+        """Start parameter sweep"""
+        if not self.bnc845:
+            QMessageBox.warning(self, "Not Connected", "Please connect to instrument first")
+            return
+
+        if self.sweep_thread and self.sweep_thread.isRunning():
+            QMessageBox.warning(self, "Sweep Active", "A sweep is already running")
+            return
+
+        # Stop monitoring if active
+        if self.monitor_thread and self.monitor_thread.isRunning():
+            self.stop_monitoring()
+
+        # Clear previous sweep data
+        self.sweep_data_storage = []
+
+        # Get sweep parameters
+        sweep_config = {'type': self.sweep_type_combo.currentText(), 'start': self.sweep_start_spin.value(),
+            'stop': self.sweep_stop_spin.value(), 'steps': self.sweep_steps_spin.value(),
+            'delay': self.sweep_delay_spin.value()}
+
+        # Validate parameters
+        if sweep_config['start'] >= sweep_config['stop']:
+            QMessageBox.warning(self, "Invalid Range", "Start value must be less than stop value")
+            return
+
+        # Create and start sweep thread
+        is_emulation = (self.bnc845 == 'Emulation')
+        self.sweep_thread = SweepThread(self.bnc845, self.command, sweep_config, is_emulation)
+        self.sweep_thread.sweep_data_signal.connect(self.update_sweep_data)
+        self.sweep_thread.sweep_complete_signal.connect(self.on_sweep_complete)
+        self.sweep_thread.sweep_status_signal.connect(self.update_sweep_status)
+        self.sweep_thread.error_signal.connect(self.on_sweep_error)
+        self.sweep_thread.start()
+
+        # Update UI
+        self.start_sweep_btn.setEnabled(False)
+        self.abort_sweep_btn.setEnabled(True)
+        self.sweep_status_label.setText("Status: Sweep in progress...")
+        print("Sweep started")
+
+    def abort_sweep(self):
+        """Abort current sweep"""
+        if self.sweep_thread and self.sweep_thread.isRunning():
+            self.sweep_thread.stop()
+            self.sweep_thread.wait()
+            self.sweep_status_label.setText("Status: Sweep aborted")
+            self.start_sweep_btn.setEnabled(True)
+            self.abort_sweep_btn.setEnabled(False)
+            print("Sweep aborted")
+
+    def update_sweep_data(self, sweep_data):
+        """Update plot with sweep data"""
+        # Store data
+        self.sweep_data_storage.append(sweep_data)
+
+        # Update plots (append to existing data)
+        self.time_data.append(sweep_data['time'])
+        self.freq_data.append(sweep_data['frequency'])
+        self.power_data.append(sweep_data['power'])
+
+        self.freq_curve.setData(self.time_data, self.freq_data)
+        self.power_curve.setData(self.time_data, self.power_data)
+
+    def on_sweep_complete(self):
+        """Handle sweep completion"""
+        self.sweep_status_label.setText(f"Status: Sweep complete ({len(self.sweep_data_storage)} points)")
+        self.start_sweep_btn.setEnabled(True)
+        self.abort_sweep_btn.setEnabled(False)
+        print("Sweep completed")
+        QMessageBox.information(self, "Sweep Complete",
+                                f"Sweep completed successfully!\n\nTotal points: {len(self.sweep_data_storage)}")
+
+    def update_sweep_status(self, status_msg):
+        """Update sweep status label"""
+        self.sweep_status_label.setText(f"Status: {status_msg}")
+
+    def on_sweep_error(self, error_msg):
+        """Handle sweep error"""
+        self.sweep_status_label.setText(f"Error: {error_msg}")
+        self.start_sweep_btn.setEnabled(True)
+        self.abort_sweep_btn.setEnabled(False)
+        QMessageBox.critical(self, "Sweep Error", error_msg)
+
+    def save_sweep_data(self):
+        """Save sweep data to file"""
+        if not self.sweep_data_storage:
+            QMessageBox.warning(self, "No Data", "No sweep data to save")
+            return
+
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            sweep_type = self.sweep_type_combo.currentText().replace(" ", "_")
+            filename = f"bnc845_sweep_{sweep_type}_{timestamp}.csv"
+
+            with open(filename, 'w') as f:
+                # Write header
+                f.write(f"# BNC 845 RF Sweep Data\n")
+                f.write(f"# Sweep Type: {self.sweep_type_combo.currentText()}\n")
+                f.write(f"# Start: {self.sweep_start_spin.value()} {self.sweep_start_suffix.text()}\n")
+                f.write(f"# Stop: {self.sweep_stop_spin.value()} {self.sweep_stop_suffix.text()}\n")
+                f.write(f"# Steps: {self.sweep_steps_spin.value()} {self.sweep_steps_suffix.text()}\n")
+                f.write(f"# Delay: {self.sweep_delay_spin.value()} s\n")
+                f.write(f"# Timestamp: {timestamp}\n")
+                f.write("#\n")
+                f.write("Step,Parameter Value,Time (s),Frequency (Hz),Power (dBm)\n")
+
+                # Write data
+                for data in self.sweep_data_storage:
+                    f.write(f"{data['step']},{data['param_value']},{data['time']:.3f},"
+                            f"{data['frequency']},{data['power']}\n")
+
+            QMessageBox.information(self, "Data Saved",
+                                    f"Sweep data saved to:\n{filename}\n\nTotal points: {len(self.sweep_data_storage)}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Error saving data:\n{str(e)}")
+
     def setup_monitor_section(self, parent_layout):
         """Setup monitor control section"""
         monitor_group = QGroupBox("Real-time Monitoring")
@@ -791,7 +1229,7 @@ class BNC845RF(QMainWindow):
         self.clear_data_button.setFont(self.font)
         self.clear_data_button.setMinimumHeight(30)
 
-        self.save_data_button = QPushButton("Save Data")
+        self.save_data_button = QPushButton("Save Monitor Data")
         self.save_data_button.clicked.connect(self.save_data)
         self.save_data_button.setFont(self.font)
         self.save_data_button.setMinimumHeight(30)
@@ -808,10 +1246,7 @@ class BNC845RF(QMainWindow):
         right_layout = QVBoxLayout()
 
         plot_title = QLabel("Real-time RF Monitoring")
-        plot_title_font = QFont()
-        plot_title_font.setPointSize(12)
-        plot_title_font.setBold(True)
-        plot_title.setFont(plot_title_font)
+        plot_title.setFont(self.titlefont)
         plot_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_layout.addWidget(plot_title)
 
@@ -846,23 +1281,16 @@ class BNC845RF(QMainWindow):
         return right_panel
 
     def on_modulation_type_changed(self, index):
-        """Handle modulation type selection change - updates groupbox height dynamically"""
+        """Handle modulation type selection change"""
         self.mod_stack.setCurrentIndex(index)
-
-        # Use QTimer to allow the layout to update after the widget change
         QTimer.singleShot(0, self.update_modulation_size)
 
     def update_modulation_size(self):
         """Update the modulation groupbox size to fit content"""
-        # Get the current widget
         current_widget = self.mod_stack.currentWidget()
-
-        # Update sizes
         current_widget.updateGeometry()
         self.mod_stack.updateGeometry()
         self.mod_group.updateGeometry()
-
-        # Force the layout to recalculate
         self.left_layout.update()
         self.left_layout.activate()
 
@@ -874,6 +1302,12 @@ class BNC845RF(QMainWindow):
 
         try:
             freq = str(int(self.freq_spinbox.value()))
+
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set frequency to {freq} Hz")
+                self.freq_reading_label.setText(f"{float(freq) / 1e9:.4f} GHz")
+                return
+
             success = self.command.set_frequency(self.bnc845, freq)
             if success:
                 self.update_readings_from_instrument()
@@ -891,6 +1325,12 @@ class BNC845RF(QMainWindow):
 
         try:
             power = str(self.power_spinbox.value())
+
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set power to {power} dBm")
+                self.power_reading_label.setText(f"{float(power):.2f} dBm")
+                return
+
             success = self.command.set_power(self.bnc845, power)
             if success:
                 self.update_readings_from_instrument()
@@ -907,6 +1347,11 @@ class BNC845RF(QMainWindow):
             return
 
         try:
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set output {state}")
+                self.rf_state_reading_label.setText("ON" if state == 'on' else "OFF")
+                return
+
             self.command.set_output(self.bnc845, state)
             self.update_readings_from_instrument()
             print(f"Set output {state}")
@@ -924,6 +1369,11 @@ class BNC845RF(QMainWindow):
             depth = str(self.am_depth_spinbox.value())
             source = self.am_source_combo.currentText()
 
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Applied AM settings: {freq} Hz, {depth}%, {source}")
+                QMessageBox.information(self, "Success", "AM settings applied successfully (Emulation)")
+                return
+
             self.command.set_am_frequency(self.bnc845, freq)
             self.command.set_am_depth(self.bnc845, depth)
             self.command.set_am_source(self.bnc845, source)
@@ -940,8 +1390,22 @@ class BNC845RF(QMainWindow):
             return
 
         try:
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set AM {state}")
+                if state == 'on':
+                    self.mod_type_reading_label.setText('AM')
+                    self.mod_state_reading_label.setText('ON')
+                else:
+                    self.mod_type_reading_label.setText('OFF')
+                    self.mod_state_reading_label.setText('OFF')
+                # Update sweep options when modulation state changes
+                self.update_sweep_options()
+                return
+
             self.command.set_am_state(self.bnc845, state)
             self.update_readings_from_instrument()
+            # Update sweep options when modulation state changes
+            self.update_sweep_options()
             print(f"Set AM {state}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting AM state:\n{str(e)}")
@@ -955,6 +1419,11 @@ class BNC845RF(QMainWindow):
         try:
             freq = str(self.fm_freq_spinbox.value())
             dev = str(self.fm_dev_spinbox.value())
+
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Applied FM settings: {freq} Hz, {dev} Hz deviation")
+                QMessageBox.information(self, "Success", "FM settings applied successfully (Emulation)")
+                return
 
             self.command.set_fm_frequency(self.bnc845, freq)
             self.command.set_fm_deviation(self.bnc845, dev)
@@ -971,8 +1440,22 @@ class BNC845RF(QMainWindow):
             return
 
         try:
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set FM {state}")
+                if state == 'on':
+                    self.mod_type_reading_label.setText('FM')
+                    self.mod_state_reading_label.setText('ON')
+                else:
+                    self.mod_type_reading_label.setText('OFF')
+                    self.mod_state_reading_label.setText('OFF')
+                # Update sweep options when modulation state changes
+                self.update_sweep_options()
+                return
+
             self.command.set_fm_state(self.bnc845, state)
             self.update_readings_from_instrument()
+            # Update sweep options when modulation state changes
+            self.update_sweep_options()
             print(f"Set FM {state}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting FM state:\n{str(e)}")
@@ -985,6 +1468,12 @@ class BNC845RF(QMainWindow):
 
         try:
             dev = str(self.pm_dev_spinbox.value())
+
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Applied PM settings: {dev} rad deviation")
+                QMessageBox.information(self, "Success", "PM settings applied successfully (Emulation)")
+                return
+
             self.command.set_pm_deviation(self.bnc845, dev)
             print(f"Applied PM settings: {dev} rad deviation")
             QMessageBox.information(self, "Success", "PM settings applied successfully")
@@ -998,8 +1487,22 @@ class BNC845RF(QMainWindow):
             return
 
         try:
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set PM {state}")
+                if state == 'on':
+                    self.mod_type_reading_label.setText('PM')
+                    self.mod_state_reading_label.setText('ON')
+                else:
+                    self.mod_type_reading_label.setText('OFF')
+                    self.mod_state_reading_label.setText('OFF')
+                # Update sweep options when modulation state changes
+                self.update_sweep_options()
+                return
+
             self.command.set_pm_state(self.bnc845, state)
             self.update_readings_from_instrument()
+            # Update sweep options when modulation state changes
+            self.update_sweep_options()
             print(f"Set PM {state}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting PM state:\n{str(e)}")
@@ -1011,15 +1514,29 @@ class BNC845RF(QMainWindow):
             return
 
         try:
+            if self.bnc845 == 'Emulation':
+                print(f"[Emulation] Set Pulse {state}")
+                if state == 'on':
+                    self.mod_type_reading_label.setText('PULSE')
+                    self.mod_state_reading_label.setText('ON')
+                else:
+                    self.mod_type_reading_label.setText('OFF')
+                    self.mod_state_reading_label.setText('OFF')
+                # Update sweep options when modulation state changes
+                self.update_sweep_options()
+                return
+
             self.command.set_pulse_state(self.bnc845, state)
             self.update_readings_from_instrument()
+            # Update sweep options when modulation state changes
+            self.update_sweep_options()
             print(f"Set Pulse {state}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error setting Pulse state:\n{str(e)}")
 
     def update_readings_from_instrument(self):
         """Update all reading labels from instrument"""
-        if not self.bnc845:
+        if not self.bnc845 or self.bnc845 == 'Emulation':
             return
 
         try:
@@ -1058,6 +1575,9 @@ class BNC845RF(QMainWindow):
                 self.mod_type_reading_label.setText('OFF')
                 self.mod_state_reading_label.setText('OFF')
 
+            # Update sweep options based on new modulation state
+            self.update_sweep_options()
+
         except Exception as e:
             print(f"Error updating readings: {e}")
 
@@ -1075,7 +1595,8 @@ class BNC845RF(QMainWindow):
         self.power_curve.setData([], [])
 
         # Start monitor thread
-        self.monitor_thread = MonitorThread(self.bnc845, self.command)
+        is_emulation = (self.bnc845 == 'Emulation')
+        self.monitor_thread = MonitorThread(self.bnc845, self.command, is_emulation)
         self.monitor_thread.data_signal.connect(self.update_plots)
         self.monitor_thread.error_signal.connect(self.on_monitor_error)
         self.monitor_thread.finished.connect(self.on_monitor_finished)
@@ -1135,7 +1656,7 @@ class BNC845RF(QMainWindow):
 
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"bnc845_data_{timestamp}.csv"
+            filename = f"bnc845_monitor_{timestamp}.csv"
 
             with open(filename, 'w') as f:
                 f.write("Time (s),Frequency (Hz),Power (dBm)\n")
@@ -1143,7 +1664,7 @@ class BNC845RF(QMainWindow):
                     f.write(f"{self.time_data[i]},{self.freq_data[i]},{self.power_data[i]}\n")
 
             QMessageBox.information(self, "Data Saved",
-                f"Data saved to:\n{filename}\n\nTotal points: {len(self.time_data)}")
+                                    f"Data saved to:\n{filename}\n\nTotal points: {len(self.time_data)}")
         except Exception as e:
             QMessageBox.critical(self, "Save Error", f"Error saving data:\n{str(e)}")
 
@@ -1153,7 +1674,11 @@ class BNC845RF(QMainWindow):
             self.monitor_thread.stop()
             self.monitor_thread.wait()
 
-        if self.bnc845:
+        if self.sweep_thread and self.sweep_thread.isRunning():
+            self.sweep_thread.stop()
+            self.sweep_thread.wait()
+
+        if self.bnc845 and self.bnc845 != 'Emulation':
             try:
                 self.bnc845.close()
             except:

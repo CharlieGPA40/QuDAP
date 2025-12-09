@@ -6,6 +6,8 @@ from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 import sys
 import pyvisa as visa
 import time
+import numpy as np
+import pyqtgraph as pg
 
 # Import the standalone connection class
 try:
@@ -51,6 +53,88 @@ class ReadingThread(QThread):
         self.should_stop = True
 
 
+class MonitorThread(QThread):
+    """Thread for monitoring current output for plotting"""
+
+    data_signal = pyqtSignal(float, float)  # (time, current)
+    error_signal = pyqtSignal(str)
+
+    def __init__(self, instrument, is_emulation=False, parent=None):
+        super().__init__(parent)
+        self.instrument = instrument
+        self.is_emulation = is_emulation
+        self.should_stop = False
+        self.start_time = time.time()
+
+    def run(self):
+        """Monitor current output"""
+        try:
+            while not self.should_stop:
+                try:
+                    elapsed_time = time.time() - self.start_time
+
+                    if self.is_emulation:
+                        # Generate simulated current data
+                        current = np.random.randn() * 1e-6
+                    else:
+                        # Read actual current
+                        current = float(self.instrument.query("SOUR:CURR?"))
+
+                    self.data_signal.emit(elapsed_time, current)
+                    time.sleep(0.1)  # 100ms update rate
+
+                except Exception as e:
+                    if not self.should_stop:
+                        self.error_signal.emit(f"Monitor error: {str(e)}")
+                    break
+
+        except Exception as e:
+            self.error_signal.emit(f"Monitor thread error: {str(e)}")
+
+    def stop(self):
+        """Stop monitoring"""
+        self.should_stop = True
+
+
+class EmulationThread(QThread):
+    """Thread for emulation mode monitoring"""
+
+    data_signal = pyqtSignal(float, float)  # (time, current)
+
+    def __init__(self, waveform_type, amplitude, frequency, offset, parent=None):
+        super().__init__(parent)
+        self.waveform_type = waveform_type
+        self.amplitude = amplitude
+        self.frequency = frequency
+        self.offset = offset
+        self.should_stop = False
+        self.start_time = time.time()
+
+    def run(self):
+        """Generate emulated waveform data"""
+        while not self.should_stop:
+            elapsed_time = time.time() - self.start_time
+            t = elapsed_time
+
+            # Generate waveform based on type
+            if self.waveform_type == 'SIN':
+                current = self.amplitude * np.sin(2 * np.pi * self.frequency * t) + self.offset
+            elif self.waveform_type == 'SQU':
+                current = self.amplitude * np.sign(np.sin(2 * np.pi * self.frequency * t)) + self.offset
+            elif self.waveform_type == 'RAMP':
+                phase = (self.frequency * t) % 1.0
+                current = self.amplitude * (2 * phase - 1) + self.offset
+            else:  # ARB0
+                current = self.amplitude * np.sin(2 * np.pi * self.frequency * t) + self.offset
+
+            self.data_signal.emit(elapsed_time, current)
+            time.sleep(0.01)  # 10ms for smooth waveform
+
+    def stop(self):
+        """Stop emulation"""
+        self.should_stop = True
+
+
 class Keithley6221(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -59,9 +143,16 @@ class Keithley6221(QMainWindow):
 
         self.keithley_6221 = None
         self.reading_thread = None
+        self.monitor_thread = None
+        self.emulation_thread = None
         self.isConnect = False
         self.DCisOn = False
         self.ACisOn = False
+
+        # Data storage
+        self.time_data = []
+        self.current_data = []
+        self.max_points = 10000
 
         self.font = QFont("Arial", 10)
         self.titlefont = QFont("Arial", 14)
@@ -127,6 +218,7 @@ class Keithley6221(QMainWindow):
         self.setup_mode_selection(self.left_layout)
         self.setup_dc_section(self.left_layout)
         self.setup_ac_section(self.left_layout)
+        self.setup_monitor_section(self.left_layout)
 
         self.left_layout.addStretch()
 
@@ -135,15 +227,15 @@ class Keithley6221(QMainWindow):
 
         main_layout.addWidget(self.scroll_area)
 
+        # Right panel with plots
+        self.setup_plot_panel(main_layout)
+
         central_widget.setLayout(main_layout)
 
     def setup_connection_section(self, parent_layout):
         """Setup device connection section"""
-        self.connection_widget = InstrumentConnection(
-            instrument_list=["Keithley 6221"],
-            allow_emulation=True,
-            title="Instrument Connection"
-        )
+        self.connection_widget = InstrumentConnection(instrument_list=["Keithley 6221"], allow_emulation=True,
+            title="Instrument Connection")
         self.connection_widget.instrument_connected.connect(self.on_instrument_connected)
         self.connection_widget.instrument_disconnected.connect(self.on_instrument_disconnected)
         parent_layout.addWidget(self.connection_widget)
@@ -393,6 +485,62 @@ class Keithley6221(QMainWindow):
         self.ac_group.setVisible(False)
         parent_layout.addWidget(self.ac_group)
 
+    def setup_monitor_section(self, parent_layout):
+        """Setup monitoring and data control section"""
+        monitor_group = QGroupBox("Real-time Monitoring")
+        monitor_layout = QVBoxLayout()
+
+        # Status label
+        self.monitor_status_label = QLabel("Status: Not monitoring")
+        self.monitor_status_label.setFont(self.font)
+        monitor_layout.addWidget(self.monitor_status_label)
+
+        # Button layout
+        button_layout = QHBoxLayout()
+
+        self.clear_data_btn = QPushButton("Clear Plot Data")
+        self.clear_data_btn.setFont(self.font)
+        self.clear_data_btn.clicked.connect(self.clear_plot_data)
+
+        self.save_data_btn = QPushButton("Save Data")
+        self.save_data_btn.setFont(self.font)
+        self.save_data_btn.clicked.connect(self.save_data)
+        self.save_data_btn.setEnabled(False)
+
+        button_layout.addWidget(self.clear_data_btn)
+        button_layout.addWidget(self.save_data_btn)
+
+        monitor_layout.addLayout(button_layout)
+        monitor_group.setLayout(monitor_layout)
+        parent_layout.addWidget(monitor_group)
+
+    def setup_plot_panel(self, parent_layout):
+        """Setup right panel with plot"""
+        plot_widget = QWidget()
+        plot_layout = QVBoxLayout()
+        plot_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Plot title
+        plot_title = QLabel("Current Output vs Time")
+        plot_title.setFont(self.titlefont)
+        plot_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        plot_layout.addWidget(plot_title)
+
+        # Create PyQtGraph plot
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setBackground('w')
+        self.plot_widget.setLabel('left', 'Current (A)')
+        self.plot_widget.setLabel('bottom', 'Time (s)')
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
+        self.plot_widget.addLegend()
+
+        # Create plot curve
+        self.current_curve = self.plot_widget.plot(pen=pg.mkPen(color='b', width=2), name='Current')
+
+        plot_layout.addWidget(self.plot_widget)
+        plot_widget.setLayout(plot_layout)
+        parent_layout.addWidget(plot_widget)
+
     def on_mode_changed(self):
         """Handle mode selection change"""
         if self.dc_radio.isChecked():
@@ -423,6 +571,9 @@ class Keithley6221(QMainWindow):
 
     def on_instrument_disconnected(self, instrument_name):
         """Handle instrument disconnection"""
+        # Stop monitoring
+        self.stop_monitoring()
+
         if self.reading_thread and self.reading_thread.isRunning():
             self.reading_thread.stop()
             self.reading_thread.wait()
@@ -462,6 +613,105 @@ class Keithley6221(QMainWindow):
         """Handle reading thread error"""
         print(f"Reading error: {error_msg}")
 
+    def update_plot_data(self, time_val, current):
+        """Update plot with new data point"""
+        self.time_data.append(time_val)
+        self.current_data.append(current)
+
+        # Limit data points
+        if len(self.time_data) > self.max_points:
+            self.time_data = self.time_data[-self.max_points:]
+            self.current_data = self.current_data[-self.max_points:]
+
+        # Update plot
+        self.current_curve.setData(self.time_data, self.current_data)
+
+    def clear_plot_data(self):
+        """Clear all plot data"""
+        self.time_data = []
+        self.current_data = []
+        self.current_curve.setData([], [])
+        self.save_data_btn.setEnabled(False)
+        print("Plot data cleared")
+
+    def save_data(self):
+        """Save data to CSV file"""
+        if not self.time_data:
+            QMessageBox.warning(self, "No Data", "No data to save")
+            return
+
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"keithley6221_data_{timestamp}.csv"
+
+        try:
+            import csv
+            with open(filename, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Time (s)', 'Current (A)'])
+                for t, i in zip(self.time_data, self.current_data):
+                    writer.writerow([t, i])
+
+            QMessageBox.information(self, "Success", f"Data saved to {filename}")
+            print(f"Data saved to {filename}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error saving data:\n{str(e)}")
+
+    def start_monitoring(self):
+        """Start monitoring current output"""
+        if self.monitor_thread and self.monitor_thread.isRunning():
+            return
+
+        is_emulation = (self.keithley_6221 == 'Emulation')
+
+        if is_emulation:
+            # Use emulation thread
+            self.stop_monitoring()
+        else:
+            # Use monitor thread for real instrument
+            self.monitor_thread = MonitorThread(self.keithley_6221, is_emulation)
+            self.monitor_thread.data_signal.connect(self.update_plot_data)
+            self.monitor_thread.error_signal.connect(self.on_reading_error)
+            self.monitor_thread.start()
+
+        self.save_data_btn.setEnabled(True)
+        print("Monitoring started")
+
+    def start_ac_monitoring(self, waveform_type, amplitude, frequency, offset):
+        """Start AC waveform monitoring with emulation"""
+        self.stop_monitoring()
+
+        if self.keithley_6221 == 'Emulation':
+            # Start emulation thread for waveform
+            self.emulation_thread = EmulationThread(waveform_type, amplitude, frequency, offset)
+            self.emulation_thread.data_signal.connect(self.update_plot_data)
+            self.emulation_thread.start()
+        else:
+            # Start monitor thread for real instrument
+            self.monitor_thread = MonitorThread(self.keithley_6221, False)
+            self.monitor_thread.data_signal.connect(self.update_plot_data)
+            self.monitor_thread.error_signal.connect(self.on_reading_error)
+            self.monitor_thread.start()
+
+        self.monitor_status_label.setText("Status: Monitoring AC waveform")
+        self.save_data_btn.setEnabled(True)
+
+    def stop_monitoring(self):
+        """Stop all monitoring threads"""
+        if self.monitor_thread and self.monitor_thread.isRunning():
+            self.monitor_thread.stop()
+            self.monitor_thread.wait()
+            self.monitor_thread = None
+
+        if self.emulation_thread and self.emulation_thread.isRunning():
+            self.emulation_thread.stop()
+            self.emulation_thread.wait()
+            self.emulation_thread = None
+
+        self.monitor_status_label.setText("Status: Not monitoring")
+        print("Monitoring stopped")
+
     def send_dc_current(self):
         """Send or turn off DC current"""
         if not self.isConnect:
@@ -483,10 +733,12 @@ class Keithley6221(QMainWindow):
             # Convert to scientific notation
             unit_map = {1: 'e-3', 2: 'e-6', 3: 'e-9', 4: 'e-12'}
             unit_suffix = unit_map[unit_idx]
+            unit_multiplier = {1: 1e-3, 2: 1e-6, 3: 1e-9, 4: 1e-12}
+            current_value = float(dc_current) * unit_multiplier[unit_idx]
 
             if self.keithley_6221 == 'Emulation':
                 QMessageBox.information(self, "Emulation Mode",
-                    f"DC Current set to: {dc_current} {self.dc_unit_combo.currentText()}")
+                                        f"DC Current set to: {dc_current} {self.dc_unit_combo.currentText()}")
                 self.DCisOn = True
                 self.dc_send_btn.setText("Turn OFF")
                 self.dc_send_btn.setStyleSheet("""
@@ -501,6 +753,11 @@ class Keithley6221(QMainWindow):
                     }
                 """)
                 self.ac_arm_btn.setEnabled(False)
+
+                # Start monitoring
+                self.clear_plot_data()
+                self.start_monitoring()
+                self.monitor_status_label.setText("Status: Monitoring DC current")
                 return
 
             try:
@@ -533,6 +790,11 @@ class Keithley6221(QMainWindow):
                 """)
                 self.ac_arm_btn.setEnabled(False)
 
+                # Start monitoring
+                self.clear_plot_data()
+                self.start_monitoring()
+                self.monitor_status_label.setText("Status: Monitoring DC current")
+
                 QMessageBox.information(self, "Success", "DC current output enabled")
 
             except Exception as e:
@@ -540,6 +802,8 @@ class Keithley6221(QMainWindow):
 
         else:
             # Turn off DC current
+            self.stop_monitoring()
+
             if self.keithley_6221 != 'Emulation':
                 try:
                     self.keithley_6221.write("OUTP OFF")
@@ -550,6 +814,7 @@ class Keithley6221(QMainWindow):
             self.dc_send_btn.setText("Send DC Current")
             self.dc_send_btn.setStyleSheet("")
             self.ac_arm_btn.setEnabled(True)
+            self.monitor_status_label.setText("Status: Not monitoring")
 
     def arm_waveform(self):
         """Arm or abort AC waveform"""
@@ -591,20 +856,24 @@ class Keithley6221(QMainWindow):
 
             # Convert units
             unit_map = {1: 'e-3', 2: 'e-6', 3: 'e-9', 4: 'e-12'}
+            unit_multiplier = {1: 1e-3, 2: 1e-6, 3: 1e-9, 4: 1e-12}
             amp_suffix = unit_map[amp_unit_idx]
             offset_suffix = unit_map[offset_unit_idx]
+
+            amp_value = float(amp) * unit_multiplier[amp_unit_idx]
+            freq_value = float(freq)
+            offset_value = float(offset) * unit_multiplier[offset_unit_idx]
 
             # Map waveform
             waveform_map = {1: 'SIN', 2: 'SQU', 3: 'RAMP', 4: 'ARB0'}
             waveform = waveform_map[waveform_idx]
 
             if self.keithley_6221 == 'Emulation':
-                QMessageBox.information(self, "Emulation Mode",
-                    f"Waveform armed:\n"
-                    f"Function: {self.waveform_combo.currentText()}\n"
-                    f"Amplitude: {amp} {self.amp_unit_combo.currentText()}\n"
-                    f"Frequency: {freq} Hz\n"
-                    f"Offset: {offset} {self.offset_unit_combo.currentText()}")
+                QMessageBox.information(self, "Emulation Mode", f"Waveform armed:\n"
+                                                                f"Function: {self.waveform_combo.currentText()}\n"
+                                                                f"Amplitude: {amp} {self.amp_unit_combo.currentText()}\n"
+                                                                f"Frequency: {freq} Hz\n"
+                                                                f"Offset: {offset} {self.offset_unit_combo.currentText()}")
                 self.ACisOn = True
                 self.ac_arm_btn.setText("Abort Waveform")
                 self.ac_arm_btn.setStyleSheet("""
@@ -619,6 +888,10 @@ class Keithley6221(QMainWindow):
                     }
                 """)
                 self.dc_send_btn.setEnabled(False)
+
+                # Start AC monitoring with emulation
+                self.clear_plot_data()
+                self.start_ac_monitoring(waveform, amp_value, freq_value, offset_value)
                 return
 
             try:
@@ -671,6 +944,10 @@ class Keithley6221(QMainWindow):
                 """)
                 self.dc_send_btn.setEnabled(False)
 
+                # Start monitoring
+                self.clear_plot_data()
+                self.start_ac_monitoring(waveform, amp_value, freq_value, offset_value)
+
                 QMessageBox.information(self, "Success", "Waveform armed and initiated")
 
             except Exception as e:
@@ -678,6 +955,8 @@ class Keithley6221(QMainWindow):
 
         else:
             # Abort waveform
+            self.stop_monitoring()
+
             if self.keithley_6221 != 'Emulation':
                 try:
                     self.keithley_6221.write("SOUR:WAVE:ABOR")
@@ -688,9 +967,12 @@ class Keithley6221(QMainWindow):
             self.ac_arm_btn.setText("Arm Waveform")
             self.ac_arm_btn.setStyleSheet("")
             self.dc_send_btn.setEnabled(True)
+            self.monitor_status_label.setText("Status: Not monitoring")
 
     def closeEvent(self, event):
         """Handle window close"""
+        self.stop_monitoring()
+
         if self.reading_thread and self.reading_thread.isRunning():
             self.reading_thread.stop()
             self.reading_thread.wait()
