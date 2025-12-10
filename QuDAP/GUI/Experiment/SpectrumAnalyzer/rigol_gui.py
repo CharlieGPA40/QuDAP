@@ -13,7 +13,7 @@ import struct
 # Import the standalone connection class and RIGOL commands
 try:
     from instrument.instrument_connection import InstrumentConnection
-    from instrument.rigol_command import RIGOL_COMMAND
+    from instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
 except ImportError:
     from QuDAP.instrument.instrument_connection import InstrumentConnection
     from QuDAP.instrument.rigol_spectrum_analyzer import RIGOL_COMMAND
