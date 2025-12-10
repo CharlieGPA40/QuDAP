@@ -363,8 +363,9 @@ class ST_FMR_Worker(QThread):
 
                             self.clear_fmr_plot.emit()
 
-                            csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}.csv"
+                            csv_filename = f"{self.folder_path}{self.file_name}_{temperature_list[i]}K_{frequency_list[j]}_Hz_{power_list[k]}_dBm_Run_{self.run_number}_repeat_{number_of_repetition[l]}"
                             csv_filename = csv_filename.replace(".", "_")
+                            csv_filename = csv_filename + '.csv'
 
                             time.sleep(5)
 

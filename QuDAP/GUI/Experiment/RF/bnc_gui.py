@@ -226,10 +226,11 @@ class SweepThread(QThread):
             sweep_type = self.sweep_config['type']
             start_val = self.sweep_config['start']
             stop_val = self.sweep_config['stop']
-            num_steps = self.sweep_config['steps']
+            step_size = self.sweep_config['step']
             delay = self.sweep_config['delay']
 
-            # Generate sweep values
+            # Generate sweep values using step size
+            num_steps = int((stop_val - start_val) / step_size) + 1
             sweep_values = np.linspace(start_val, stop_val, num_steps)
 
             for step_idx, param_value in enumerate(sweep_values):
@@ -392,7 +393,7 @@ class BNC845RF(QMainWindow):
         # Modulation section
         self.setup_modulation_section(self.left_layout)
 
-        # Sweep section (NEW)
+        # Sweep section
         self.setup_sweep_section(self.left_layout)
 
         # Monitor control section
@@ -522,19 +523,23 @@ class BNC845RF(QMainWindow):
         rf_group = QGroupBox("RF Control")
         rf_layout = QVBoxLayout()
 
-        # Frequency control
+        # Frequency control with unit selection
         freq_layout = QHBoxLayout()
         freq_label = QLabel("Frequency:")
         freq_label.setFixedWidth(80)
         freq_label.setFont(self.font)
         self.freq_spinbox = QDoubleSpinBox()
-        self.freq_spinbox.setRange(100000, 26500000000)
-        self.freq_spinbox.setValue(1000000000)
-        self.freq_spinbox.setDecimals(0)
-        self.freq_spinbox.setSuffix(" Hz")
+        self.freq_spinbox.setRange(0.1, 26500)
+        self.freq_spinbox.setValue(1.0)
+        self.freq_spinbox.setDecimals(3)
         self.freq_spinbox.setFont(self.font)
+        self.freq_unit_combo = QComboBox()
+        self.freq_unit_combo.setFont(self.font)
+        self.freq_unit_combo.addItems(["Hz", "kHz", "MHz", "GHz"])
+        self.freq_unit_combo.setCurrentText("GHz")
         freq_layout.addWidget(freq_label)
         freq_layout.addWidget(self.freq_spinbox, 1)
+        freq_layout.addWidget(self.freq_unit_combo)
         rf_layout.addLayout(freq_layout)
 
         freq_set_btn = QPushButton("Set Frequency")
@@ -848,8 +853,18 @@ class BNC845RF(QMainWindow):
         page.setLayout(layout)
         return page
 
+    def convert_frequency_to_hz(self, value, unit):
+        """Convert frequency value with unit to Hz"""
+        multipliers = {'Hz': 1, 'kHz': 1e3, 'MHz': 1e6, 'GHz': 1e9}
+        return value * multipliers.get(unit, 1)
+
+    def convert_hz_to_unit(self, hz_value, unit):
+        """Convert Hz value to specified unit"""
+        divisors = {'Hz': 1, 'kHz': 1e3, 'MHz': 1e6, 'GHz': 1e9}
+        return hz_value / divisors.get(unit, 1)
+
     def setup_sweep_section(self, parent_layout):
-        """Setup parameter sweep section (NEW)"""
+        """Setup parameter sweep section"""
         self.sweep_group = QGroupBox("Parameter Sweep")
         sweep_layout = QVBoxLayout()
 
@@ -874,14 +889,16 @@ class BNC845RF(QMainWindow):
         start_label.setFixedWidth(100)
         self.sweep_start_spin = QDoubleSpinBox()
         self.sweep_start_spin.setFont(self.font)
-        self.sweep_start_spin.setRange(100000, 26500000000)
-        self.sweep_start_spin.setDecimals(0)
-        self.sweep_start_spin.setValue(1000000000)
-        self.sweep_start_suffix = QLabel("Hz")
-        self.sweep_start_suffix.setFont(self.font)
+        self.sweep_start_spin.setRange(0.1, 26500)
+        self.sweep_start_spin.setDecimals(3)
+        self.sweep_start_spin.setValue(1.0)
+        self.sweep_start_unit_combo = QComboBox()
+        self.sweep_start_unit_combo.setFont(self.font)
+        self.sweep_start_unit_combo.addItems(["Hz", "kHz", "MHz", "GHz"])
+        self.sweep_start_unit_combo.setCurrentText("GHz")
         start_layout.addWidget(start_label)
         start_layout.addWidget(self.sweep_start_spin, 1)
-        start_layout.addWidget(self.sweep_start_suffix)
+        start_layout.addWidget(self.sweep_start_unit_combo)
         sweep_layout.addLayout(start_layout)
 
         # Stop value
@@ -891,31 +908,36 @@ class BNC845RF(QMainWindow):
         stop_label.setFixedWidth(100)
         self.sweep_stop_spin = QDoubleSpinBox()
         self.sweep_stop_spin.setFont(self.font)
-        self.sweep_stop_spin.setRange(100000, 26500000000)
-        self.sweep_stop_spin.setDecimals(0)
-        self.sweep_stop_spin.setValue(2000000000)
-        self.sweep_stop_suffix = QLabel("Hz")
-        self.sweep_stop_suffix.setFont(self.font)
+        self.sweep_stop_spin.setRange(0.1, 26500)
+        self.sweep_stop_spin.setDecimals(3)
+        self.sweep_stop_spin.setValue(2.0)
+        self.sweep_stop_unit_combo = QComboBox()
+        self.sweep_stop_unit_combo.setFont(self.font)
+        self.sweep_stop_unit_combo.addItems(["Hz", "kHz", "MHz", "GHz"])
+        self.sweep_stop_unit_combo.setCurrentText("GHz")
         stop_layout.addWidget(stop_label)
         stop_layout.addWidget(self.sweep_stop_spin, 1)
-        stop_layout.addWidget(self.sweep_stop_suffix)
+        stop_layout.addWidget(self.sweep_stop_unit_combo)
         sweep_layout.addLayout(stop_layout)
 
-        # Number of steps
-        steps_layout = QHBoxLayout()
-        steps_label = QLabel("Steps:")
-        steps_label.setFont(self.font)
-        steps_label.setFixedWidth(100)
-        self.sweep_steps_spin = QSpinBox()
-        self.sweep_steps_spin.setFont(self.font)
-        self.sweep_steps_spin.setRange(2, 1000)
-        self.sweep_steps_spin.setValue(11)
-        self.sweep_steps_suffix = QLabel("points")
-        self.sweep_steps_suffix.setFont(self.font)
-        steps_layout.addWidget(steps_label)
-        steps_layout.addWidget(self.sweep_steps_spin, 1)
-        steps_layout.addWidget(self.sweep_steps_suffix)
-        sweep_layout.addLayout(steps_layout)
+        # Step size
+        step_layout = QHBoxLayout()
+        step_label = QLabel("Step:")
+        step_label.setFont(self.font)
+        step_label.setFixedWidth(100)
+        self.sweep_step_spin = QDoubleSpinBox()
+        self.sweep_step_spin.setFont(self.font)
+        self.sweep_step_spin.setRange(0.001, 26500)
+        self.sweep_step_spin.setDecimals(3)
+        self.sweep_step_spin.setValue(0.5)
+        self.sweep_step_unit_combo = QComboBox()
+        self.sweep_step_unit_combo.setFont(self.font)
+        self.sweep_step_unit_combo.addItems(["Hz", "kHz", "MHz", "GHz"])
+        self.sweep_step_unit_combo.setCurrentText("GHz")
+        step_layout.addWidget(step_label)
+        step_layout.addWidget(self.sweep_step_spin, 1)
+        step_layout.addWidget(self.sweep_step_unit_combo)
+        sweep_layout.addLayout(step_layout)
 
         # Time delay between steps
         delay_layout = QHBoxLayout()
@@ -1009,59 +1031,152 @@ class BNC845RF(QMainWindow):
     def on_sweep_type_changed(self, sweep_type):
         """Update sweep parameter ranges based on type"""
         if sweep_type == "RF Frequency":
-            self.sweep_start_spin.setRange(100000, 26500000000)
-            self.sweep_stop_spin.setRange(100000, 26500000000)
-            self.sweep_start_spin.setDecimals(0)
-            self.sweep_stop_spin.setDecimals(0)
-            self.sweep_start_spin.setValue(1000000000)
-            self.sweep_stop_spin.setValue(2000000000)
-            self.sweep_start_suffix.setText("Hz")
-            self.sweep_stop_suffix.setText("Hz")
+            # Show unit combos
+            self.sweep_start_unit_combo.setVisible(True)
+            self.sweep_stop_unit_combo.setVisible(True)
+            self.sweep_step_unit_combo.setVisible(True)
+
+            self.sweep_start_spin.setRange(0.1, 26500)
+            self.sweep_stop_spin.setRange(0.1, 26500)
+            self.sweep_step_spin.setRange(0.001, 26500)
+            self.sweep_start_spin.setDecimals(3)
+            self.sweep_stop_spin.setDecimals(3)
+            self.sweep_step_spin.setDecimals(3)
+            self.sweep_start_spin.setValue(1.0)
+            self.sweep_stop_spin.setValue(2.0)
+            self.sweep_step_spin.setValue(0.5)
+            self.sweep_start_spin.setSuffix("")
+            self.sweep_stop_spin.setSuffix("")
+            self.sweep_step_spin.setSuffix("")
+            self.sweep_start_unit_combo.setCurrentText("GHz")
+            self.sweep_stop_unit_combo.setCurrentText("GHz")
+            self.sweep_step_unit_combo.setCurrentText("GHz")
+
         elif sweep_type == "RF Power":
+            # Hide unit combos, show suffix
+            self.sweep_start_unit_combo.setVisible(False)
+            self.sweep_stop_unit_combo.setVisible(False)
+            self.sweep_step_unit_combo.setVisible(False)
+
             self.sweep_start_spin.setRange(-21.0, 15.0)
             self.sweep_stop_spin.setRange(-21.0, 15.0)
+            self.sweep_step_spin.setRange(0.01, 36.0)
             self.sweep_start_spin.setDecimals(2)
             self.sweep_stop_spin.setDecimals(2)
+            self.sweep_step_spin.setDecimals(2)
             self.sweep_start_spin.setValue(-10.0)
             self.sweep_stop_spin.setValue(10.0)
-            self.sweep_start_suffix.setText("dBm")
-            self.sweep_stop_suffix.setText("dBm")
+            self.sweep_step_spin.setValue(2.0)
+            self.sweep_start_spin.setSuffix(" dBm")
+            self.sweep_stop_spin.setSuffix(" dBm")
+            self.sweep_step_spin.setSuffix(" dBm")
+
         elif sweep_type == "AM Frequency":
-            self.sweep_start_spin.setRange(0.1, 1000000)
-            self.sweep_stop_spin.setRange(0.1, 1000000)
+            # Show unit combos
+            self.sweep_start_unit_combo.setVisible(True)
+            self.sweep_stop_unit_combo.setVisible(True)
+            self.sweep_step_unit_combo.setVisible(True)
+
+            self.sweep_start_spin.setRange(0.1, 1000)
+            self.sweep_stop_spin.setRange(0.1, 1000)
+            self.sweep_step_spin.setRange(0.1, 1000)
             self.sweep_start_spin.setDecimals(1)
             self.sweep_stop_spin.setDecimals(1)
+            self.sweep_step_spin.setDecimals(1)
             self.sweep_start_spin.setValue(100)
-            self.sweep_stop_spin.setValue(10000)
-            self.sweep_start_suffix.setText("Hz")
-            self.sweep_stop_suffix.setText("Hz")
+            self.sweep_stop_spin.setValue(1000)
+            self.sweep_step_spin.setValue(100)
+            self.sweep_start_spin.setSuffix("")
+            self.sweep_stop_spin.setSuffix("")
+            self.sweep_step_spin.setSuffix("")
+            self.sweep_start_unit_combo.setCurrentText("Hz")
+            self.sweep_stop_unit_combo.setCurrentText("Hz")
+            self.sweep_step_unit_combo.setCurrentText("Hz")
+
         elif sweep_type == "AM Depth":
+            # Hide unit combos, show suffix
+            self.sweep_start_unit_combo.setVisible(False)
+            self.sweep_stop_unit_combo.setVisible(False)
+            self.sweep_step_unit_combo.setVisible(False)
+
             self.sweep_start_spin.setRange(0, 100)
             self.sweep_stop_spin.setRange(0, 100)
+            self.sweep_step_spin.setRange(1, 100)
             self.sweep_start_spin.setDecimals(0)
             self.sweep_stop_spin.setDecimals(0)
+            self.sweep_step_spin.setDecimals(0)
             self.sweep_start_spin.setValue(0)
             self.sweep_stop_spin.setValue(100)
-            self.sweep_start_suffix.setText("%")
-            self.sweep_stop_suffix.setText("%")
+            self.sweep_step_spin.setValue(10)
+            self.sweep_start_spin.setSuffix(" %")
+            self.sweep_stop_spin.setSuffix(" %")
+            self.sweep_step_spin.setSuffix(" %")
+
         elif sweep_type == "FM Frequency":
-            self.sweep_start_spin.setRange(0.1, 1000000)
-            self.sweep_stop_spin.setRange(0.1, 1000000)
+            # Show unit combos
+            self.sweep_start_unit_combo.setVisible(True)
+            self.sweep_stop_unit_combo.setVisible(True)
+            self.sweep_step_unit_combo.setVisible(True)
+
+            self.sweep_start_spin.setRange(0.1, 1000)
+            self.sweep_stop_spin.setRange(0.1, 1000)
+            self.sweep_step_spin.setRange(0.1, 1000)
             self.sweep_start_spin.setDecimals(1)
             self.sweep_stop_spin.setDecimals(1)
+            self.sweep_step_spin.setDecimals(1)
             self.sweep_start_spin.setValue(100)
-            self.sweep_stop_spin.setValue(10000)
-            self.sweep_start_suffix.setText("Hz")
-            self.sweep_stop_suffix.setText("Hz")
+            self.sweep_stop_spin.setValue(1000)
+            self.sweep_step_spin.setValue(100)
+            self.sweep_start_spin.setSuffix("")
+            self.sweep_stop_spin.setSuffix("")
+            self.sweep_step_spin.setSuffix("")
+            self.sweep_start_unit_combo.setCurrentText("Hz")
+            self.sweep_stop_unit_combo.setCurrentText("Hz")
+            self.sweep_step_unit_combo.setCurrentText("Hz")
+
         elif sweep_type == "FM Deviation":
-            self.sweep_start_spin.setRange(1, 10000000)
-            self.sweep_stop_spin.setRange(1, 10000000)
+            # Show unit combos
+            self.sweep_start_unit_combo.setVisible(True)
+            self.sweep_stop_unit_combo.setVisible(True)
+            self.sweep_step_unit_combo.setVisible(True)
+
+            self.sweep_start_spin.setRange(1, 10000)
+            self.sweep_stop_spin.setRange(1, 10000)
+            self.sweep_step_spin.setRange(1, 10000)
             self.sweep_start_spin.setDecimals(0)
             self.sweep_stop_spin.setDecimals(0)
+            self.sweep_step_spin.setDecimals(0)
             self.sweep_start_spin.setValue(1000)
-            self.sweep_stop_spin.setValue(100000)
-            self.sweep_start_suffix.setText("Hz")
-            self.sweep_stop_suffix.setText("Hz")
+            self.sweep_stop_spin.setValue(10000)
+            self.sweep_step_spin.setValue(1000)
+            self.sweep_start_spin.setSuffix("")
+            self.sweep_stop_spin.setSuffix("")
+            self.sweep_step_spin.setSuffix("")
+            self.sweep_start_unit_combo.setCurrentText("Hz")
+            self.sweep_stop_unit_combo.setCurrentText("Hz")
+            self.sweep_step_unit_combo.setCurrentText("Hz")
+
+    def get_sweep_values_in_base_units(self):
+        """Get sweep start/stop/step values converted to base units (Hz for frequencies, dBm for power, % for depth)"""
+        sweep_type = self.sweep_type_combo.currentText()
+
+        if sweep_type == "RF Frequency":
+            start = self.convert_frequency_to_hz(self.sweep_start_spin.value(),
+                self.sweep_start_unit_combo.currentText())
+            stop = self.convert_frequency_to_hz(self.sweep_stop_spin.value(), self.sweep_stop_unit_combo.currentText())
+            step = self.convert_frequency_to_hz(self.sweep_step_spin.value(), self.sweep_step_unit_combo.currentText())
+        elif sweep_type in ["AM Frequency", "FM Frequency", "FM Deviation"]:
+            start = self.convert_frequency_to_hz(self.sweep_start_spin.value(),
+                self.sweep_start_unit_combo.currentText())
+            stop = self.convert_frequency_to_hz(self.sweep_stop_spin.value(), self.sweep_stop_unit_combo.currentText())
+            step = self.convert_frequency_to_hz(self.sweep_step_spin.value(), self.sweep_step_unit_combo.currentText())
+        else:
+            # RF Power or AM Depth (already have suffix)
+            start = self.sweep_start_spin.value()
+            stop = self.sweep_stop_spin.value()
+            step = self.sweep_step_spin.value()
+
+        return start, stop, step
 
     def start_sweep(self):
         """Start parameter sweep"""
@@ -1080,14 +1195,19 @@ class BNC845RF(QMainWindow):
         # Clear previous sweep data
         self.sweep_data_storage = []
 
-        # Get sweep parameters
-        sweep_config = {'type': self.sweep_type_combo.currentText(), 'start': self.sweep_start_spin.value(),
-            'stop': self.sweep_stop_spin.value(), 'steps': self.sweep_steps_spin.value(),
+        # Get sweep parameters in base units
+        start, stop, step = self.get_sweep_values_in_base_units()
+
+        sweep_config = {'type': self.sweep_type_combo.currentText(), 'start': start, 'stop': stop, 'step': step,
             'delay': self.sweep_delay_spin.value()}
 
         # Validate parameters
         if sweep_config['start'] >= sweep_config['stop']:
             QMessageBox.warning(self, "Invalid Range", "Start value must be less than stop value")
+            return
+
+        if sweep_config['step'] <= 0:
+            QMessageBox.warning(self, "Invalid Step", "Step size must be greater than zero")
             return
 
         # Create and start sweep thread
@@ -1159,13 +1279,32 @@ class BNC845RF(QMainWindow):
             sweep_type = self.sweep_type_combo.currentText().replace(" ", "_")
             filename = f"bnc845_sweep_{sweep_type}_{timestamp}.csv"
 
+            sweep_type_full = self.sweep_type_combo.currentText()
+
+            # Format start/stop/step with units
+            if 'Frequency' in sweep_type_full and sweep_type_full != 'AM Frequency':
+                # RF Frequency, FM Frequency, FM Deviation
+                start_str = f"{self.sweep_start_spin.value()} {self.sweep_start_unit_combo.currentText()}"
+                stop_str = f"{self.sweep_stop_spin.value()} {self.sweep_stop_unit_combo.currentText()}"
+                step_str = f"{self.sweep_step_spin.value()} {self.sweep_step_unit_combo.currentText()}"
+            elif sweep_type_full == 'AM Frequency':
+                start_str = f"{self.sweep_start_spin.value()} {self.sweep_start_unit_combo.currentText()}"
+                stop_str = f"{self.sweep_stop_spin.value()} {self.sweep_stop_unit_combo.currentText()}"
+                step_str = f"{self.sweep_step_spin.value()} {self.sweep_step_unit_combo.currentText()}"
+            else:
+                # RF Power or AM Depth (have suffixes)
+                start_str = f"{self.sweep_start_spin.value()}{self.sweep_start_spin.suffix()}"
+                stop_str = f"{self.sweep_stop_spin.value()}{self.sweep_stop_spin.suffix()}"
+                step_str = f"{self.sweep_step_spin.value()}{self.sweep_step_spin.suffix()}"
+
             with open(filename, 'w') as f:
                 # Write header
                 f.write(f"# BNC 845 RF Sweep Data\n")
-                f.write(f"# Sweep Type: {self.sweep_type_combo.currentText()}\n")
-                f.write(f"# Start: {self.sweep_start_spin.value()} {self.sweep_start_suffix.text()}\n")
-                f.write(f"# Stop: {self.sweep_stop_spin.value()} {self.sweep_stop_suffix.text()}\n")
-                f.write(f"# Steps: {self.sweep_steps_spin.value()} {self.sweep_steps_suffix.text()}\n")
+                f.write(f"# Sweep Type: {sweep_type_full}\n")
+                f.write(f"# Start: {start_str}\n")
+                f.write(f"# Stop: {stop_str}\n")
+                f.write(f"# Step: {step_str}\n")
+                f.write(f"# Number of points: {len(self.sweep_data_storage)}\n")
                 f.write(f"# Delay: {self.sweep_delay_spin.value()} s\n")
                 f.write(f"# Timestamp: {timestamp}\n")
                 f.write("#\n")
@@ -1301,7 +1440,9 @@ class BNC845RF(QMainWindow):
             return
 
         try:
-            freq = str(int(self.freq_spinbox.value()))
+            # Convert to Hz
+            freq_hz = self.convert_frequency_to_hz(self.freq_spinbox.value(), self.freq_unit_combo.currentText())
+            freq = str(int(freq_hz))
 
             if self.bnc845 == 'Emulation':
                 print(f"[Emulation] Set frequency to {freq} Hz")
@@ -1398,13 +1539,11 @@ class BNC845RF(QMainWindow):
                 else:
                     self.mod_type_reading_label.setText('OFF')
                     self.mod_state_reading_label.setText('OFF')
-                # Update sweep options when modulation state changes
                 self.update_sweep_options()
                 return
 
             self.command.set_am_state(self.bnc845, state)
             self.update_readings_from_instrument()
-            # Update sweep options when modulation state changes
             self.update_sweep_options()
             print(f"Set AM {state}")
         except Exception as e:
@@ -1448,13 +1587,11 @@ class BNC845RF(QMainWindow):
                 else:
                     self.mod_type_reading_label.setText('OFF')
                     self.mod_state_reading_label.setText('OFF')
-                # Update sweep options when modulation state changes
                 self.update_sweep_options()
                 return
 
             self.command.set_fm_state(self.bnc845, state)
             self.update_readings_from_instrument()
-            # Update sweep options when modulation state changes
             self.update_sweep_options()
             print(f"Set FM {state}")
         except Exception as e:
@@ -1495,13 +1632,11 @@ class BNC845RF(QMainWindow):
                 else:
                     self.mod_type_reading_label.setText('OFF')
                     self.mod_state_reading_label.setText('OFF')
-                # Update sweep options when modulation state changes
                 self.update_sweep_options()
                 return
 
             self.command.set_pm_state(self.bnc845, state)
             self.update_readings_from_instrument()
-            # Update sweep options when modulation state changes
             self.update_sweep_options()
             print(f"Set PM {state}")
         except Exception as e:
@@ -1522,13 +1657,11 @@ class BNC845RF(QMainWindow):
                 else:
                     self.mod_type_reading_label.setText('OFF')
                     self.mod_state_reading_label.setText('OFF')
-                # Update sweep options when modulation state changes
                 self.update_sweep_options()
                 return
 
             self.command.set_pulse_state(self.bnc845, state)
             self.update_readings_from_instrument()
-            # Update sweep options when modulation state changes
             self.update_sweep_options()
             print(f"Set Pulse {state}")
         except Exception as e:
@@ -1575,7 +1708,6 @@ class BNC845RF(QMainWindow):
                 self.mod_type_reading_label.setText('OFF')
                 self.mod_state_reading_label.setText('OFF')
 
-            # Update sweep options based on new modulation state
             self.update_sweep_options()
 
         except Exception as e:

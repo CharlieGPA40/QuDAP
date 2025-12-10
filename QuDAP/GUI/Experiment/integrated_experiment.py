@@ -9,7 +9,7 @@ try:
     from QuDAP.GUI.Experiment.VoltageCurrentSource.bk_gui import BK9129
     from QuDAP.GUI.Experiment.VoltageCurrentSource.kepco_gui import KEPCO
     from QuDAP.GUI.Experiment.SpectrumAnalyzer.rigol_gui import RigolDSA800
-    from QuDAP.GUI.Experiment.RF.gui import BNC845RF
+    from QuDAP.GUI.Experiment.RF.bnc_gui import BNC845RF
     from QuDAP.GUI.Experiment.Nanovoltmeter.gui import NV
     from QuDAP.GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
     from QuDAP.GUI.Experiment.LockInAmplifier.sr_gui import SR830
@@ -87,8 +87,7 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
 
         # Tab 5: Spectrum Analyzer (with subtabs)
         spectrum_tab = self.create_tab_with_subtabs(
-            [("Rigol", RigolDSA800()), ("Sweep", QLabel("Sweep configuration")),
-                ("Analysis", QLabel("Analysis tools"))])
+            [("Rigol", RigolDSA800()), ("Coming Soon",QLabel(request_text))])
         self.main_tab_widget.addTab(spectrum_tab, "Spectrum Analyzer")
 
         # Tab 6: RF Source
@@ -96,10 +95,16 @@ class INTEGRATED_EXPERIMENT(QMainWindow):
         self.main_tab_widget.addTab(rf_tab, "RF Source")
 
         # Tab 7: Measurement (with subtabs)
-        measurement_tab = self.create_tab_with_subtabs(
-            [("Setup", MeasurementSystemMainWindow()), ("Run", QLabel("Run measurement")),
-                ("Results", QLabel("Results"))])
-        self.main_tab_widget.addTab(measurement_tab, "Measurement")
+        # measurement_tab = self.create_tab_with_subtabs(
+        #     [("Setup", MeasurementSystemMainWindow()), ("Run", QLabel("Run measurement")),
+        #         ("Results", QLabel("Results"))])
+        # self.main_tab_widget.addTab(measurement_tab, "Measurement")
+
+        measurement_widget = QWidget()
+        measurement_layout = QVBoxLayout()
+        measurement_layout.addWidget(MeasurementSystemMainWindow())
+        measurement_widget.setLayout(measurement_layout)
+        self.main_tab_widget.addTab(measurement_widget, "Measurement")
 
     def create_tab_with_subtabs(self, subtabs):
         """
