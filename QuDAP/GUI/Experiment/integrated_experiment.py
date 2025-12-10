@@ -21,7 +21,7 @@ except ImportError:
     from GUI.Experiment.VoltageCurrentSource.bk_gui import BK9129
     from GUI.Experiment.VoltageCurrentSource.kepco_gui import KEPCO
     from GUI.Experiment.SpectrumAnalyzer.rigol_gui import RigolDSA800
-    from GUI.Experiment.RF.gui import BNC845RF
+    from GUI.Experiment.RF.bnc_gui import BNC845RF
     from GUI.Experiment.Nanovoltmeter.gui import NV
     from GUI.Experiment.LockInAmplifier.dsp_gui import DSP7265
     from GUI.Experiment.LockInAmplifier.sr_gui import SR830
