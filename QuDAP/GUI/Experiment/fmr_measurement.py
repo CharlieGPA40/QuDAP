@@ -445,7 +445,7 @@ class ST_FMR_Worker(QThread):
                                         logger.warning(e)
                                         self.send_notification.emit(
                                             "Your measurement went wrong, possible PPMS client lost connection", 'critical')
-                                time.sleep(20)
+                                time.sleep(60)
 
                                 currentField = MyField
                                 user_field_rate = \
@@ -461,7 +461,7 @@ class ST_FMR_Worker(QThread):
                                 while currentField >= end_field + 1:
                                     user_field_rate = self._continous_field_setting(field_direction, currentField, field_zone_count)
                                     self._set_field(end_field, user_field_rate)
-
+                                    time.sleep(2)
 
                                     if self.stopped_by_user:
                                         self.append_text.emit("\n" + "=" * 60, 'red')
