@@ -452,7 +452,7 @@ class ST_FMR_Worker(QThread):
                                     self.ppms_setting['field_setting']['final_continuous_list']['region1'][
                                         'rate']
                                 self._set_field(end_field, user_field_rate)
-
+                                time.sleep(1)
                                 self.append_text.emit('Start collecting data \n', 'purple')
                                 logger.success('Start collecting data!')
                                 counter = 0
